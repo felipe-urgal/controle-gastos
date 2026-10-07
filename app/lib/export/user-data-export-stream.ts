@@ -1,30 +1,16 @@
 import { Pool, type PoolClient } from "pg";
+
 import {
   escapeCsvField,
-  serializeExportAccount,
-  serializeExportCategory,
-  serializeExportDebt,
-  serializeExportTag,
-  serializeExportTransaction,
   serializeTransactionCsvRow,
   TRANSACTION_CSV_HEADERS,
-  type ExportAccount,
-  type ExportCategory,
-  type ExportDebt,
-  type ExportDebtAdjustment,
-  type ExportTag,
   type ExportTransaction,
 } from "@/app/lib/export/user-data-export";
 
 export type UserDataExportFormat = "csv" | "json";
 
-const TRANSACTION_PAGE_SIZE = 500;
-
-const exportPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 2,
-  allowExitOnIdle: true,
-});
+const PAGE_SIZE = 500;
+export const USER_DATA_EXPORT_FORMAT_VERSION = 5;
 
 type Cursor = {
   year: number;
@@ -35,12 +21,154 @@ type Cursor = {
 };
 
 type SnapshotMetadata = {
-  accountCount: number;
-  categoryCount: number;
-  tagCount: number;
+  domainCount: number;
   transactionCount: number;
-  debtCount: number;
 };
+
+type ExportDomain = {
+  key: string;
+  table: string;
+  userColumn?: string;
+  omit?: string[];
+  orderBy?: string;
+};
+
+export const USER_DATA_EXPORT_DOMAINS: readonly ExportDomain[] = [
+  { key: "accounts", table: "accounts" },
+  { key: "categories", table: "categories" },
+  { key: "categoryMonthlyLimits", table: "category_monthly_limits" },
+  { key: "importRules", table: "transaction_import_rules" },
+  {
+    key: "reconciliationEvents",
+    table: "account_reconciliation_events",
+    userColumn: "user_id",
+  },
+  { key: "transactions", table: "transactions" },
+  { key: "merchants", table: "merchants" },
+  { key: "merchantAliases", table: "merchant_aliases" },
+  { key: "merchantAliasEvents", table: "merchant_alias_events" },
+  { key: "transactionAllocations", table: "transaction_allocations" },
+  { key: "tags", table: "tags" },
+  {
+    key: "transactionTags",
+    table: "transaction_tags",
+    orderBy:
+      't."created_at" ASC, t."transaction_id" ASC, t."tag_id" ASC',
+  },
+  { key: "transactionTemplates", table: "transaction_templates" },
+  { key: "transactionSeries", table: "transaction_series" },
+  {
+    key: "subscriptionReviews",
+    table: "subscription_reviews",
+    userColumn: "user_id",
+  },
+  {
+    key: "recurrencePatternReviews",
+    table: "recurrence_pattern_reviews",
+    userColumn: "user_id",
+  },
+  {
+    key: "transfers",
+    table: "transfers",
+    omit: ["idempotency_key_hash", "request_hash"],
+  },
+  {
+    key: "creditCardPayments",
+    table: "credit_card_payments",
+    omit: ["idempotency_key_hash", "request_hash"],
+  },
+  { key: "financialGoals", table: "financial_goals" },
+  {
+    key: "financialGoalEntries",
+    table: "financial_goal_entries",
+    omit: ["idempotency_key_hash", "request_hash"],
+  },
+  {
+    key: "periodicFinancialSummaries",
+    table: "periodic_financial_summaries",
+  },
+  { key: "exchangeRates", table: "exchange_rates" },
+  { key: "debts", table: "debts" },
+  {
+    key: "debtAdjustments",
+    table: "debt_adjustments",
+    omit: ["idempotency_key_hash", "request_hash"],
+  },
+  { key: "investmentAssets", table: "investment_assets" },
+  { key: "investmentOperations", table: "investment_operations" },
+  { key: "investmentIncomes", table: "investment_incomes" },
+  { key: "investmentFiscalEvents", table: "investment_fiscal_events" },
+  {
+    key: "investmentFiscalCostAdjustments",
+    table: "investment_fiscal_cost_adjustments",
+  },
+  {
+    key: "investmentBrokerageTaxReviews",
+    table: "investment_brokerage_tax_reviews",
+  },
+  {
+    key: "investmentTaxLossAdjustments",
+    table: "investment_tax_loss_adjustments",
+  },
+  {
+    key: "investmentTaxWithholdings",
+    table: "investment_tax_withholdings",
+  },
+  { key: "investmentTaxPayments", table: "investment_tax_payments" },
+  {
+    key: "investmentForeignTaxesPaid",
+    table: "investment_foreign_taxes_paid",
+  },
+  {
+    key: "investmentFiscalPendingResolutions",
+    table: "investment_fiscal_pending_resolutions",
+  },
+  {
+    key: "annualFinancialTaxStatements",
+    table: "annual_financial_tax_statements",
+  },
+  { key: "payrollDocuments", table: "payroll_documents" },
+  { key: "payrollAdvanceLinks", table: "payroll_advance_links" },
+  { key: "payrollTransactionLinks", table: "payroll_transaction_links" },
+  {
+    key: "annualEmploymentIncomeStatements",
+    table: "annual_employment_income_statements",
+  },
+  {
+    key: "mcpAccessTokens",
+    table: "mcp_access_tokens",
+    omit: ["token_hash"],
+  },
+] as const;
+
+const EXCLUDED_SECURITY_DATA = [
+  "password hash",
+  "TOTP secret",
+  "MFA recovery-code hashes",
+  "MFA login challenges",
+  "password-reset tokens",
+  "JWT/session tokens",
+  "MCP token hash/full token",
+  "authentication rate-limit state",
+  "idempotency/request hashes",
+] as const;
+
+const exportPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 2,
+  allowExitOnIdle: true,
+});
+
+function assertIdentifier(value: string) {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
+    throw new Error("INVALID_EXPORT_IDENTIFIER");
+  }
+  return value;
+}
+
+function sqlStringLiteral(value: string) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
 
 function transactionFromRow(row: Record<string, unknown>): ExportTransaction {
   return {
@@ -103,7 +231,7 @@ async function fetchTransactionPage(
     `;
   }
 
-  values.push(TRANSACTION_PAGE_SIZE);
+  values.push(PAGE_SIZE);
   const limitParam = `$${values.length}`;
 
   const result = await client.query(
@@ -160,6 +288,144 @@ async function fetchTransactionPage(
   return result.rows.map(transactionFromRow);
 }
 
+async function fetchOwnedJsonPage(
+  client: PoolClient,
+  domain: ExportDomain,
+  userId: string,
+  offset: number,
+) {
+  const table = assertIdentifier(domain.table);
+  const userColumn = assertIdentifier(domain.userColumn ?? "userId");
+  const removedKeys = [userColumn, ...(domain.omit ?? [])];
+  const removeExpression = removedKeys
+    .map((value) => sqlStringLiteral(value))
+    .join(", ");
+  const orderBy =
+    domain.orderBy ?? 't."created_at" ASC, t."id" ASC';
+
+  const result = await client.query<{ data: string }>(
+    `
+      SELECT (
+        to_jsonb(t) - ARRAY[${removeExpression}]::text[]
+      )::text AS "data"
+      FROM "${table}" t
+      WHERE t."${userColumn}" = $1
+      ORDER BY ${orderBy}
+      LIMIT $2 OFFSET $3
+    `,
+    [userId, PAGE_SIZE, offset],
+  );
+
+  return result.rows.map((row) => row.data);
+}
+
+async function fetchSafeProfile(client: PoolClient, userId: string) {
+  const result = await client.query<{ data: string }>(
+    `
+      SELECT jsonb_build_object(
+        'id', "id",
+        'name', "name",
+        'email', "email",
+        'emailVerifiedAt', "email_verified_at",
+        'showValues', "showValues",
+        'periodicSummaryEnabled', "periodic_summary_enabled",
+        'periodicSummaryFrequency', "periodic_summary_frequency",
+        'periodicSummaryLastProcessedAt', "periodic_summary_last_processed_at",
+        'mfaEnabled', "totp_enabled",
+        'createdAt', "created_at",
+        'updatedAt', "updated_at"
+      )::text AS "data"
+      FROM "users"
+      WHERE "id" = $1
+    `,
+    [userId],
+  );
+
+  const profile = result.rows[0]?.data;
+  if (!profile) throw new Error("EXPORT_USER_NOT_FOUND");
+  return profile;
+}
+
+async function transactionCount(client: PoolClient, userId: string) {
+  const result = await client.query<{ count: string }>(
+    'SELECT COUNT(*)::text AS "count" FROM "transactions" WHERE "userId" = $1',
+    [userId],
+  );
+  return Number(result.rows[0]?.count ?? 0);
+}
+
+async function* createJsonChunks(
+  client: PoolClient,
+  userId: string,
+  exportedAt: Date,
+) {
+  const profile = await fetchSafeProfile(client, userId);
+
+  yield (
+    `{"formatVersion":${USER_DATA_EXPORT_FORMAT_VERSION},` +
+    `"kind":"logical-portability-snapshot",` +
+    `"exportedAt":${JSON.stringify(exportedAt.toISOString())},` +
+    `"profile":${profile},"data":{`
+  );
+
+  for (let domainIndex = 0; domainIndex < USER_DATA_EXPORT_DOMAINS.length; domainIndex += 1) {
+    const domain = USER_DATA_EXPORT_DOMAINS[domainIndex]!;
+    if (domainIndex > 0) yield ",";
+
+    yield `${JSON.stringify(domain.key)}:[`;
+
+    let offset = 0;
+    let firstRow = true;
+
+    while (true) {
+      const page = await fetchOwnedJsonPage(client, domain, userId, offset);
+      if (page.length === 0) break;
+
+      for (const row of page) {
+        if (!firstRow) yield ",";
+        firstRow = false;
+        yield row;
+      }
+
+      offset += page.length;
+      if (page.length < PAGE_SIZE) break;
+    }
+
+    yield "]";
+  }
+
+  yield (
+    `},"manifest":{"schema":"controle-gastos.user-data",` +
+    `"domains":${JSON.stringify(USER_DATA_EXPORT_DOMAINS.map((domain) => domain.key))},` +
+    `"excludedSecurityData":${JSON.stringify(EXCLUDED_SECURITY_DATA)}}}`
+  );
+}
+
+async function* createCsvChunks(client: PoolClient, userId: string) {
+  const header = TRANSACTION_CSV_HEADERS
+    .map((value) => escapeCsvField(value))
+    .join(",");
+  yield `\uFEFF${header}`;
+
+  let cursor: Cursor | null = null;
+
+  while (true) {
+    const page = await fetchTransactionPage(client, userId, cursor);
+    if (page.length === 0) return;
+
+    const last = page[page.length - 1]!;
+    cursor = {
+      year: last.year,
+      month: last.month,
+      day: last.day,
+      createdAt: last.createdAt,
+      id: last.id,
+    };
+
+    yield "\r\n" + page.map(serializeTransactionCsvRow).join("\r\n");
+  }
+}
+
 async function rollbackAndRelease(client: PoolClient) {
   try {
     await client.query("ROLLBACK");
@@ -178,123 +444,16 @@ export async function createUserDataExportStream(args: {
   try {
     await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
 
-    const accountsResult = await client.query<ExportAccount>(
-      `
-        SELECT
-          "id",
-          "name",
-          "type",
-          "currency",
-          "isActive",
-          "color",
-          "icon",
-          "description",
-          "created_at" AS "createdAt",
-          "updated_at" AS "updatedAt"
-        FROM "accounts"
-        WHERE "userId" = $1
-        ORDER BY "created_at" ASC, "id" ASC
-      `,
-      [args.userId],
-    );
-    const categoriesResult = await client.query<ExportCategory>(
-      `
-        SELECT
-          "id",
-          "name",
-          "type",
-          "isActive",
-          "color",
-          "icon",
-          "description",
-          "position",
-          "created_at" AS "createdAt",
-          "updated_at" AS "updatedAt"
-        FROM "categories"
-        WHERE "userId" = $1
-        ORDER BY "position" ASC, "created_at" ASC, "id" ASC
-      `,
-      [args.userId],
-    );
-    const tagsResult = await client.query<ExportTag>(
-      `
-        SELECT
-          "id",
-          "name",
-          "is_active" AS "isActive",
-          "created_at" AS "createdAt",
-          "updated_at" AS "updatedAt"
-        FROM "tags"
-        WHERE "userId" = $1
-        ORDER BY "created_at" ASC, "id" ASC
-      `,
-      [args.userId],
-    );
-    const debtsResult = await client.query<Omit<ExportDebt, "adjustments">>(
-      `
-        SELECT
-          "id",
-          "name",
-          "currency",
-          "balance",
-          "installment_amount" AS "installmentAmount",
-          "due_year" AS "dueYear",
-          "due_month" AS "dueMonth",
-          "due_day" AS "dueDay",
-          "remaining_installments" AS "remainingInstallments",
-          "institution",
-          "description",
-          "status",
-          "created_at" AS "createdAt",
-          "updated_at" AS "updatedAt"
-        FROM "debts"
-        WHERE "userId" = $1
-        ORDER BY "created_at" ASC, "id" ASC
-      `,
-      [args.userId],
-    );
-    const debtAdjustmentsResult = await client.query<
-      ExportDebtAdjustment & { debtId: string }
-    >(
-      `
-        SELECT
-          "id",
-          "debt_id" AS "debtId",
-          "previous_balance" AS "previousBalance",
-          "new_balance" AS "newBalance",
-          "delta",
-          "description",
-          "created_at" AS "createdAt"
-        FROM "debt_adjustments"
-        WHERE "userId" = $1
-        ORDER BY "created_at" ASC, "id" ASC
-      `,
-      [args.userId],
-    );
-    const transactionCountResult = await client.query<{ count: string }>(
-      'SELECT COUNT(*)::text AS "count" FROM "transactions" WHERE "userId" = $1',
-      [args.userId],
-    );
-
-    const accounts = accountsResult.rows;
-    const categories = categoriesResult.rows;
-    const tags = tagsResult.rows;
-    const adjustmentsByDebt = new Map<string, ExportDebtAdjustment[]>();
-    for (const adjustment of debtAdjustmentsResult.rows) {
-      const items = adjustmentsByDebt.get(adjustment.debtId) ?? [];
-      items.push(adjustment);
-      adjustmentsByDebt.set(adjustment.debtId, items);
-    }
-    const debts: ExportDebt[] = debtsResult.rows.map((debt) => ({
-      ...debt,
-      adjustments: adjustmentsByDebt.get(debt.id) ?? [],
-    }));
-    const transactionCount = Number(transactionCountResult.rows[0]?.count ?? 0);
+    const metadata: SnapshotMetadata = {
+      domainCount:
+        args.format === "json" ? USER_DATA_EXPORT_DOMAINS.length : 1,
+      transactionCount: await transactionCount(client, args.userId),
+    };
     const encoder = new TextEncoder();
-
-    let cursor: Cursor | null = null;
-    let firstTransaction = true;
-    let initialized = false;
+    const iterator =
+      args.format === "json"
+        ? createJsonChunks(client, args.userId, args.exportedAt)
+        : createCsvChunks(client, args.userId);
     let finished = false;
 
     const finish = async (commit: boolean) => {
@@ -310,79 +469,25 @@ export async function createUserDataExportStream(args: {
     const stream = new ReadableStream<Uint8Array>({
       async pull(controller) {
         try {
-          if (!initialized) {
-            initialized = true;
-            if (args.format === "csv") {
-              const header = TRANSACTION_CSV_HEADERS
-                .map((value) => escapeCsvField(value))
-                .join(",");
-              controller.enqueue(encoder.encode(`\uFEFF${header}`));
-            } else {
-              const prefix =
-                `{"formatVersion":4,"exportedAt":${JSON.stringify(args.exportedAt.toISOString())},` +
-                `"accounts":${JSON.stringify(accounts.map(serializeExportAccount))},` +
-                `"categories":${JSON.stringify(categories.map(serializeExportCategory))},` +
-                `"tags":${JSON.stringify(tags.map(serializeExportTag))},` +
-                `"debts":${JSON.stringify(debts.map(serializeExportDebt))},` +
-                '"transactions":[';
-              controller.enqueue(encoder.encode(prefix));
-            }
-            return;
-          }
-
-          const page = await fetchTransactionPage(client, args.userId, cursor);
-          if (page.length === 0) {
-            if (args.format === "json") {
-              controller.enqueue(encoder.encode("]}"));
-            }
+          const next = await iterator.next();
+          if (next.done) {
             await finish(true);
             controller.close();
             return;
           }
-
-          const last = page[page.length - 1]!;
-          cursor = {
-            year: last.year,
-            month: last.month,
-            day: last.day,
-            createdAt: last.createdAt,
-            id: last.id,
-          };
-
-          if (args.format === "csv") {
-            const chunk =
-              "\r\n" + page.map(serializeTransactionCsvRow).join("\r\n");
-            controller.enqueue(encoder.encode(chunk));
-          } else {
-            const serialized = page
-              .map((transaction) =>
-                JSON.stringify(serializeExportTransaction(transaction)),
-              )
-              .join(",");
-            const prefix = firstTransaction ? "" : ",";
-            firstTransaction = false;
-            controller.enqueue(encoder.encode(prefix + serialized));
-          }
+          controller.enqueue(encoder.encode(next.value));
         } catch (error) {
           await finish(false);
           controller.error(error);
         }
       },
       async cancel() {
+        await iterator.return?.();
         await finish(false);
       },
     });
 
-    return {
-      stream,
-      metadata: {
-        accountCount: accounts.length,
-        categoryCount: categories.length,
-        tagCount: tags.length,
-        transactionCount,
-        debtCount: debts.length,
-      },
-    };
+    return { stream, metadata };
   } catch (error) {
     await rollbackAndRelease(client);
     throw error;

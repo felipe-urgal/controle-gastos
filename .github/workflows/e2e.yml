@@ -21,8 +21,24 @@ on:
       - "tests/e2e/calendar-flow.spec.mjs"
       - "tests/e2e/payroll-flow.spec.mjs"
       - "tests/e2e/user-password-reauth.spec.mjs"
+      - "tests/e2e/user-email-change.spec.mjs"
+      - "tests/e2e/user-profile-state.spec.mjs"
+      - "tests/e2e/user-profile-mobile.spec.mjs"
+      - "tests/e2e/user-profile-desktop.spec.mjs"
+      - "tests/e2e/user-show-values-cross-module.spec.mjs"
+      - "tests/e2e/user-delete-account.spec.mjs"
+      - "tests/e2e/mfa-flow.spec.mjs"
       - "tests/e2e/support/**"
       - "app/components/pages/account/**"
+      - "app/components/pages/user/**"
+      - "app/(pages)/(home)/usuario/**"
+      - "app/hooks/users/**"
+      - "app/api/user/**"
+      - "app/api/auth/verify-email/**"
+      - "app/api/auth/mfa/**"
+      - "app/lib/security/**"
+      - "app/services/mfa-service.ts"
+      - "app/lib/users/**"
       - "app/components/pages/category/**"
       - "app/hooks/accounts/**"
       - "app/hooks/categories/**"
@@ -141,6 +157,7 @@ jobs:
       RESEND_FROM_EMAIL: no-reply@example.test
       NEXT_PUBLIC_SITE_URL: http://127.0.0.1:5100
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:5100
+      TRUST_PROXY_HEADERS: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -190,6 +207,13 @@ jobs:
           tests/e2e/calendar-flow.spec.mjs
           tests/e2e/payroll-flow.spec.mjs
           tests/e2e/user-password-reauth.spec.mjs
+          tests/e2e/user-email-change.spec.mjs
+          tests/e2e/user-profile-state.spec.mjs
+          tests/e2e/user-profile-mobile.spec.mjs
+          tests/e2e/user-profile-desktop.spec.mjs
+          tests/e2e/user-show-values-cross-module.spec.mjs
+          tests/e2e/user-delete-account.spec.mjs
+          tests/e2e/mfa-flow.spec.mjs
           --project=${{ matrix.browser }}
 
       - name: Run full E2E

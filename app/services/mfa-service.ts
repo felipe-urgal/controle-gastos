@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client";
-import type { User } from "./auth-service";
+import type { User } from "@/app/types/user";
 
 interface ApiEnvelope<T> {
   success: boolean;
@@ -35,6 +35,16 @@ export interface DisableTotpRequest {
   currentPassword: string;
   token?: string;
   recoveryCode?: string;
+}
+
+export interface RecoveryCodeStatus {
+  enabled: boolean;
+  remaining: number;
+}
+
+export interface RegenerateRecoveryCodesResponse {
+  recoveryCodes: string[];
+  remaining: number;
 }
 
 export const mfaService = {
@@ -76,6 +86,31 @@ export const mfaService = {
         credentials: "include",
       }
     );
+  },
+
+  async getRecoveryCodeStatus() {
+    const response = await apiClient<ApiEnvelope<RecoveryCodeStatus>>(
+      "/api/auth/mfa/recovery-codes",
+      {
+        method: "GET",
+        credentials: "include",
+      },
+    );
+
+    return response.data;
+  },
+
+  async regenerateRecoveryCodes(input: DisableTotpRequest) {
+    const response = await apiClient<
+      ApiEnvelope<RegenerateRecoveryCodesResponse>,
+      DisableTotpRequest
+    >("/api/auth/mfa/recovery-codes", {
+      method: "POST",
+      body: input,
+      credentials: "include",
+    });
+
+    return response.data;
   },
 
   async disable(input: DisableTotpRequest) {

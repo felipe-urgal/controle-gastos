@@ -178,6 +178,8 @@ export async function POST(request: Request): Promise<NextResponse> {
           periodicSummaryEnabled: user.periodicSummaryEnabled,
           periodicSummaryFrequency: user.periodicSummaryFrequency,
           totpEnabled: false,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
         },
       },
       { status: 200 }

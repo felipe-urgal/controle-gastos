@@ -6,6 +6,7 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { asInputRecord, stringInput } from "@/app/lib/auth/auth-input";
 import { isHttpError } from "@/app/lib/http-error";
+import { SENSITIVE_ACTIONS } from "@/app/lib/security/sensitive-actions";
 import { verifyStepUpAuth } from "@/app/lib/security/step-up-auth";
 import { deleteUser } from "@/app/lib/users/delete-user";
 import { userCrud } from "@/app/lib/users/user-crud";
@@ -61,6 +62,7 @@ export async function DELETE(request: Request) {
       currentPassword,
       token,
       recoveryCode,
+      action: SENSITIVE_ACTIONS.USER_DELETE,
     });
     await deleteUser(userId);
 

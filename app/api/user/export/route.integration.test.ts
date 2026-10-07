@@ -43,6 +43,8 @@ async function createUserData(label: string) {
       name: `Usuário ${label}`,
       email: `export-${label}-${suffix}@example.test`,
       password: `hash-${label}-nao-exportar`,
+      showValues: label !== "owner",
+      periodicSummaryEnabled: label === "owner",
     },
   });
   createdUserIds.push(user.id);
@@ -93,7 +95,70 @@ async function createUserData(label: string) {
     },
   });
 
-  return { user, account, category, tag, transaction };
+  const merchant = await prisma.merchant.create({
+    data: {
+      name: `Mercado ${label}`,
+      userId: user.id,
+    },
+  });
+
+  const goal = await prisma.financialGoal.create({
+    data: {
+      name: `Meta ${label}`,
+      targetAmount: 50_000,
+      currency: "BRL",
+      userId: user.id,
+      accountId: account.id,
+    },
+  });
+
+  const investmentAsset = await prisma.investmentAsset.create({
+    data: {
+      symbol: `TST${label.slice(0, 1).toUpperCase()}`,
+      name: `Ativo ${label}`,
+      type: "STOCK",
+      currency: "BRL",
+      userId: user.id,
+    },
+  });
+
+  const periodicSummary = await prisma.periodicFinancialSummary.create({
+    data: {
+      currency: "BRL",
+      periodStartYear: 2026,
+      periodStartMonth: 8,
+      periodStartDay: 24,
+      periodEndYear: 2026,
+      periodEndMonth: 8,
+      periodEndDay: 30,
+      content: { summary: `Resumo ${label}` },
+      userId: user.id,
+    },
+  });
+
+  const mcpToken = await prisma.mcpAccessToken.create({
+    data: {
+      name: `Token ${label}`,
+      tokenHash: (label === "owner" ? "a" : "b").repeat(64),
+      tokenPrefix: label === "owner" ? "mcp_owner" : "mcp_other",
+      scope: "finance:read",
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+      userId: user.id,
+    },
+  });
+
+  return {
+    user,
+    account,
+    category,
+    tag,
+    transaction,
+    merchant,
+    goal,
+    investmentAsset,
+    periodicSummary,
+    mcpToken,
+  };
 }
 
 async function ownedCounts(userId: string) {
@@ -152,34 +217,101 @@ describe("GET /api/user/export", () => {
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(response.headers.get("x-request-id")).toBe("export-test-json");
 
-    expect(body.accounts).toHaveLength(1);
-    expect(body.categories).toHaveLength(1);
-    expect(body.tags).toHaveLength(1);
-    expect(body.transactions).toHaveLength(1);
-    expect(body.accounts[0]).toMatchObject({
+    expect(body).toMatchObject({
+      formatVersion: 5,
+      kind: "logical-portability-snapshot",
+      profile: {
+        id: owner.user.id,
+        email: owner.user.email,
+        showValues: false,
+        periodicSummaryEnabled: true,
+      },
+      manifest: {
+        schema: "controle-gastos.user-data",
+      },
+    });
+
+    expect(body.data.accounts).toHaveLength(1);
+    expect(body.data.categories).toHaveLength(1);
+    expect(body.data.tags).toHaveLength(1);
+    expect(body.data.transactions).toHaveLength(1);
+    expect(body.data.merchants).toHaveLength(1);
+    expect(body.data.financialGoals).toHaveLength(1);
+    expect(body.data.investmentAssets).toHaveLength(1);
+    expect(body.data.periodicFinancialSummaries).toHaveLength(1);
+    expect(body.data.mcpAccessTokens).toHaveLength(1);
+
+    expect(body.data.accounts[0]).toMatchObject({
       id: owner.account.id,
       isActive: false,
     });
-    expect(body.categories[0]).toMatchObject({
+    expect(body.data.categories[0]).toMatchObject({
       id: owner.category.id,
       isActive: false,
     });
-    expect(body.tags[0]).toMatchObject({
+    expect(body.data.tags[0]).toMatchObject({
       id: owner.tag.id,
       name: "Tag owner",
-      isActive: false,
+      is_active: false,
     });
-    expect(body.transactions[0]).toMatchObject({
+    expect(body.data.transactions[0]).toMatchObject({
       id: owner.transaction.id,
-      amountCents: 12345,
-      date: "2026-08-30",
+      amount: 12345,
+      year: 2026,
+      month: 8,
+      day: 30,
     });
+    expect(body.data.merchants[0].id).toBe(owner.merchant.id);
+    expect(body.data.financialGoals[0].id).toBe(owner.goal.id);
+    expect(body.data.investmentAssets[0].id).toBe(owner.investmentAsset.id);
+    expect(body.data.periodicFinancialSummaries[0].id).toBe(
+      owner.periodicSummary.id,
+    );
+    expect(body.data.mcpAccessTokens[0]).toMatchObject({
+      id: owner.mcpToken.id,
+      token_prefix: "mcp_owner",
+      scope: "finance:read",
+    });
+    expect(body.data.mcpAccessTokens[0]).not.toHaveProperty("token_hash");
 
-    expect(text).not.toContain(other.user.id);
-    expect(text).not.toContain(other.account.id);
-    expect(text).not.toContain(other.transaction.id);
-    expect(text).not.toContain(owner.user.password);
-    expect(text).not.toMatch(/password|jwt|resetToken|rateLimit|userId/i);
+    expect(body.manifest.domains).toEqual(Object.keys(body.data));
+    expect(body.manifest.domains).toEqual(
+      expect.arrayContaining([
+        "categoryMonthlyLimits",
+        "importRules",
+        "reconciliationEvents",
+        "merchantAliases",
+        "transactionAllocations",
+        "transactionTemplates",
+        "transactionSeries",
+        "subscriptionReviews",
+        "recurrencePatternReviews",
+        "transfers",
+        "creditCardPayments",
+        "financialGoalEntries",
+        "exchangeRates",
+        "debtAdjustments",
+        "investmentFiscalEvents",
+        "investmentTaxWithholdings",
+        "investmentTaxPayments",
+        "payrollDocuments",
+        "annualEmploymentIncomeStatements",
+      ]),
+    );
+
+    const safePayload = JSON.stringify({
+      profile: body.profile,
+      data: body.data,
+    });
+    expect(safePayload).not.toContain(other.user.id);
+    expect(safePayload).not.toContain(other.account.id);
+    expect(safePayload).not.toContain(other.transaction.id);
+    expect(safePayload).not.toContain(owner.user.password);
+    expect(safePayload).not.toMatch(
+      /password|jwt|totp_secret|token_hash|code_hash|jti_hash|rateLimit|userId|user_id|idempotency_key_hash|request_hash/i,
+    );
+    expect(body.profile).not.toHaveProperty("authVersion");
+    expect(body.profile).not.toHaveProperty("pendingEmail");
     expect(after).toEqual(before);
     expect(observabilityMocks.logServerOperation).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -191,9 +323,7 @@ describe("GET /api/user/export", () => {
         context: {
           format: "json",
           result: "success",
-          accountCount: 1,
-          categoryCount: 1,
-          tagCount: 1,
+          domainCount: body.manifest.domains.length,
           transactionCount: 1,
         },
       }),

@@ -9,6 +9,8 @@ const protectedMetadataPages = [
   "app/(pages)/(home)/categorias/alterar/[id]/page.tsx",
   "app/(pages)/(home)/transacoes/show/[id]/page.tsx",
   "app/(pages)/(home)/transacoes/alterar/[id]/page.tsx",
+  "app/(pages)/(home)/usuario/page.tsx",
+  "app/(pages)/(home)/usuario/editar/page.tsx",
   "app/(pages)/(home)/usuario/show/[id]/page.tsx",
   "app/(pages)/(home)/usuario/alterar/[id]/page.tsx",
 ];
@@ -27,6 +29,32 @@ describe("protected route metadata privacy", () => {
     expect(source).not.toContain("@/app/lib/services/");
     expect(source).not.toContain("@/app/lib/prisma");
     expect(source).not.toMatch(/get(?:Account|Category|Transaction|User)ById/);
+  });
+
+  it("keeps profile canonical URLs free of user identifiers and redirects legacy URLs", () => {
+    const profilePage = readFileSync(
+      join(process.cwd(), "app/(pages)/(home)/usuario/page.tsx"),
+      "utf8",
+    );
+    const editPage = readFileSync(
+      join(process.cwd(), "app/(pages)/(home)/usuario/editar/page.tsx"),
+      "utf8",
+    );
+    const legacyShow = readFileSync(
+      join(process.cwd(), "app/(pages)/(home)/usuario/show/[id]/page.tsx"),
+      "utf8",
+    );
+    const legacyEdit = readFileSync(
+      join(process.cwd(), "app/(pages)/(home)/usuario/alterar/[id]/page.tsx"),
+      "utf8",
+    );
+
+    expect(profilePage).toContain('canonical: "https://controle-gastos-pessoal.vercel.app/usuario"');
+    expect(editPage).toContain('canonical: "https://controle-gastos-pessoal.vercel.app/usuario/editar"');
+    expect(profilePage).not.toMatch(/\$\{id\}|\[id\]/);
+    expect(editPage).not.toMatch(/\$\{id\}|\[id\]/);
+    expect(legacyShow).toContain('permanentRedirect("/usuario")');
+    expect(legacyEdit).toContain('permanentRedirect("/usuario/editar")');
   });
 
   it("removes the legacy server metadata services", () => {

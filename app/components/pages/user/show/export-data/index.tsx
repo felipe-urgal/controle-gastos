@@ -99,7 +99,7 @@ export default function ExportData() {
               Portabilidade dos dados
             </h2>
             <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-              Baixe uma cópia das suas informações. A exportação é somente leitura e não altera nenhum dado.
+              Baixe seus dados para portabilidade. A exportação é somente leitura e não altera nenhum dado.
             </p>
           </div>
         </div>
@@ -113,8 +113,8 @@ export default function ExportData() {
             onChange={(value) => setFormat(value as ExportFormat)}
             disabled={isExporting}
             options={[
-              { value: 'json', label: 'JSON — snapshot de contas, categorias e transações' },
-              { value: 'csv', label: 'CSV — transações para planilhas' },
+              { value: 'json', label: 'JSON — snapshot estruturado completo' },
+              { value: 'csv', label: 'CSV — somente transações para planilhas' },
             ]}
           />
 
@@ -132,7 +132,7 @@ export default function ExportData() {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">
-          JSON inclui o snapshot estruturado. CSV contém as transações e é compatível com ferramentas de planilha.
+          JSON é o backup lógico/portabilidade dos domínios da conta. CSV contém somente transações para análise em planilhas e não é um backup completo.
         </p>
 
         {feedback && (

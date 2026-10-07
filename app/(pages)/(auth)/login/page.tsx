@@ -46,10 +46,24 @@ export default function LoginPage() {
     }
 
     const params = new URLSearchParams(window.location.search);
-    if (params.get('reason') !== 'password-changed') return;
+    const storedNotice = window.sessionStorage.getItem('auth-notice');
+    const reason = params.get('reason') ?? storedNotice;
+    const verification = params.get('verification');
+    const nextNotice =
+      reason === 'password-changed'
+        ? 'Senha alterada com sucesso. Entre novamente.'
+        : verification === 'email-changed'
+          ? 'E-mail alterado com sucesso. Entre novamente com o novo endereço.'
+          : verification === 'success'
+            ? 'E-mail confirmado com sucesso. Entre na sua conta.'
+            : '';
+
+    if (!nextNotice) return;
+
+    window.sessionStorage.removeItem('auth-notice');
 
     const noticeTimer = window.setTimeout(() => {
-      setNotice('Senha alterada com sucesso. Entre novamente.');
+      setNotice(nextNotice);
     }, 0);
 
     return () => window.clearTimeout(noticeTimer);

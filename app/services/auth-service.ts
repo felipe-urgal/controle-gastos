@@ -1,14 +1,5 @@
 import { apiClient } from "./api-client";
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  showValues: boolean;
-  periodicSummaryEnabled: boolean;
-  periodicSummaryFrequency: 'WEEKLY';
-  totpEnabled: boolean;
-};
+import type { User } from "@/app/types/user";
 
 export interface LoginRequest {
   email: string;
@@ -43,6 +34,7 @@ export interface UpdateUserRequest {
   showValues?: boolean;
   periodicSummaryEnabled?: boolean;
   periodicSummaryFrequency?: 'WEEKLY';
+  cancelPendingEmail?: boolean;
 };
 
 export interface forgotPasswordRequest {
@@ -137,16 +129,6 @@ export const authService = {
     }
     
     return response;
-  },
-
-  async updateUser(data: UpdateUserRequest): Promise<User> {
-    const response = await apiClient<ApiResponse, UpdateUserRequest>("/api/auth/update-user", {method: "PUT", body: data, credentials: "include"});
-    
-    if (!response.success) {
-      throw new AuthError(response.message, response.status);
-    }
-    
-    return response.user!;
   },
 
   async forgotPassword(email: string): Promise<forgotPasswordResponse> {

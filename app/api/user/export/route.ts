@@ -107,9 +107,7 @@ export async function GET(request: Request) {
       {
         format,
         result: "success",
-        accountCount: metadata.accountCount,
-        categoryCount: metadata.categoryCount,
-        tagCount: metadata.tagCount,
+        domainCount: metadata.domainCount,
         transactionCount: metadata.transactionCount,
       },
     );

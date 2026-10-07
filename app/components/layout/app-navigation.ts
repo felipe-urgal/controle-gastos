@@ -27,7 +27,7 @@ export type AppNavigationItem = {
   isActive: (pathname: string) => boolean;
 };
 
-export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
+export function getAppNavigation(): AppNavigationItem[] {
   return [
     {
       key: 'dashboard',
@@ -151,7 +151,7 @@ export function getAppNavigation(userId?: string | null): AppNavigationItem[] {
     {
       key: 'profile',
       label: 'Perfil',
-      href: userId ? `/usuario/show/${userId}` : '/usuario',
+      href: '/usuario',
       icon: FaUser,
       isActive: (pathname) => pathname === '/usuario' || pathname.startsWith('/usuario/'),
     },

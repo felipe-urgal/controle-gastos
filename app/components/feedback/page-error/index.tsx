@@ -7,6 +7,7 @@ interface PageErrorProps {
   message?: string;
   buttonText?: string;
   redirectTo?: string;
+  onRetry?: () => void;
   fullScreen?: boolean;
 }
 
@@ -15,6 +16,7 @@ export default function PageError({
   message,
   buttonText,
   redirectTo,
+  onRetry,
   fullScreen = false,
 }: PageErrorProps) {
   return (
@@ -31,11 +33,17 @@ export default function PageError({
           </p>
         )}
 
-        {buttonText && redirectTo && (
+        {buttonText && (redirectTo || onRetry) && (
           <div className="mt-5 flex justify-center">
-            <Button as="a" href={redirectTo} variant="primary">
-              {buttonText}
-            </Button>
+            {onRetry ? (
+              <Button type="button" variant="primary" onClick={onRetry}>
+                {buttonText}
+              </Button>
+            ) : (
+              <Button as="a" href={redirectTo!} variant="primary">
+                {buttonText}
+              </Button>
+            )}
           </div>
         )}
       </div>

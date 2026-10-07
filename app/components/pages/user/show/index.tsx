@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FaEdit, FaSignOutAlt, FaTrash } from 'react-icons/fa';
 
 import { PageHeader } from '@/app/components/base-pages';
-import { PageEmpty, PageLoading } from '@/app/components/feedback';
+import { PageEmpty, PageError, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { ConfirmationModal, DeleteOverlay } from '@/app/components/overlays';
 import { Button, Input } from '@/app/components/ui';
@@ -16,18 +16,19 @@ import { UserInfo } from '@/app/components/pages/user';
 import { useAuth } from '@/app/context';
 import { useUser } from '@/app/hooks/users/user-show';
 
-type SettingsSection = 'account' | 'preferences' | 'security' | 'export' | 'session' | 'risk';
+type SettingsSection = 'account' | 'preferences' | 'security' | 'integrations' | 'export' | 'session' | 'risk';
 
 const sections: Array<{ id: SettingsSection; label: string }> = [
   { id: 'account', label: 'Conta' },
   { id: 'preferences', label: 'Preferências' },
   { id: 'security', label: 'Segurança' },
+  { id: 'integrations', label: 'Integrações' },
   { id: 'export', label: 'Exportação' },
   { id: 'session', label: 'Sessão' },
   { id: 'risk', label: 'Risco' },
 ];
 
-export default function Show({ id }: { id: string }) {
+export default function Show() {
   const { logout } = useAuth();
   const [activeSection, setActiveSection] = useState<SettingsSection>('account');
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -38,6 +39,9 @@ export default function Show({ id }: { id: string }) {
     user,
     setUser,
     loading,
+    error,
+    notFound,
+    retry,
     isDeleteModalOpen,
     setIsDeleteModalOpen,
     isDeleting,
@@ -101,8 +105,20 @@ export default function Show({ id }: { id: string }) {
 
       {loading ? (
         <PageLoading type="details" />
-      ) : !user ? (
+      ) : notFound ? (
         <PageEmpty title="Perfil não encontrado" />
+      ) : error ? (
+        <PageError
+          message={error}
+          buttonText="Tentar novamente"
+          onRetry={retry}
+        />
+      ) : !user ? (
+        <PageError
+          message="Não foi possível carregar seu perfil."
+          buttonText="Tentar novamente"
+          onRetry={retry}
+        />
       ) : (
         <div className="space-y-5">
           <nav
@@ -117,7 +133,7 @@ export default function Show({ id }: { id: string }) {
                   type="button"
                   aria-pressed={active}
                   onClick={() => setActiveSection(section.id)}
-                  className={`shrink-0 rounded-[var(--radius-lg)] px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+                  className={`min-h-11 shrink-0 rounded-[var(--radius-lg)] px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
                     active
                       ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
                       : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
@@ -170,10 +186,10 @@ export default function Show({ id }: { id: string }) {
                       Dados pessoais e senha
                     </h2>
                     <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-                      Altere seu nome ou defina uma nova senha usando sua senha atual.
+                      Altere seu nome, e-mail ou senha usando sua senha atual.
                     </p>
                   </div>
-                  <Button as="a" href={`/usuario/alterar/${id}`} variant="outline" icon={<FaEdit />} className="w-full sm:w-auto">
+                  <Button as="a" href="/usuario/editar" variant="outline" icon={<FaEdit />} className="w-full sm:w-auto">
                     Editar perfil
                   </Button>
                 </div>
@@ -186,6 +202,19 @@ export default function Show({ id }: { id: string }) {
                 }}
               />
 
+            </div>
+          )}
+
+          {activeSection === 'integrations' && (
+            <div className="space-y-5">
+              <section className="ds-panel p-4 sm:p-5" aria-labelledby="integrations-title">
+                <h2 id="integrations-title" className="text-xl font-semibold text-[var(--foreground)]">
+                  Integrações / acesso externo
+                </h2>
+                <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
+                  Gerencie credenciais de acesso externo separadamente da segurança básica da conta.
+                </p>
+              </section>
               <McpAccessPanel totpEnabled={user.totpEnabled} />
             </div>
           )}

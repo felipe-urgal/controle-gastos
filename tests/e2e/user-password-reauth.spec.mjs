@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+import { setIsolatedClientIp } from './support/client-ip.mjs';
 import { createVerifiedUser } from './support/verified-user.mjs';
 
 const currentPassword = 'Playwright123!';
 const newPassword = 'Playwright456!';
 
 async function login(page, email, password = currentPassword) {
+  await setIsolatedClientIp(page, email);
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);
@@ -36,15 +38,8 @@ test('troca de senha exige novo login e invalida sessões antigas', async ({
   await expect(secondaryPage).toHaveURL(/\/dashboard$/);
 
   try {
-    const profile = await page.evaluate(async () => {
-      const response = await fetch('/api/user', { cache: 'no-store' });
-      if (!response.ok) {
-        throw new Error(`profile load failed with ${response.status}`);
-      }
-      return response.json();
-    });
-
-    await page.goto(`/usuario/alterar/${profile.data.id}`);
+    await page.goto('/usuario/editar');
+    await expect(page).toHaveURL(/\/usuario\/editar$/);
 
     await page.getByLabel('Nova senha', { exact: true }).fill(newPassword);
     await page.getByLabel(/^Senha atual\b/).fill(currentPassword);
@@ -55,7 +50,7 @@ test('troca de senha exige novo login e invalida sessões antigas', async ({
       .getByRole('button', { name: 'Salvar alterações', exact: true })
       .click();
 
-    await expect(page).toHaveURL(/\/login\?reason=password-changed$/);
+    await expect(page).toHaveURL(/\/login(?:\?reason=password-changed)?$/);
     await expect(
       page.getByRole('status').filter({
         hasText: 'Senha alterada com sucesso. Entre novamente.',

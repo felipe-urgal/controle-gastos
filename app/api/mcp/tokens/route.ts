@@ -9,6 +9,7 @@ import {
   createMcpTokenSchema,
   listMcpAccessTokensForUser,
 } from "@/app/lib/mcp/mcp-token";
+import { SENSITIVE_ACTIONS } from "@/app/lib/security/sensitive-actions";
 import { verifyStepUpAuth } from "@/app/lib/security/step-up-auth";
 
 const requestSchema = createMcpTokenSchema.extend({
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
       currentPassword: input.currentPassword,
       token: input.token,
       recoveryCode: input.recoveryCode,
+      action: SENSITIVE_ACTIONS.MCP_TOKEN_CREATE,
     });
 
     const created = await createMcpAccessTokenForUser(userId, {

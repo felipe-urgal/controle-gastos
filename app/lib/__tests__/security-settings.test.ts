@@ -107,7 +107,7 @@ describe("security settings", () => {
         currentPassword: "current",
         recoveryCode: "recovery",
       })
-    ).rejects.toMatchObject({ status: 401, code: "INVALID_CURRENT_PASSWORD" });
+    ).rejects.toMatchObject({ status: 401, code: "INVALID_STEP_UP_CREDENTIALS" });
 
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
@@ -181,7 +181,7 @@ describe("security settings", () => {
         currentPassword: "current",
         token: "000000",
       })
-    ).rejects.toMatchObject({ status: 401, code: "INVALID_MFA" });
+    ).rejects.toMatchObject({ status: 401, code: "INVALID_STEP_UP_CREDENTIALS" });
 
     expect(mocks.transaction).not.toHaveBeenCalled();
   });

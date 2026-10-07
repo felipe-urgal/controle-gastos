@@ -4,6 +4,7 @@ import { FaShieldAlt } from 'react-icons/fa';
 
 import MfaDisable from '@/app/components/pages/user/show/mfa-disable';
 import MfaEnrollment from '@/app/components/pages/user/show/mfa-enrollment';
+import MfaRecoveryCodes from '@/app/components/pages/user/show/mfa-recovery-codes';
 
 export default function MfaSecurityPanel({
   enabled,
@@ -31,7 +32,12 @@ export default function MfaSecurityPanel({
         </div>
 
         {enabled ? (
-          <MfaDisable onDisabled={() => onEnabledChange(false)} />
+          <div className="space-y-4">
+            <MfaRecoveryCodes />
+            <div className="border-t border-[var(--border)] pt-4">
+              <MfaDisable onDisabled={() => onEnabledChange(false)} />
+            </div>
+          </div>
         ) : (
           <MfaEnrollment onActivated={() => onEnabledChange(true)} />
         )}

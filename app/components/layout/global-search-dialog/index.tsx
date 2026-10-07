@@ -14,7 +14,6 @@ import {
 } from 'react-icons/fa';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
-import { useAuth } from '@/app/context';
 import { globalSearchService } from '@/app/services/global-search-service';
 import type {
   GlobalSearchData,
@@ -60,7 +59,6 @@ export default function GlobalSearchDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const [query, setQuery] = useState('');
@@ -84,14 +82,14 @@ export default function GlobalSearchDialog({
   );
   const filteredNavigation = useMemo(
     () =>
-      getAppNavigation(user?.id).filter((item) => {
+      getAppNavigation().filter((item) => {
         if (!normalizedQuery) return true;
         return (
           item.label.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
           item.key.toLocaleLowerCase('pt-BR').includes(normalizedQuery)
         );
       }),
-    [normalizedQuery, user?.id],
+    [normalizedQuery],
   );
   const hasLocalResults =
     filteredQuickActions.length > 0 || filteredNavigation.length > 0;
@@ -241,7 +239,7 @@ export default function GlobalSearchDialog({
                       .toLocaleLowerCase('pt-BR')
                       .includes(nextNormalizedQuery),
                 );
-                const nextHasNavigation = getAppNavigation(user?.id).some(
+                const nextHasNavigation = getAppNavigation().some(
                   (item) =>
                     !nextNormalizedQuery ||
                     item.label

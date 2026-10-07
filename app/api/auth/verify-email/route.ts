@@ -6,7 +6,7 @@ import { prisma } from "@/app/lib/prisma";
 
 const ROUTE = "/api/auth/verify-email";
 
-function redirect(request: Request, state: "success" | "invalid") {
+function redirect(request: Request, state: "success" | "invalid" | "email-changed") {
   const url = new URL("/login", request.url);
   url.searchParams.set("verification", state);
   return NextResponse.redirect(url);
@@ -20,6 +20,7 @@ export async function GET(request: Request) {
 
   try {
     const verification = verifyEmailVerificationToken(token);
+    let successState: "success" | "email-changed" = "success";
     const user = await prisma.user.findUnique({
       where: { id: verification.userId },
       select: {
@@ -28,6 +29,9 @@ export async function GET(request: Request) {
         emailVerifiedAt: true,
         authVersion: true,
         isActive: true,
+        pendingEmail: true,
+        pendingEmailExpiresAt: true,
+        pendingEmailVersion: true,
       },
     });
 
@@ -54,7 +58,15 @@ export async function GET(request: Request) {
         });
       }
     } else {
-      if (user.email === verification.email) return redirect(request, "success");
+      if (
+        !verification.pendingEmailVersion ||
+        user.pendingEmail !== verification.email ||
+        user.pendingEmailVersion !== verification.pendingEmailVersion ||
+        !user.pendingEmailExpiresAt ||
+        user.pendingEmailExpiresAt.getTime() <= Date.now()
+      ) {
+        return redirect(request, "invalid");
+      }
 
       const conflict = await prisma.user.findFirst({
         where: {
@@ -69,14 +81,22 @@ export async function GET(request: Request) {
         where: {
           id: user.id,
           authVersion: verification.authVersion,
+          pendingEmail: verification.email,
+          pendingEmailVersion: verification.pendingEmailVersion,
+          pendingEmailExpiresAt: { gt: new Date() },
         },
         data: {
           email: verification.email,
           emailVerifiedAt: new Date(),
           authVersion: { increment: 1 },
+          pendingEmail: null,
+          pendingEmailRequestedAt: null,
+          pendingEmailExpiresAt: null,
+          pendingEmailVersion: { increment: 1 },
         },
       });
       if (updated.count !== 1) return redirect(request, "invalid");
+      successState = "email-changed";
     }
 
     logEvent("info", "auth_email_verified", {
@@ -84,7 +104,11 @@ export async function GET(request: Request) {
       route: ROUTE,
       status: 302,
     });
-    return redirect(request, "success");
+    const response = redirect(request, successState);
+    if (successState === "email-changed") {
+      response.cookies.delete("token");
+    }
+    return response;
   } catch (error) {
     logEvent("warn", "auth_email_verification_rejected", {
       requestId,

@@ -12,6 +12,11 @@ import {
   hashRecoveryCode,
 } from "@/app/lib/security/totp-secrets";
 import { verifyTotpToken } from "@/app/lib/security/totp";
+import {
+  SENSITIVE_ACTIONS,
+  SENSITIVE_ACTION_POLICIES,
+  type SensitiveAction,
+} from "@/app/lib/security/sensitive-actions";
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
@@ -26,7 +31,12 @@ function invalidCredentials() {
 export async function consumeStepUpRateLimit(args: {
   request: Request;
   userId: string;
+  action?: SensitiveAction;
 }) {
+  const action = args.action ?? SENSITIVE_ACTIONS.USER_DELETE;
+  if (SENSITIVE_ACTION_POLICIES[action].rateLimit !== "STEP_UP") {
+    throw new Error("SENSITIVE_ACTION_RATE_LIMIT_POLICY_INVALID");
+  }
   const [ipLimit, userLimit] = await Promise.all([
     consumeRateLimit({
       action: "step-up-ip",
@@ -59,8 +69,21 @@ export async function verifyStepUpAuth(args: {
   currentPassword: string;
   token?: string;
   recoveryCode?: string;
+  action?: SensitiveAction;
 }) {
-  await consumeStepUpRateLimit({ request: args.request, userId: args.userId });
+  const action = args.action ?? SENSITIVE_ACTIONS.USER_DELETE;
+  if (
+    SENSITIVE_ACTION_POLICIES[action].requirement !==
+    "PASSWORD_MFA_IF_ENABLED"
+  ) {
+    throw new Error("SENSITIVE_ACTION_STEP_UP_POLICY_INVALID");
+  }
+
+  await consumeStepUpRateLimit({
+    request: args.request,
+    userId: args.userId,
+    action,
+  });
 
   const user = await prisma.user.findUnique({
     where: { id: args.userId },
@@ -74,7 +97,7 @@ export async function verifyStepUpAuth(args: {
   });
 
   if (!user || !user.isActive) {
-    throw new HttpError("Usuário não encontrado", 404, "USER_NOT_FOUND");
+    throw invalidCredentials();
   }
 
   if (!(await bcrypt.compare(args.currentPassword, user.password))) {

@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FaEllipsisH } from 'react-icons/fa';
 
-import { useAuth } from '@/app/context';
 import {
   getAppNavigation,
   mobilePrimaryNavigationKeys,
@@ -18,8 +17,7 @@ export default function BottomNav({
   moreOpen?: boolean;
 }) {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const allNavigation = getAppNavigation(user?.id);
+  const allNavigation = getAppNavigation();
   const navigation = allNavigation.filter((item) =>
     mobilePrimaryNavigationKeys.includes(
       item.key as (typeof mobilePrimaryNavigationKeys)[number],
