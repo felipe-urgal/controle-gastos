@@ -1,5 +1,7 @@
 import { normalizeImportRuleText } from "@/app/lib/import-rules/import-rule-normalization";
 
+export { normalizeImportRuleText } from "@/app/lib/import-rules/import-rule-normalization";
+
 export type ImportRuleDescriptionOperator =
   | "EQUALS"
   | "STARTS_WITH"
