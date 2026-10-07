@@ -46,9 +46,13 @@ export default function LoginPage() {
     }
 
     const params = new URLSearchParams(window.location.search);
-    if (params.get('reason') === 'password-changed') {
+    if (params.get('reason') !== 'password-changed') return;
+
+    const noticeTimer = window.setTimeout(() => {
       setNotice('Senha alterada com sucesso. Entre novamente.');
-    }
+    }, 0);
+
+    return () => window.clearTimeout(noticeTimer);
   }, [isAuthenticated, router]);
 
   if (isLoading || isAuthenticated) return null;
