@@ -10,6 +10,12 @@ export type ImportRuleEffectiveState =
   | "BROKEN_CATEGORY"
   | "BROKEN_ACCOUNT";
 
+export type ImportRuleOperationalState =
+  | "ACTIVE"
+  | "PAUSED"
+  | "BROKEN_ACCOUNT"
+  | "BROKEN_CATEGORY";
+
 export interface ImportRuleModel {
   id: string;
   name: string;
@@ -23,6 +29,12 @@ export interface ImportRuleModel {
   minAmountCents: number | null;
   maxAmountCents: number | null;
   categoryId: string;
+  operationalState: ImportRuleOperationalState;
+  operationalReason: string | null;
+  accountName: string | null;
+  accountIsActive: boolean | null;
+  categoryName: string | null;
+  categoryIsActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
