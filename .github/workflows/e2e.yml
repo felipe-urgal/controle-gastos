@@ -20,6 +20,7 @@ on:
       - "tests/e2e/commitments-flow.spec.mjs"
       - "tests/e2e/calendar-flow.spec.mjs"
       - "tests/e2e/payroll-flow.spec.mjs"
+      - "tests/e2e/user-password-reauth.spec.mjs"
       - "tests/e2e/support/**"
       - "app/components/pages/account/**"
       - "app/components/pages/category/**"
@@ -188,6 +189,7 @@ jobs:
           tests/e2e/commitments-flow.spec.mjs
           tests/e2e/calendar-flow.spec.mjs
           tests/e2e/payroll-flow.spec.mjs
+          tests/e2e/user-password-reauth.spec.mjs
           --project=${{ matrix.browser }}
 
       - name: Run full E2E
