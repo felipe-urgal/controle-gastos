@@ -223,7 +223,7 @@ test('preview aplica sugestão, override manual prevalece e confirmação persis
 });
 
 
-test('correção manual cria regra explícita e a próxima importação reutiliza a classificação', async ({ page, request }) => {
+test('correção manual aprende categoria e estabelecimento apenas quando solicitado', async ({ page, request }) => {
   test.setTimeout(90_000);
 
   const suffix = `${Date.now()}-learning-${test.info().retry}`;
@@ -231,6 +231,7 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
   const accountName = `Conta aprendizado ${suffix}`;
   const categoryName = `Categoria aprendizado ${suffix}`.slice(0, 50);
   const description = `Assinatura aprendizado ${suffix}`;
+  const merchantName = `Estabelecimento aprendizado ${suffix}`;
   const firstFile = `learning-first-${suffix}.csv`;
   const secondFile = `learning-second-${suffix}.csv`;
 
@@ -246,7 +247,7 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
   await login(page, email);
 
   const relations = await page.evaluate(
-    async ({ accountName: accountLabel, categoryName: categoryLabel }) => {
+    async ({ accountName: accountLabel, categoryName: categoryLabel, merchantName: merchantLabel }) => {
       async function create(url, data) {
         const response = await fetch(url, {
           method: 'POST',
@@ -280,9 +281,19 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
         position: 0,
       });
 
-      return { accountId: account.id, categoryId: category.id };
+      const merchant = await create('/api/merchants', {
+        name: merchantLabel,
+        description: 'Estabelecimento do aprendizado explícito',
+        isActive: true,
+      });
+
+      return {
+        accountId: account.id,
+        categoryId: category.id,
+        merchantId: merchant.id,
+      };
     },
-    { accountName, categoryName },
+    { accountName, categoryName, merchantName },
   );
 
   await page.goto('/transacoes/importar');
@@ -298,7 +309,11 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
   await expect(firstDetail).toBeVisible();
   const firstCategory = firstDetail.getByLabel('Categoria', { exact: true });
   await firstCategory.selectOption(relations.categoryId);
-  await firstDetail.getByRole('button', { name: 'Continuar sem estabelecimento', exact: true }).click();
+  const firstMerchant = firstDetail.getByLabel('Estabelecimento', { exact: true });
+  await firstMerchant.selectOption(relations.merchantId);
+  await firstDetail
+    .getByLabel('Aprender esta descrição para próximas importações', { exact: true })
+    .check();
 
   const createRuleButton = firstDetail.getByRole('button', {
     name: 'Criar regra com esta classificação',
@@ -336,7 +351,7 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
   await expect(secondDetail).toBeVisible();
   await expect(secondDetail.getByText(generatedRuleName, { exact: true })).toBeVisible();
   await expect(secondDetail.getByLabel('Categoria', { exact: true })).toHaveValue(relations.categoryId);
-  await expect(secondDetail.getByText('Estabelecimento não reconhecido', { exact: true })).toBeVisible();
-  await secondDetail.getByRole('button', { name: 'Continuar sem estabelecimento', exact: true }).click();
+  await expect(secondDetail.getByText(merchantName, { exact: true })).toBeVisible();
+  await expect(secondDetail.getByLabel('Estabelecimento', { exact: true })).toHaveValue(relations.merchantId);
   await expect(secondDetail.getByText('Pronta', { exact: true })).toBeVisible();
 });
