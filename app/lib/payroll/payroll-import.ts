@@ -154,7 +154,7 @@ export async function previewPayrollImport(request: Request) {
       parsed = parsePayrollText(extracted.text);
     } catch (error) {
       if (error instanceof Error && error.message === "PAYROLL_DOCUMENT_NOT_RECOGNIZED") {
-        return failure("PDF não reconhecido como adiantamento salarial ou folha mensal", 400);
+        return failure("PDF não reconhecido como documento de rendimento do trabalho", 400);
       }
       throw error;
     }
