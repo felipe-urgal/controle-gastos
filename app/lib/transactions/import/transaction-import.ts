@@ -29,6 +29,7 @@ import {
   PreviewImportItem,
   parseImportContent,
   parseImportDate,
+  parseQifImport,
   withImportFingerprints,
 } from "@/app/lib/transactions/import/parser";
 import { parseXlsxImport } from "@/app/lib/transactions/import/xlsx-parser";
@@ -123,6 +124,15 @@ export async function previewTransactionImport(request: Request) {
         parsedItems = nubank.items;
         detectedSource = "NUBANK_CREDIT_CARD";
         nubankSummary = nubank.summary;
+      } else if (extension === "qif") {
+        const qif = parseQifImport(content);
+        if (qif.sectionType === "CCARD" && account.type !== "CREDIT_CARD") {
+          return failure(
+            "QIF !Type:CCard deve ser importado em uma conta do tipo cartão de crédito",
+            400,
+          );
+        }
+        parsedItems = qif.items;
       } else {
         parsedItems = parseImportContent({
           fileName: file.name,

@@ -332,6 +332,29 @@ describe("transaction import integration", () => {
     expect(secondBody.data).toEqual({ selected: 2, created: 0, duplicates: 2 });
     expect(await prisma.transaction.count({ where: { userId: owner.id } })).toBe(2);
   });
+  it("requires a credit-card account for QIF !Type:CCard", async () => {
+    const { owner, account } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const qif = [
+      "!Type:CCard",
+      "D8/31/2026",
+      "T-42.37",
+      "PCompra cartão",
+      "^",
+    ].join("\n");
+
+    const preview = await previewTransactionImport(
+      previewRequest(account.id, qif, "cartao.qif"),
+    );
+    const body = await preview.json();
+
+    expect(preview.status).toBe(400);
+    expect(body.error?.message).toBe(
+      "QIF !Type:CCard deve ser importado em uma conta do tipo cartão de crédito",
+    );
+  });
+
   it("previews QFX through OFX semantics and confirms QIF in the canonical pipeline", async () => {
     const { owner, account, expenseCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
