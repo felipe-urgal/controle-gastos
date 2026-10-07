@@ -203,6 +203,10 @@ describe("import rule preview ownership", () => {
           validCount: 1,
           invalidCount: 0,
           duplicateCount: 0,
+          dependencyLoadMs: expect.any(Number),
+          evaluationMs: expect.any(Number),
+          evaluationBudgetMs: 1000,
+          evaluationBudgetExceeded: expect.any(Boolean),
         },
       }),
     );
