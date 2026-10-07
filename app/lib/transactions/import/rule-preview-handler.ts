@@ -1,3 +1,4 @@
+import type { CategoryType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
@@ -57,8 +58,8 @@ export async function previewTransactionImportWithRules(request: Request) {
       );
     }
 
-    const transactionTypes = Array.from(
-      new Set(
+    const transactionTypes: CategoryType[] = Array.from(
+      new Set<CategoryType>(
         items.flatMap((item: { type?: unknown; errors?: unknown; duplicate?: unknown }) =>
           (item.type === "INCOME" || item.type === "EXPENSE") &&
           Array.isArray(item.errors) &&
