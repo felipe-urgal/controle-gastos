@@ -23,6 +23,7 @@ vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
 
+import { payCreditCardStatementForUser } from "@/app/lib/cards/pay-credit-card-statement";
 import { prisma } from "@/app/lib/prisma";
 import {
   createXlsxFixture,
@@ -382,6 +383,147 @@ describe("transaction import integration", () => {
       type: "EXPENSE",
       description: "Pagamento de fatura",
     });
+  });
+
+  it("applies the paid-statement guard to every supported import format", async () => {
+    const { owner, account: sourceAccount, expenseCategory } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão fatura paga ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
+        userId: owner.id,
+      },
+    });
+
+    await prisma.transaction.create({
+      data: {
+        amount: 10_000,
+        year: 2026,
+        month: 9,
+        day: 15,
+        type: "EXPENSE",
+        kind: "NORMAL",
+        description: "Compra original",
+        status: "COMPLETED",
+        accountId: cardAccount.id,
+        categoryId: expenseCategory.id,
+        userId: owner.id,
+      },
+    });
+
+    await payCreditCardStatementForUser(
+      owner.id,
+      cardAccount.id,
+      {
+        sourceAccountId: sourceAccount.id,
+        statementClosingDate: "2026-09-20",
+        paymentDate: "2026-09-20",
+      },
+      `import-paid-statement-${randomUUID()}`,
+    );
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const xlsx = createXlsxFixture({
+      rows: [
+        [xlsxText("data"), xlsxText("descricao"), xlsxText("valor")],
+        [xlsxText("2026-09-16"), xlsxText("Compra XLSX paga"), xlsxNumber("-25.00")],
+      ],
+    });
+
+    const cases: Array<{
+      name: string;
+      content: string | Uint8Array;
+    }> = [
+      {
+        name: "generic.csv",
+        content: "data,descricao,valor\n2026-09-16,Compra CSV paga,-25.00",
+      },
+      {
+        name: "nubank.csv",
+        content: "date,title,amount\n2026-09-16,Compra Nubank paga,25.00",
+      },
+      {
+        name: "card.qif",
+        content: [
+          "!Type:CCard",
+          "D9/16/2026",
+          "T-25.00",
+          "PCompra QIF paga",
+          "^",
+        ].join("\n"),
+      },
+      {
+        name: "card.ofx",
+        content: [
+          "OFXHEADER:100",
+          "<OFX><CURDEF>BRL",
+          "<CCACCTFROM><ACCTID>card-file</CCACCTFROM>",
+          "<BANKTRANLIST><STMTTRN><DTPOSTED>20260916<TRNAMT>-25.00<FITID>paid-ofx<NAME>Compra OFX paga</STMTTRN></BANKTRANLIST>",
+          "</OFX>",
+        ].join("\n"),
+      },
+      {
+        name: "card.qfx",
+        content: [
+          "OFXHEADER:100",
+          "<OFX><CURDEF>BRL",
+          "<CCACCTFROM><ACCTID>card-file</CCACCTFROM>",
+          "<BANKTRANLIST><STMTTRN><DTPOSTED>20260916<TRNAMT>-25.00<FITID>paid-qfx<NAME>Compra QFX paga</STMTTRN></BANKTRANLIST>",
+          "</OFX>",
+        ].join("\n"),
+      },
+      {
+        name: "card.xlsx",
+        content: xlsx,
+      },
+    ];
+
+    for (const current of cases) {
+      const preview = await previewTransactionImport(
+        previewRequest(cardAccount.id, current.content, current.name),
+      );
+      const previewBody = await preview.json();
+      expect(preview.status, current.name).toBe(200);
+
+      const items = previewBody.data.items.map((item: { index: number }) => ({
+        ...item,
+        selected: true,
+        categoryId: expenseCategory.id,
+      }));
+
+      const confirm = await confirmTransactionImport(
+        new Request("http://localhost/api/transactions/import/confirm", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            accountId: cardAccount.id,
+            previewToken: previewBody.data.previewToken,
+            items,
+          }),
+        }),
+      );
+      const confirmBody = await confirm.json();
+
+      expect(confirm.status, current.name).toBe(409);
+      expect(confirmBody.error?.code, current.name).toBe(
+        "CREDIT_CARD_STATEMENT_PAID",
+      );
+    }
+
+    expect(
+      await prisma.transaction.count({
+        where: {
+          userId: owner.id,
+          accountId: cardAccount.id,
+          importFingerprint: { not: null },
+        },
+      }),
+    ).toBe(0);
   });
 
   it("detects an identical reimport and remains idempotent", async () => {
