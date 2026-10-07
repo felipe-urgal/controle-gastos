@@ -48,10 +48,6 @@ function emptyCreatorState(contextKey: string): CreatorState {
   };
 }
 
-function nextPriority(priorities: number[]) {
-  return priorities.length === 0 ? 0 : Math.max(...priorities) + 10;
-}
-
 function getRuleGuardMessage(
   form: ImportRuleFormState,
   rules: ImportRuleModel[],
@@ -121,15 +117,19 @@ export function ManualImportRuleCreator({
     });
 
     try {
-      const response = await importRuleService.getAll();
+      const response = await importRuleService.getAll({
+        page: 1,
+        pageSize: 50,
+        search: description,
+        transactionType,
+      });
       const existingRules = response.data?.items ?? [];
-      const priorities = existingRules.map((rule) => rule.priority);
       const form = importRuleFormFromManualClassification({
         accountId,
         transactionType,
         description,
         categoryId: manualCategoryId,
-        priority: nextPriority(priorities),
+        priority: response.data?.summary?.nextPriority ?? 0,
       });
       setStoredState((current) =>
         current.contextKey === requestKey
