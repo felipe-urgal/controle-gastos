@@ -26,6 +26,17 @@ export const importRuleInputSchema = z
   })
   .superRefine((input, ctx) => {
     if (
+      input.accountId === null &&
+      (input.minAmountCents !== null || input.maxAmountCents !== null)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["accountId"],
+        message: "Regras com faixa de valor exigem uma conta específica",
+      });
+    }
+
+    if (
       input.minAmountCents !== null &&
       input.maxAmountCents !== null &&
       input.minAmountCents > input.maxAmountCents
