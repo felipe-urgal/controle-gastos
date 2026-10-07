@@ -190,6 +190,103 @@ export async function previewPayrollImport(request: Request) {
   }
 }
 
+type ConfirmedPayrollDocument = z.infer<typeof parsedSchema>;
+
+export async function persistPayrollImportAtomically(params: {
+  userId: string;
+  document: ConfirmedPayrollDocument;
+  supersedesId: string | null;
+  reconcile?: typeof reconcilePayrollCompetence;
+}) {
+  const identity = payrollDocumentIdentity(params.document);
+  const reconcile = params.reconcile ?? reconcilePayrollCompetence;
+
+  return prisma.$transaction(async (tx) => {
+    if (params.supersedesId) {
+      const target = await tx.payrollDocument.findFirst({
+        where: {
+          id: params.supersedesId,
+          userId: params.userId,
+          lifecycleStatus: "ACTIVE",
+          documentType: identity.documentType,
+          paymentType: identity.paymentType,
+          employerCnpj: identity.employerCnpj,
+          year: identity.year,
+          month: identity.month,
+        },
+        select: { id: true },
+      });
+      if (!target) {
+        throw new Error("INVALID_SUPERSEDES_TARGET");
+      }
+
+      await tx.payrollTransactionLink.deleteMany({
+        where: { userId: params.userId, payrollDocumentId: target.id },
+      });
+      await tx.payrollAdvanceLink.deleteMany({
+        where: {
+          userId: params.userId,
+          OR: [
+            { advanceDocumentId: target.id },
+            { regularDocumentId: target.id },
+          ],
+        },
+      });
+      await tx.payrollDocument.update({
+        where: { id: target.id },
+        data: {
+          lifecycleStatus: "SUPERSEDED",
+          supersededAt: new Date(),
+        },
+      });
+    }
+
+    const created = await tx.payrollDocument.create({
+      data: {
+        userId: params.userId,
+        documentType: params.document.documentType,
+        paymentType: params.document.paymentType,
+        employerName: params.document.employerName,
+        employerCnpj: params.document.employerCnpj,
+        employeeName: params.document.employeeName,
+        year: params.document.year,
+        month: params.document.month,
+        salaryBaseCents: params.document.salaryBaseCents,
+        grossIncomeCents: params.document.grossIncomeCents,
+        totalEarningsCents: params.document.totalEarningsCents,
+        totalDeductionsCents: params.document.totalDeductionsCents,
+        netPaidCents: params.document.netPaidCents,
+        inssCents: params.document.inssCents,
+        irrfCents: params.document.irrfCents,
+        irrfBaseCents: params.document.irrfBaseCents,
+        fgtsBaseCents: params.document.fgtsBaseCents,
+        fgtsAmountCents: params.document.fgtsAmountCents,
+        earnings: toJson(params.document.earnings),
+        deductions: toJson(params.document.deductions),
+        bankMetadata: params.document.bankMetadata
+          ? toJson(params.document.bankMetadata)
+          : Prisma.JsonNull,
+        warnings: toJson(params.document.warnings),
+        importFingerprint: params.document.fingerprint,
+        supersedesId: params.supersedesId,
+      },
+      select: { id: true },
+    });
+
+    await reconcile(
+      {
+        userId: params.userId,
+        employerCnpj: params.document.employerCnpj,
+        year: params.document.year,
+        month: params.document.month,
+      },
+      tx,
+    );
+
+    return created;
+  });
+}
+
 export async function confirmPayrollImport(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
@@ -239,86 +336,10 @@ export async function confirmPayrollImport(request: Request) {
       return success({ created: false, duplicate: true, id: existing.id }, "Documento já importado");
     }
 
-    const identity = payrollDocumentIdentity(input.document);
-    const supersedesId = input.supersedesId ?? null;
-    const created = await prisma.$transaction(async (tx) => {
-      if (supersedesId) {
-        const target = await tx.payrollDocument.findFirst({
-          where: {
-            id: supersedesId,
-            userId,
-            lifecycleStatus: "ACTIVE",
-            documentType: identity.documentType,
-            paymentType: identity.paymentType,
-            employerCnpj: identity.employerCnpj,
-            year: identity.year,
-            month: identity.month,
-          },
-          select: { id: true },
-        });
-        if (!target) {
-          throw new Error("INVALID_SUPERSEDES_TARGET");
-        }
-
-        await tx.payrollTransactionLink.deleteMany({
-          where: { userId, payrollDocumentId: target.id },
-        });
-        await tx.payrollAdvanceLink.deleteMany({
-          where: {
-            userId,
-            OR: [
-              { advanceDocumentId: target.id },
-              { regularDocumentId: target.id },
-            ],
-          },
-        });
-        await tx.payrollDocument.update({
-          where: { id: target.id },
-          data: {
-            lifecycleStatus: "SUPERSEDED",
-            supersededAt: new Date(),
-          },
-        });
-      }
-
-      return tx.payrollDocument.create({
-        data: {
-          userId,
-          documentType: input.document.documentType,
-          paymentType: input.document.paymentType,
-          employerName: input.document.employerName,
-          employerCnpj: input.document.employerCnpj,
-          employeeName: input.document.employeeName,
-          year: input.document.year,
-          month: input.document.month,
-          salaryBaseCents: input.document.salaryBaseCents,
-          grossIncomeCents: input.document.grossIncomeCents,
-          totalEarningsCents: input.document.totalEarningsCents,
-          totalDeductionsCents: input.document.totalDeductionsCents,
-          netPaidCents: input.document.netPaidCents,
-          inssCents: input.document.inssCents,
-          irrfCents: input.document.irrfCents,
-          irrfBaseCents: input.document.irrfBaseCents,
-          fgtsBaseCents: input.document.fgtsBaseCents,
-          fgtsAmountCents: input.document.fgtsAmountCents,
-          earnings: toJson(input.document.earnings),
-          deductions: toJson(input.document.deductions),
-          bankMetadata: input.document.bankMetadata
-            ? toJson(input.document.bankMetadata)
-            : Prisma.JsonNull,
-          warnings: toJson(input.document.warnings),
-          importFingerprint: input.document.fingerprint,
-          supersedesId,
-        },
-        select: { id: true },
-      });
-    });
-
-    await reconcilePayrollCompetence({
+    const created = await persistPayrollImportAtomically({
       userId,
-      employerCnpj: input.document.employerCnpj,
-      year: input.document.year,
-      month: input.document.month,
+      document: input.document,
+      supersedesId: input.supersedesId ?? null,
     });
 
     return success({ created: true, duplicate: false, id: created.id }, "Documento de folha importado", 201);
