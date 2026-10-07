@@ -32,6 +32,8 @@ test('troca de senha exige novo login e invalida sessões antigas', async ({
     storageState: await page.context().storageState(),
   });
   const secondaryPage = await secondaryContext.newPage();
+  await secondaryPage.goto('/dashboard');
+  await expect(secondaryPage).toHaveURL(/\/dashboard$/);
 
   try {
     const profile = await page.evaluate(async () => {
