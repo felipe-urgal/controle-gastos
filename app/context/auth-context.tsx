@@ -144,12 +144,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const requireReauthentication = useCallback((reason?: 'password-changed') => {
     clearOfflineTransactionLocalState();
     dispatch({ type: 'LOGOUT' });
-    router.replace(
+    window.location.replace(
       reason === 'password-changed'
         ? '/login?reason=password-changed'
         : '/login'
     );
-  }, [router]);
+  }, []);
 
   const logout = useCallback(async () => {
     try {
