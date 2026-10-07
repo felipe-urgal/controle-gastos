@@ -5,6 +5,7 @@ export class ApiClientError extends Error {
     message: string,
     public readonly status: number,
     public readonly code?: string,
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "ApiClientError";
@@ -60,6 +61,11 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
     if (!response.ok) {
       let errorMessage = `Erro ${response.status}: ${response.statusText}`;
       let errorCode: string | undefined;
+      const rawRetryAfter = response.headers.get("Retry-After");
+      const retryAfterSeconds =
+        rawRetryAfter && /^\d+$/.test(rawRetryAfter)
+          ? Number(rawRetryAfter)
+          : undefined;
 
       try {
         const errorData = (await response.json()) as {
@@ -73,7 +79,12 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
         // Keep the HTTP fallback when the response body is not JSON.
       }
 
-      throw new ApiClientError(errorMessage, response.status, errorCode);
+      throw new ApiClientError(
+        errorMessage,
+        response.status,
+        errorCode,
+        retryAfterSeconds,
+      );
     }
 
     const contentType = response.headers.get("content-type");
