@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+import { useIsolatedClientIp } from './support/client-ip.mjs';
 import { createVerifiedUser } from './support/verified-user.mjs';
 
 const currentPassword = 'Playwright123!';
 const newPassword = 'Playwright456!';
 
 async function login(page, email, password = currentPassword) {
+  await useIsolatedClientIp(page, email);
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);

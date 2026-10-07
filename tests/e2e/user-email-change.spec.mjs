@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import jwt from 'jsonwebtoken';
 
+import { useIsolatedClientIp } from './support/client-ip.mjs';
 import {
   createVerifiedUser,
   setPendingEmailChange,
@@ -29,6 +30,7 @@ function emailChangeToken({ userId, email, pendingEmailVersion }) {
 }
 
 async function login(page, email) {
+  await useIsolatedClientIp(page, email);
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(currentPassword);

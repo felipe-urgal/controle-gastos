@@ -153,6 +153,7 @@ jobs:
       RESEND_FROM_EMAIL: no-reply@example.test
       NEXT_PUBLIC_SITE_URL: http://127.0.0.1:5100
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:5100
+      TRUST_PROXY_HEADERS: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v7

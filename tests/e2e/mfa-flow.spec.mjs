@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test';
 
 import { currentTotp, waitForNextTotpStep } from './helpers/totp.mjs';
+import { useIsolatedClientIp } from './support/client-ip.mjs';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
 async function loginWithPassword(page, email) {
+  await useIsolatedClientIp(page, email);
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);
@@ -21,15 +24,15 @@ async function logout(page) {
 
 test('2FA activation, recovery regeneration, recovery/TOTP login and strong disable', async ({
   page,
-  request,
 }) => {
   test.setTimeout(120_000);
 
   const email = `mfa-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
-  const signup = await request.post('/api/auth/signup', {
-    data: { name: 'QA MFA', email, password },
+  await createVerifiedUser({
+    name: 'QA MFA',
+    email,
+    password,
   });
-  expect(signup.ok()).toBeTruthy();
 
   await loginWithPassword(page, email);
   await expect(page).toHaveURL(/\/dashboard$/);
