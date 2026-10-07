@@ -42,7 +42,7 @@ export default function Show({ id }: { id: string }) {
     setIsDeleteModalOpen,
     isDeleting,
     handleDelete,
-  } = useUser({ id });
+  } = useUser();
 
   const resetDeleteStepUp = () => {
     setCurrentPassword('');

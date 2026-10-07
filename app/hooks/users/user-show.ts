@@ -1,29 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { useShow } from "@/app/hooks/crud/show";
 import {
   type DeleteAccountInput,
   userService,
 } from "@/app/services/user-service";
 import { User } from "@/app/types/user";
 
-export function useUser({ id }: { id: string }) {
+export function useUser() {
   const router = useRouter();
-  const {
-    entity: user,
-    setEntity: setUser,
-    loading: loadingUser,
-  } = useShow<User>({
-    id,
-    service: userService,
-  });
-
+  const [user, setUser] = useState<User | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const handleBack = "";
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      try {
+        const response = await userService.getCurrent();
+        if (active) setUser(response.data);
+      } finally {
+        if (active) setLoadingUser(false);
+      }
+    }
+
+    void load();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleDelete(credentials: DeleteAccountInput) {
     try {
