@@ -150,36 +150,39 @@ describe("payroll import integration", () => {
     ).toBe(1);
   });
 
-  it("allows an explicit fiscal reclassification before confirmation", async () => {
-    const owner = await user("Payroll Classification Owner");
-    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+  it.each(["THIRTEENTH", "VACATION", "PLR", "OTHER"] as const)(
+    "allows explicit %s classification before confirmation",
+    async (paymentType) => {
+      const owner = await user("Payroll Classification Owner");
+      authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
 
-    const parsed = document();
-    const previewDocument = {
-      ...parsed,
-      fingerprint: payrollImportFingerprint(owner.id, parsed),
-      duplicate: false,
-    };
-    const previewToken = signPayrollPreview({
-      userId: owner.id,
-      document: previewDocument,
-    });
+      const parsed = document();
+      const previewDocument = {
+        ...parsed,
+        fingerprint: payrollImportFingerprint(owner.id, parsed),
+        duplicate: false,
+      };
+      const previewToken = signPayrollPreview({
+        userId: owner.id,
+        document: previewDocument,
+      });
 
-    const response = await confirmPayrollImport(request({
-      previewToken,
-      selected: true,
-      document: previewDocument,
-      paymentType: "THIRTEENTH",
-    }));
-    expect(response.status).toBe(201);
+      const response = await confirmPayrollImport(request({
+        previewToken,
+        selected: true,
+        document: previewDocument,
+        paymentType,
+      }));
+      expect(response.status).toBe(201);
 
-    const stored = await prisma.payrollDocument.findFirstOrThrow({
-      where: { userId: owner.id },
-    });
-    expect(stored.paymentType).toBe("THIRTEENTH");
-    expect(stored.importFingerprint).not.toBe(previewDocument.fingerprint);
-    expect(await getPayrollCompetenceSummaries(owner.id)).toEqual([]);
-  });
+      const stored = await prisma.payrollDocument.findFirstOrThrow({
+        where: { userId: owner.id },
+      });
+      expect(stored.paymentType).toBe(paymentType);
+      expect(stored.importFingerprint).not.toBe(previewDocument.fingerprint);
+      expect(await getPayrollCompetenceSummaries(owner.id)).toEqual([]);
+    },
+  );
 
   it("rejects payment classifications incompatible with the document type", async () => {
     const owner = await user("Payroll Invalid Classification Owner");
