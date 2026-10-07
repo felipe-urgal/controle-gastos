@@ -233,8 +233,8 @@ export default function UserForm({ user }: UserFormProps) {
                 <strong>{pendingEmail}</strong>.
               </p>
               <p className="mt-1 text-[var(--text-muted)]">
-                Abra o link enviado para concluir a troca. Um novo envio invalida o link
-                anterior.
+                Se o endereço puder ser usado, enviaremos um link para concluir a troca.
+                Um novo envio invalida o link anterior.
               </p>
               <div className="mt-3">
                 <Button
