@@ -25,6 +25,8 @@ on:
       - "tests/e2e/support/**"
       - "app/components/pages/account/**"
       - "app/components/pages/user/**"
+      - "app/(pages)/(home)/usuario/**"
+      - "app/hooks/users/**"
       - "app/api/user/**"
       - "app/api/auth/verify-email/**"
       - "app/lib/users/**"
