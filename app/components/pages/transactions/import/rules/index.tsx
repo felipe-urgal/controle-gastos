@@ -15,10 +15,7 @@ import {
   importRuleToFormState,
   type ImportRuleFormState,
 } from '@/app/lib/import-rules/import-rule-form';
-import {
-  findImportRuleRelationships,
-  type ImportRuleRelationship,
-} from '@/app/lib/import-rules/import-rule-guards';
+import type { ImportRuleRelationship } from '@/app/lib/import-rules/import-rule-guards';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
 import { ApiClientError } from '@/app/services/api-client';
@@ -148,6 +145,8 @@ export default function ImportRuleManagementPage() {
   const [rulesUnavailable, setRulesUnavailable] = useState(false);
   const [retryingSource, setRetryingSource] = useState<'accounts' | 'categories' | 'rules' | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [ruleImpact, setRuleImpact] = useState<ImportRuleRelationship[]>([]);
+  const [impactLoading, setImpactLoading] = useState(false);
 
   const ruleQuery = useMemo(
     () => ({
@@ -296,17 +295,47 @@ export default function ImportRuleManagementPage() {
   const selectedRuleAccount = form.accountId
     ? accountById.get(form.accountId) ?? null
     : null;
-  const ruleImpact = useMemo(() => {
-    if (!formOpen) return [];
-
-    try {
-      return findImportRuleRelationships(importRuleFormToInput(form), rules, {
-        excludeRuleId: editingId ?? undefined,
-      });
-    } catch {
-      return [];
+  useEffect(() => {
+    if (!formOpen) {
+      setRuleImpact([]);
+      setImpactLoading(false);
+      return;
     }
-  }, [editingId, form, formOpen, rules]);
+
+    let cancelled = false;
+    const timeout = window.setTimeout(async () => {
+      let input;
+      try {
+        input = importRuleFormToInput(form);
+      } catch {
+        if (!cancelled) {
+          setRuleImpact([]);
+          setImpactLoading(false);
+        }
+        return;
+      }
+
+      setImpactLoading(true);
+      try {
+        const response = await importRuleService.impact(
+          input,
+          editingId ?? undefined,
+        );
+        if (!cancelled) {
+          setRuleImpact(response.data.relationships ?? []);
+        }
+      } catch {
+        if (!cancelled) setRuleImpact([]);
+      } finally {
+        if (!cancelled) setImpactLoading(false);
+      }
+    }, 200);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [editingId, form, formOpen]);
 
   function clearMessages() {
     setError('');
@@ -891,24 +920,30 @@ export default function ImportRuleManagementPage() {
                   </div>
                 )}
 
-                {ruleImpact.length > 0 && (
+                {(impactLoading || ruleImpact.length > 0) && (
                   <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
                     <p className="text-sm font-semibold text-[var(--foreground)]">
                       Impacto potencial
                     </p>
-                    <ul className="mt-2 space-y-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                      {ruleImpact.map((relationship) => (
-                        <li key={relationship.kind === 'NONE' ? 'none' : relationship.ruleId}>
-                          {relationship.kind === 'NONE' ? null : (
-                            <>
-                              <strong className="text-[var(--foreground)]">{relationship.ruleName}</strong>
-                              {' — '}
-                              {impactLabel(relationship)}
-                            </>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
+                    {impactLoading ? (
+                      <p className="mt-2 text-xs text-[var(--text-muted)]" role="status">
+                        Verificando todas as regras compatíveis…
+                      </p>
+                    ) : (
+                      <ul className="mt-2 space-y-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                        {ruleImpact.map((relationship) => (
+                          <li key={relationship.kind === 'NONE' ? 'none' : relationship.ruleId}>
+                            {relationship.kind === 'NONE' ? null : (
+                              <>
+                                <strong className="text-[var(--foreground)]">{relationship.ruleName}</strong>
+                                {' — '}
+                                {impactLabel(relationship)}
+                              </>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 )}
 
