@@ -89,7 +89,7 @@ test('troca de e-mail aguarda confirmação e exige novo login', async ({ page }
 
   await expect(page.getByText(currentEmail, { exact: true })).toBeVisible();
   await page.getByLabel('Novo e-mail', { exact: true }).fill(newEmail);
-  await page.getByLabel('Senha atual', { exact: true }).fill(currentPassword);
+  await page.getByLabel(/^Senha atual\b/).fill(currentPassword);
   await page.getByRole('button', { name: 'Salvar alterações', exact: true }).click();
 
   await expect(
@@ -101,7 +101,7 @@ test('troca de e-mail aguarda confirmação e exige novo login', async ({ page }
     currentPassword,
   });
 
-  await page.getByLabel('Senha atual', { exact: true }).fill(currentPassword);
+  await page.getByLabel(/^Senha atual\b/).fill(currentPassword);
   await page.getByRole('button', { name: 'Reenviar confirmação', exact: true }).click();
   await expect.poll(() => emailChangeRequests).toBe(2);
 
