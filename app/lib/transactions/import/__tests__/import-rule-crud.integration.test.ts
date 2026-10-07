@@ -310,4 +310,79 @@ describe("import rule CRUD", () => {
     ).toBe(1);
   });
 
+  it("returns 409 when concurrent creates target the same matcher with different outcomes", async () => {
+    const suffix = randomUUID();
+    const owner = await prisma.user.create({
+      data: {
+        name: "Concurrent Conflict Owner",
+        email: `rule-conflict-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    createdUserIds.push(owner.id);
+
+    const [account, firstCategory, secondCategory] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: `Conta conflito ${suffix}`,
+          type: "CREDIT_DEBIT",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Categoria A ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Categoria B ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+    ]);
+
+    const baseInput = {
+      name: "Matcher concorrente",
+      isActive: true,
+      priority: 10,
+      accountId: account.id,
+      transactionType: "EXPENSE" as const,
+      descriptionOperator: "EQUALS" as const,
+      descriptionPattern: "uber concorrente",
+      minAmountCents: null,
+      maxAmountCents: null,
+      normalizedDescription: null,
+    };
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const requestFor = (categoryId: string) =>
+      importRuleCrud.create(
+        new Request("http://localhost/api/import-rules", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ...baseInput, categoryId }),
+        }),
+      );
+
+    const responses = await Promise.all([
+      requestFor(firstCategory.id),
+      requestFor(secondCategory.id),
+    ]);
+    const statuses = responses.map((response) => response.status).sort();
+    expect(statuses).toEqual([201, 409]);
+
+    const conflictResponse = responses.find((response) => response.status === 409);
+    expect(conflictResponse).toBeDefined();
+    expect((await conflictResponse!.json()).error?.code).toBe("IMPORT_RULE_CONFLICT");
+    expect(
+      await prisma.transactionImportRule.count({
+        where: { userId: owner.id },
+      }),
+    ).toBe(1);
+  });
+
 });
