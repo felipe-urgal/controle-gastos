@@ -21,7 +21,7 @@ export type OfxImportResult = {
 
 export type QifImportResult = {
   sectionType: QifSectionType;
-  dateOrder: QifDateOrder;
+  dateOrder: QifDateOrder | null;
   items: ParsedImportItem[];
 };
 
@@ -287,7 +287,7 @@ function qifDateParts(raw: string) {
 function detectQifDateOrder(
   lines: readonly string[],
   explicitDateOrder?: QifDateOrder,
-): QifDateOrder {
+): QifDateOrder | null {
   if (explicitDateOrder) return explicitDateOrder;
 
   let detected: QifDateOrder | null = null;
@@ -319,10 +319,10 @@ function detectQifDateOrder(
     );
   }
 
-  return "MDY";
+  return null;
 }
 
-function parseQifDate(raw: string, dateOrder: QifDateOrder) {
+function parseQifDate(raw: string, dateOrder: QifDateOrder | null) {
   const value = raw.trim();
   if (/^\d{4}(?:-\d{2}-\d{2}|\d{4})/.test(value)) {
     return parseImportDate(value);
@@ -335,6 +335,7 @@ function parseQifDate(raw: string, dateOrder: QifDateOrder) {
   const second = Number(match[2]);
   const rawYear = Number(match[3]);
   const year = match[3].length === 2 ? 2000 + rawYear : rawYear;
+  if (!dateOrder) return null;
   const month = dateOrder === "MDY" ? first : second;
   const day = dateOrder === "MDY" ? second : first;
 
@@ -345,7 +346,7 @@ function parseQifDate(raw: string, dateOrder: QifDateOrder) {
 function parseQifRecord(
   lines: string[],
   index: number,
-  dateOrder: QifDateOrder,
+  dateOrder: QifDateOrder | null,
 ): ParsedImportItem {
   const errors: string[] = [];
   let rawDate = "";
