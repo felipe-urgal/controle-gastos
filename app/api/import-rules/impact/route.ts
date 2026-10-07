@@ -5,6 +5,7 @@ import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { findImportRuleRelationships } from "@/app/lib/import-rules/import-rule-guards";
+import { isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import { importRuleInputSchema } from "@/app/lib/transactions/import/import-rule-schema";
 
@@ -57,6 +58,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof ZodError) {
       return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
+    }
+    if (isHttpError(error)) {
+      return failure(error.message, error.status, error.code);
     }
     if (isUnauthorizedError(error)) {
       return failure("Não autenticado", 401);
