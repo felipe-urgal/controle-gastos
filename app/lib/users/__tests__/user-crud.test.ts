@@ -53,6 +53,8 @@ vi.mock("bcryptjs", () => ({
   },
 }));
 
+import { SENSITIVE_ACTIONS } from "@/app/lib/security/sensitive-actions";
+
 import { userCrud } from "../user-crud";
 
 const userId = "550e8400-e29b-41d4-a716-446655440000";
@@ -154,8 +156,12 @@ describe("userCrud", () => {
     const body = await response.json();
 
     expect(response.status).toBe(401);
-    expect(body.error.code).toBe("INVALID_CURRENT_PASSWORD");
-    expect(mocks.consumeStepUpRateLimit).toHaveBeenCalledWith({ request, userId });
+    expect(body.error.code).toBe("INVALID_STEP_UP_CREDENTIALS");
+    expect(mocks.consumeStepUpRateLimit).toHaveBeenCalledWith({
+      request,
+      userId,
+      action: SENSITIVE_ACTIONS.USER_PASSWORD_CHANGE,
+    });
     expect(mocks.user.update).not.toHaveBeenCalled();
   });
 
@@ -211,6 +217,7 @@ describe("userCrud", () => {
     expect(mocks.consumeStepUpRateLimit).toHaveBeenCalledWith({
       request: expect.any(Request),
       userId,
+      action: SENSITIVE_ACTIONS.USER_EMAIL_CHANGE,
     });
     expect(mocks.signEmailVerificationToken).toHaveBeenCalledWith({
       userId,
@@ -237,6 +244,35 @@ describe("userCrud", () => {
     expect(updateCall.data.pendingEmailExpiresAt.getTime()).toBeGreaterThan(
       updateCall.data.pendingEmailRequestedAt.getTime(),
     );
+  });
+
+  it("does not reveal whether a requested email already belongs to another account", async () => {
+    mocks.user.findFirst
+      .mockResolvedValueOnce(existingUser)
+      .mockResolvedValueOnce({ id: "other-user" });
+    mocks.bcryptCompare.mockResolvedValue(true);
+    mocks.user.update.mockResolvedValue(existingUser);
+
+    const response = await userCrud.update(
+      new Request("http://localhost/api/user", {
+        method: "PATCH",
+        body: JSON.stringify({
+          currentPassword: "senha-atual",
+          email: "ocupado@example.com",
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(JSON.stringify(body)).not.toMatch(/já está em uso|EMAIL_IN_USE/i);
+    expect(mocks.sendEmailVerification).not.toHaveBeenCalled();
+    expect(mocks.user.update.mock.calls[0][0].data).toEqual({
+      pendingEmail: "ocupado@example.com",
+      pendingEmailRequestedAt: expect.any(Date),
+      pendingEmailExpiresAt: expect.any(Date),
+      pendingEmailVersion: { increment: 1 },
+    });
   });
 
   it("increments the pending version when resending so the previous link becomes stale", async () => {
