@@ -111,6 +111,14 @@ describe("user deletion cascade", () => {
       },
     });
 
+    const incomeCategory = await prisma.category.create({
+      data: {
+        name: ("Receita " + suffix).slice(0, 50),
+        type: "INCOME",
+        userId: user.id,
+      },
+    });
+
     await prisma.categoryMonthlyLimit.create({
       data: {
         amount: 50_000,
@@ -201,6 +209,7 @@ describe("user deletion cascade", () => {
         description: "Salário",
         status: "COMPLETED",
         accountId: sourceAccount.id,
+        categoryId: incomeCategory.id,
         userId: user.id,
       },
     });
