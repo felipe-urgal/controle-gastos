@@ -290,6 +290,19 @@ describe("transaction import parser", () => {
     ]);
   });
 
+  it("does not report a MM/DD or DD/MM convention for ISO-only QIF dates", () => {
+    const result = parseQifImport([
+      "!Type:Bank",
+      "D2026-08-31",
+      "T-10.00",
+      "PCompra ISO",
+      "^",
+    ].join("\n"));
+
+    expect(result.dateOrder).toBeNull();
+    expect(result.items[0].date).toBe("2026-08-31");
+  });
+
   it("requires an explicit convention for QIF files with only ambiguous dates", () => {
     const content = [
       "!Type:Bank",
