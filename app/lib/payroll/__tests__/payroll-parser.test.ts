@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   detectPayrollDocumentType,
+  detectPayrollPaymentType,
   parsePayrollText,
   payrollImportFingerprint,
 } from "@/app/lib/payroll/payroll-parser";
@@ -67,6 +68,47 @@ describe("payroll parser", () => {
     expect(parsed.irrfCents).toBe(4740);
     expect(parsed.netPaidCents).toBe(205260);
     expect(parsed.errors).toEqual([]);
+  });
+
+  it.each([
+    ["Folha de 13º salário", "THIRTEENTH"],
+    ["Recibo de férias", "VACATION"],
+    ["Pagamento PLR - Participação nos Lucros", "PLR"],
+  ] as const)(
+    "classifies explicit special payment evidence: %s",
+    (label, expected) => {
+      const text = [
+        "Empresa: Empresa Teste",
+        "CNPJ 12.345.678/0001-90",
+        "Competência: 12/2026",
+        label,
+        "100 PAGAMENTO ESPECIAL 1.000,00",
+        "Total de Vencimentos 1.000,00",
+        "Total de Descontos 0,00",
+        "Valor Líquido 1.000,00",
+      ].join("\n");
+
+      expect(detectPayrollDocumentType(text)).toBe("MONTHLY_PAYSLIP");
+      expect(detectPayrollPaymentType(text)).toBe(expected);
+      expect(parsePayrollText(text).paymentType).toBe(expected);
+    },
+  );
+
+  it("uses OTHER instead of guessing a fiscal type without explicit evidence", () => {
+    const parsed = parsePayrollText([
+      "Empresa: Empresa Teste",
+      "CNPJ 12.345.678/0001-90",
+      "Competência: 09/2026",
+      "910 INSS 14 100,00",
+      "Total de Vencimentos 1.000,00",
+      "Total de Descontos 100,00",
+      "Valor Líquido 900,00",
+    ].join("\n"));
+
+    expect(parsed.paymentType).toBe("OTHER");
+    expect(parsed.warnings).toContain(
+      "Tipo de pagamento não reconhecido com evidência suficiente. Revise a classificação antes de confirmar.",
+    );
   });
 
   it("marks inconsistent totals instead of silently correcting them", () => {
