@@ -25,7 +25,7 @@ export type ExportTransaction = {
   tags?: Array<{ id: string; name: string }>;
 };
 
-export const CSV_FORMULA_PREFIX = /^[\\t\\r\\n ]*[=+\\-@]/;
+export const CSV_FORMULA_PREFIX = /^[\t\r\n ]*[=+\-@]/;
 
 export function formatExportDate(year: number, month: number, day: number) {
   return [String(year).padStart(4, "0"), String(month).padStart(2, "0"), String(day).padStart(2, "0")].join("-");
@@ -85,5 +85,5 @@ export function serializeTransactionsCsv(transactions: ExportTransaction[]) {
   return [
     TRANSACTION_CSV_HEADERS.map((value) => escapeCsvField(value)).join(","),
     ...transactions.map(serializeTransactionCsvRow),
-  ].join("\\r\\n");
+  ].join("\r\n");
 }
