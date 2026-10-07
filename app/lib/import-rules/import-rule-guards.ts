@@ -10,7 +10,7 @@ import {
 
 export const BROAD_IMPORT_RULE_MIN_PATTERN_LENGTH = 3;
 
-type ComparableImportRule = Pick<
+export type ImportRuleMatcher = Pick<
   ImportRuleInput,
   | 'priority'
   | 'accountId'
@@ -22,6 +22,8 @@ type ComparableImportRule = Pick<
   | 'categoryId'
   | 'normalizedDescription'
 >;
+
+type ComparableImportRule = ImportRuleMatcher;
 
 export type ImportRuleOverlapResolution =
   | 'CANDIDATE_WINS'
@@ -72,19 +74,22 @@ function sameNullable<T>(left: T | null, right: T | null) {
   return left === right;
 }
 
+export function importRuleMatcherKey(rule: ImportRuleMatcher) {
+  return JSON.stringify([
+    rule.accountId ?? null,
+    rule.transactionType,
+    rule.descriptionOperator,
+    normalizeImportRulePattern(rule.descriptionPattern),
+    rule.minAmountCents ?? null,
+    rule.maxAmountCents ?? null,
+  ]);
+}
+
 function sameMatcher(
   left: ComparableImportRule,
   right: ComparableImportRule,
 ) {
-  return (
-    sameNullable(left.accountId, right.accountId) &&
-    left.transactionType === right.transactionType &&
-    left.descriptionOperator === right.descriptionOperator &&
-    normalizeImportRulePattern(left.descriptionPattern) ===
-      normalizeImportRulePattern(right.descriptionPattern) &&
-    sameNullable(left.minAmountCents, right.minAmountCents) &&
-    sameNullable(left.maxAmountCents, right.maxAmountCents)
-  );
+  return importRuleMatcherKey(left) === importRuleMatcherKey(right);
 }
 
 function sameOutcome(
