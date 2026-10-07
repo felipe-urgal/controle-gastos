@@ -20,7 +20,6 @@ export type ImportRuleMatcher = Pick<
   | 'minAmountCents'
   | 'maxAmountCents'
   | 'categoryId'
-  | 'normalizedDescription'
 >;
 
 type ComparableImportRule = ImportRuleMatcher;
@@ -200,7 +199,7 @@ function toEvaluatorRule(
     minAmountCents: rule.minAmountCents,
     maxAmountCents: rule.maxAmountCents,
     categoryId: rule.categoryId,
-    normalizedDescription: rule.normalizedDescription,
+    normalizedDescription: null,
   };
 }
 

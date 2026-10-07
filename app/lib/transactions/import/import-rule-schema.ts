@@ -31,7 +31,6 @@ export const importRuleInputSchema = z
     minAmountCents: nullableAmountCentsSchema,
     maxAmountCents: nullableAmountCentsSchema,
     categoryId: z.string().uuid(),
-    normalizedDescription: z.string().trim().min(1).max(255).nullable(),
   })
   .superRefine((input, ctx) => {
     if (

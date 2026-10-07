@@ -32,7 +32,6 @@ export interface ImportRuleInput {
   minAmountCents: number | null;
   maxAmountCents: number | null;
   categoryId: string;
-  normalizedDescription: string | null;
 }
 
 export interface ImportRuleListResponse {

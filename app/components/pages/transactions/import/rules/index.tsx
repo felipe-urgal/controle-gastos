@@ -566,22 +566,6 @@ export default function ImportRuleManagementPage() {
                   </div>
                 )}
 
-                <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Descrição sugerida (opcional)
-                  <input
-                    value={form.normalizedDescription}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, normalizedDescription: event.target.value }))
-                    }
-                    maxLength={255}
-                    disabled={submitting}
-                    className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                  />
-                  <span className="mt-1 block text-xs font-normal text-[var(--text-subtle)]">
-                    Continua sendo apenas sugestão no preview; não altera o conteúdo assinado.
-                  </span>
-                </label>
-
                 {ruleImpact.length > 0 && (
                   <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
                     <p className="text-sm font-semibold text-[var(--foreground)]">

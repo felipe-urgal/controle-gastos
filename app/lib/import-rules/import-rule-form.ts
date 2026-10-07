@@ -16,7 +16,6 @@ export interface ImportRuleFormState {
   minAmountCents: string;
   maxAmountCents: string;
   categoryId: string;
-  normalizedDescription: string;
 }
 
 export function emptyImportRuleForm(priority = 0): ImportRuleFormState {
@@ -31,7 +30,6 @@ export function emptyImportRuleForm(priority = 0): ImportRuleFormState {
     minAmountCents: "",
     maxAmountCents: "",
     categoryId: "",
-    normalizedDescription: "",
   };
 }
 
@@ -51,7 +49,6 @@ export function importRuleToFormState(
     maxAmountCents:
       rule.maxAmountCents === null ? "" : String(rule.maxAmountCents),
     categoryId: rule.categoryId,
-    normalizedDescription: rule.normalizedDescription ?? "",
   };
 }
 
@@ -150,7 +147,6 @@ export function importRuleFormToInput(
     minAmountCents,
     maxAmountCents,
     categoryId: requiredText(form.categoryId, "Categoria"),
-    normalizedDescription: form.normalizedDescription.trim() || null,
   };
 }
 
@@ -169,7 +165,6 @@ export function importRuleModelToInput(
     minAmountCents: rule.minAmountCents,
     maxAmountCents: rule.maxAmountCents,
     categoryId: rule.categoryId,
-    normalizedDescription: rule.normalizedDescription,
     ...patch,
   };
 }

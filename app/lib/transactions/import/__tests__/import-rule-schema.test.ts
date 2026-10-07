@@ -12,7 +12,6 @@ const validInput = {
   minAmountCents: null,
   maxAmountCents: null,
   categoryId: "22222222-2222-4222-8222-222222222222",
-  normalizedDescription: null,
 };
 
 describe("import rule input schema", () => {
@@ -26,7 +25,6 @@ describe("import rule input schema", () => {
       accountId: "11111111-1111-4111-8111-111111111111",
       minAmountCents: 12_345,
       maxAmountCents: 12_345,
-      normalizedDescription: "Supermercado",
     });
 
     expect(result.minAmountCents).toBe(12_345);
@@ -75,11 +73,10 @@ describe("import rule input schema", () => {
     ).toBe(false);
   });
 
-  it("rejects blank names, patterns and normalized descriptions", () => {
+  it("rejects blank names and patterns", () => {
     for (const input of [
       { ...validInput, name: "   " },
       { ...validInput, descriptionPattern: "   " },
-      { ...validInput, normalizedDescription: "   " },
     ]) {
       expect(importRuleInputSchema.safeParse(input).success).toBe(false);
     }

@@ -38,7 +38,6 @@ describe("import-rule-form", () => {
       minAmountCents: "10000",
       maxAmountCents: "",
       categoryId: "44444444-4444-4444-8444-444444444444",
-      normalizedDescription: "  Salário mensal  ",
     };
 
     expect(importRuleFormToInput(form)).toEqual({
@@ -52,7 +51,6 @@ describe("import-rule-form", () => {
       minAmountCents: 10_000,
       maxAmountCents: null,
       categoryId: "44444444-4444-4444-8444-444444444444",
-      normalizedDescription: "Salário mensal",
     });
   });
 
@@ -76,7 +74,6 @@ describe("import-rule-form", () => {
       minAmountCents: null,
       maxAmountCents: null,
       categoryId: "44444444-4444-4444-8444-444444444444",
-      normalizedDescription: null,
     });
   });
 
@@ -143,7 +140,6 @@ describe("import-rule-form", () => {
       priority: "20",
       minAmountCents: "1000",
       maxAmountCents: "50000",
-      normalizedDescription: "Supermercado",
     });
 
     expect(importRuleModelToInput(rule, { isActive: false })).toEqual({
