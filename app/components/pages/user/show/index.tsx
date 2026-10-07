@@ -133,7 +133,7 @@ export default function Show() {
                   type="button"
                   aria-pressed={active}
                   onClick={() => setActiveSection(section.id)}
-                  className={`shrink-0 rounded-[var(--radius-lg)] px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+                  className={`min-h-11 shrink-0 rounded-[var(--radius-lg)] px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
                     active
                       ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
                       : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
