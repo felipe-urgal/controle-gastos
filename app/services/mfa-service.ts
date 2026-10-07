@@ -37,6 +37,16 @@ export interface DisableTotpRequest {
   recoveryCode?: string;
 }
 
+export interface RecoveryCodeStatus {
+  enabled: boolean;
+  remaining: number;
+}
+
+export interface RegenerateRecoveryCodesResponse {
+  recoveryCodes: string[];
+  remaining: number;
+}
+
 export const mfaService = {
   async startEnrollment(currentPassword: string) {
     const response = await apiClient<
@@ -76,6 +86,31 @@ export const mfaService = {
         credentials: "include",
       }
     );
+  },
+
+  async getRecoveryCodeStatus() {
+    const response = await apiClient<ApiEnvelope<RecoveryCodeStatus>>(
+      "/api/auth/mfa/recovery-codes",
+      {
+        method: "GET",
+        credentials: "include",
+      },
+    );
+
+    return response.data;
+  },
+
+  async regenerateRecoveryCodes(input: DisableTotpRequest) {
+    const response = await apiClient<
+      ApiEnvelope<RegenerateRecoveryCodesResponse>,
+      DisableTotpRequest
+    >("/api/auth/mfa/recovery-codes", {
+      method: "POST",
+      body: input,
+      credentials: "include",
+    });
+
+    return response.data;
   },
 
   async disable(input: DisableTotpRequest) {
