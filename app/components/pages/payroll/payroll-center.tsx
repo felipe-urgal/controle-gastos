@@ -60,11 +60,16 @@ type PayrollSummary = {
   employerCnpj: string;
   year: number;
   month: number;
-  grossIncomeCents: number;
-  netPaidCents: number;
-  irrfCents: number;
-  advanceNetPaidCents: number;
-  regularNetPaidCents: number;
+  grossIncomeCents: number | null;
+  grossIncomeComplete: boolean;
+  netPaidCents: number | null;
+  netPaidComplete: boolean;
+  irrfCents: number | null;
+  irrfComplete: boolean;
+  advanceNetPaidCents: number | null;
+  advanceNetPaidComplete: boolean;
+  regularNetPaidCents: number | null;
+  regularNetPaidComplete: boolean;
   matchedAdvances: number;
   pendingAdvances: number;
   documentCount: number;
@@ -93,6 +98,10 @@ type StoredDocument = {
 
 function money(value: number | null) {
   return value === null ? 'Não informado' : formatCurrency(value, 'BRL');
+}
+
+function summaryMoney(value: number | null, complete: boolean) {
+  return complete ? money(value) : 'Incompleto';
 }
 
 function typeLabel(type: PayrollDocument['documentType']) {
@@ -247,13 +256,13 @@ export default function PayrollCenter() {
                     ) : null}
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <Metric label="Renda bruta" value={money(summary.grossIncomeCents)} />
-                    <Metric label="Adiantamento líquido" value={money(summary.advanceNetPaidCents)} />
-                    <Metric label="Folha líquida" value={money(summary.regularNetPaidCents)} />
-                    <Metric label="Total líquido pago" value={money(summary.netPaidCents)} />
+                    <Metric label="Renda bruta" value={summaryMoney(summary.grossIncomeCents, summary.grossIncomeComplete)} />
+                    <Metric label="Adiantamento líquido" value={summaryMoney(summary.advanceNetPaidCents, summary.advanceNetPaidComplete)} />
+                    <Metric label="Folha líquida" value={summaryMoney(summary.regularNetPaidCents, summary.regularNetPaidComplete)} />
+                    <Metric label="Total líquido pago" value={summaryMoney(summary.netPaidCents, summary.netPaidComplete)} />
                   </div>
                   <p className="mt-3 text-xs text-[var(--text-muted)]">
-                    IRRF retido na competência: <strong className="text-[var(--foreground)]">{money(summary.irrfCents)}</strong>
+                    IRRF retido na competência: <strong className="text-[var(--foreground)]">{summaryMoney(summary.irrfCents, summary.irrfComplete)}</strong>
                   </p>
                 </article>
               ))}
