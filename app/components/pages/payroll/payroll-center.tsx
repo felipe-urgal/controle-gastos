@@ -286,7 +286,7 @@ export default function PayrollCenter() {
         <header>
           <h1 className="text-2xl font-extrabold text-[var(--foreground)]">Rendimentos do trabalho</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Importe holerites e adiantamentos sem criar transações bancárias automaticamente.
+            Importe folha regular, adiantamento, 13º, férias e PLR sem criar transações bancárias automaticamente.
           </p>
         </header>
 
@@ -536,7 +536,7 @@ export default function PayrollCenter() {
             </div>
 
             {documents.length === 0 ? (
-              <p className="p-6 text-sm text-[var(--text-muted)]">Nenhum holerite ou adiantamento importado.</p>
+              <p className="p-6 text-sm text-[var(--text-muted)]">Nenhum documento de rendimento do trabalho importado.</p>
             ) : (
               <div className="divide-y divide-[var(--border)]">
                 {documents.map((document) => (
