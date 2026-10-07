@@ -136,9 +136,16 @@ describe("transaction import parser", () => {
     expect(() => parseXlsxImport(createXlsxFixture({ rows }))).toThrow(ImportParseError);
   });
 
-  it("parses OFX and preserves FITID as external identity", () => {
-    const [item] = parseOfxImport(`OFXHEADER:100\n<OFX><CURDEF>BRL<BANKTRANLIST><STMTTRN><DTPOSTED>20260831120000[-3:BRT]<TRNAMT>-42.37<FITID>bank-123<NAME>Mercado<MEMO>Compra</STMTTRN></BANKTRANLIST></OFX>`, "BRL");
+  it("parses OFX and preserves FITID plus reliable account metadata", () => {
+    const { items: [item], accountMetadata } = parseOfxImport(
+      `OFXHEADER:100\n<OFX><CURDEF>BRL<BANKACCTFROM><BANKID>001<ACCTID>12345</BANKACCTFROM><BANKTRANLIST><STMTTRN><DTPOSTED>20260831120000[-3:BRT]<TRNAMT>-42.37<FITID>bank-123<NAME>Mercado<MEMO>Compra</STMTTRN></BANKTRANLIST></OFX>`,
+      "BRL",
+    );
 
+    expect(accountMetadata).toEqual({
+      type: "BANK",
+      accountId: "12345",
+    });
     expect(item).toMatchObject({
       date: "2026-08-31",
       amountCents: 4237,
@@ -147,6 +154,18 @@ describe("transaction import parser", () => {
       externalId: "bank-123",
       currency: "BRL",
       errors: [],
+    });
+  });
+
+  it("extracts credit-card metadata from CCACCTFROM", () => {
+    const result = parseOfxImport(
+      "<OFX><CURDEF>BRL<CCACCTFROM><ACCTID>card-987</CCACCTFROM><BANKTRANLIST><STMTTRN><DTPOSTED>20260831<TRNAMT>-10.00<NAME>Compra</STMTTRN></BANKTRANLIST></OFX>",
+      "BRL",
+    );
+
+    expect(result.accountMetadata).toEqual({
+      type: "CREDIT_CARD",
+      accountId: "card-987",
     });
   });
 
