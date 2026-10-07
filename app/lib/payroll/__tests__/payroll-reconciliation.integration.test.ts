@@ -24,11 +24,13 @@ async function createUser() {
 
 async function createAdvance(userId: string, opts?: {
   cnpj?: string;
-  gross?: number;
-  net?: number;
-  irrf?: number;
+  gross?: number | null;
+  net?: number | null;
+  irrf?: number | null;
 }) {
-  const gross = opts?.gross ?? 210000;
+  const gross = opts?.gross === undefined ? 210000 : opts.gross;
+  const net = opts?.net === undefined ? 205260 : opts.net;
+  const irrf = opts?.irrf === undefined ? 4740 : opts.irrf;
   return prisma.payrollDocument.create({
     data: {
       userId,
@@ -40,9 +42,9 @@ async function createAdvance(userId: string, opts?: {
       month: 9,
       grossIncomeCents: gross,
       totalEarningsCents: gross,
-      totalDeductionsCents: opts?.irrf ?? 4740,
-      netPaidCents: opts?.net ?? 205260,
-      irrfCents: opts?.irrf ?? 4740,
+      totalDeductionsCents: irrf,
+      netPaidCents: net,
+      irrfCents: irrf,
       earnings: [],
       deductions: [],
       warnings: [],
@@ -54,10 +56,13 @@ async function createAdvance(userId: string, opts?: {
 async function createRegular(userId: string, opts?: {
   cnpj?: string;
   compensation?: number;
-  gross?: number;
-  net?: number;
-  irrf?: number;
+  gross?: number | null;
+  net?: number | null;
+  irrf?: number | null;
 }) {
+  const gross = opts?.gross === undefined ? 724228 : opts.gross;
+  const net = opts?.net === undefined ? 349495 : opts.net;
+  const irrf = opts?.irrf === undefined ? 120000 : opts.irrf;
   return prisma.payrollDocument.create({
     data: {
       userId,
@@ -67,11 +72,11 @@ async function createRegular(userId: string, opts?: {
       employerCnpj: opts?.cnpj ?? "12.345.678/0001-90",
       year: 2026,
       month: 9,
-      grossIncomeCents: opts?.gross ?? 724228,
-      totalEarningsCents: opts?.gross ?? 724228,
+      grossIncomeCents: gross,
+      totalEarningsCents: gross,
       totalDeductionsCents: 374733,
-      netPaidCents: opts?.net ?? 349495,
-      irrfCents: opts?.irrf ?? 120000,
+      netPaidCents: net,
+      irrfCents: irrf,
       earnings: [],
       deductions: opts?.compensation === undefined ? [] : [
         {
@@ -123,10 +128,15 @@ describe("payroll advance reconciliation", () => {
     const [summary] = await getPayrollCompetenceSummaries(user.id);
     expect(summary).toMatchObject({
       grossIncomeCents: 724228,
+      grossIncomeComplete: true,
       advanceNetPaidCents: 205260,
+      advanceNetPaidComplete: true,
       regularNetPaidCents: 349495,
+      regularNetPaidComplete: true,
       netPaidCents: 554755,
+      netPaidComplete: true,
       irrfCents: 124740,
+      irrfComplete: true,
       matchedAdvances: 1,
       pendingAdvances: 0,
     });
@@ -156,10 +166,34 @@ describe("payroll advance reconciliation", () => {
     const [summary] = await getPayrollCompetenceSummaries(user.id);
     expect(summary).toMatchObject({
       grossIncomeCents: 724228,
+      grossIncomeComplete: true,
       regularNetPaidCents: 349495,
+      regularNetPaidComplete: true,
       advanceNetPaidCents: 0,
+      advanceNetPaidComplete: true,
       matchedAdvances: 0,
       pendingAdvances: 0,
+    });
+  });
+
+  it("preserves null when monthly aggregate values are incomplete", async () => {
+    const user = await createUser();
+    await createAdvance(user.id, { net: null });
+    await createRegular(user.id, { gross: null, net: null, irrf: null });
+
+    const [summary] = await getPayrollCompetenceSummaries(user.id);
+
+    expect(summary).toMatchObject({
+      grossIncomeCents: null,
+      grossIncomeComplete: false,
+      advanceNetPaidCents: null,
+      advanceNetPaidComplete: false,
+      regularNetPaidCents: null,
+      regularNetPaidComplete: false,
+      netPaidCents: null,
+      netPaidComplete: false,
+      irrfCents: null,
+      irrfComplete: false,
     });
   });
 
