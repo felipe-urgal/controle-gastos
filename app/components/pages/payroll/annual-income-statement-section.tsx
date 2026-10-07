@@ -35,16 +35,28 @@ type AnnualStatement = {
   duplicate: boolean;
 };
 
+type ReplacementCandidate = {
+  id: string;
+  createdAt: string;
+  taxableIncomeCents: number | null;
+};
+
 type Preview = {
   fileName: string;
   requiresOcr: boolean;
   previewToken: string | null;
   statement: AnnualStatement | null;
+  replacementCandidates: ReplacementCandidate[];
   warnings: string[];
 };
 
 type StoredStatement = Omit<AnnualStatement, 'errors' | 'fingerprint' | 'duplicate'> & {
   id: string;
+  lifecycleStatus: 'ACTIVE' | 'SUPERSEDED' | 'ARCHIVED';
+  supersedesId: string | null;
+  supersededAt: string | null;
+  archivedAt: string | null;
+  supersededBy: { id: string } | null;
   createdAt: string;
 };
 
@@ -64,6 +76,7 @@ export function AnnualIncomeStatementSection() {
   const [statements, setStatements] = useState<StoredStatement[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [supersedesId, setSupersedesId] = useState('');
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
 
@@ -98,9 +111,32 @@ export function AnnualIncomeStatementSection() {
         method: 'POST',
         body: formData,
       });
-      setPreview(await envelope<Preview>(response));
+      const nextPreview = await envelope<Preview>(response);
+      setPreview(nextPreview);
+      setSupersedesId(
+        nextPreview.replacementCandidates.length === 1
+          ? nextPreview.replacementCandidates[0]!.id
+          : '',
+      );
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Não foi possível analisar o informe.');
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function archiveStatement(id: string) {
+    if (!window.confirm('Arquivar este informe? Ele deixará de participar da conciliação anual, mas continuará no histórico.')) {
+      return;
+    }
+    setWorking(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/payroll/annual/${id}/archive`, { method: 'POST' });
+      await envelope(response);
+      await load();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Não foi possível arquivar o informe.');
     } finally {
       setWorking(false);
     }
@@ -118,11 +154,13 @@ export function AnnualIncomeStatementSection() {
           previewToken: preview.previewToken,
           selected: true,
           statement: preview.statement,
+          supersedesId: supersedesId || null,
         }),
       });
       await envelope(response);
       await load();
       setPreview(null);
+      setSupersedesId('');
       setFile(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Não foi possível importar o informe.');
@@ -214,6 +252,27 @@ export function AnnualIncomeStatementSection() {
                 </div>
               )}
 
+              {preview.replacementCandidates.length > 0 && !preview.statement.duplicate && (
+                <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
+                  <strong>Retificação / substituição</strong>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Escolha o informe vigente que esta versão substitui. O anterior permanecerá no histórico.
+                  </p>
+                  <select
+                    value={supersedesId}
+                    onChange={(event) => setSupersedesId(event.target.value)}
+                    className="ds-control mt-3 min-h-11 w-full px-3"
+                  >
+                    <option value="">Importar como informe adicional</option>
+                    {preview.replacementCandidates.map((candidate) => (
+                      <option key={candidate.id} value={candidate.id}>
+                        Versão de {new Date(candidate.createdAt).toLocaleDateString('pt-BR')} · tributável {money(candidate.taxableIncomeCents)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {preview.statement.duplicate && (
                 <div className="rounded-[14px] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
                   Este informe já foi importado.
@@ -250,14 +309,41 @@ export function AnnualIncomeStatementSection() {
             <div className="mt-3 divide-y divide-[var(--border)] rounded-[14px] border border-[var(--border)]">
               {statements.map((statement) => (
                 <article key={statement.id} className="p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
-                      <strong className="text-sm text-[var(--foreground)]">{statement.payerName}</strong>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <strong className="text-sm text-[var(--foreground)]">{statement.payerName}</strong>
+                        {statement.lifecycleStatus === 'SUPERSEDED' ? (
+                          <span className="rounded-full bg-[var(--warning-subtle)] px-2 py-1 text-xs font-semibold text-[var(--warning)]">
+                            Substituído
+                          </span>
+                        ) : statement.lifecycleStatus === 'ARCHIVED' ? (
+                          <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
+                            Arquivado
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-[var(--success-subtle)] px-2 py-1 text-xs font-semibold text-[var(--success)]">
+                            Vigente
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-[var(--text-muted)]">
                         Ano-calendário {statement.calendarYear} · {statement.payerTaxId}
                       </p>
                     </div>
-                    <strong className="text-sm text-[var(--foreground)]">{money(statement.taxableIncomeCents)}</strong>
+                    <div className="flex items-center gap-3">
+                      <strong className="text-sm text-[var(--foreground)]">{money(statement.taxableIncomeCents)}</strong>
+                      {statement.lifecycleStatus === 'ACTIVE' && (
+                        <button
+                          type="button"
+                          disabled={working}
+                          onClick={() => archiveStatement(statement.id)}
+                          className="min-h-10 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
+                        >
+                          Arquivar
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <p className="mt-2 text-xs text-[var(--text-muted)]">
                     Previdência oficial {money(statement.officialPensionCents)} · IRRF {money(statement.irrfCents)} · 13º {money(statement.thirteenthSalaryCents)}
