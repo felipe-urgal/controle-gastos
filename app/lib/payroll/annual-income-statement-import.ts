@@ -18,6 +18,11 @@ import {
   isPayrollMoneyLimitError,
   PAYROLL_CENTS_MAX,
 } from "@/app/lib/payroll/payroll-money";
+import {
+  pageInfo,
+  payrollPageSchema,
+  payrollSearchParams,
+} from "@/app/lib/payroll/payroll-query";
 import { prisma } from "@/app/lib/prisma";
 import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
@@ -360,12 +365,23 @@ export async function confirmAnnualEmploymentIncomeStatement(request: Request) {
   }
 }
 
-export async function listAnnualEmploymentIncomeStatements() {
+export async function listAnnualEmploymentIncomeStatements(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
+    const query = payrollPageSchema.parse(payrollSearchParams(request));
     const statements = await prisma.annualEmploymentIncomeStatement.findMany({
-      where: { userId },
-      orderBy: [{ calendarYear: "desc" }, { payerName: "asc" }],
+      where: {
+        userId,
+        ...(query.year ? { calendarYear: query.year } : {}),
+      },
+      orderBy: [
+        { calendarYear: "desc" },
+        { payerName: "asc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit + 1,
       select: {
         id: true,
         calendarYear: true,
@@ -394,10 +410,20 @@ export async function listAnnualEmploymentIncomeStatements() {
         createdAt: true,
       },
     });
-    return success(statements);
+    return success({
+      items: statements.slice(0, query.limit),
+      pageInfo: pageInfo({
+        page: query.page,
+        limit: query.limit,
+        fetched: statements.length,
+      }),
+    });
   } catch (error) {
     const auth = unauthorized(error);
     if (auth) return auth;
+    if (error instanceof ZodError) {
+      return failure(error.issues[0]?.message ?? "Filtros inválidos", 400);
+    }
     return failure("Não foi possível carregar os informes anuais", 500);
   }
 }
