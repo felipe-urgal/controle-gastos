@@ -11,7 +11,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
-    "typecheck": "prisma generate && tsc --noEmit",
+    "typecheck": "prisma generate && node scripts/clean-next-types.mjs && next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e:deps": "pnpm --dir tests/e2e --ignore-workspace install --frozen-lockfile",
