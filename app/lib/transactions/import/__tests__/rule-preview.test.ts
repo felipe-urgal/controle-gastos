@@ -114,19 +114,41 @@ describe("applyImportRulesToPreview", () => {
     const items = Array.from({ length: 1_000 }, (_, index) => ({
       ...baseItem,
       index,
+      description: `UBER TRIP ${index}`,
       fingerprint: index.toString(16).padStart(64, "0"),
     }));
+    const merchantAliasesByDescription = new Map(
+      items.map((item, index) => [
+        item.description.toLowerCase(),
+        [
+          {
+            id: `alias-${index}`,
+            merchantId: `merchant-${index}`,
+            merchantName: `Merchant ${index}`,
+            operator: "EQUALS" as const,
+            normalizedPattern: item.description.toLowerCase(),
+            priority: 0,
+          },
+        ],
+      ]),
+    );
 
     const startedAt = performance.now();
     const preview = applyImportRulesToPreview({
       accountId: "account-1",
       items,
       rules: manyRules,
+      merchantAliasesByDescription,
     });
     const elapsedMs = performance.now() - startedAt;
 
     expect(preview).toHaveLength(1_000);
     expect(preview.every((item) => item.matchedRuleId === "rule-account")).toBe(true);
+    expect(
+      preview.every(
+        (item, index) => item.suggestedMerchantId === `merchant-${index}`,
+      ),
+    ).toBe(true);
     expect(elapsedMs).toBeLessThan(5_000);
   });
 
