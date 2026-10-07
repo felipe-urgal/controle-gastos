@@ -195,7 +195,12 @@ test('folha: resolve adiantamento ambíguo manualmente e desbloqueia anual', asy
   await expect(annualSection.getByText('Incompleto', { exact: true }).first()).toBeVisible();
 
   const candidate = advanceSection.getByLabel('Rubrica de compensação');
-  await candidate.selectOption({ label: /DESC ADIANT SALAR B/ });
+  const candidateValue = await candidate
+    .locator('option')
+    .filter({ hasText: 'DESC ADIANT SALAR B' })
+    .getAttribute('value');
+  expect(candidateValue).not.toBeNull();
+  await candidate.selectOption(candidateValue);
 
   page.once('dialog', async (dialog) => {
     await dialog.accept();
