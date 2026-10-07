@@ -14,7 +14,7 @@ function fold(value: string) {
     .toUpperCase();
 }
 
-function compensationValues(value: Prisma.JsonValue) {
+export function payrollCompensationValues(value: Prisma.JsonValue) {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return [];
@@ -99,7 +99,7 @@ export async function reconcilePayrollCompetence(
   }
 
   const regularCompensations = regulars.flatMap((regular) =>
-    compensationValues(regular.deductions).map((rubric) => ({
+    payrollCompensationValues(regular.deductions).map((rubric) => ({
       regularDocumentId: regular.id,
       ...rubric,
     })),
@@ -225,14 +225,26 @@ export async function getPayrollCompetenceSummaries(userId: string) {
     const regulars = items.filter((item) => item.paymentType === "REGULAR");
     const advances = items.filter((item) => item.paymentType === "ADVANCE");
     const links = advances.flatMap((item) => item.advanceLinks);
-    const grossIncome = aggregateCents(
-      regulars.length > 0 ? regulars : advances,
-      (item) => item.grossIncomeCents ?? item.totalEarningsCents,
-    );
-    const netPaid = aggregateCents(items, (item) => item.netPaidCents);
-    const irrf = aggregateCents(items, (item) => item.irrfCents);
+    const ambiguousRegulars = regulars.length > 1;
+    const incomplete = { value: null, complete: false } satisfies CentsAggregation;
+    const grossIncome = ambiguousRegulars
+      ? incomplete
+      : aggregateCents(
+          regulars.length > 0 ? regulars : advances,
+          (item) => item.grossIncomeCents ?? item.totalEarningsCents,
+        );
+    const netPaid = ambiguousRegulars
+      ? incomplete
+      : aggregateCents(items, (item) => item.netPaidCents);
+    const irrf = ambiguousRegulars
+      ? incomplete
+      : aggregateCents(items, (item) => item.irrfCents);
     const advanceNetPaid = aggregateCents(advances, (item) => item.netPaidCents);
-    const regularNetPaid = aggregateCents(regulars, (item) => item.netPaidCents);
+    const regularNetPaid = ambiguousRegulars
+      ? incomplete
+      : aggregateCents(regulars, (item) => item.netPaidCents);
+    const matchedAdvances = links.filter((item) => item.status === "MATCHED").length;
+    const pendingAdvances = links.filter((item) => item.status === "PENDING").length;
 
     return {
       employerName: items[0]?.employerName ?? "",
@@ -249,8 +261,15 @@ export async function getPayrollCompetenceSummaries(userId: string) {
       advanceNetPaidComplete: advanceNetPaid.complete,
       regularNetPaidCents: regularNetPaid.value,
       regularNetPaidComplete: regularNetPaid.complete,
-      matchedAdvances: links.filter((item) => item.status === "MATCHED").length,
-      pendingAdvances: links.filter((item) => item.status === "PENDING").length,
+      matchedAdvances,
+      pendingAdvances,
+      regularDocumentCount: regulars.length,
+      reviewRequired: ambiguousRegulars || pendingAdvances > 0,
+      reviewReason: ambiguousRegulars
+        ? `Há ${regulars.length} folhas REGULAR vigentes nesta competência. Arquive/superseda duplicatas ou reclassifique pagamentos diferentes antes de usar os totais.`
+        : pendingAdvances > 0
+          ? `${pendingAdvances} adiantamento(s) ainda precisam de resolução.`
+          : null,
       documentCount: items.length,
     };
   });
