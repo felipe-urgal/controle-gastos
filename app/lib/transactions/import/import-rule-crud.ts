@@ -145,11 +145,7 @@ const baseImportRuleCrud = baseCrudHandler({
   include: importRuleDependencies,
   filterableFields: ["isActive", "accountId", "transactionType"],
   searchableFields: ["name", "descriptionPattern"],
-  orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
-  include: {
-    account: { select: { isActive: true } },
-    category: { select: { isActive: true } },
-  },
+  orderBy: [{ priority: "asc" }, { createdAt: "asc" }, { id: "asc" }],
   limit: true,
   mapper: toImportRuleDTO,
   async summary({ userId }) {
@@ -174,10 +170,7 @@ const baseImportRuleCrud = baseCrudHandler({
           ...data,
           userId,
         },
-        include: {
-          account: { select: { isActive: true } },
-          category: { select: { isActive: true } },
-        },
+        include: importRuleDependencies,
       });
     });
   },
@@ -211,10 +204,7 @@ async function updateImportRule(
       return tx.transactionImportRule.update({
         where: { id },
         data: input,
-        include: {
-          account: { select: { isActive: true } },
-          category: { select: { isActive: true } },
-        },
+        include: importRuleDependencies,
       });
     });
 
@@ -246,7 +236,7 @@ export async function renumberImportRules() {
       await lockImportRuleMutations(tx, userId);
       const rules = await tx.transactionImportRule.findMany({
         where: { userId },
-        orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+        orderBy: [{ priority: "asc" }, { createdAt: "asc" }, { id: "asc" }],
         select: { id: true },
       });
 
