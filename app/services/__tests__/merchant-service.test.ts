@@ -62,4 +62,25 @@ describe("merchantService.getAllOptions", () => {
     expect(result.at(-1)?.id).toBe("merchant-101");
     expect(apiClientMock).toHaveBeenCalledTimes(2);
   });
+  it("searches active merchant options server-side with a small page", async () => {
+    apiClientMock.mockResolvedValue({
+      success: true,
+      data: {
+        items: [merchant(42)],
+        total: 1,
+        page: 1,
+        pageSize: 20,
+        totalPages: 1,
+      },
+    });
+
+    const result = await merchantService.searchOptions("  uber  ");
+
+    expect(result).toEqual([merchant(42)]);
+    expect(apiClientMock).toHaveBeenCalledWith(
+      "/api/merchants?search=uber&isActive=true&page=1&pageSize=20",
+      { method: "GET" },
+    );
+  });
+
 });

@@ -15,6 +15,18 @@ const baseMerchantService =
 export const merchantService = {
   ...baseMerchantService,
 
+  async searchOptions(search = "") {
+    const normalizedSearch = search.trim();
+    const response = await baseMerchantService.getAll({
+      ...(normalizedSearch ? { search: normalizedSearch } : {}),
+      isActive: true,
+      page: 1,
+      pageSize: 20,
+    });
+
+    return response.data?.items ?? [];
+  },
+
   async getAllOptions() {
     const items: MerchantDTO[] = [];
     const pageSize = 100;

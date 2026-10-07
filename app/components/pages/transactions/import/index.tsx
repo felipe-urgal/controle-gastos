@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { PageHeader } from '@/app/components/base-pages';
 import { Alert } from '@/app/components/feedback';
@@ -160,6 +160,9 @@ export default function TransactionImportPage() {
   const [accountLoadError, setAccountLoadError] = useState('');
   const [categoryLoadError, setCategoryLoadError] = useState('');
   const [retryingSource, setRetryingSource] = useState<'accounts' | 'categories' | 'merchants' | null>(null);
+  const [merchantSearch, setMerchantSearch] = useState('');
+  const [merchantSearchLoading, setMerchantSearchLoading] = useState(false);
+  const merchantSearchRequest = useRef(0);
   const [accountId, setAccountId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
@@ -202,7 +205,7 @@ export default function TransactionImportPage() {
       }
 
       try {
-        const merchantResponse = await merchantService.getAllOptions();
+        const merchantResponse = await merchantService.searchOptions();
         setMerchants(merchantResponse.filter((merchant) => merchant.isActive));
         setMerchantOptionsUnavailable(false);
       } catch {
@@ -253,7 +256,7 @@ export default function TransactionImportPage() {
   async function retryMerchants() {
     setRetryingSource('merchants');
     try {
-      const response = await merchantService.getAllOptions();
+      const response = await merchantService.searchOptions(merchantSearch);
       setMerchants(response.filter((merchant) => merchant.isActive));
       setMerchantOptionsUnavailable(false);
     } catch {
@@ -261,6 +264,30 @@ export default function TransactionImportPage() {
       setMerchantOptionsUnavailable(true);
     } finally {
       setRetryingSource(null);
+    }
+  }
+
+  async function searchMerchants(query: string) {
+    setMerchantSearch(query);
+    const requestId = merchantSearchRequest.current + 1;
+    merchantSearchRequest.current = requestId;
+    setMerchantSearchLoading(true);
+
+    try {
+      const response = await merchantService.searchOptions(query);
+      if (merchantSearchRequest.current !== requestId) return;
+
+      setMerchants(response.filter((merchant) => merchant.isActive));
+      setMerchantOptionsUnavailable(false);
+    } catch {
+      if (merchantSearchRequest.current !== requestId) return;
+
+      setMerchants([]);
+      setMerchantOptionsUnavailable(true);
+    } finally {
+      if (merchantSearchRequest.current === requestId) {
+        setMerchantSearchLoading(false);
+      }
     }
   }
 
@@ -699,6 +726,9 @@ export default function TransactionImportPage() {
                     merchantOptionsUnavailable={merchantOptionsUnavailable}
                     merchantRetrying={retryingSource === 'merchants'}
                     onRetryMerchants={() => void retryMerchants()}
+                    merchantSearch={merchantSearch}
+                    merchantSearchLoading={merchantSearchLoading}
+                    onSearchMerchants={(query) => void searchMerchants(query)}
                     accountCurrency={account?.currency}
                     showValues={showValues}
                     submitting={submitting}
@@ -749,6 +779,9 @@ export default function TransactionImportPage() {
               merchantOptionsUnavailable={merchantOptionsUnavailable}
               merchantRetrying={retryingSource === 'merchants'}
               onRetryMerchants={() => void retryMerchants()}
+              merchantSearch={merchantSearch}
+              merchantSearchLoading={merchantSearchLoading}
+              onSearchMerchants={(query) => void searchMerchants(query)}
               accountCurrency={account?.currency}
               showValues={showValues}
               submitting={submitting}
@@ -801,6 +834,9 @@ function ImportDetail({
   merchantOptionsUnavailable,
   merchantRetrying,
   onRetryMerchants,
+  merchantSearch,
+  merchantSearchLoading,
+  onSearchMerchants,
   accountCurrency,
   showValues,
   submitting,
@@ -814,6 +850,9 @@ function ImportDetail({
   merchantOptionsUnavailable: boolean;
   merchantRetrying: boolean;
   onRetryMerchants: () => void;
+  merchantSearch: string;
+  merchantSearchLoading: boolean;
+  onSearchMerchants: (query: string) => void;
   accountCurrency?: string;
   showValues: boolean;
   submitting: boolean;
@@ -943,6 +982,20 @@ function ImportDetail({
                 >
                   Tentar carregar estabelecimentos
                 </Button>
+              </span>
+            )}
+            <input
+              type="search"
+              aria-label="Buscar estabelecimento"
+              value={merchantSearch}
+              onChange={(event) => onSearchMerchants(event.target.value)}
+              disabled={submitting || merchantOptionsUnavailable}
+              placeholder="Buscar por nome"
+              className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] disabled:opacity-50"
+            />
+            {merchantSearchLoading && (
+              <span className="mt-1 block text-xs font-normal text-[var(--text-muted)]" role="status">
+                Buscando estabelecimentos…
               </span>
             )}
             <select
@@ -1080,6 +1133,9 @@ function MobileImportDetail({
   merchantOptionsUnavailable,
   merchantRetrying,
   onRetryMerchants,
+  merchantSearch,
+  merchantSearchLoading,
+  onSearchMerchants,
   accountCurrency,
   showValues,
   submitting,
@@ -1093,6 +1149,9 @@ function MobileImportDetail({
   merchantOptionsUnavailable: boolean;
   merchantRetrying: boolean;
   onRetryMerchants: () => void;
+  merchantSearch: string;
+  merchantSearchLoading: boolean;
+  onSearchMerchants: (query: string) => void;
   accountCurrency?: string;
   showValues: boolean;
   submitting: boolean;
@@ -1118,6 +1177,9 @@ function MobileImportDetail({
           merchantOptionsUnavailable={merchantOptionsUnavailable}
           merchantRetrying={merchantRetrying}
           onRetryMerchants={onRetryMerchants}
+          merchantSearch={merchantSearch}
+          merchantSearchLoading={merchantSearchLoading}
+          onSearchMerchants={onSearchMerchants}
           accountCurrency={accountCurrency}
           showValues={showValues}
           submitting={submitting}
