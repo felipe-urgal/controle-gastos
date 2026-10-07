@@ -226,20 +226,12 @@ export async function reconcilePayrollCompetence(
   }
 }
 
-export async function getPayrollCompetenceSummaries(userId: string) {
-  const documents = await prisma.payrollDocument.findMany({
-    where: {
-      userId,
-      lifecycleStatus: "ACTIVE",
-      paymentType: { in: ["ADVANCE", "REGULAR"] },
-    },
-    orderBy: [{ year: "desc" }, { month: "desc" }, { employerCnpj: "asc" }],
-    include: {
-      advanceLinks: true,
-    },
-  });
+type PayrollSummaryDocument = Prisma.PayrollDocumentGetPayload<{
+  include: { advanceLinks: true };
+}>;
 
-  const groups = new Map<string, typeof documents>();
+function buildPayrollCompetenceSummaries(documents: PayrollSummaryDocument[]) {
+  const groups = new Map<string, PayrollSummaryDocument[]>();
   for (const document of documents) {
     const key = [document.employerCnpj, document.year, document.month].join("|");
     const current = groups.get(key) ?? [];
@@ -299,4 +291,94 @@ export async function getPayrollCompetenceSummaries(userId: string) {
       documentCount: items.length,
     };
   });
+}
+
+export async function getPayrollCompetenceSummaries(userId: string) {
+  const documents = await prisma.payrollDocument.findMany({
+    where: {
+      userId,
+      lifecycleStatus: "ACTIVE",
+      paymentType: { in: ["ADVANCE", "REGULAR"] },
+    },
+    orderBy: [
+      { year: "desc" },
+      { month: "desc" },
+      { employerCnpj: "asc" },
+      { createdAt: "desc" },
+      { id: "desc" },
+    ],
+    include: {
+      advanceLinks: true,
+    },
+  });
+
+  return buildPayrollCompetenceSummaries(documents);
+}
+
+export async function getPayrollCompetenceSummaryPage(
+  userId: string,
+  query: { year?: number; page: number; limit: number },
+) {
+  const where: Prisma.PayrollDocumentWhereInput = {
+    userId,
+    lifecycleStatus: "ACTIVE",
+    paymentType: { in: ["ADVANCE", "REGULAR"] },
+    ...(query.year ? { year: query.year } : {}),
+  };
+
+  const competenceGroups = await prisma.payrollDocument.groupBy({
+    by: ["employerCnpj", "year", "month"],
+    where,
+    orderBy: [
+      { year: "desc" },
+      { month: "desc" },
+      { employerCnpj: "asc" },
+    ],
+    skip: (query.page - 1) * query.limit,
+    take: query.limit + 1,
+  });
+
+  const selected = competenceGroups.slice(0, query.limit);
+  if (selected.length === 0) {
+    return {
+      items: [],
+      pageInfo: {
+        page: query.page,
+        limit: query.limit,
+        hasMore: false,
+      },
+    };
+  }
+
+  const documents = await prisma.payrollDocument.findMany({
+    where: {
+      userId,
+      lifecycleStatus: "ACTIVE",
+      paymentType: { in: ["ADVANCE", "REGULAR"] },
+      OR: selected.map((group) => ({
+        employerCnpj: group.employerCnpj,
+        year: group.year,
+        month: group.month,
+      })),
+    },
+    orderBy: [
+      { year: "desc" },
+      { month: "desc" },
+      { employerCnpj: "asc" },
+      { createdAt: "desc" },
+      { id: "desc" },
+    ],
+    include: {
+      advanceLinks: true,
+    },
+  });
+
+  return {
+    items: buildPayrollCompetenceSummaries(documents),
+    pageInfo: {
+      page: query.page,
+      limit: query.limit,
+      hasMore: competenceGroups.length > query.limit,
+    },
+  };
 }

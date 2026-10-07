@@ -18,6 +18,7 @@ import {
   type ParsedAnnualEmploymentIncomeStatement,
 } from "@/app/lib/payroll/annual-income-statement-parser";
 import { signAnnualStatementPreview } from "@/app/lib/payroll/annual-income-preview-token";
+import { PAYROLL_CENTS_MAX } from "@/app/lib/payroll/payroll-money";
 import { prisma } from "@/app/lib/prisma";
 
 const userIds: string[] = [];
@@ -297,4 +298,57 @@ describe("annual employment income statement import", () => {
     expect(response.status).toBe(400);
     expect(await prisma.annualEmploymentIncomeStatement.count({ where: { userId: other.id } })).toBe(0);
   });
+  it("accepts the Int ceiling and rejects max + 1 with 400", async () => {
+    const user = await createUser();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(user.id);
+
+    const maxBase = {
+      ...parsed(),
+      taxableIncomeCents: PAYROLL_CENTS_MAX,
+    };
+    const maxStatement = {
+      ...maxBase,
+      fingerprint: annualEmploymentIncomeFingerprint(user.id, maxBase),
+      duplicate: false,
+    };
+    const maxToken = signAnnualStatementPreview(user.id, maxStatement);
+
+    const accepted = await confirmAnnualEmploymentIncomeStatement(
+      request({
+        previewToken: maxToken,
+        selected: true,
+        statement: maxStatement,
+      }),
+    );
+    expect(accepted.status).toBe(201);
+
+    const overflowBase = {
+      ...parsed(),
+      calendarYear: 2024,
+      taxExercise: 2025,
+      taxableIncomeCents: PAYROLL_CENTS_MAX + 1,
+    };
+    const overflowStatement = {
+      ...overflowBase,
+      fingerprint: annualEmploymentIncomeFingerprint(user.id, overflowBase),
+      duplicate: false,
+    };
+    const overflowToken = signAnnualStatementPreview(user.id, overflowStatement);
+
+    const rejected = await confirmAnnualEmploymentIncomeStatement(
+      request({
+        previewToken: overflowToken,
+        selected: true,
+        statement: overflowStatement,
+      }),
+    );
+
+    expect(rejected.status).toBe(400);
+    expect(
+      await prisma.annualEmploymentIncomeStatement.count({
+        where: { userId: user.id },
+      }),
+    ).toBe(1);
+  });
+
 });

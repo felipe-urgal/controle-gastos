@@ -3,69 +3,19 @@
 import { useEffect, useState } from 'react';
 import { FaRedo } from 'react-icons/fa';
 
-import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { useAuth } from '@/app/context/auth-context';
+import { lastClosedPayrollYear } from '@/app/lib/payroll/payroll-date';
+import {
+  payrollAnnualStatusLabel,
+  payrollMoney,
+} from '@/app/lib/payroll/payroll-presentation';
+import { payrollService } from '@/app/services/payroll-service';
+import type {
+  PayrollAnnualReport,
+  PayrollAnnualStatus,
+} from '@/app/types/payroll';
 
-type Status = 'MATCHED' | 'MISMATCH' | 'INCOMPLETE' | 'UNSUPPORTED_COMPONENT';
-
-type Source = {
-  documentId: string;
-  month: number;
-  paymentType: string;
-  amountCents: number | null;
-  rubrics: Array<{
-    code: string | null;
-    description: string;
-    earningsCents: number | null;
-    deductionsCents: number | null;
-  }>;
-};
-
-type Component = {
-  key: string;
-  label: string;
-  status: Status;
-  payrollCents: number | null;
-  statementCents: number | null;
-  differenceCents: number | null;
-  reason: string | null;
-  sources: Source[];
-};
-
-type Group = {
-  employerName: string;
-  employerCnpj: string;
-  year: number;
-  status: Status;
-  statementIds: string[];
-  documentCount: number;
-  components: Component[];
-};
-
-type Report = {
-  year: number;
-  status: 'MATCHED' | 'REVIEW_REQUIRED';
-  summary: {
-    groups: number;
-    matchedGroups: number;
-    reviewGroups: number;
-    matchedComponents: number;
-    reviewComponents: number;
-  };
-  items: Group[];
-};
-
-function money(value: number | null) {
-  return value === null ? 'Não informado' : formatCurrency(value, 'BRL');
-}
-
-function statusLabel(status: Status) {
-  if (status === 'MATCHED') return 'Conciliado';
-  if (status === 'MISMATCH') return 'Divergente';
-  if (status === 'INCOMPLETE') return 'Incompleto';
-  return 'Não suportado';
-}
-
-function statusClass(status: Status) {
+function statusClass(status: PayrollAnnualStatus) {
   if (status === 'MATCHED') {
     return 'bg-[var(--success-subtle)] text-[var(--success)]';
   }
@@ -75,22 +25,16 @@ function statusClass(status: Status) {
   return 'bg-[var(--warning-subtle)] text-[var(--warning)]';
 }
 
-async function envelope<T>(response: Response): Promise<T> {
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.error?.message ?? 'Não foi possível concluir a operação');
-  }
-  return body.data as T;
-}
-
 export function PayrollAnnualReconciliationSection({
   refreshKey = 0,
 }: {
   refreshKey?: number;
 }) {
-  const lastClosedYear = new Date().getFullYear() - 1;
+  const { user } = useAuth();
+  const showValues = user?.showValues !== false;
+  const lastClosedYear = lastClosedPayrollYear();
   const [year, setYear] = useState(lastClosedYear);
-  const [report, setReport] = useState<Report | null>(null);
+  const [report, setReport] = useState<PayrollAnnualReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -98,11 +42,7 @@ export function PayrollAnnualReconciliationSection({
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(
-        '/api/payroll/annual/reconciliation?year=' + year,
-        { cache: 'no-store' },
-      );
-      setReport(await envelope<Report>(response));
+      setReport(await payrollService.annualReconciliation(year));
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -117,10 +57,8 @@ export function PayrollAnnualReconciliationSection({
   useEffect(() => {
     let cancelled = false;
 
-    fetch('/api/payroll/annual/reconciliation?year=' + year, {
-      cache: 'no-store',
-    })
-      .then((response) => envelope<Report>(response))
+    payrollService
+      .annualReconciliation(year)
       .then((data) => {
         if (!cancelled) {
           setError('');
@@ -140,28 +78,29 @@ export function PayrollAnnualReconciliationSection({
     };
   }, [refreshKey, year]);
 
-  const years = Array.from({ length: 6 }, (_, index) => lastClosedYear - index);
+  const years = Array.from({ length: 8 }, (_, index) => lastClosedYear - index);
 
   return (
-    <section className="ds-panel p-5">
+    <section className="ds-panel p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
             Conciliação anual
           </h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Compara os documentos mensais com o informe anual sem corrigir diferenças automaticamente.
+            Compara os documentos mensais com o informe anual sem corrigir
+            diferenças automaticamente.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <select
             value={year}
             disabled={loading}
             onChange={(event) => {
-              const selectedYear = Number(event.target.value);
-              setYear(selectedYear);
+              setLoading(true);
+              setYear(Number(event.target.value));
             }}
-            className="ds-control min-h-10 px-3 text-sm"
+            className="ds-control min-h-11 px-3 text-sm"
             aria-label="Ano da conciliação"
           >
             {years.map((item) => (
@@ -174,7 +113,7 @@ export function PayrollAnnualReconciliationSection({
             type="button"
             disabled={loading}
             onClick={() => void refresh()}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
           >
             <FaRedo aria-hidden="true" />
             Atualizar
@@ -185,25 +124,46 @@ export function PayrollAnnualReconciliationSection({
       {error && (
         <div
           role="alert"
-          className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
-          {error}
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            className="min-h-11 rounded-full border border-current px-3 text-xs font-bold"
+          >
+            Tentar novamente
+          </button>
         </div>
       )}
 
       {loading ? (
-        <p className="mt-4 text-sm text-[var(--text-muted)]">Conciliando documentos...</p>
+        <p className="mt-4 text-sm text-[var(--text-muted)]">
+          Conciliando documentos...
+        </p>
       ) : !report || report.items.length === 0 ? (
         <p className="mt-4 text-sm text-[var(--text-muted)]">
           Nenhum holerite ou informe anual encontrado para {year}.
         </p>
       ) : (
         <>
-          <div className="mt-4 grid gap-2 sm:grid-cols-4">
-            <Metric label="Fontes pagadoras" value={String(report.summary.groups)} />
-            <Metric label="Conciliadas" value={String(report.summary.matchedGroups)} />
-            <Metric label="Para revisar" value={String(report.summary.reviewGroups)} />
-            <Metric label="Itens pendentes" value={String(report.summary.reviewComponents)} />
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <Metric
+              label="Fontes pagadoras"
+              value={String(report.summary.groups)}
+            />
+            <Metric
+              label="Conciliadas"
+              value={String(report.summary.matchedGroups)}
+            />
+            <Metric
+              label="Para revisar"
+              value={String(report.summary.reviewGroups)}
+            />
+            <Metric
+              label="Itens pendentes"
+              value={String(report.summary.reviewComponents)}
+            />
           </div>
 
           <div className="mt-4 space-y-3">
@@ -218,7 +178,8 @@ export function PayrollAnnualReconciliationSection({
                       {group.employerName}
                     </strong>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">
-                      {group.employerCnpj} · {group.documentCount} documento(s) mensal(is)
+                      {group.employerCnpj} · {group.documentCount} documento(s)
+                      mensal(is)
                     </p>
                   </div>
                   <span
@@ -227,7 +188,7 @@ export function PayrollAnnualReconciliationSection({
                       statusClass(group.status)
                     }
                   >
-                    {statusLabel(group.status)}
+                    {payrollAnnualStatusLabel(group.status)}
                   </span>
                 </div>
 
@@ -251,20 +212,35 @@ export function PayrollAnnualReconciliationSection({
                             statusClass(component.status)
                           }
                         >
-                          {statusLabel(component.status)}
+                          {payrollAnnualStatusLabel(component.status)}
                         </span>
                       </div>
 
                       {component.key !== 'MONTHLY_COVERAGE' && (
                         <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                          <Metric label="Holerites" value={money(component.payrollCents)} />
-                          <Metric label="Informe" value={money(component.statementCents)} />
+                          <Metric
+                            label="Holerites"
+                            value={payrollMoney(
+                              component.payrollCents,
+                              showValues,
+                            )}
+                          />
+                          <Metric
+                            label="Informe"
+                            value={payrollMoney(
+                              component.statementCents,
+                              showValues,
+                            )}
+                          />
                           <Metric
                             label="Diferença"
                             value={
                               component.differenceCents === null
                                 ? 'Não calculada'
-                                : money(component.differenceCents)
+                                : payrollMoney(
+                                    component.differenceCents,
+                                    showValues,
+                                  )
                             }
                           />
                         </div>
@@ -272,7 +248,7 @@ export function PayrollAnnualReconciliationSection({
 
                       {component.sources.length > 0 && (
                         <details className="mt-3 rounded-[10px] bg-[var(--surface-raised)] p-3">
-                          <summary className="cursor-pointer text-xs font-bold text-[var(--foreground)]">
+                          <summary className="min-h-11 cursor-pointer content-center text-xs font-bold text-[var(--foreground)]">
                             Ver origem mensal
                           </summary>
                           <div className="mt-2 space-y-2">
@@ -283,20 +259,37 @@ export function PayrollAnnualReconciliationSection({
                               >
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <span className="font-semibold text-[var(--foreground)]">
-                                    {String(source.month).padStart(2, '0')}/{year} · {source.paymentType}
+                                    {String(source.month).padStart(2, '0')}/
+                                    {year} · {source.paymentType}
                                   </span>
                                   <span className="text-[var(--text-muted)]">
-                                    {money(source.amountCents)}
+                                    {payrollMoney(
+                                      source.amountCents,
+                                      showValues,
+                                    )}
                                   </span>
                                 </div>
                                 {source.rubrics.length > 0 && (
                                   <div className="mt-2 space-y-1 text-[11px] text-[var(--text-muted)]">
                                     {source.rubrics.map((rubric, index) => (
-                                      <p key={(rubric.code ?? 'rubric') + ':' + index}>
-                                        {rubric.code ? rubric.code + ' · ' : ''}
+                                      <p
+                                        key={
+                                          (rubric.code ?? 'rubric') +
+                                          ':' +
+                                          index
+                                        }
+                                        className="break-words"
+                                      >
+                                        {rubric.code
+                                          ? rubric.code + ' · '
+                                          : ''}
                                         {rubric.description}
                                         {' · '}
-                                        {money(rubric.earningsCents ?? rubric.deductionsCents)}
+                                        {payrollMoney(
+                                          rubric.earningsCents ??
+                                            rubric.deductionsCents,
+                                          showValues,
+                                        )}
                                       </p>
                                     ))}
                                   </div>
@@ -322,7 +315,9 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
-      <strong className="mt-1 block text-sm text-[var(--foreground)]">{value}</strong>
+      <strong className="mt-1 block break-words text-sm text-[var(--foreground)]">
+        {value}
+      </strong>
     </div>
   );
 }

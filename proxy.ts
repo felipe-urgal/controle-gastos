@@ -25,6 +25,7 @@ const PROTECTED_PREFIXES = [
   "/patrimonio",
   "/investimentos",
   "/recorrencias",
+  "/rendimentos-trabalho",
   "/tags",
   "/transacoes",
   "/usuario",

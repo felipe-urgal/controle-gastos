@@ -3,144 +3,29 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FaFileImport, FaRedo } from 'react-icons/fa';
 
-import { PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { AnnualIncomeStatementSection } from '@/app/components/pages/payroll/annual-income-statement-section';
 import { PayrollAdvanceReconciliationSection } from '@/app/components/pages/payroll/payroll-advance-reconciliation-section';
 import { PayrollAnnualReconciliationSection } from '@/app/components/pages/payroll/payroll-annual-reconciliation-section';
 import { PayrollTransactionReconciliationSection } from '@/app/components/pages/payroll/payroll-transaction-reconciliation-section';
-import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { useAuth } from '@/app/context/auth-context';
+import { logicalDateParts } from '@/app/lib/payroll/payroll-date';
+import {
+  importedDocumentStatusLabel,
+  payrollMoney,
+  payrollPaymentTypeLabel,
+  payrollSummaryMoney,
+} from '@/app/lib/payroll/payroll-presentation';
+import { payrollService } from '@/app/services/payroll-service';
+import type {
+  PayrollImportPreview,
+  PayrollPage,
+  PayrollPaymentType,
+  PayrollSummary,
+  StoredPayrollDocument,
+} from '@/app/types/payroll';
 
-type Rubric = {
-  code: string | null;
-  description: string;
-  reference: string | null;
-  earningsCents: number | null;
-  deductionsCents: number | null;
-};
-
-type PayrollPaymentType =
-  | 'ADVANCE'
-  | 'REGULAR'
-  | 'THIRTEENTH'
-  | 'VACATION'
-  | 'PLR'
-  | 'OTHER';
-
-type PayrollDocument = {
-  documentType: 'PAYROLL_ADVANCE' | 'MONTHLY_PAYSLIP';
-  paymentType: PayrollPaymentType;
-  employerName: string;
-  employerCnpj: string;
-  employeeName: string | null;
-  year: number;
-  month: number;
-  salaryBaseCents: number | null;
-  grossIncomeCents: number | null;
-  totalEarningsCents: number | null;
-  totalDeductionsCents: number | null;
-  netPaidCents: number | null;
-  inssCents: number | null;
-  irrfCents: number | null;
-  irrfBaseCents: number | null;
-  fgtsBaseCents: number | null;
-  fgtsAmountCents: number | null;
-  earnings: Rubric[];
-  deductions: Rubric[];
-  bankMetadata: Record<string, string> | null;
-  warnings: string[];
-  errors: string[];
-  fingerprint: string;
-  duplicate: boolean;
-};
-
-type ReplacementCandidate = {
-  id: string;
-  paymentType: PayrollPaymentType;
-  createdAt: string;
-  netPaidCents: number | null;
-};
-
-type Preview = {
-  fileName: string;
-  requiresOcr: boolean;
-  pageCount?: number;
-  detectedType: PayrollDocument['documentType'] | null;
-  previewToken: string | null;
-  document: PayrollDocument | null;
-  replacementCandidates: ReplacementCandidate[];
-  warnings: string[];
-};
-
-type PayrollSummary = {
-  employerName: string;
-  employerCnpj: string;
-  year: number;
-  month: number;
-  grossIncomeCents: number | null;
-  grossIncomeComplete: boolean;
-  netPaidCents: number | null;
-  netPaidComplete: boolean;
-  irrfCents: number | null;
-  irrfComplete: boolean;
-  advanceNetPaidCents: number | null;
-  advanceNetPaidComplete: boolean;
-  regularNetPaidCents: number | null;
-  regularNetPaidComplete: boolean;
-  matchedAdvances: number;
-  pendingAdvances: number;
-  regularDocumentCount: number;
-  reviewRequired: boolean;
-  reviewReason: string | null;
-  documentCount: number;
-};
-
-type StoredDocument = {
-  id: string;
-  documentType: PayrollDocument['documentType'];
-  paymentType: PayrollDocument['paymentType'];
-  employerName: string;
-  employerCnpj: string;
-  employeeName: string | null;
-  year: number;
-  month: number;
-  grossIncomeCents: number | null;
-  totalEarningsCents: number | null;
-  totalDeductionsCents: number | null;
-  netPaidCents: number | null;
-  inssCents: number | null;
-  irrfCents: number | null;
-  earnings: unknown;
-  deductions: unknown;
-  warnings: unknown;
-  lifecycleStatus: 'ACTIVE' | 'SUPERSEDED' | 'ARCHIVED';
-  supersedesId: string | null;
-  supersededAt: string | null;
-  archivedAt: string | null;
-  supersededBy: { id: string } | null;
-  createdAt: string;
-};
-
-function money(value: number | null) {
-  return value === null ? 'Não informado' : formatCurrency(value, 'BRL');
-}
-
-function summaryMoney(value: number | null, complete: boolean) {
-  return complete ? money(value) : 'Incompleto';
-}
-
-function typeLabel(type: PayrollDocument['documentType']) {
-  return type === 'PAYROLL_ADVANCE' ? 'Adiantamento salarial' : 'Folha / pagamento';
-}
-
-function paymentTypeLabel(type: PayrollPaymentType) {
-  if (type === 'ADVANCE') return 'Adiantamento';
-  if (type === 'REGULAR') return 'Folha regular';
-  if (type === 'THIRTEENTH') return '13º salário';
-  if (type === 'VACATION') return 'Férias';
-  if (type === 'PLR') return 'PLR';
-  return 'Outro';
-}
+type PayrollTab = 'MONTHLY' | 'BANK' | 'ANNUAL';
 
 const monthlyPaymentTypes: PayrollPaymentType[] = [
   'REGULAR',
@@ -150,485 +35,1113 @@ const monthlyPaymentTypes: PayrollPaymentType[] = [
   'OTHER',
 ];
 
-async function readEnvelope<T>(response: Response): Promise<T> {
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.error?.message ?? 'Não foi possível concluir a operação');
-  }
-  return body.data as T;
+function typeLabel(type: 'PAYROLL_ADVANCE' | 'MONTHLY_PAYSLIP') {
+  return type === 'PAYROLL_ADVANCE'
+    ? 'Adiantamento salarial'
+    : 'Folha / pagamento';
 }
 
+const emptyDocuments: PayrollPage<StoredPayrollDocument> = {
+  items: [],
+  pageInfo: { page: 1, limit: 8, hasMore: false },
+};
+
+const emptySummaries: PayrollPage<PayrollSummary> = {
+  items: [],
+  pageInfo: { page: 1, limit: 6, hasMore: false },
+};
+
 export default function PayrollCenter() {
-  const [documents, setDocuments] = useState<StoredDocument[]>([]);
-  const [summaries, setSummaries] = useState<PayrollSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const showValues = user?.showValues !== false;
+  const currentYear = logicalDateParts().year;
+
+  const [activeTab, setActiveTab] = useState<PayrollTab>('MONTHLY');
+  const [monthlyYear, setMonthlyYear] = useState(currentYear);
+  const [documentPage, setDocumentPage] = useState(1);
+  const [summaryPage, setSummaryPage] = useState(1);
+  const [documents, setDocuments] =
+    useState<PayrollPage<StoredPayrollDocument>>(emptyDocuments);
+  const [summaries, setSummaries] =
+    useState<PayrollPage<PayrollSummary>>(emptySummaries);
+  const [documentsLoading, setDocumentsLoading] = useState(true);
+  const [summariesLoading, setSummariesLoading] = useState(true);
+  const [documentsError, setDocumentsError] = useState('');
+  const [summariesError, setSummariesError] = useState('');
+
   const [working, setWorking] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<Preview | null>(null);
-  const [paymentType, setPaymentType] = useState<PayrollPaymentType>('REGULAR');
+  const [preview, setPreview] = useState<PayrollImportPreview | null>(null);
+  const [paymentType, setPaymentType] =
+    useState<PayrollPaymentType>('REGULAR');
   const [supersedesId, setSupersedesId] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [feedback, setFeedback] = useState('');
   const [reconciliationRefreshKey, setReconciliationRefreshKey] = useState(0);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      fetch('/api/payroll', { cache: 'no-store' }).then((response) => readEnvelope<StoredDocument[]>(response)),
-      fetch('/api/payroll/summary', { cache: 'no-store' }).then((response) => readEnvelope<PayrollSummary[]>(response)),
-    ])
-      .then(([items, summaryItems]) => {
-        if (!cancelled) {
-          setDocuments(items);
-          setSummaries(summaryItems);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setError('Não foi possível carregar os documentos de folha.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const years = Array.from({ length: 8 }, (_, index) => currentYear - index);
 
   const rubrics = useMemo(() => {
     if (!preview?.document) return [];
     return [...preview.document.earnings, ...preview.document.deductions];
   }, [preview]);
 
+  async function loadDocuments() {
+    const result = await payrollService.listDocuments({
+      year: monthlyYear,
+      page: documentPage,
+      limit: 8,
+    });
+    setDocuments(result);
+  }
+
+  async function loadSummaries() {
+    const result = await payrollService.summaries({
+      year: monthlyYear,
+      page: summaryPage,
+      limit: 6,
+    });
+    setSummaries(result);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    payrollService
+      .listDocuments({
+        year: monthlyYear,
+        page: documentPage,
+        limit: 8,
+      })
+      .then((result) => {
+        if (!cancelled) {
+          setDocumentsError('');
+          setDocuments(result);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDocumentsError(
+            'Não foi possível carregar o histórico de documentos.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDocumentsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [documentPage, monthlyYear]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    payrollService
+      .summaries({
+        year: monthlyYear,
+        page: summaryPage,
+        limit: 6,
+      })
+      .then((result) => {
+        if (!cancelled) {
+          setSummariesError('');
+          setSummaries(result);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSummariesError(
+            'Não foi possível carregar a consolidação mensal.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setSummariesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [monthlyYear, summaryPage]);
+
+  async function retryDocuments() {
+    setDocumentsLoading(true);
+    setDocumentsError('');
+    try {
+      await loadDocuments();
+    } catch {
+      setDocumentsError('Não foi possível carregar o histórico de documentos.');
+    } finally {
+      setDocumentsLoading(false);
+    }
+  }
+
+  async function retrySummaries() {
+    setSummariesLoading(true);
+    setSummariesError('');
+    try {
+      await loadSummaries();
+    } catch {
+      setSummariesError('Não foi possível carregar a consolidação mensal.');
+    } finally {
+      setSummariesLoading(false);
+    }
+  }
+
+  async function refreshMonthlyReadsAfterMutation() {
+    const [documentsResult, summariesResult] = await Promise.allSettled([
+      loadDocuments(),
+      loadSummaries(),
+    ]);
+
+    if (documentsResult.status === 'rejected') {
+      setDocumentsError(
+        'A alteração foi concluída, mas não foi possível atualizar o histórico.',
+      );
+    } else {
+      setDocumentsError('');
+    }
+
+    if (summariesResult.status === 'rejected') {
+      setSummariesError(
+        'A alteração foi concluída, mas não foi possível atualizar a consolidação.',
+      );
+    } else {
+      setSummariesError('');
+    }
+
+    setReconciliationRefreshKey((current) => current + 1);
+  }
+
   async function refreshReconciliationReadModels() {
-    const response = await fetch('/api/payroll/summary', { cache: 'no-store' });
-    setSummaries(await readEnvelope<PayrollSummary[]>(response));
+    try {
+      await loadSummaries();
+      setSummariesError('');
+    } catch {
+      setSummariesError(
+        'A conciliação foi atualizada, mas não foi possível recarregar o resumo.',
+      );
+    }
     setReconciliationRefreshKey((current) => current + 1);
   }
 
   async function generatePreview() {
     if (!file) return;
     setWorking(true);
-    setError('');
+    setActionError('');
+    setFeedback('');
     try {
-      const formData = new FormData();
-      formData.set('file', file);
-      const response = await fetch('/api/payroll/import/preview', {
-        method: 'POST',
-        body: formData,
-      });
-      const nextPreview = await readEnvelope<Preview>(response);
+      const nextPreview = await payrollService.previewPayroll(file);
       setPreview(nextPreview);
       setPaymentType(nextPreview.document?.paymentType ?? 'REGULAR');
       setSupersedesId('');
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Não foi possível analisar o PDF.');
+      setActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível analisar o PDF.',
+      );
     } finally {
       setWorking(false);
     }
   }
 
   async function archiveDocument(id: string) {
-    if (!window.confirm('Arquivar esta versão? Ela deixará de participar dos cálculos e conciliações, mas continuará no histórico.')) {
+    if (
+      !window.confirm(
+        'Arquivar esta versão? Ela deixará de participar dos cálculos e conciliações, mas continuará no histórico.',
+      )
+    ) {
       return;
     }
+
     setWorking(true);
-    setError('');
+    setActionError('');
+    setFeedback('');
+
     try {
-      const response = await fetch(`/api/payroll/${id}/archive`, { method: 'POST' });
-      await readEnvelope(response);
-      const [listResponse, summaryResponse] = await Promise.all([
-        fetch('/api/payroll', { cache: 'no-store' }),
-        fetch('/api/payroll/summary', { cache: 'no-store' }),
-      ]);
-      setDocuments(await readEnvelope<StoredDocument[]>(listResponse));
-      setSummaries(await readEnvelope<PayrollSummary[]>(summaryResponse));
-      setReconciliationRefreshKey((current) => current + 1);
+      await payrollService.archivePayroll(id);
+      setFeedback('Documento arquivado.');
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Não foi possível arquivar o documento.');
-    } finally {
+      setActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível arquivar o documento.',
+      );
       setWorking(false);
+      return;
     }
+
+    setWorking(false);
+    await refreshMonthlyReadsAfterMutation();
   }
 
   async function confirmImport() {
     if (!preview?.document || !preview.previewToken) return;
+
     setWorking(true);
-    setError('');
+    setActionError('');
+    setFeedback('');
+
     try {
-      const response = await fetch('/api/payroll/import/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          previewToken: preview.previewToken,
-          selected: true,
-          document: preview.document,
-          paymentType,
-          supersedesId: supersedesId || null,
-        }),
+      await payrollService.confirmPayroll({
+        previewToken: preview.previewToken,
+        selected: true,
+        document: preview.document,
+        paymentType,
+        supersedesId: supersedesId || null,
       });
-      await readEnvelope(response);
-      const [listResponse, summaryResponse] = await Promise.all([
-        fetch('/api/payroll', { cache: 'no-store' }),
-        fetch('/api/payroll/summary', { cache: 'no-store' }),
-      ]);
-      setDocuments(await readEnvelope<StoredDocument[]>(listResponse));
-      setSummaries(await readEnvelope<PayrollSummary[]>(summaryResponse));
+
+      setFeedback('Documento importado.');
       setPreview(null);
       setPaymentType('REGULAR');
       setSupersedesId('');
       setFile(null);
+      setDocumentPage(1);
+      setSummaryPage(1);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Não foi possível importar o documento.');
-    } finally {
+      setActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível importar o documento.',
+      );
       setWorking(false);
+      return;
     }
+
+    setWorking(false);
+    await refreshMonthlyReadsAfterMutation();
   }
 
-  if (loading) {
-    return (
-      <ProtectedRoute>
-        <PageLoading type="list" />
-      </ProtectedRoute>
-    );
+  function changeMonthlyYear(year: number) {
+    setMonthlyYear(year);
+    setDocumentPage(1);
+    setSummaryPage(1);
+    setDocumentsLoading(true);
+    setSummariesLoading(true);
   }
 
   return (
     <ProtectedRoute>
-      <section className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-6">
+      <section className="mx-auto w-full max-w-6xl space-y-5 overflow-x-hidden p-3 sm:p-6">
         <header>
-          <h1 className="text-2xl font-extrabold text-[var(--foreground)]">Rendimentos do trabalho</h1>
+          <h1 className="text-2xl font-extrabold text-[var(--foreground)]">
+            Rendimentos do trabalho
+          </h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Importe folha regular, adiantamento, 13º, férias e PLR sem criar transações bancárias automaticamente.
+            Folha é fonte documental: importar ou conciliar nunca cria receita
+            bancária automaticamente.
           </p>
         </header>
 
-        {error && (
-          <div role="alert" className="rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
-            {error}
-          </div>
-        )}
+        <nav
+          aria-label="Áreas de rendimentos do trabalho"
+          className="grid grid-cols-1 gap-2 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-2 sm:grid-cols-3"
+        >
+          <TabButton
+            active={activeTab === 'MONTHLY'}
+            onClick={() => setActiveTab('MONTHLY')}
+          >
+            Mensal
+          </TabButton>
+          <TabButton
+            active={activeTab === 'BANK'}
+            onClick={() => setActiveTab('BANK')}
+          >
+            Conciliação bancária
+          </TabButton>
+          <TabButton
+            active={activeTab === 'ANNUAL'}
+            onClick={() => setActiveTab('ANNUAL')}
+          >
+            Anual / IR
+          </TabButton>
+        </nav>
 
-        {summaries.length > 0 && (
-          <section className="ds-panel p-5">
-            <div className="mb-4">
-              <h2 className="text-lg font-bold text-[var(--foreground)]">Consolidação por competência</h2>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                Renda bruta sem dupla contagem do adiantamento; pagamentos líquidos continuam separados e somados.
-              </p>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              {summaries.map((summary) => (
-                <article key={`${summary.employerCnpj}-${summary.year}-${summary.month}`} className="rounded-[14px] border border-[var(--border)] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <strong className="text-sm text-[var(--foreground)]">{summary.employerName}</strong>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        {String(summary.month).padStart(2, '0')}/{summary.year} · {summary.employerCnpj}
-                      </p>
-                    </div>
-                    {summary.reviewRequired ? (
-                      <span className="rounded-full bg-[var(--warning-subtle)] px-2 py-1 text-xs font-semibold text-[var(--warning)]">
-                        Revisar competência
-                      </span>
-                    ) : summary.matchedAdvances > 0 ? (
-                      <span className="rounded-full bg-[var(--success-subtle)] px-2 py-1 text-xs font-semibold text-[var(--success)]">
-                        Adiantamento vinculado
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <Metric label="Renda bruta" value={summaryMoney(summary.grossIncomeCents, summary.grossIncomeComplete)} />
-                    <Metric label="Adiantamento líquido" value={summaryMoney(summary.advanceNetPaidCents, summary.advanceNetPaidComplete)} />
-                    <Metric label="Folha líquida" value={summaryMoney(summary.regularNetPaidCents, summary.regularNetPaidComplete)} />
-                    <Metric label="Total líquido pago" value={summaryMoney(summary.netPaidCents, summary.netPaidComplete)} />
-                  </div>
-                  <p className="mt-3 text-xs text-[var(--text-muted)]">
-                    IRRF retido na competência: <strong className="text-[var(--foreground)]">{summaryMoney(summary.irrfCents, summary.irrfComplete)}</strong>
+        {activeTab === 'MONTHLY' && (
+          <div className="space-y-5">
+            <section className="ds-panel p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-[var(--foreground)]">
+                    Importar documento mensal
+                  </h2>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                    Importe folha regular, adiantamento, 13º, férias, PLR ou
+                    outro rendimento reconhecido. Dados ausentes permanecem
+                    ausentes.
                   </p>
-                  {summary.reviewReason && (
-                    <p className="mt-3 rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--warning)]">
-                      {summary.reviewReason}
-                    </p>
-                  )}
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <PayrollAdvanceReconciliationSection
-          refreshKey={
-            documents.map((document) => document.id).join('|') +
-            ':' +
-            reconciliationRefreshKey
-          }
-          onChanged={refreshReconciliationReadModels}
-        />
-
-        <PayrollTransactionReconciliationSection
-          refreshKey={documents.map((document) => document.id).join('|')}
-        />
-
-        <AnnualIncomeStatementSection />
-
-        <PayrollAnnualReconciliationSection
-          refreshKey={reconciliationRefreshKey}
-        />
-
-                <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-          <section className="ds-panel p-5">
-            <h2 className="text-lg font-bold text-[var(--foreground)]">Importar documento</h2>
-            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-              O PDF precisa conter texto extraível. Dados ausentes permanecem ausentes; inconsistências bloqueiam a confirmação.
-            </p>
-
-            {!preview ? (
-              <div className="mt-5 space-y-4">
-                <input
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  disabled={working}
-                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                  className="ds-control min-h-11 w-full px-3 py-2"
-                />
-                <button
-                  type="button"
-                  disabled={!file || working}
-                  onClick={generatePreview}
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 font-extrabold text-white disabled:opacity-40"
-                >
-                  <FaFileImport aria-hidden="true" />
-                  {working ? 'Analisando...' : 'Analisar PDF'}
-                </button>
-              </div>
-            ) : preview.requiresOcr ? (
-              <div className="mt-5 space-y-4">
-                <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 text-sm text-[var(--foreground)]">
-                  <strong>OCR/revisão necessária</strong>
-                  <p className="mt-1 text-[var(--text-muted)]">{preview.warnings[0]}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreview(null);
-                    setSupersedesId('');
-                  }}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] font-bold"
-                >
-                  <FaRedo aria-hidden="true" /> Escolher outro PDF
-                </button>
-              </div>
-            ) : preview.document ? (
-              <div className="mt-5 space-y-4">
-                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-[var(--orbit-primary)]">Documento detectado</span>
-                  <strong className="mt-1 block text-[var(--foreground)]">{typeLabel(preview.document.documentType)}</strong>
-                  <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                    {String(preview.document.month).padStart(2, '0')}/{preview.document.year} · {preview.document.employerName} · {preview.document.employerCnpj || 'CNPJ não reconhecido'}
-                  </span>
-                </div>
-
-                <div className="rounded-[14px] border border-[var(--border)] p-4">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]" htmlFor="payroll-payment-type">
-                    Classificação do pagamento
-                  </label>
+                <label className="text-xs font-semibold text-[var(--foreground)]">
+                  Ano exibido
                   <select
-                    id="payroll-payment-type"
-                    value={paymentType}
-                    onChange={(event) => setPaymentType(event.target.value as PayrollPaymentType)}
-                    disabled={preview.document.documentType === 'PAYROLL_ADVANCE'}
-                    className="ds-control mt-2 min-h-11 w-full px-3 disabled:opacity-60"
+                    aria-label="Ano dos rendimentos mensais"
+                    value={monthlyYear}
+                    onChange={(event) =>
+                      changeMonthlyYear(Number(event.target.value))
+                    }
+                    className="ds-control mt-1 min-h-11 px-3"
                   >
-                    {(preview.document.documentType === 'PAYROLL_ADVANCE'
-                      ? (['ADVANCE'] as PayrollPaymentType[])
-                      : monthlyPaymentTypes
-                    ).map((type) => (
-                      <option key={type} value={type}>{paymentTypeLabel(type)}</option>
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
                     ))}
                   </select>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">
-                    Detectado como <strong>{paymentTypeLabel(preview.document.paymentType)}</strong>. Confirme ou corrija antes de importar; nenhuma classificação fiscal especial é inferida sem evidência explícita.
-                  </p>
+                </label>
+              </div>
+
+              {feedback && (
+                <div
+                  role="status"
+                  className="mt-4 rounded-[14px] bg-[var(--success-subtle)] p-3 text-sm font-semibold text-[var(--success)]"
+                >
+                  {feedback}
                 </div>
+              )}
 
-                <div className="grid grid-cols-2 gap-2">
-                  <Metric label="Vencimentos" value={money(preview.document.totalEarningsCents)} />
-                  <Metric label="Descontos" value={money(preview.document.totalDeductionsCents)} />
-                  <Metric label="Líquido" value={money(preview.document.netPaidCents)} />
-                  <Metric label="IRRF" value={money(preview.document.irrfCents)} />
-                  <Metric label="INSS" value={money(preview.document.inssCents)} />
-                  <Metric label="Rubricas" value={String(rubrics.length)} />
+              {actionError && (
+                <div
+                  role="alert"
+                  className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+                >
+                  {actionError}
                 </div>
+              )}
 
-                {preview.document.errors.length > 0 && (
-                  <div className="rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
-                    {preview.document.errors.map((item) => <p key={item}>{item}</p>)}
-                  </div>
-                )}
-
-                {(preview.warnings.length > 0 || preview.document.warnings.length > 0) && (
-                  <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-xs text-[var(--text-muted)]">
-                    {[...new Set([...preview.warnings, ...preview.document.warnings])].map((item) => <p key={item}>{item}</p>)}
-                  </div>
-                )}
-
-                {preview.replacementCandidates.length > 0 &&
-                  !(preview.document.duplicate && paymentType === preview.document.paymentType) && (
-                  <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
-                    <strong>Retificação / substituição</strong>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">
-                      Escolha a versão ativa que este documento substitui. A versão anterior continuará no histórico como substituída.
+              {!preview ? (
+                <div className="mt-5 space-y-4">
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    disabled={working}
+                    onChange={(event) =>
+                      setFile(event.target.files?.[0] ?? null)
+                    }
+                    className="ds-control min-h-11 w-full px-3 py-2"
+                  />
+                  <button
+                    type="button"
+                    disabled={!file || working}
+                    onClick={() => void generatePreview()}
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 font-extrabold text-white disabled:opacity-40"
+                  >
+                    <FaFileImport aria-hidden="true" />
+                    {working ? 'Analisando...' : 'Analisar PDF'}
+                  </button>
+                </div>
+              ) : preview.requiresOcr ? (
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 text-sm text-[var(--foreground)]">
+                    <strong>OCR/revisão necessária</strong>
+                    <p className="mt-1 text-[var(--text-muted)]">
+                      {preview.warnings[0]}
                     </p>
-                    <select
-                      value={supersedesId}
-                      onChange={(event) => setSupersedesId(event.target.value)}
-                      className="ds-control mt-3 min-h-11 w-full px-3"
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreview(null);
+                      setSupersedesId('');
+                    }}
+                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] font-bold"
+                  >
+                    <FaRedo aria-hidden="true" /> Escolher outro PDF
+                  </button>
+                </div>
+              ) : preview.document ? (
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-[var(--orbit-primary)]">
+                      Documento detectado
+                    </span>
+                    <strong className="mt-1 block text-[var(--foreground)]">
+                      {typeLabel(preview.document.documentType)}
+                    </strong>
+                    <span className="mt-1 block break-words text-xs text-[var(--text-muted)]">
+                      {String(preview.document.month).padStart(2, '0')}/
+                      {preview.document.year} · {preview.document.employerName} ·{' '}
+                      {preview.document.employerCnpj ||
+                        'CNPJ não reconhecido'}
+                    </span>
+                  </div>
+
+                  <div className="rounded-[14px] border border-[var(--border)] p-4">
+                    <label
+                      className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
+                      htmlFor="payroll-payment-type"
                     >
-                      <option value="">Importar como documento adicional</option>
-                      {preview.replacementCandidates.map((candidate) => (
-                        <option key={candidate.id} value={candidate.id}>
-                          {paymentTypeLabel(candidate.paymentType)} · versão de {new Date(candidate.createdAt).toLocaleDateString('pt-BR')} · líquido {money(candidate.netPaidCents)}
+                      Classificação do pagamento
+                    </label>
+                    <select
+                      id="payroll-payment-type"
+                      value={paymentType}
+                      onChange={(event) =>
+                        setPaymentType(
+                          event.target.value as PayrollPaymentType,
+                        )
+                      }
+                      disabled={
+                        preview.document.documentType === 'PAYROLL_ADVANCE'
+                      }
+                      className="ds-control mt-2 min-h-11 w-full px-3 disabled:opacity-60"
+                    >
+                      {(preview.document.documentType === 'PAYROLL_ADVANCE'
+                        ? (['ADVANCE'] as PayrollPaymentType[])
+                        : monthlyPaymentTypes
+                      ).map((type) => (
+                        <option key={type} value={type}>
+                          {payrollPaymentTypeLabel(type)}
                         </option>
                       ))}
                     </select>
-                  </div>
-                )}
-
-                {preview.document.duplicate && paymentType === preview.document.paymentType && (
-                  <div className="rounded-[14px] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
-                    Este documento com esta classificação já foi importado.
-                  </div>
-                )}
-
-                {rubrics.length > 0 && (
-                  <div className="max-h-72 overflow-auto rounded-[14px] border border-[var(--border)]">
-                    <table className="w-full min-w-[560px] text-left text-xs">
-                      <thead className="sticky top-0 bg-[var(--surface-raised)] text-[var(--text-muted)]">
-                        <tr>
-                          <th className="px-3 py-2">Código</th>
-                          <th className="px-3 py-2">Rubrica</th>
-                          <th className="px-3 py-2">Referência</th>
-                          <th className="px-3 py-2 text-right">Vencimento</th>
-                          <th className="px-3 py-2 text-right">Desconto</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border)]">
-                        {rubrics.map((rubric, index) => (
-                          <tr key={`${rubric.code ?? 'rubric'}-${index}`}>
-                            <td className="px-3 py-2">{rubric.code ?? '—'}</td>
-                            <td className="px-3 py-2 text-[var(--foreground)]">{rubric.description}</td>
-                            <td className="px-3 py-2">{rubric.reference ?? '—'}</td>
-                            <td className="px-3 py-2 text-right">{money(rubric.earningsCents)}</td>
-                            <td className="px-3 py-2 text-right">{money(rubric.deductionsCents)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    disabled={working}
-                    onClick={() => {
-                      setPreview(null);
-                      setPaymentType('REGULAR');
-                      setSupersedesId('');
-                    }}
-                    className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
-                  >
-                    Voltar
-                  </button>
-                  <button
-                    type="button"
-                    disabled={
-                      working ||
-                      (preview.document.duplicate && paymentType === preview.document.paymentType) ||
-                      preview.document.errors.length > 0
-                    }
-                    onClick={confirmImport}
-                    className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-40"
-                  >
-                    {working ? 'Importando...' : 'Confirmar importação'}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </section>
-
-          <section className="ds-panel overflow-hidden">
-            <div className="border-b border-[var(--border)] p-5">
-              <h2 className="text-lg font-bold text-[var(--foreground)]">Documentos importados</h2>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Cada documento permanece separado e auditável por competência.</p>
-            </div>
-
-            {documents.length === 0 ? (
-              <p className="p-6 text-sm text-[var(--text-muted)]">Nenhum documento de rendimento do trabalho importado.</p>
-            ) : (
-              <div className="divide-y divide-[var(--border)]">
-                {documents.map((document) => (
-                  <article key={document.id} className="grid gap-3 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <strong className="text-sm text-[var(--foreground)]">{typeLabel(document.documentType)}</strong>
-                        <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--foreground)]">
-                          {paymentTypeLabel(document.paymentType)}
-                        </span>
-                        <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs text-[var(--text-muted)]">
-                          {String(document.month).padStart(2, '0')}/{document.year}
-                        </span>
-                        {document.lifecycleStatus === 'SUPERSEDED' ? (
-                          <span className="rounded-full bg-[var(--warning-subtle)] px-2 py-1 text-xs font-semibold text-[var(--warning)]">
-                            Substituído
-                          </span>
-                        ) : document.lifecycleStatus === 'ARCHIVED' ? (
-                          <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
-                            Arquivado
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-[var(--success-subtle)] px-2 py-1 text-xs font-semibold text-[var(--success)]">
-                            Vigente
-                          </span>
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                      Detectado como{' '}
+                      <strong>
+                        {payrollPaymentTypeLabel(
+                          preview.document.paymentType,
                         )}
-                      </div>
-                      <p className="mt-1 text-sm text-[var(--text-muted)]">{document.employerName} · {document.employerCnpj}</p>
-                      <p className="mt-1 text-xs text-[var(--text-subtle)]">
-                        INSS {money(document.inssCents)} · IRRF {money(document.irrfCents)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 sm:justify-end">
-                      <div className="text-left sm:text-right">
-                        <span className="block text-xs text-[var(--text-muted)]">Líquido</span>
-                        <strong className="text-sm text-[var(--foreground)]">{money(document.netPaidCents)}</strong>
-                      </div>
-                      {document.lifecycleStatus === 'ACTIVE' && (
-                        <button
-                          type="button"
-                          disabled={working}
-                          onClick={() => archiveDocument(document.id)}
-                          className="min-h-10 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
-                        >
-                          Arquivar
-                        </button>
+                      </strong>
+                      . Confirme ou corrija antes de importar.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <Metric
+                      label="Vencimentos"
+                      value={payrollMoney(
+                        preview.document.totalEarningsCents,
+                        showValues,
                       )}
+                    />
+                    <Metric
+                      label="Descontos"
+                      value={payrollMoney(
+                        preview.document.totalDeductionsCents,
+                        showValues,
+                      )}
+                    />
+                    <Metric
+                      label="Líquido"
+                      value={payrollMoney(
+                        preview.document.netPaidCents,
+                        showValues,
+                      )}
+                    />
+                    <Metric
+                      label="IRRF"
+                      value={payrollMoney(
+                        preview.document.irrfCents,
+                        showValues,
+                      )}
+                    />
+                    <Metric
+                      label="INSS"
+                      value={payrollMoney(
+                        preview.document.inssCents,
+                        showValues,
+                      )}
+                    />
+                    <Metric label="Rubricas" value={String(rubrics.length)} />
+                  </div>
+
+                  {preview.document.errors.length > 0 && (
+                    <div className="rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
+                      {preview.document.errors.map((item) => (
+                        <p key={item}>{item}</p>
+                      ))}
                     </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
+                  )}
+
+                  {(preview.warnings.length > 0 ||
+                    preview.document.warnings.length > 0) && (
+                    <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-xs text-[var(--text-muted)]">
+                      {[
+                        ...new Set([
+                          ...preview.warnings,
+                          ...preview.document.warnings,
+                        ]),
+                      ].map((item) => (
+                        <p key={item}>{item}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  {preview.replacementCandidates.length > 0 &&
+                    !(
+                      preview.document.duplicate &&
+                      paymentType === preview.document.paymentType
+                    ) && (
+                      <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
+                        <strong>Retificação / substituição</strong>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                          Escolha explicitamente a versão ativa substituída. A
+                          anterior continua no histórico.
+                        </p>
+                        <select
+                          value={supersedesId}
+                          onChange={(event) =>
+                            setSupersedesId(event.target.value)
+                          }
+                          className="ds-control mt-3 min-h-11 w-full px-3"
+                        >
+                          <option value="">
+                            Importar como documento adicional
+                          </option>
+                          {preview.replacementCandidates.map((candidate) => (
+                            <option key={candidate.id} value={candidate.id}>
+                              {payrollPaymentTypeLabel(candidate.paymentType)} ·
+                              versão de{' '}
+                              {new Date(
+                                candidate.createdAt,
+                              ).toLocaleDateString('pt-BR')}{' '}
+                              · líquido{' '}
+                              {payrollMoney(
+                                candidate.netPaidCents,
+                                showValues,
+                              )}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                  {preview.document.duplicate &&
+                    paymentType === preview.document.paymentType && (
+                      <div className="rounded-[14px] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
+                        Este documento com esta classificação já foi importado.
+                      </div>
+                    )}
+
+                  {rubrics.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-bold text-[var(--foreground)]">
+                        Rubricas
+                      </h3>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {rubrics.map((rubric, index) => (
+                          <article
+                            key={(rubric.code ?? 'rubric') + '-' + index}
+                            className="min-w-0 rounded-[12px] border border-[var(--border)] p-3 text-xs"
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <strong className="break-words text-[var(--foreground)]">
+                                {rubric.description}
+                              </strong>
+                              <span className="text-[var(--text-muted)]">
+                                {rubric.code ?? 'Sem código'}
+                              </span>
+                            </div>
+                            {rubric.reference && (
+                              <p className="mt-1 break-words text-[var(--text-muted)]">
+                                Referência: {rubric.reference}
+                              </p>
+                            )}
+                            <div className="mt-2 grid grid-cols-2 gap-2">
+                              <Metric
+                                label="Vencimento"
+                                value={payrollMoney(
+                                  rubric.earningsCents,
+                                  showValues,
+                                )}
+                              />
+                              <Metric
+                                label="Desconto"
+                                value={payrollMoney(
+                                  rubric.deductionsCents,
+                                  showValues,
+                                )}
+                              />
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      disabled={working}
+                      onClick={() => {
+                        setPreview(null);
+                        setPaymentType('REGULAR');
+                        setSupersedesId('');
+                      }}
+                      className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
+                    >
+                      Voltar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={
+                        working ||
+                        (preview.document.duplicate &&
+                          paymentType === preview.document.paymentType) ||
+                        preview.document.errors.length > 0
+                      }
+                      onClick={() => void confirmImport()}
+                      className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-40"
+                    >
+                      {working ? 'Importando...' : 'Confirmar importação'}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </section>
+
+            <MonthlySummaryPanel
+              result={summaries}
+              loading={summariesLoading}
+              error={summariesError}
+              page={summaryPage}
+              showValues={showValues}
+              onRetry={() => void retrySummaries()}
+              onPrevious={() => {
+                setSummariesLoading(true);
+                setSummaryPage((current) => Math.max(1, current - 1));
+              }}
+              onNext={() => {
+                setSummariesLoading(true);
+                setSummaryPage((current) => current + 1);
+              }}
+            />
+
+            <PayrollAdvanceReconciliationSection
+              refreshKey={
+                monthlyYear + ':' + reconciliationRefreshKey
+              }
+              onChanged={refreshReconciliationReadModels}
+            />
+
+            <DocumentHistoryPanel
+              result={documents}
+              loading={documentsLoading}
+              error={documentsError}
+              page={documentPage}
+              working={working}
+              showValues={showValues}
+              onRetry={() => void retryDocuments()}
+              onArchive={(id) => void archiveDocument(id)}
+              onPrevious={() => {
+                setDocumentsLoading(true);
+                setDocumentPage((current) => Math.max(1, current - 1));
+              }}
+              onNext={() => {
+                setDocumentsLoading(true);
+                setDocumentPage((current) => current + 1);
+              }}
+            />
+          </div>
+        )}
+
+        {activeTab === 'BANK' && (
+          <PayrollTransactionReconciliationSection
+            refreshKey={String(reconciliationRefreshKey)}
+          />
+        )}
+
+        {activeTab === 'ANNUAL' && (
+          <div className="space-y-5">
+            <AnnualIncomeStatementSection
+              onChanged={() => {
+                setReconciliationRefreshKey((current) => current + 1);
+              }}
+            />
+            <PayrollAnnualReconciliationSection
+              refreshKey={reconciliationRefreshKey}
+            />
+          </div>
+        )}
       </section>
     </ProtectedRoute>
   );
 }
 
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-current={active ? 'page' : undefined}
+      onClick={onClick}
+      className={
+        'min-h-11 rounded-[10px] px-4 text-sm font-bold transition-colors ' +
+        (active
+          ? 'bg-[var(--foreground)] text-[var(--background)]'
+          : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)]')
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+function MonthlySummaryPanel({
+  result,
+  loading,
+  error,
+  page,
+  showValues,
+  onRetry,
+  onPrevious,
+  onNext,
+}: {
+  result: PayrollPage<PayrollSummary>;
+  loading: boolean;
+  error: string;
+  page: number;
+  showValues: boolean;
+  onRetry: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <section className="ds-panel p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">
+            Consolidação por competência
+          </h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Mostra as competências mais recentes primeiro; carregue páginas
+            anteriores apenas quando precisar do histórico.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={loading}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
+        >
+          <FaRedo aria-hidden="true" />
+          Atualizar
+        </button>
+      </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="min-h-11 rounded-full border border-current px-3 font-bold"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="mt-4 text-sm text-[var(--text-muted)]">
+          Carregando consolidação...
+        </p>
+      ) : result.items.length === 0 ? (
+        <p className="mt-4 text-sm text-[var(--text-muted)]">
+          Nenhuma competência encontrada neste ano.
+        </p>
+      ) : (
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {result.items.map((summary) => (
+            <article
+              key={
+                summary.employerCnpj + '-' + summary.year + '-' + summary.month
+              }
+              className="rounded-[14px] border border-[var(--border)] p-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <strong className="break-words text-sm text-[var(--foreground)]">
+                    {summary.employerName}
+                  </strong>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    {String(summary.month).padStart(2, '0')}/{summary.year} ·{' '}
+                    {summary.employerCnpj}
+                  </p>
+                </div>
+                {summary.reviewRequired ? (
+                  <span className="rounded-full bg-[var(--warning-subtle)] px-2 py-1 text-xs font-semibold text-[var(--warning)]">
+                    Revisar competência
+                  </span>
+                ) : summary.matchedAdvances > 0 ? (
+                  <span className="rounded-full bg-[var(--success-subtle)] px-2 py-1 text-xs font-semibold text-[var(--success)]">
+                    Adiantamento vinculado
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
+                    Sem pendências
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Metric
+                  label="Renda bruta"
+                  value={payrollSummaryMoney(
+                    summary.grossIncomeCents,
+                    summary.grossIncomeComplete,
+                    showValues,
+                  )}
+                />
+                <Metric
+                  label="Adiantamento líquido"
+                  value={payrollSummaryMoney(
+                    summary.advanceNetPaidCents,
+                    summary.advanceNetPaidComplete,
+                    showValues,
+                  )}
+                />
+                <Metric
+                  label="Folha líquida"
+                  value={payrollSummaryMoney(
+                    summary.regularNetPaidCents,
+                    summary.regularNetPaidComplete,
+                    showValues,
+                  )}
+                />
+                <Metric
+                  label="Total líquido pago"
+                  value={payrollSummaryMoney(
+                    summary.netPaidCents,
+                    summary.netPaidComplete,
+                    showValues,
+                  )}
+                />
+              </div>
+
+              <p className="mt-3 text-xs text-[var(--text-muted)]">
+                IRRF retido:{' '}
+                <strong className="text-[var(--foreground)]">
+                  {payrollSummaryMoney(
+                    summary.irrfCents,
+                    summary.irrfComplete,
+                    showValues,
+                  )}
+                </strong>
+              </p>
+
+              {summary.reviewReason && (
+                <p className="mt-3 rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--warning)]">
+                  {summary.reviewReason}
+                </p>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+
+      {!loading && (page > 1 || result.pageInfo.hasMore) && (
+        <Pagination
+          page={page}
+          hasMore={result.pageInfo.hasMore}
+          onPrevious={onPrevious}
+          onNext={onNext}
+        />
+      )}
+    </section>
+  );
+}
+
+function DocumentHistoryPanel({
+  result,
+  loading,
+  error,
+  page,
+  working,
+  showValues,
+  onRetry,
+  onArchive,
+  onPrevious,
+  onNext,
+}: {
+  result: PayrollPage<StoredPayrollDocument>;
+  loading: boolean;
+  error: string;
+  page: number;
+  working: boolean;
+  showValues: boolean;
+  onRetry: () => void;
+  onArchive: (id: string) => void;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <section className="ds-panel overflow-hidden">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] p-4 sm:p-5">
+        <div>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">
+            Documentos importados
+          </h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Histórico paginado; cada versão continua separada e auditável.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={loading}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
+        >
+          <FaRedo aria-hidden="true" />
+          Atualizar
+        </button>
+      </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="m-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="min-h-11 rounded-full border border-current px-3 font-bold"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="p-5 text-sm text-[var(--text-muted)]">
+          Carregando documentos...
+        </p>
+      ) : result.items.length === 0 ? (
+        <p className="p-5 text-sm text-[var(--text-muted)]">
+          Nenhum documento importado neste ano.
+        </p>
+      ) : (
+        <div className="divide-y divide-[var(--border)]">
+          {result.items.map((document) => (
+            <article
+              key={document.id}
+              className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="text-sm text-[var(--foreground)]">
+                    {typeLabel(document.documentType)}
+                  </strong>
+                  <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--foreground)]">
+                    {payrollPaymentTypeLabel(document.paymentType)}
+                  </span>
+                  <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs text-[var(--text-muted)]">
+                    {String(document.month).padStart(2, '0')}/{document.year}
+                  </span>
+                  <span
+                    className={
+                      document.lifecycleStatus === 'ACTIVE'
+                        ? 'rounded-full bg-[var(--success-subtle)] px-2 py-1 text-xs font-semibold text-[var(--success)]'
+                        : document.lifecycleStatus === 'SUPERSEDED'
+                          ? 'rounded-full bg-[var(--warning-subtle)] px-2 py-1 text-xs font-semibold text-[var(--warning)]'
+                          : 'rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]'
+                    }
+                  >
+                    {importedDocumentStatusLabel(document.lifecycleStatus)}
+                  </span>
+                </div>
+                <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
+                  {document.employerName} · {document.employerCnpj}
+                </p>
+                <p className="mt-1 break-words text-xs text-[var(--text-subtle)]">
+                  INSS {payrollMoney(document.inssCents, showValues)} · IRRF{' '}
+                  {payrollMoney(document.irrfCents, showValues)}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+                <div className="text-left sm:text-right">
+                  <span className="block text-xs text-[var(--text-muted)]">
+                    Líquido
+                  </span>
+                  <strong className="text-sm text-[var(--foreground)]">
+                    {payrollMoney(document.netPaidCents, showValues)}
+                  </strong>
+                </div>
+                {document.lifecycleStatus === 'ACTIVE' && (
+                  <button
+                    type="button"
+                    disabled={working}
+                    onClick={() => onArchive(document.id)}
+                    className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
+                  >
+                    Arquivar
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {!loading && (page > 1 || result.pageInfo.hasMore) && (
+        <div className="p-4">
+          <Pagination
+            page={page}
+            hasMore={result.pageInfo.hasMore}
+            onPrevious={onPrevious}
+            onNext={onNext}
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Pagination({
+  page,
+  hasMore,
+  onPrevious,
+  onNext,
+}: {
+  page: number;
+  hasMore: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="mt-4 flex items-center justify-between gap-3">
+      <button
+        type="button"
+        disabled={page <= 1}
+        onClick={onPrevious}
+        className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
+      >
+        Anterior
+      </button>
+      <span className="text-xs text-[var(--text-muted)]">Página {page}</span>
+      <button
+        type="button"
+        disabled={!hasMore}
+        onClick={onNext}
+        className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
+      >
+        Próxima
+      </button>
+    </div>
+  );
+}
+
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
+    <div className="min-w-0 rounded-[12px] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
-      <strong className="mt-1 block text-sm text-[var(--foreground)]">{value}</strong>
+      <strong className="mt-1 block break-words text-sm text-[var(--foreground)]">
+        {value}
+      </strong>
     </div>
   );
 }

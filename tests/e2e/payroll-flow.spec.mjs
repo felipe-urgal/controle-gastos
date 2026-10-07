@@ -21,7 +21,7 @@ async function login(page, email) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
-async function seedPayrollFixture(email) {
+async function seedPayrollFixture(email, { showValues = true } = {}) {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     max: 1,
@@ -30,6 +30,12 @@ async function seedPayrollFixture(email) {
 
   try {
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    if (user.showValues !== showValues) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { showValues },
+      });
+    }
     const regulars = [];
 
     for (let month = 1; month <= 12; month += 1) {
@@ -152,6 +158,11 @@ async function seedPayrollFixture(email) {
   }
 }
 
+test('folha: rota protegida redireciona sem sessão', async ({ page }) => {
+  await page.goto('/rendimentos-trabalho');
+  await expect(page).toHaveURL(/\/login$/);
+});
+
 test('folha: resolve adiantamento ambíguo manualmente e desbloqueia anual', async ({
   page,
 }) => {
@@ -173,6 +184,8 @@ test('folha: resolve adiantamento ambíguo manualmente e desbloqueia anual', asy
     page.getByRole('heading', { name: 'Rendimentos do trabalho', exact: true }),
   ).toBeVisible();
 
+  await page.getByLabel('Ano dos rendimentos mensais').selectOption('2025');
+
   const advanceSection = page
     .locator('section.ds-panel')
     .filter({
@@ -184,6 +197,7 @@ test('folha: resolve adiantamento ambíguo manualmente e desbloqueia anual', asy
   await expect(advanceSection).toContainText('Revisão necessária');
   await expect(advanceSection).toContainText('Empresa E2E Folha');
 
+  await page.getByRole('button', { name: 'Anual / IR', exact: true }).click();
   const annualSection = page
     .locator('section.ds-panel')
     .filter({
@@ -192,7 +206,11 @@ test('folha: resolve adiantamento ambíguo manualmente e desbloqueia anual', asy
         exact: true,
       }),
     });
-  await expect(annualSection.getByText('Incompleto', { exact: true }).first()).toBeVisible();
+  await expect(
+    annualSection.getByText('Incompleto', { exact: true }).first(),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: 'Mensal', exact: true }).click();
 
   const candidate = advanceSection.getByLabel('Rubrica de compensação');
   const candidateValue = await candidate
@@ -210,7 +228,6 @@ test('folha: resolve adiantamento ambíguo manualmente e desbloqueia anual', asy
     .click();
 
   await expect(advanceSection).toContainText('Resolvido manualmente');
-  await expect(annualSection.getByText('Conciliado', { exact: true }).first()).toBeVisible();
 
   const septemberSummary = page
     .locator('article')
@@ -219,6 +236,12 @@ test('folha: resolve adiantamento ambíguo manualmente e desbloqueia anual', asy
     .first();
   await expect(septemberSummary).toContainText('Adiantamento vinculado');
 
+  await page.getByRole('button', { name: 'Anual / IR', exact: true }).click();
+  await expect(
+    annualSection.getByText('Conciliado', { exact: true }).first(),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: 'Mensal', exact: true }).click();
   page.once('dialog', async (dialog) => {
     await dialog.accept();
   });
@@ -227,10 +250,173 @@ test('folha: resolve adiantamento ambíguo manualmente e desbloqueia anual', asy
     .click();
 
   await expect(advanceSection).toContainText('Revisão necessária');
-  await expect(annualSection.getByText('Incompleto', { exact: true }).first()).toBeVisible();
 
-  const hasHorizontalOverflow = await page.evaluate(
-    () => document.documentElement.scrollWidth > window.innerWidth,
-  );
-  expect(hasHorizontalOverflow).toBe(false);
+  await page.getByRole('button', { name: 'Anual / IR', exact: true }).click();
+  await expect(
+    annualSection.getByText('Incompleto', { exact: true }).first(),
+  ).toBeVisible();
+});
+
+test('folha: importação 201 permanece sucesso quando refresh GET falha', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+
+  const suffix = `${Date.now()}-${test.info().project.name}`;
+  const email = `qa-payroll-refresh-${suffix}@example.test`;
+  await createVerifiedUser({
+    name: 'QA Folha Refresh',
+    email,
+    password,
+  });
+
+  let imported = false;
+
+  await page.route('**/api/payroll/import/preview', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          fileName: 'teste.pdf',
+          requiresOcr: false,
+          previewToken: 'preview-e2e',
+          detectedType: 'MONTHLY_PAYSLIP',
+          replacementCandidates: [],
+          warnings: [],
+          document: {
+            documentType: 'MONTHLY_PAYSLIP',
+            paymentType: 'REGULAR',
+            employerName: 'Empresa Refresh',
+            employerCnpj: '12.345.678/0001-90',
+            employeeName: 'Pessoa Refresh',
+            year: 2026,
+            month: 9,
+            salaryBaseCents: 100000,
+            grossIncomeCents: 100000,
+            totalEarningsCents: 100000,
+            totalDeductionsCents: 5000,
+            netPaidCents: 95000,
+            inssCents: 10000,
+            irrfCents: 5000,
+            irrfBaseCents: 100000,
+            fgtsBaseCents: 100000,
+            fgtsAmountCents: 8000,
+            earnings: [],
+            deductions: [],
+            bankMetadata: null,
+            warnings: [],
+            errors: [],
+            fingerprint: 'a'.repeat(64),
+            duplicate: false,
+          },
+        },
+      }),
+    });
+  });
+
+  await page.route('**/api/payroll/import/confirm', async (route) => {
+    imported = true;
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        message: 'Documento importado',
+        data: {
+          created: true,
+          duplicate: false,
+          id: '00000000-0000-4000-8000-000000000001',
+        },
+      }),
+    });
+  });
+
+  for (const pattern of ['**/api/payroll?*', '**/api/payroll/summary?*']) {
+    await page.route(pattern, async (route) => {
+      if (!imported) {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          error: { message: 'Falha simulada de refresh' },
+        }),
+      });
+    });
+  }
+
+  await login(page, email);
+  await page.goto('/rendimentos-trabalho');
+
+  const fileInput = page.locator('input[type="file"]').first();
+  await fileInput.setInputFiles({
+    name: 'teste.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('pdf-e2e'),
+  });
+  await page.getByRole('button', { name: 'Analisar PDF', exact: true }).click();
+  await expect(
+    page.getByText(/Empresa Refresh/).first(),
+  ).toBeVisible();
+
+  await page
+    .getByRole('button', { name: 'Confirmar importação', exact: true })
+    .click();
+
+  await expect(
+    page.getByText('Documento importado.', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/alteração foi concluída.*atualizar/i).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Não foi possível importar o documento.', { exact: true }),
+  ).toHaveCount(0);
+});
+
+test('folha: showValues e layout mobile protegem valores em 320/360/390 px', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+
+  const suffix = `${Date.now()}-${test.info().project.name}`;
+  const email = `qa-payroll-hidden-${suffix}@example.test`;
+  await createVerifiedUser({
+    name: 'QA Folha Privacidade',
+    email,
+    password,
+  });
+  await seedPayrollFixture(email, { showValues: false });
+  await login(page, email);
+
+  for (const width of [320, 360, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/rendimentos-trabalho');
+    await page.getByLabel('Ano dos rendimentos mensais').selectOption('2025');
+
+    await expect(page.getByText('••••').first()).toBeVisible();
+    await expect(page.getByText('R$ 1.000,00', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('R$ 950,00', { exact: true })).toHaveCount(0);
+
+    const horizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    );
+    expect(horizontalOverflow).toBe(false);
+
+    await page.getByRole('button', { name: 'Anual / IR', exact: true }).click();
+    await expect(page.getByText('••••').first()).toBeVisible();
+    await expect(
+      page.getByText('R$ 12.000,00', { exact: true }),
+    ).toHaveCount(0);
+
+    const annualOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    );
+    expect(annualOverflow).toBe(false);
+  }
 });

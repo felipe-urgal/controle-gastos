@@ -15,6 +15,16 @@ import {
   verifyPayrollPreview,
 } from "@/app/lib/payroll/preview-token";
 import { reconcilePayrollCompetence } from "@/app/lib/payroll/payroll-reconciliation";
+import {
+  pageInfo,
+  payrollPageSchema,
+  payrollSearchParams,
+} from "@/app/lib/payroll/payroll-query";
+import {
+  assertPayrollDocumentMoneyBounds,
+  isPayrollMoneyLimitError,
+  PAYROLL_CENTS_MAX,
+} from "@/app/lib/payroll/payroll-money";
 import { prisma } from "@/app/lib/prisma";
 import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
@@ -23,12 +33,14 @@ import {
   PDF_EXPERIMENT_MAX_BYTES,
 } from "@/app/lib/transactions/import/pdf-experiment";
 
+const centsSchema = z.number().int().nonnegative().max(PAYROLL_CENTS_MAX);
+
 const rubricSchema = z.object({
   code: z.string().nullable(),
   description: z.string(),
   reference: z.string().nullable(),
-  earningsCents: z.number().int().nonnegative().nullable(),
-  deductionsCents: z.number().int().nonnegative().nullable(),
+  earningsCents: centsSchema.nullable(),
+  deductionsCents: centsSchema.nullable(),
 });
 
 const paymentTypeSchema = z.enum([
@@ -48,16 +60,16 @@ const parsedSchema = z.object({
   employeeName: z.string().max(160).nullable(),
   year: z.number().int().min(0).max(2100),
   month: z.number().int().min(0).max(12),
-  salaryBaseCents: z.number().int().nonnegative().nullable(),
-  grossIncomeCents: z.number().int().nonnegative().nullable(),
-  totalEarningsCents: z.number().int().nonnegative().nullable(),
-  totalDeductionsCents: z.number().int().nonnegative().nullable(),
-  netPaidCents: z.number().int().nonnegative().nullable(),
-  inssCents: z.number().int().nonnegative().nullable(),
-  irrfCents: z.number().int().nonnegative().nullable(),
-  irrfBaseCents: z.number().int().nonnegative().nullable(),
-  fgtsBaseCents: z.number().int().nonnegative().nullable(),
-  fgtsAmountCents: z.number().int().nonnegative().nullable(),
+  salaryBaseCents: centsSchema.nullable(),
+  grossIncomeCents: centsSchema.nullable(),
+  totalEarningsCents: centsSchema.nullable(),
+  totalDeductionsCents: centsSchema.nullable(),
+  netPaidCents: centsSchema.nullable(),
+  inssCents: centsSchema.nullable(),
+  irrfCents: centsSchema.nullable(),
+  irrfBaseCents: centsSchema.nullable(),
+  fgtsBaseCents: centsSchema.nullable(),
+  fgtsAmountCents: centsSchema.nullable(),
   earnings: z.array(rubricSchema),
   deductions: z.array(rubricSchema),
   bankMetadata: z.record(z.string(), z.string()).nullable(),
@@ -159,6 +171,7 @@ export async function previewPayrollImport(request: Request) {
       throw error;
     }
 
+    assertPayrollDocumentMoneyBounds(parsed);
     const fingerprint = payrollImportFingerprint(userId, parsed);
     const identity = payrollDocumentIdentity(parsed);
     const [existing, replacementCandidates] = await Promise.all([
@@ -217,6 +230,12 @@ export async function previewPayrollImport(request: Request) {
     const auth = unauthorized(error);
     if (auth) return auth;
     if (error instanceof PdfExperimentError) return failure(error.message, 400);
+    if (isPayrollMoneyLimitError(error)) {
+      return failure(
+        `Valor monetário inválido ou acima do limite em ${error.field}`,
+        400,
+      );
+    }
     return failure("Não foi possível analisar o documento de folha", 500);
   }
 }
@@ -416,6 +435,12 @@ export async function confirmPayrollImport(request: Request) {
     if (error instanceof ZodError) {
       return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
     }
+    if (isPayrollMoneyLimitError(error)) {
+      return failure(
+        `Valor monetário inválido ou acima do limite em ${error.field}`,
+        400,
+      );
+    }
     if (error instanceof Error && error.message === "INVALID_PREVIEW_TOKEN") {
       return failure("Preview expirado ou inválido. Gere um novo preview", 400);
     }
@@ -426,12 +451,23 @@ export async function confirmPayrollImport(request: Request) {
   }
 }
 
-export async function listPayrollDocuments() {
+export async function listPayrollDocuments(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
+    const query = payrollPageSchema.parse(payrollSearchParams(request));
     const documents = await prisma.payrollDocument.findMany({
-      where: { userId },
-      orderBy: [{ year: "desc" }, { month: "desc" }, { createdAt: "desc" }],
+      where: {
+        userId,
+        ...(query.year ? { year: query.year } : {}),
+      },
+      orderBy: [
+        { year: "desc" },
+        { month: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit + 1,
       select: {
         id: true,
         documentType: true,
@@ -458,10 +494,20 @@ export async function listPayrollDocuments() {
         createdAt: true,
       },
     });
-    return success(documents);
+    return success({
+      items: documents.slice(0, query.limit),
+      pageInfo: pageInfo({
+        page: query.page,
+        limit: query.limit,
+        fetched: documents.length,
+      }),
+    });
   } catch (error) {
     const auth = unauthorized(error);
     if (auth) return auth;
+    if (error instanceof ZodError) {
+      return failure(error.issues[0]?.message ?? "Filtros inválidos", 400);
+    }
     return failure("Não foi possível carregar os documentos de folha", 500);
   }
 }
