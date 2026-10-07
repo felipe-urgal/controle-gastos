@@ -50,3 +50,50 @@ export async function setPendingEmailChange({
     }),
   );
 }
+
+
+export async function seedPrivacyFinancialFixture({ email, amount = 12345 }) {
+  return withPrisma(async (prisma) => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    const suffix = Date.now().toString(36);
+    const today = new Date();
+
+    const account = await prisma.account.create({
+      data: {
+        name: `Conta Privada ${suffix}`,
+        type: 'CREDIT_DEBIT',
+        currency: 'BRL',
+        userId: user.id,
+      },
+    });
+
+    const category = await prisma.category.create({
+      data: {
+        name: `Privacidade ${suffix}`.slice(0, 50),
+        type: 'EXPENSE',
+        userId: user.id,
+      },
+    });
+
+    const transaction = await prisma.transaction.create({
+      data: {
+        amount,
+        year: today.getFullYear(),
+        month: today.getMonth() + 1,
+        day: today.getDate(),
+        type: 'EXPENSE',
+        description: 'Compra privacidade cross-module',
+        status: 'COMPLETED',
+        accountId: account.id,
+        categoryId: category.id,
+        userId: user.id,
+      },
+    });
+
+    return {
+      userId: user.id,
+      accountId: account.id,
+      transactionId: transaction.id,
+    };
+  });
+}
