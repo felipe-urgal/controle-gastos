@@ -129,6 +129,13 @@ export function importRuleFormToInput(
     throw new Error("Valor máximo deve ser maior ou igual ao mínimo");
   }
 
+  if (
+    !form.accountId &&
+    (minAmountCents !== null || maxAmountCents !== null)
+  ) {
+    throw new Error("Regras com faixa de valor exigem uma conta específica");
+  }
+
   return {
     name: requiredText(form.name, "Nome"),
     isActive: form.isActive,
