@@ -159,6 +159,7 @@ export default function TransactionImportPage() {
   const [merchantOptionsUnavailable, setMerchantOptionsUnavailable] = useState(false);
   const [accountLoadError, setAccountLoadError] = useState('');
   const [categoryLoadError, setCategoryLoadError] = useState('');
+  const [retryingSource, setRetryingSource] = useState<'accounts' | 'categories' | 'merchants' | null>(null);
   const [accountId, setAccountId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
@@ -214,6 +215,54 @@ export default function TransactionImportPage() {
 
     void loadRelations();
   }, []);
+
+  async function retryAccounts() {
+    setRetryingSource('accounts');
+    try {
+      const response = await accountService.getAll();
+      const activeAccounts = (response.data?.items ?? []).filter((account) => account.isActive);
+      setAccounts(activeAccounts);
+      setAccountId((current) =>
+        activeAccounts.some((account) => account.id === current)
+          ? current
+          : activeAccounts.length === 1
+            ? activeAccounts[0].id
+            : '',
+      );
+      setAccountLoadError('');
+    } catch {
+      setAccountLoadError('Não foi possível carregar contas.');
+    } finally {
+      setRetryingSource(null);
+    }
+  }
+
+  async function retryCategories() {
+    setRetryingSource('categories');
+    try {
+      const response = await categoryService.getAll();
+      setCategories((response.data?.items ?? []).filter((category) => category.isActive));
+      setCategoryLoadError('');
+    } catch {
+      setCategoryLoadError('Não foi possível carregar categorias.');
+    } finally {
+      setRetryingSource(null);
+    }
+  }
+
+  async function retryMerchants() {
+    setRetryingSource('merchants');
+    try {
+      const response = await merchantService.getAllOptions();
+      setMerchants(response.filter((merchant) => merchant.isActive));
+      setMerchantOptionsUnavailable(false);
+    } catch {
+      setMerchants([]);
+      setMerchantOptionsUnavailable(true);
+    } finally {
+      setRetryingSource(null);
+    }
+  }
 
   const account = useMemo(
     () => accounts.find((candidate) => candidate.id === accountId),
@@ -404,8 +453,36 @@ export default function TransactionImportPage() {
         <span className={step >= 3 ? 'font-semibold text-[var(--foreground)]' : ''}>Concluído</span>
       </div>
 
-      {accountLoadError && <Alert variant="error" message={accountLoadError} />}
-      {categoryLoadError && <Alert variant="error" message={categoryLoadError} />}
+      {accountLoadError && (
+        <div className="mb-3 space-y-2">
+          <Alert variant="error" message={accountLoadError} />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void retryAccounts()}
+            isLoading={retryingSource === 'accounts'}
+            loadingText="Recarregando contas…"
+          >
+            Tentar novamente contas
+          </Button>
+        </div>
+      )}
+      {categoryLoadError && (
+        <div className="mb-3 space-y-2">
+          <Alert variant="error" message={categoryLoadError} />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void retryCategories()}
+            isLoading={retryingSource === 'categories'}
+            loadingText="Recarregando categorias…"
+          >
+            Tentar novamente categorias
+          </Button>
+        </div>
+      )}
       {error && <Alert variant="error" message={error} />}
 
       {step === 1 && (
@@ -620,6 +697,8 @@ export default function TransactionImportPage() {
                     categories={categories}
                     merchants={merchants}
                     merchantOptionsUnavailable={merchantOptionsUnavailable}
+                    merchantRetrying={retryingSource === 'merchants'}
+                    onRetryMerchants={() => void retryMerchants()}
                     accountCurrency={account?.currency}
                     showValues={showValues}
                     submitting={submitting}
@@ -668,6 +747,8 @@ export default function TransactionImportPage() {
               categories={categories}
               merchants={merchants}
               merchantOptionsUnavailable={merchantOptionsUnavailable}
+              merchantRetrying={retryingSource === 'merchants'}
+              onRetryMerchants={() => void retryMerchants()}
               accountCurrency={account?.currency}
               showValues={showValues}
               submitting={submitting}
@@ -718,6 +799,8 @@ function ImportDetail({
   categories,
   merchants,
   merchantOptionsUnavailable,
+  merchantRetrying,
+  onRetryMerchants,
   accountCurrency,
   showValues,
   submitting,
@@ -729,6 +812,8 @@ function ImportDetail({
   categories: CategoryModel[];
   merchants: MerchantDTO[];
   merchantOptionsUnavailable: boolean;
+  merchantRetrying: boolean;
+  onRetryMerchants: () => void;
   accountCurrency?: string;
   showValues: boolean;
   submitting: boolean;
@@ -847,6 +932,17 @@ function ImportDetail({
                 role="status"
               >
                 Lista de estabelecimentos indisponível. Você pode continuar sem estabelecimento; sugestões já reconhecidas no preview podem ser mantidas.
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={onRetryMerchants}
+                  isLoading={merchantRetrying}
+                  loadingText="Recarregando…"
+                >
+                  Tentar carregar estabelecimentos
+                </Button>
               </span>
             )}
             <select
@@ -982,6 +1078,8 @@ function MobileImportDetail({
   categories,
   merchants,
   merchantOptionsUnavailable,
+  merchantRetrying,
+  onRetryMerchants,
   accountCurrency,
   showValues,
   submitting,
@@ -993,6 +1091,8 @@ function MobileImportDetail({
   categories: CategoryModel[];
   merchants: MerchantDTO[];
   merchantOptionsUnavailable: boolean;
+  merchantRetrying: boolean;
+  onRetryMerchants: () => void;
   accountCurrency?: string;
   showValues: boolean;
   submitting: boolean;
@@ -1016,6 +1116,8 @@ function MobileImportDetail({
           categories={categories}
           merchants={merchants}
           merchantOptionsUnavailable={merchantOptionsUnavailable}
+          merchantRetrying={merchantRetrying}
+          onRetryMerchants={onRetryMerchants}
           accountCurrency={accountCurrency}
           showValues={showValues}
           submitting={submitting}

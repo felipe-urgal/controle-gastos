@@ -65,6 +65,17 @@ function impactLabel(relationship: ImportRuleRelationship) {
   return 'também pode casar sem vencedor seguro; ajuste prioridade ou especificidade';
 }
 
+function ruleDependencyWarning(accountUnavailable: boolean, categoryUnavailable: boolean) {
+  const unavailable = [
+    accountUnavailable ? 'contas' : '',
+    categoryUnavailable ? 'categorias' : '',
+  ].filter(Boolean);
+
+  return unavailable.length > 0
+    ? `Não foi possível carregar ${unavailable.join(' e ')}. A lista de regras continua disponível, mas criação e edição podem ficar limitadas.`
+    : '';
+}
+
 function amountRangeLabel(
   rule: ImportRuleModel,
   showValues: boolean,
@@ -101,6 +112,10 @@ export default function ImportRuleManagementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [dependencyWarning, setDependencyWarning] = useState('');
+  const [accountUnavailable, setAccountUnavailable] = useState(false);
+  const [categoryUnavailable, setCategoryUnavailable] = useState(false);
+  const [rulesUnavailable, setRulesUnavailable] = useState(false);
+  const [retryingSource, setRetryingSource] = useState<'accounts' | 'categories' | 'rules' | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
@@ -115,26 +130,30 @@ export default function ImportRuleManagementPage() {
         importRuleService.getAll(),
       ]);
 
-      const unavailable: string[] = [];
+      const nextAccountUnavailable = accountResult.status !== 'fulfilled';
+      const nextCategoryUnavailable = categoryResult.status !== 'fulfilled';
+
+      setAccountUnavailable(nextAccountUnavailable);
+      setCategoryUnavailable(nextCategoryUnavailable);
 
       if (accountResult.status === 'fulfilled') {
         setAccounts((accountResult.value.data?.items ?? []).filter((account) => account.isActive));
       } else {
         setAccounts([]);
-        unavailable.push('contas');
       }
 
       if (categoryResult.status === 'fulfilled') {
         setCategories((categoryResult.value.data?.items ?? []).filter((category) => category.isActive));
       } else {
         setCategories([]);
-        unavailable.push('categorias');
       }
 
       if (ruleResult.status === 'fulfilled') {
         setRules([...(ruleResult.value.data?.items ?? [])].sort(ruleOrder));
+        setRulesUnavailable(false);
       } else {
         setRules([]);
+        setRulesUnavailable(true);
         setError(
           ruleResult.reason instanceof Error
             ? ruleResult.reason.message
@@ -142,17 +161,63 @@ export default function ImportRuleManagementPage() {
         );
       }
 
-      if (unavailable.length > 0) {
-        setDependencyWarning(
-          `Não foi possível carregar ${unavailable.join(' e ')}. A lista de regras continua disponível, mas criação e edição podem ficar limitadas.`,
-        );
-      }
-
+      setDependencyWarning(
+        ruleDependencyWarning(nextAccountUnavailable, nextCategoryUnavailable),
+      );
       setLoading(false);
     }
 
     void load();
   }, []);
+
+  async function retryAccounts() {
+    setRetryingSource('accounts');
+    try {
+      const response = await accountService.getAll();
+      setAccounts((response.data?.items ?? []).filter((account) => account.isActive));
+      setAccountUnavailable(false);
+      setDependencyWarning(ruleDependencyWarning(false, categoryUnavailable));
+    } catch {
+      setAccountUnavailable(true);
+      setDependencyWarning(ruleDependencyWarning(true, categoryUnavailable));
+    } finally {
+      setRetryingSource(null);
+    }
+  }
+
+  async function retryCategories() {
+    setRetryingSource('categories');
+    try {
+      const response = await categoryService.getAll();
+      setCategories((response.data?.items ?? []).filter((category) => category.isActive));
+      setCategoryUnavailable(false);
+      setDependencyWarning(ruleDependencyWarning(accountUnavailable, false));
+    } catch {
+      setCategoryUnavailable(true);
+      setDependencyWarning(ruleDependencyWarning(accountUnavailable, true));
+    } finally {
+      setRetryingSource(null);
+    }
+  }
+
+  async function retryRules() {
+    setRetryingSource('rules');
+    try {
+      const response = await importRuleService.getAll();
+      setRules([...(response.data?.items ?? [])].sort(ruleOrder));
+      setRulesUnavailable(false);
+      setError('');
+    } catch (cause) {
+      setRulesUnavailable(true);
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Não foi possível carregar as regras de importação.',
+      );
+    } finally {
+      setRetryingSource(null);
+    }
+  }
 
   const accountById = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
@@ -309,8 +374,54 @@ export default function ImportRuleManagementPage() {
           variant="info"
           message="Menor prioridade executa primeiro. Em empate, a regra mais específica vence; se ainda houver resultados incompatíveis na mesma precedência, o preview pede revisão. As sugestões nunca confirmam transações sozinhas."
         />
-        {dependencyWarning && <Alert variant="warning" message={dependencyWarning} />}
-        {error && <Alert variant="error" message={error} onClose={() => setError('')} />}
+        {dependencyWarning && (
+          <div className="space-y-2">
+            <Alert variant="warning" message={dependencyWarning} />
+            <div className="flex flex-wrap gap-2">
+              {accountUnavailable && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void retryAccounts()}
+                  isLoading={retryingSource === 'accounts'}
+                  loadingText="Recarregando contas…"
+                >
+                  Tentar novamente contas
+                </Button>
+              )}
+              {categoryUnavailable && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void retryCategories()}
+                  isLoading={retryingSource === 'categories'}
+                  loadingText="Recarregando categorias…"
+                >
+                  Tentar novamente categorias
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+        {error && (
+          <div className="space-y-2">
+            <Alert variant="error" message={error} onClose={() => setError('')} />
+            {rulesUnavailable && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void retryRules()}
+                isLoading={retryingSource === 'rules'}
+                loadingText="Recarregando regras…"
+              >
+                Tentar novamente regras
+              </Button>
+            )}
+          </div>
+        )}
         {successMessage && (
           <Alert
             variant="success"
