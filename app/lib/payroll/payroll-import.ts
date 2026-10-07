@@ -16,6 +16,11 @@ import {
 } from "@/app/lib/payroll/preview-token";
 import { reconcilePayrollCompetence } from "@/app/lib/payroll/payroll-reconciliation";
 import {
+  pageInfo,
+  payrollPageSchema,
+  payrollSearchParams,
+} from "@/app/lib/payroll/payroll-query";
+import {
   assertPayrollDocumentMoneyBounds,
   isPayrollMoneyLimitError,
   PAYROLL_CENTS_MAX,
@@ -446,12 +451,23 @@ export async function confirmPayrollImport(request: Request) {
   }
 }
 
-export async function listPayrollDocuments() {
+export async function listPayrollDocuments(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
+    const query = payrollPageSchema.parse(payrollSearchParams(request));
     const documents = await prisma.payrollDocument.findMany({
-      where: { userId },
-      orderBy: [{ year: "desc" }, { month: "desc" }, { createdAt: "desc" }],
+      where: {
+        userId,
+        ...(query.year ? { year: query.year } : {}),
+      },
+      orderBy: [
+        { year: "desc" },
+        { month: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit + 1,
       select: {
         id: true,
         documentType: true,
@@ -478,10 +494,20 @@ export async function listPayrollDocuments() {
         createdAt: true,
       },
     });
-    return success(documents);
+    return success({
+      items: documents.slice(0, query.limit),
+      pageInfo: pageInfo({
+        page: query.page,
+        limit: query.limit,
+        fetched: documents.length,
+      }),
+    });
   } catch (error) {
     const auth = unauthorized(error);
     if (auth) return auth;
+    if (error instanceof ZodError) {
+      return failure(error.issues[0]?.message ?? "Filtros inválidos", 400);
+    }
     return failure("Não foi possível carregar os documentos de folha", 500);
   }
 }
