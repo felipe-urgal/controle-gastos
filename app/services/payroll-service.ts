@@ -3,6 +3,7 @@ import type {
   PayrollAnnualReport,
   PayrollImportPreview,
   PayrollPage,
+  PayrollAdvanceResolutionItem,
   PayrollSummary,
   PayrollTransactionReconciliationItem,
   StoredAnnualStatement,
@@ -135,6 +136,50 @@ export const payrollService = {
     return mutate<{ id: string; archived: boolean }>(
       '/api/payroll/annual/' + id + '/archive',
       { method: 'POST' },
+    );
+  },
+
+  advanceResolution() {
+    return get<PayrollAdvanceResolutionItem[]>(
+      '/api/payroll/advance-reconciliation',
+    );
+  },
+
+  resolveAdvance(payload: {
+    advanceDocumentId: string;
+    regularDocumentId: string;
+    rubricIndex: number;
+    confirmed: true;
+  }) {
+    return mutate('/api/payroll/advance-reconciliation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  undoAdvance(documentId: string) {
+    return mutate(
+      '/api/payroll/advance-reconciliation/' + documentId,
+      { method: 'DELETE' },
+    );
+  },
+
+  linkTransaction(payload: {
+    payrollDocumentId: string;
+    transactionId: string;
+  }) {
+    return mutate('/api/payroll/transaction-reconciliation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  unlinkTransaction(documentId: string) {
+    return mutate(
+      '/api/payroll/transaction-reconciliation/' + documentId,
+      { method: 'DELETE' },
     );
   },
 };
