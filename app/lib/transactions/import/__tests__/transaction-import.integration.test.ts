@@ -193,6 +193,46 @@ describe("transaction import integration", () => {
     ).toBe(0);
   });
 
+  it("keeps merchant optional during confirmation", async () => {
+    const { owner, account, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const preview = await previewTransactionImport(
+      previewRequest(
+        account.id,
+        "data,descricao,valor\n2026-08-31,Compra sem merchant,-10.00",
+      ),
+    );
+    const body = await preview.json();
+
+    const items = body.data.items.map((item: { index: number }) => ({
+      ...item,
+      selected: true,
+      categoryId: expenseCategory.id,
+      merchantId: null,
+    }));
+
+    const response = await confirmTransactionImport(
+      new Request("http://localhost/api/transactions/import/confirm", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          accountId: account.id,
+          previewToken: body.data.previewToken,
+          items,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(
+      await prisma.transaction.findFirst({
+        where: { userId: owner.id, description: "Compra sem merchant" },
+        select: { merchantId: true },
+      }),
+    ).toEqual({ merchantId: null });
+  });
+
   it("generates preview without writes and confirms only selected items", async () => {
     const { owner, account, expenseCategory, incomeCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
