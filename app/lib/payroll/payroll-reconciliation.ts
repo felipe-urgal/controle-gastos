@@ -74,18 +74,20 @@ export async function reconcilePayrollCompetence(
       year: params.year,
       month: params.month,
       lifecycleStatus: "ACTIVE",
+      paymentType: { in: ["ADVANCE", "REGULAR"] },
     },
     select: {
       id: true,
       documentType: true,
+      paymentType: true,
       grossIncomeCents: true,
       totalEarningsCents: true,
       deductions: true,
     },
   });
 
-  const advances = documents.filter((item) => item.documentType === "PAYROLL_ADVANCE");
-  const regulars = documents.filter((item) => item.documentType === "MONTHLY_PAYSLIP");
+  const advances = documents.filter((item) => item.paymentType === "ADVANCE");
+  const regulars = documents.filter((item) => item.paymentType === "REGULAR");
 
   if (regulars.length === 0) {
     if (advances.length > 0) {
@@ -200,7 +202,11 @@ export async function reconcilePayrollCompetence(
 
 export async function getPayrollCompetenceSummaries(userId: string) {
   const documents = await prisma.payrollDocument.findMany({
-    where: { userId, lifecycleStatus: "ACTIVE" },
+    where: {
+      userId,
+      lifecycleStatus: "ACTIVE",
+      paymentType: { in: ["ADVANCE", "REGULAR"] },
+    },
     orderBy: [{ year: "desc" }, { month: "desc" }, { employerCnpj: "asc" }],
     include: {
       advanceLinks: true,
@@ -216,8 +222,8 @@ export async function getPayrollCompetenceSummaries(userId: string) {
   }
 
   return [...groups.values()].map((items) => {
-    const regulars = items.filter((item) => item.documentType === "MONTHLY_PAYSLIP");
-    const advances = items.filter((item) => item.documentType === "PAYROLL_ADVANCE");
+    const regulars = items.filter((item) => item.paymentType === "REGULAR");
+    const advances = items.filter((item) => item.paymentType === "ADVANCE");
     const links = advances.flatMap((item) => item.advanceLinks);
     const grossIncome = aggregateCents(
       regulars.length > 0 ? regulars : advances,
