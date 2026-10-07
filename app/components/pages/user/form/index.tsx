@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaLock, FaUser } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaUser } from 'react-icons/fa';
 
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { Input } from '@/app/components/ui';
@@ -13,17 +13,20 @@ interface UserFormProps {
   user: {
     id: string;
     name: string;
+    email: string;
   };
 }
 
 type UserFieldErrors = {
   name: string;
+  email: string;
   currentPassword: string;
   confirmPassword: string;
 };
 
 const emptyFieldErrors: UserFieldErrors = {
   name: '',
+  email: '',
   currentPassword: '',
   confirmPassword: '',
 };
@@ -33,6 +36,8 @@ export default function UserForm({ user }: UserFormProps) {
   const { updateUser } = useAuth();
 
   const [name, setName] = useState(user.name);
+  const [newEmail, setNewEmail] = useState('');
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -40,15 +45,31 @@ export default function UserForm({ user }: UserFormProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const normalizedNewEmail = newEmail.trim().toLowerCase();
+  const needsCurrentPassword = Boolean(normalizedNewEmail || newPassword);
+  const isResend = Boolean(
+    pendingEmail && normalizedNewEmail === pendingEmail && !newPassword
+  );
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
     setFieldErrors(emptyFieldErrors);
 
-    if (newPassword && !currentPassword) {
+    const emailChanged = Boolean(normalizedNewEmail) && normalizedNewEmail !== user.email.toLowerCase();
+
+    if (normalizedNewEmail && !emailChanged) {
       setFieldErrors((previous) => ({
         ...previous,
-        currentPassword: 'Informe a senha atual para definir uma nova senha',
+        email: 'Informe um e-mail diferente do atual',
+      }));
+      return;
+    }
+
+    if ((emailChanged || newPassword) && !currentPassword) {
+      setFieldErrors((previous) => ({
+        ...previous,
+        currentPassword: 'Informe a senha atual para alterar e-mail ou senha',
       }));
       return;
     }
@@ -67,10 +88,13 @@ export default function UserForm({ user }: UserFormProps) {
       const payload: UpdateUserRequest = {};
 
       if (name !== user.name) payload.name = name;
+      if (emailChanged) payload.email = normalizedNewEmail;
 
       if (newPassword) {
         payload.currentPassword = currentPassword;
         payload.newPassword = newPassword;
+      } else if (emailChanged) {
+        payload.currentPassword = currentPassword;
       }
 
       if (Object.keys(payload).length === 0) {
@@ -80,6 +104,12 @@ export default function UserForm({ user }: UserFormProps) {
 
       const result = await updateUser(payload);
       if (result.reauthRequired) return;
+
+      if (emailChanged) {
+        setPendingEmail(normalizedNewEmail);
+        setCurrentPassword('');
+        return;
+      }
 
       router.replace(`/usuario/show/${user.id}`);
     } catch (err: unknown) {
@@ -107,30 +137,90 @@ export default function UserForm({ user }: UserFormProps) {
               Dados pessoais
             </h2>
             <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-              O nome é exibido na sua área autenticada.
+              Atualize seu nome ou solicite a troca do e-mail da conta.
             </p>
           </div>
         </div>
 
-        <Input
-          label="Nome"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            if (fieldErrors.name) {
-              setFieldErrors((previous) => ({ ...previous, name: '' }));
-            }
-          }}
-          onInvalid={(e) => {
-            e.preventDefault();
-            setFieldErrors((previous) => ({ ...previous, name: 'Nome é obrigatório' }));
-          }}
-          error={fieldErrors.name}
-          required
-          disabled={isSubmitting}
-          autoComplete="name"
-          enterKeyHint="done"
-        />
+        <div className="grid gap-4">
+          <Input
+            label="Nome"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (fieldErrors.name) {
+                setFieldErrors((previous) => ({ ...previous, name: '' }));
+              }
+            }}
+            onInvalid={(e) => {
+              e.preventDefault();
+              setFieldErrors((previous) => ({ ...previous, name: 'Nome é obrigatório' }));
+            }}
+            error={fieldErrors.name}
+            required
+            disabled={isSubmitting}
+            autoComplete="name"
+            enterKeyHint="next"
+          />
+
+          <div>
+            <div className="mb-3 flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+              <span className="mt-0.5 text-[var(--text-muted)]" aria-hidden="true">
+                <FaEnvelope />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[var(--text-muted)]">E-mail atual</p>
+                <p className="mt-1 break-all text-base text-[var(--foreground)]">{user.email}</p>
+              </div>
+            </div>
+
+            <Input
+              label="Novo e-mail"
+              type="email"
+              value={newEmail}
+              onChange={(e) => {
+                setNewEmail(e.target.value);
+                setPendingEmail((previous) =>
+                  previous && e.target.value.trim().toLowerCase() === previous
+                    ? previous
+                    : null
+                );
+                setSubmitError(null);
+                if (!e.target.value.trim() && !newPassword) {
+                  setCurrentPassword('');
+                }
+                if (fieldErrors.email) {
+                  setFieldErrors((previous) => ({ ...previous, email: '' }));
+                }
+              }}
+              error={fieldErrors.email}
+              placeholder="novo@email.com"
+              autoComplete="email"
+              inputMode="email"
+              enterKeyHint="next"
+              autoCapitalize="none"
+              spellCheck={false}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {pendingEmail && (
+            <div
+              role="status"
+              className="rounded-[var(--radius-md)] border border-[var(--primary)]/35 bg-[var(--primary-subtle)] p-4 text-sm leading-relaxed text-[var(--foreground)]"
+            >
+              <p className="font-semibold">Aguardando confirmação</p>
+              <p className="mt-1">
+                E-mail atual: <strong>{user.email}</strong>. Novo endereço solicitado:{' '}
+                <strong>{pendingEmail}</strong>.
+              </p>
+              <p className="mt-1 text-[var(--text-muted)]">
+                Abra o link enviado para concluir a troca. Para reenviar a confirmação,
+                informe novamente sua senha atual e salve.
+              </p>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="border-t border-[var(--border)] pt-5" aria-labelledby="password-title">
@@ -143,13 +233,13 @@ export default function UserForm({ user }: UserFormProps) {
               Segurança
             </h2>
             <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-              Deixe os campos vazios para manter a senha atual.
+              Alterações de e-mail ou senha exigem sua senha atual.
             </p>
           </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          {newPassword && (
+          {needsCurrentPassword && (
             <Input
               label="Senha atual"
               type="password"
@@ -164,7 +254,7 @@ export default function UserForm({ user }: UserFormProps) {
                 e.preventDefault();
                 setFieldErrors((previous) => ({
                   ...previous,
-                  currentPassword: 'Informe a senha atual para definir uma nova senha',
+                  currentPassword: 'Informe a senha atual para alterar e-mail ou senha',
                 }));
               }}
               required
@@ -185,9 +275,15 @@ export default function UserForm({ user }: UserFormProps) {
               setNewPassword(e.target.value);
               setSubmitError(null);
               if (!e.target.value) {
-                setCurrentPassword('');
                 setConfirmPassword('');
-                setFieldErrors(emptyFieldErrors);
+                if (!newEmail.trim()) {
+                  setCurrentPassword('');
+                }
+                setFieldErrors((previous) => ({
+                  ...previous,
+                  currentPassword: '',
+                  confirmPassword: '',
+                }));
               }
             }}
             autoComplete="new-password"
@@ -221,7 +317,7 @@ export default function UserForm({ user }: UserFormProps) {
         isEditing
         loading={isSubmitting}
         onCancel={() => router.back()}
-        submitLabel="Salvar alterações"
+        submitLabel={isResend ? 'Reenviar confirmação' : 'Salvar alterações'}
       />
     </FormContainer>
   );
