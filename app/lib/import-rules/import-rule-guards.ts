@@ -69,10 +69,6 @@ export function assertImportRulePatternIsSafe(
   }
 }
 
-function sameNullable<T>(left: T | null, right: T | null) {
-  return left === right;
-}
-
 export function importRuleMatcherKey(rule: ImportRuleMatcher) {
   return JSON.stringify([
     rule.accountId ?? null,
