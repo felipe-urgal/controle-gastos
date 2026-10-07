@@ -867,6 +867,10 @@ function ImportDetail({
   const selectedCategory = item.categoryId
     ? availableCategories.find((category) => category.id === item.categoryId)
     : undefined;
+  const suggestedMerchantOutsideOptions =
+    Boolean(item.merchantId) &&
+    item.merchantId === item.suggestedMerchantId &&
+    !merchants.some((merchant) => merchant.id === item.merchantId);
   const canCategorize = !item.duplicate && item.errors.length === 0 && !item.ignored;
   const reviewReasons = getReviewReasons(item);
 
@@ -1010,6 +1014,11 @@ function ImportDetail({
               className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] disabled:opacity-50"
             >
               <option value="">Sem estabelecimento</option>
+              {suggestedMerchantOutsideOptions && item.merchantId && (
+                <option value={item.merchantId}>
+                  {item.suggestedMerchantName ?? 'Estabelecimento sugerido'}
+                </option>
+              )}
               {merchants.map((merchant) => (
                 <option key={merchant.id} value={merchant.id}>{merchant.name}</option>
               ))}
