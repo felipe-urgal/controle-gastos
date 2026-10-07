@@ -98,7 +98,7 @@ describe("TOTP enrollment integration", () => {
         userId: user.id,
         currentPassword: "senha-incorreta",
       }),
-      { status: 401, code: "INVALID_CURRENT_PASSWORD" }
+      { status: 401, code: "INVALID_STEP_UP_CREDENTIALS" }
     );
 
     const enrollment = await startTotpEnrollment({
