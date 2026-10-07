@@ -16,7 +16,6 @@ import {
   mobileMoreNavigationGroups,
   type AppNavigationItem,
 } from '@/app/components/layout/app-navigation';
-import { useAuth } from '@/app/context';
 
 const quickActions = [
   {
@@ -40,13 +39,12 @@ export default function MobileMoreMenu({
   onClose: () => void;
   onInstallApp?: () => Promise<void>;
 }) {
-  const { user } = useAuth();
   const pathname = usePathname();
   const [query, setQuery] = useState('');
   const dialogRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
-  const navigation = getAppNavigation(user?.id);
+  const navigation = getAppNavigation();
   const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
 
   const groups = mobileMoreNavigationGroups
