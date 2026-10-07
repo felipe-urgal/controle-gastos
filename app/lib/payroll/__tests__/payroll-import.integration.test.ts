@@ -219,7 +219,7 @@ describe("payroll import integration", () => {
       }),
       prisma.category.create({
         data: {
-          name: "Salário lifecycle " + randomUUID(),
+          name: "Salário " + randomUUID().slice(0, 8),
           type: "INCOME",
           userId: owner.id,
         },
