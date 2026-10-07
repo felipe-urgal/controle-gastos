@@ -63,7 +63,7 @@ describe("applyImportRulesToPreview", () => {
     });
   });
 
-  it("exposes conflicting matching rules instead of picking a category silently", () => {
+  it("keeps lower-precedence matches as provenance without creating a false conflict", () => {
     const [item] = applyImportRulesToPreview({
       accountId: "account-1",
       items: [baseItem],
@@ -72,9 +72,10 @@ describe("applyImportRulesToPreview", () => {
 
     expect(item).toMatchObject({
       matchedRuleId: "rule-account",
-      suggestedCategoryId: null,
-      importRuleConflict: true,
+      suggestedCategoryId: "category-account",
+      importRuleConflict: false,
       matchingRuleNames: ["Transporte da conta", "Transporte global"],
+      alsoMatchingRuleNames: ["Transporte global"],
     });
   });
 

@@ -746,6 +746,9 @@ describe("transaction import integration", () => {
           name: `Cartão QIF ${section} ${randomUUID()}`,
           type: "CREDIT_CARD",
           currency: "BRL",
+          creditLimit: 100_000,
+          statementClosingDay: 20,
+          statementDueDay: 27,
           userId: owner.id,
         },
       });

@@ -41,6 +41,7 @@ describe("import rule input schema", () => {
 
     const inverted = importRuleInputSchema.safeParse({
       ...validInput,
+      accountId: "11111111-1111-4111-8111-111111111111",
       minAmountCents: 20_000,
       maxAmountCents: 10_000,
     });

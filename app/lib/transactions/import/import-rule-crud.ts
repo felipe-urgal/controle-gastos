@@ -22,7 +22,10 @@ async function lockImportRuleMutations(
   db: Prisma.TransactionClient,
   userId: string,
 ) {
-  await db.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`import-rules:${userId}`}))`;
+  await db.$queryRaw`
+    SELECT 1::int AS locked
+    FROM pg_advisory_xact_lock(hashtext(${`import-rules:${userId}`}))
+  `;
 }
 
 async function assertRuleReferences(
