@@ -323,6 +323,7 @@ describe("transaction import integration", () => {
           duplicateCount: 0,
           selectedCount: 1,
           createdCount: 1,
+          skippedDuplicateCount: 0,
         },
       }),
     );
