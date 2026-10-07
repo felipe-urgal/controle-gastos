@@ -21,8 +21,13 @@ on:
       - "tests/e2e/calendar-flow.spec.mjs"
       - "tests/e2e/payroll-flow.spec.mjs"
       - "tests/e2e/user-password-reauth.spec.mjs"
+      - "tests/e2e/user-email-change.spec.mjs"
       - "tests/e2e/support/**"
       - "app/components/pages/account/**"
+      - "app/components/pages/user/**"
+      - "app/api/user/**"
+      - "app/api/auth/verify-email/**"
+      - "app/lib/users/**"
       - "app/components/pages/category/**"
       - "app/hooks/accounts/**"
       - "app/hooks/categories/**"
@@ -190,6 +195,7 @@ jobs:
           tests/e2e/calendar-flow.spec.mjs
           tests/e2e/payroll-flow.spec.mjs
           tests/e2e/user-password-reauth.spec.mjs
+          tests/e2e/user-email-change.spec.mjs
           --project=${{ matrix.browser }}
 
       - name: Run full E2E
