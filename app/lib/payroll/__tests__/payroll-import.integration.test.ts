@@ -107,6 +107,76 @@ describe("payroll import integration", () => {
     expect(await prisma.payrollDocument.count({ where: { userId: owner.id } })).toBe(1);
   });
 
+  it("imports a retified payslip when INSS or rubric content changes", async () => {
+    const owner = await user("Payroll Owner");
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const original = {
+      ...document(),
+      deductions: [
+        {
+          code: "910",
+          description: "I.N.S.S.",
+          reference: "14",
+          earningsCents: null,
+          deductionsCents: 87724,
+        },
+      ],
+    };
+    const originalPreview = {
+      ...original,
+      fingerprint: payrollImportFingerprint(owner.id, original),
+      duplicate: false,
+    };
+    const originalToken = signPayrollPreview({
+      userId: owner.id,
+      document: originalPreview,
+    });
+
+    const first = await confirmPayrollImport(request({
+      previewToken: originalToken,
+      selected: true,
+      document: originalPreview,
+    }));
+    expect(first.status).toBe(201);
+
+    const retified = {
+      ...original,
+      inssCents: 87725,
+      deductions: [
+        {
+          ...original.deductions[0]!,
+          deductionsCents: 87725,
+        },
+      ],
+    };
+    const retifiedPreview = {
+      ...retified,
+      fingerprint: payrollImportFingerprint(owner.id, retified),
+      duplicate: false,
+    };
+    const retifiedToken = signPayrollPreview({
+      userId: owner.id,
+      document: retifiedPreview,
+    });
+
+    expect(retifiedPreview.fingerprint).not.toBe(originalPreview.fingerprint);
+
+    const second = await confirmPayrollImport(request({
+      previewToken: retifiedToken,
+      selected: true,
+      document: retifiedPreview,
+    }));
+    expect(second.status).toBe(201);
+
+    const stored = await prisma.payrollDocument.findMany({
+      where: { userId: owner.id },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(stored).toHaveLength(2);
+    expect(stored.map((item) => item.inssCents)).toEqual([87724, 87725]);
+  });
+
   it("does not accept another user's signed preview", async () => {
     const owner = await user("Payroll Owner");
     const other = await user("Payroll Other");
