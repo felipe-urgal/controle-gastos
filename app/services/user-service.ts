@@ -8,6 +8,10 @@ export type DeleteAccountInput = {
   recoveryCode?: string;
 };
 
+export type UpdateCurrentUserResponse = ApiResponse<User> & {
+  reauthRequired?: boolean;
+};
+
 export const userService = {
   async getCurrent(): Promise<ApiResponse<User>> {
     return apiClient<ApiResponse<User>>("/api/user", {
@@ -15,8 +19,8 @@ export const userService = {
     });
   },
 
-  async updateCurrent<TBody>(data: TBody): Promise<ApiResponse<User>> {
-    return apiClient<ApiResponse<User>, TBody>("/api/user", {
+  async updateCurrent<TBody>(data: TBody): Promise<UpdateCurrentUserResponse> {
+    return apiClient<UpdateCurrentUserResponse, TBody>("/api/user", {
       method: "PATCH",
       body: data,
     });

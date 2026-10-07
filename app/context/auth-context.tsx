@@ -63,11 +63,11 @@ export interface AuthContextType {
   verifyMfa: (data: VerifyMfaLoginRequest) => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
   logout: () => Promise<void>;
-  requireReauthentication: () => void;
+  requireReauthentication: (reason?: 'password-changed') => void;
 
   forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
 
-  updateUser: (data: UpdateUserRequest) => Promise<void>;
+  updateUser: (data: UpdateUserRequest) => Promise<{ reauthRequired: boolean }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -141,10 +141,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
-  const requireReauthentication = useCallback(() => {
+  const requireReauthentication = useCallback((reason?: 'password-changed') => {
+    clearOfflineTransactionLocalState();
     dispatch({ type: 'LOGOUT' });
-    router.replace('/login');
-  }, [router]);
+    window.location.replace(
+      reason === 'password-changed'
+        ? '/login?reason=password-changed'
+        : '/login'
+    );
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -176,8 +181,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const response = await userService.updateCurrent<UpdateUserRequest>(data);
+
+    if (response.reauthRequired) {
+      requireReauthentication('password-changed');
+      return { reauthRequired: true };
+    }
+
     dispatch({ type: 'SET_USER', payload: response.data });
-  }, [state.user]);
+    return { reauthRequired: false };
+  }, [requireReauthentication, state.user]);
 
   const forgotPassword = async (email: string) => {
     try {

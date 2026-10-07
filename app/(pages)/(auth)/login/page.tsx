@@ -31,6 +31,7 @@ export default function LoginPage() {
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [errors, setErrors] = useState({ email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -41,7 +42,17 @@ export default function LoginPage() {
   useEffect(() => {
     if (isAuthenticated) {
       router.replace('/dashboard');
+      return;
     }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reason') !== 'password-changed') return;
+
+    const noticeTimer = window.setTimeout(() => {
+      setNotice('Senha alterada com sucesso. Entre novamente.');
+    }, 0);
+
+    return () => window.clearTimeout(noticeTimer);
   }, [isAuthenticated, router]);
 
   if (isLoading || isAuthenticated) return null;
@@ -160,6 +171,12 @@ export default function LoginPage() {
         )
       }
     >
+      {notice && !mfaStep && (
+        <div role="status" className="mb-5 rounded-[var(--radius-md)] border border-[var(--primary)]/35 bg-[var(--primary-subtle)] p-4 text-sm leading-relaxed text-[var(--foreground)]">
+          {notice}
+        </div>
+      )}
+
       {error && (
         <div role="alert" className="mb-5 rounded-[var(--radius-md)] border border-[var(--danger)]/45 bg-[var(--danger-subtle)] p-4 text-sm leading-relaxed text-[var(--expense)]">
           {error}
