@@ -443,7 +443,8 @@ export default function PayrollCenter() {
                   </div>
                 )}
 
-                {preview.replacementCandidates.length > 0 && !preview.document.duplicate && (
+                {preview.replacementCandidates.length > 0 &&
+                  !(preview.document.duplicate && paymentType === preview.document.paymentType) && (
                   <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
                     <strong>Retificação / substituição</strong>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">
