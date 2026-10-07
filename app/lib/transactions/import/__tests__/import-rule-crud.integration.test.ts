@@ -9,6 +9,7 @@ vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
 
+import { POST as previewImportRuleImpact } from "@/app/api/import-rules/impact/route";
 import { importRuleCrud, renumberImportRules } from "@/app/lib/transactions/import/import-rule-crud";
 import { prisma } from "@/app/lib/prisma";
 
@@ -898,6 +899,101 @@ describe("import rule CRUD", () => {
     });
     expect(priorities.map((rule) => rule.priority)).toEqual(
       Array.from({ length: 25 }, (_, index) => index * 10),
+    );
+  });
+
+
+  it("calculates rule impact against compatible rules outside the current administrative page", async () => {
+    const suffix = randomUUID();
+    const owner = await prisma.user.create({
+      data: {
+        name: "Impact Rule Owner",
+        email: `rule-impact-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    createdUserIds.push(owner.id);
+
+    const [account, firstCategory, secondCategory] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: `Conta impacto ${suffix}`,
+          type: "CREDIT_DEBIT",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Impacto A ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Impacto B ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+    ]);
+
+    await prisma.transactionImportRule.createMany({
+      data: [
+        {
+          name: "Primeira página sem overlap",
+          isActive: true,
+          priority: 0,
+          accountId: account.id,
+          transactionType: "EXPENSE",
+          descriptionOperator: "EQUALS",
+          descriptionPattern: "outro padrão",
+          categoryId: firstCategory.id,
+          userId: owner.id,
+        },
+        {
+          name: "Regra fora da página",
+          isActive: true,
+          priority: 100,
+          accountId: account.id,
+          transactionType: "EXPENSE",
+          descriptionOperator: "CONTAINS",
+          descriptionPattern: "mercado",
+          categoryId: firstCategory.id,
+          userId: owner.id,
+        },
+      ],
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const response = await previewImportRuleImpact(
+      new Request("http://localhost/api/import-rules/impact", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: "Nova regra mercado",
+          isActive: true,
+          priority: 10,
+          accountId: account.id,
+          transactionType: "EXPENSE",
+          descriptionOperator: "EQUALS",
+          descriptionPattern: "mercado central",
+          minAmountCents: null,
+          maxAmountCents: null,
+          categoryId: secondCategory.id,
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.data.relationships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "OVERLAP",
+          ruleName: "Regra fora da página",
+        }),
+      ]),
     );
   });
 
