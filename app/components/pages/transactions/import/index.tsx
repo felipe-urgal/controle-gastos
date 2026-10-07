@@ -188,6 +188,7 @@ export default function TransactionImportPage() {
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [previewNow, setPreviewNow] = useState(() => Date.now());
   const [bulkCategoryId, setBulkCategoryId] = useState('');
+  const [confirmMerchantConflictBulk, setConfirmMerchantConflictBulk] = useState(false);
   const [items, setItems] = useState<EditablePreviewItem[]>([]);
   const [result, setResult] = useState<ConfirmData | null>(null);
   const [filter, setFilter] = useState<InboxFilter>('all');
@@ -501,8 +502,69 @@ export default function TransactionImportPage() {
     );
   }
 
+  function continueWithoutMerchantVisible() {
+    const candidates = visibleItems.filter(
+      (item) =>
+        item.selected &&
+        !item.ignored &&
+        !item.duplicate &&
+        item.errors.length === 0 &&
+        (!item.merchantReviewed || item.merchantAliasConflict),
+    );
+    const hasConflict = candidates.some((item) => item.merchantAliasConflict);
+
+    if (hasConflict && !confirmMerchantConflictBulk) {
+      setConfirmMerchantConflictBulk(true);
+      setError(
+        'Há conflito de estabelecimento entre os itens visíveis. Clique novamente para confirmar que eles devem continuar sem estabelecimento.',
+      );
+      return;
+    }
+
+    const visibleIds = new Set(candidates.map((item) => item.index));
+    setItems((current) =>
+      current.map((item) =>
+        visibleIds.has(item.index)
+          ? {
+              ...item,
+              merchantId: null,
+              merchantReviewed: true,
+              merchantAliasConflict: false,
+              learnMerchantAlias: false,
+            }
+          : item,
+      ),
+    );
+    setConfirmMerchantConflictBulk(false);
+    setError('');
+  }
+
+  function applyCategoryToVisibleSelected() {
+    const category = categories.find((candidate) => candidate.id === bulkCategoryId);
+    if (!category) return;
+
+    const visibleIds = new Set(visibleItems.map((item) => item.index));
+    setItems((current) =>
+      current.map((item) =>
+        visibleIds.has(item.index) &&
+        item.selected &&
+        !item.ignored &&
+        !item.duplicate &&
+        item.errors.length === 0 &&
+        item.type === category.type &&
+        !item.importRuleConflict
+          ? { ...item, categoryId: category.id }
+          : item,
+      ),
+    );
+  }
+
   async function handleConfirm() {
     if (!preview || selectedCount === 0 || reviewCount > 0) return;
+    if (previewExpired) {
+      setError('O preview expirou. Gere novamente o mesmo arquivo para revalidar e preservar suas escolhas.');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
@@ -516,7 +578,12 @@ export default function TransactionImportPage() {
         }),
       });
       const payload = (await response.json()) as ApiEnvelope<ConfirmData>;
-      if (!response.ok || !payload.success) throw new Error(payload.message || 'Falha ao confirmar importação.');
+      if (!response.ok || !payload.success || !payload.data) {
+        if (payload.error?.code === 'IMPORT_PREVIEW_EXPIRED') {
+          setPreviewNow(Date.parse(preview.previewExpiresAt));
+        }
+        throw new Error(apiErrorMessage(response, payload, 'Falha ao confirmar importação.'));
+      }
       setResult(payload.data);
       setMobileDetailOpen(false);
     } catch (cause) {
@@ -614,12 +681,31 @@ export default function TransactionImportPage() {
                   />
                 </label>
               </div>
+
+              {file?.name.toLowerCase().endsWith('.qif') && (
+                <label className="mt-4 block max-w-sm text-sm font-medium text-[var(--foreground)]">
+                  Formato de data QIF
+                  <select
+                    value={qifDateOrder}
+                    onChange={(event) => setQifDateOrder(event.target.value as '' | QifDateOrder)}
+                    disabled={submitting}
+                    className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                  >
+                    <option value="">Detectar pelo arquivo</option>
+                    <option value="MDY">MM/DD — mês/dia</option>
+                    <option value="DMY">DD/MM — dia/mês</option>
+                  </select>
+                  <span className="mt-1 block text-xs font-normal text-[var(--text-muted)]">
+                    Se todas as datas forem ambíguas, escolha a convenção explicitamente.
+                  </span>
+                </label>
+              )}
             </div>
 
             <aside className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
               <p className="text-sm font-semibold text-[var(--foreground)]">Antes de continuar</p>
               <ul className="mt-3 space-y-2 text-sm leading-relaxed text-[var(--text-muted)]">
-                <li>• duplicadas nunca são selecionadas automaticamente;</li>
+                <li>• “Já importada” significa a mesma identidade de importação; não é deduplicação financeira por data/valor/descrição;</li>
                 <li>• itens inválidos precisam ser ignorados explicitamente;</li>
                 <li>• regras podem sugerir categoria, mas você continua no controle;</li>
                 <li>• a confirmação final mostra exatamente o que será criado e ignorado.</li>
@@ -654,6 +740,37 @@ export default function TransactionImportPage() {
                 <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
                   {account?.name ?? 'Conta selecionada'} · {account?.currency ?? 'moeda da conta'} · {preview.summary.total} linha(s)
                 </p>
+                <p className={`mt-1 text-xs ${previewExpiring || previewExpired ? 'text-[var(--warning)]' : 'text-[var(--text-subtle)]'}`}>
+                  {previewExpired
+                    ? 'Preview expirado — regenere antes de confirmar.'
+                    : `Preview válido até ${new Date(preview.previewExpiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`}
+                </p>
+                {preview.qifDateOrder && (
+                  <p className="mt-1 text-xs text-[var(--text-subtle)]">
+                    QIF interpretado como {preview.qifDateOrder === 'MDY' ? 'MM/DD' : 'DD/MM'}.
+                  </p>
+                )}
+                {preview.xlsxWorksheet && (
+                  <p className="mt-1 text-xs text-[var(--text-subtle)]">
+                    XLSX: aba processada <strong>{preview.xlsxWorksheet.name}</strong>
+                    {preview.xlsxWorksheet.ignoredWorksheetNames.length > 0
+                      ? ` · abas ignoradas: ${preview.xlsxWorksheet.ignoredWorksheetNames.join(', ')}`
+                      : ''}
+                  </p>
+                )}
+                {(previewExpiring || previewExpired) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => void generatePreview(true)}
+                    isLoading={submitting}
+                    loadingText="Atualizando…"
+                  >
+                    Atualizar preview preservando escolhas
+                  </Button>
+                )}
                 {preview.detectedSource === 'NUBANK_CREDIT_CARD' && (
                   <p className="mt-1 text-sm text-[var(--foreground)]">
                     Arquivo detectado: <strong>Fatura Nubank</strong>
@@ -677,7 +794,7 @@ export default function TransactionImportPage() {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="status" aria-live="polite" aria-atomic="true">
                 <InboxMetric label="Revisar" value={stateCounts.review} state="review" />
                 <InboxMetric label="Prontas" value={stateCounts.ready} state="ready" />
-                <InboxMetric label="Duplicadas" value={stateCounts.duplicate} state="duplicate" />
+                <InboxMetric label="Já importadas" value={stateCounts.duplicate} state="duplicate" />
                 <InboxMetric label="Ignoradas" value={stateCounts.ignored} state="ignored" />
               </div>
             </div>
@@ -718,7 +835,49 @@ export default function TransactionImportPage() {
                   <Button type="button" variant="outline" size="sm" onClick={ignoreVisibleReadyItems} disabled={submitting}>
                     Ignorar prontas visíveis
                   </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={continueWithoutMerchantVisible}
+                    disabled={submitting}
+                  >
+                    {confirmMerchantConflictBulk
+                      ? 'Confirmar sem estabelecimento nos conflitos'
+                      : 'Continuar sem estabelecimento'}
+                  </Button>
                 </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <label className="min-w-0 flex-1 text-sm font-medium text-[var(--foreground)]">
+                    Categoria em lote para selecionadas visíveis
+                    <select
+                      value={bulkCategoryId}
+                      onChange={(event) => setBulkCategoryId(event.target.value)}
+                      disabled={submitting || categoryLoadError.length > 0}
+                      className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                    >
+                      <option value="">Selecione uma categoria</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name} · {category.type === 'INCOME' ? 'Receita' : 'Despesa'}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={applyCategoryToVisibleSelected}
+                    disabled={!bulkCategoryId || submitting}
+                  >
+                    Aplicar categoria
+                  </Button>
+                </div>
+                <p className="text-xs text-[var(--text-subtle)]">
+                  A categoria em lote só é aplicada a itens selecionados, válidos e do mesmo tipo. Conflitos entre regras permanecem para revisão individual.
+                </p>
 
                 <label className="block text-sm font-medium text-[var(--foreground)]">
                   Buscar na revisão
