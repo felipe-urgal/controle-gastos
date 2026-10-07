@@ -4,6 +4,9 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  pendingEmail?: string | null;
+  pendingEmailRequestedAt?: string | null;
+  pendingEmailExpiresAt?: string | null;
   showValues: boolean;
   periodicSummaryEnabled: boolean;
   periodicSummaryFrequency: 'WEEKLY';
@@ -43,6 +46,7 @@ export interface UpdateUserRequest {
   showValues?: boolean;
   periodicSummaryEnabled?: boolean;
   periodicSummaryFrequency?: 'WEEKLY';
+  cancelPendingEmail?: boolean;
 };
 
 export interface forgotPasswordRequest {
