@@ -296,11 +296,7 @@ export default function ImportRuleManagementPage() {
     ? accountById.get(form.accountId) ?? null
     : null;
   useEffect(() => {
-    if (!formOpen) {
-      setRuleImpact([]);
-      setImpactLoading(false);
-      return;
-    }
+    if (!formOpen) return;
 
     let cancelled = false;
     const timeout = window.setTimeout(async () => {
@@ -345,6 +341,8 @@ export default function ImportRuleManagementPage() {
   function closeForm() {
     setFormOpen(false);
     setEditingId(null);
+    setRuleImpact([]);
+    setImpactLoading(false);
     setForm(emptyImportRuleForm(nextPriority));
   }
 
