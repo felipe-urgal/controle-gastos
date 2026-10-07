@@ -9,6 +9,8 @@ import {
   type ImportRule,
 } from '@/app/lib/transactions/import-rules';
 
+export const normalizeImportRulePattern = normalizeImportRuleText;
+
 export const BROAD_IMPORT_RULE_MIN_PATTERN_LENGTH = 3;
 
 export type ImportRuleMatcher = Pick<
