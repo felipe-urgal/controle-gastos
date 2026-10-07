@@ -304,7 +304,7 @@ export default function ImportRuleManagementPage() {
 
     let cancelled = false;
     const timeout = window.setTimeout(async () => {
-      let input;
+      let input: ReturnType<typeof importRuleFormToInput>;
       try {
         input = importRuleFormToInput(form);
       } catch {
