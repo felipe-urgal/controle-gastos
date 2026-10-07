@@ -366,6 +366,45 @@ describe("transaction import integration", () => {
     },
   );
 
+  it("validates OFX account type but never redirects by ACCTID", async () => {
+    const { owner, account } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const bankOfx = [
+      "OFXHEADER:100",
+      "<OFX><CURDEF>BRL",
+      "<BANKACCTFROM><BANKID>001<ACCTID>arquivo-conta-diferente</BANKACCTFROM>",
+      "<BANKTRANLIST><STMTTRN><DTPOSTED>20260831<TRNAMT>-12.34<FITID>bank-meta-1<NAME>Compra</STMTTRN></BANKTRANLIST>",
+      "</OFX>",
+    ].join("\n");
+
+    const bankPreview = await previewTransactionImport(
+      previewRequest(account.id, bankOfx, "bank.ofx"),
+    );
+    const bankBody = await bankPreview.json();
+
+    expect(bankPreview.status).toBe(200);
+    expect(bankBody.data.accountId).toBe(account.id);
+
+    const cardOfx = [
+      "OFXHEADER:100",
+      "<OFX><CURDEF>BRL",
+      "<CCACCTFROM><ACCTID>cartao-no-arquivo</CCACCTFROM>",
+      "<BANKTRANLIST><STMTTRN><DTPOSTED>20260831<TRNAMT>-9.99<FITID>card-meta-1<NAME>Compra</STMTTRN></BANKTRANLIST>",
+      "</OFX>",
+    ].join("\n");
+
+    const mismatch = await previewTransactionImport(
+      previewRequest(account.id, cardOfx, "card.qfx"),
+    );
+    const mismatchBody = await mismatch.json();
+
+    expect(mismatch.status).toBe(400);
+    expect(mismatchBody.error?.message).toBe(
+      "OFX/QFX de cartão deve ser importado em uma conta do tipo cartão de crédito",
+    );
+  });
+
   it("requires a credit-card account for QIF !Type:CCard", async () => {
     const { owner, account } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
