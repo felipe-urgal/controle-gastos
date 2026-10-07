@@ -45,10 +45,73 @@ export function normalizeImportRuleText(value: string) {
     .toLowerCase();
 }
 
+function descriptionOperatorSpecificity(
+  operator: ImportRuleDescriptionOperator
+) {
+  if (operator === "EQUALS") return 3;
+  if (operator === "STARTS_WITH") return 2;
+  return 1;
+}
+
+function amountBoundCount(rule: ImportRule) {
+  return Number(rule.minAmountCents !== null) + Number(rule.maxAmountCents !== null);
+}
+
+function amountRangeSpan(rule: ImportRule) {
+  if (rule.minAmountCents === null || rule.maxAmountCents === null) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return rule.maxAmountCents - rule.minAmountCents;
+}
+
+function compareRuleSpecificity(a: ImportRule, b: ImportRule) {
+  const accountSpecificity = Number(b.accountId !== null) - Number(a.accountId !== null);
+  if (accountSpecificity !== 0) return accountSpecificity;
+
+  const operatorSpecificity =
+    descriptionOperatorSpecificity(b.descriptionOperator) -
+    descriptionOperatorSpecificity(a.descriptionOperator);
+  if (operatorSpecificity !== 0) return operatorSpecificity;
+
+  const patternSpecificity =
+    normalizeImportRuleText(b.descriptionPattern).length -
+    normalizeImportRuleText(a.descriptionPattern).length;
+  if (patternSpecificity !== 0) return patternSpecificity;
+
+  const boundSpecificity = amountBoundCount(b) - amountBoundCount(a);
+  if (boundSpecificity !== 0) return boundSpecificity;
+
+  const aSpan = amountRangeSpan(a);
+  const bSpan = amountRangeSpan(b);
+  if (aSpan !== bSpan) return aSpan - bSpan;
+
+  return 0;
+}
+
+function canonicalRuleMatcherKey(rule: ImportRule) {
+  return [
+    rule.accountId ?? "*",
+    rule.transactionType,
+    rule.descriptionOperator,
+    normalizeImportRuleText(rule.descriptionPattern),
+    rule.minAmountCents ?? "*",
+    rule.maxAmountCents ?? "*",
+  ].join("|");
+}
+
 function compareRuleOrder(a: ImportRule, b: ImportRule) {
   if (a.priority !== b.priority) {
     return a.priority - b.priority;
   }
+
+  const specificity = compareRuleSpecificity(a, b);
+  if (specificity !== 0) return specificity;
+
+  const matcherOrder = canonicalRuleMatcherKey(a).localeCompare(
+    canonicalRuleMatcherKey(b)
+  );
+  if (matcherOrder !== 0) return matcherOrder;
 
   if (a.id < b.id) return -1;
   if (a.id > b.id) return 1;
