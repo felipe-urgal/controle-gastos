@@ -13,6 +13,11 @@ import {
   signAnnualStatementPreview,
   verifyAnnualStatementPreview,
 } from "@/app/lib/payroll/annual-income-preview-token";
+import {
+  assertAnnualStatementMoneyBounds,
+  isPayrollMoneyLimitError,
+  PAYROLL_CENTS_MAX,
+} from "@/app/lib/payroll/payroll-money";
 import { prisma } from "@/app/lib/prisma";
 import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
@@ -21,9 +26,11 @@ import {
   PDF_EXPERIMENT_MAX_BYTES,
 } from "@/app/lib/transactions/import/pdf-experiment";
 
+const centsSchema = z.number().int().nonnegative().max(PAYROLL_CENTS_MAX);
+
 const itemSchema = z.object({
   description: z.string().min(1).max(500),
-  amountCents: z.number().int().nonnegative().nullable(),
+  amountCents: centsSchema.nullable(),
 });
 
 const statementSchema = z.object({
@@ -34,13 +41,13 @@ const statementSchema = z.object({
   beneficiaryName: z.string().max(180).nullable(),
   beneficiaryTaxId: z.string().max(18).nullable(),
   incomeNature: z.string().max(240).nullable(),
-  taxableIncomeCents: z.number().int().nonnegative().nullable(),
-  officialPensionCents: z.number().int().nonnegative().nullable(),
-  complementaryPensionCents: z.number().int().nonnegative().nullable(),
-  alimonyCents: z.number().int().nonnegative().nullable(),
-  irrfCents: z.number().int().nonnegative().nullable(),
-  thirteenthSalaryCents: z.number().int().nonnegative().nullable(),
-  thirteenthIrrfCents: z.number().int().nonnegative().nullable(),
+  taxableIncomeCents: centsSchema.nullable(),
+  officialPensionCents: centsSchema.nullable(),
+  complementaryPensionCents: centsSchema.nullable(),
+  alimonyCents: centsSchema.nullable(),
+  irrfCents: centsSchema.nullable(),
+  thirteenthSalaryCents: centsSchema.nullable(),
+  thirteenthIrrfCents: centsSchema.nullable(),
   exemptIncome: z.array(itemSchema),
   exclusiveTaxation: z.array(itemSchema),
   accumulatedIncome: z.array(itemSchema),
@@ -131,6 +138,7 @@ export async function previewAnnualEmploymentIncomeStatement(request: Request) {
       throw error;
     }
 
+    assertAnnualStatementMoneyBounds(parsed);
     const fingerprint = annualEmploymentIncomeFingerprint(userId, parsed);
     const identity = annualEmploymentIncomeIdentity(parsed);
     const [existing, replacementCandidates] = await Promise.all([
@@ -191,6 +199,12 @@ export async function previewAnnualEmploymentIncomeStatement(request: Request) {
     const auth = unauthorized(error);
     if (auth) return auth;
     if (error instanceof PdfExperimentError) return failure(error.message, 400);
+    if (isPayrollMoneyLimitError(error)) {
+      return failure(
+        `Valor monetário inválido ou acima do limite em ${error.field}`,
+        400,
+      );
+    }
     return failure("Não foi possível analisar o informe anual", 500);
   }
 }
@@ -329,6 +343,12 @@ export async function confirmAnnualEmploymentIncomeStatement(request: Request) {
     if (auth) return auth;
     if (error instanceof ZodError) {
       return failure(error.issues[0]?.message ?? "Dados inválidos", 400);
+    }
+    if (isPayrollMoneyLimitError(error)) {
+      return failure(
+        `Valor monetário inválido ou acima do limite em ${error.field}`,
+        400,
+      );
     }
     if (error instanceof Error && error.message === "INVALID_PREVIEW_TOKEN") {
       return failure("Preview expirado ou inválido. Gere um novo preview", 400);
