@@ -82,6 +82,15 @@ describe("import rule input schema", () => {
     }
   });
 
+  it("does not retain a legacy normalized-description size contract", () => {
+    const parsed = importRuleInputSchema.parse({
+      ...validInput,
+      normalizedDescription: "x".repeat(10_000),
+    });
+
+    expect(parsed).not.toHaveProperty("normalizedDescription");
+  });
+
   it("rejects malformed account/category ids", () => {
     expect(
       importRuleInputSchema.safeParse({
