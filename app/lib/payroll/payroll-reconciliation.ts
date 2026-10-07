@@ -31,6 +31,28 @@ function compensationValues(value: Prisma.JsonValue) {
   });
 }
 
+type CentsAggregation = {
+  value: number | null;
+  complete: boolean;
+};
+
+function aggregateCents<T>(items: T[], valueOf: (item: T) => number | null): CentsAggregation {
+  if (items.length === 0) {
+    return { value: 0, complete: true };
+  }
+
+  let total = 0;
+  for (const item of items) {
+    const value = valueOf(item);
+    if (value === null) {
+      return { value: null, complete: false };
+    }
+    total += value;
+  }
+
+  return { value: total, complete: true };
+}
+
 export async function reconcilePayrollCompetence(params: {
   userId: string;
   employerCnpj: string;
@@ -188,23 +210,30 @@ export async function getPayrollCompetenceSummaries(userId: string) {
     const regulars = items.filter((item) => item.documentType === "MONTHLY_PAYSLIP");
     const advances = items.filter((item) => item.documentType === "PAYROLL_ADVANCE");
     const links = advances.flatMap((item) => item.advanceLinks);
-    const grossIncomeCents = (regulars.length > 0 ? regulars : advances).reduce(
-      (total, item) => total + (item.grossIncomeCents ?? item.totalEarningsCents ?? 0),
-      0,
+    const grossIncome = aggregateCents(
+      regulars.length > 0 ? regulars : advances,
+      (item) => item.grossIncomeCents ?? item.totalEarningsCents,
     );
-    const netPaidCents = items.reduce((total, item) => total + (item.netPaidCents ?? 0), 0);
-    const irrfCents = items.reduce((total, item) => total + (item.irrfCents ?? 0), 0);
+    const netPaid = aggregateCents(items, (item) => item.netPaidCents);
+    const irrf = aggregateCents(items, (item) => item.irrfCents);
+    const advanceNetPaid = aggregateCents(advances, (item) => item.netPaidCents);
+    const regularNetPaid = aggregateCents(regulars, (item) => item.netPaidCents);
 
     return {
       employerName: items[0]?.employerName ?? "",
       employerCnpj: items[0]?.employerCnpj ?? "",
       year: items[0]?.year ?? 0,
       month: items[0]?.month ?? 0,
-      grossIncomeCents,
-      netPaidCents,
-      irrfCents,
-      advanceNetPaidCents: advances.reduce((total, item) => total + (item.netPaidCents ?? 0), 0),
-      regularNetPaidCents: regulars.reduce((total, item) => total + (item.netPaidCents ?? 0), 0),
+      grossIncomeCents: grossIncome.value,
+      grossIncomeComplete: grossIncome.complete,
+      netPaidCents: netPaid.value,
+      netPaidComplete: netPaid.complete,
+      irrfCents: irrf.value,
+      irrfComplete: irrf.complete,
+      advanceNetPaidCents: advanceNetPaid.value,
+      advanceNetPaidComplete: advanceNetPaid.complete,
+      regularNetPaidCents: regularNetPaid.value,
+      regularNetPaidComplete: regularNetPaid.complete,
       matchedAdvances: links.filter((item) => item.status === "MATCHED").length,
       pendingAdvances: links.filter((item) => item.status === "PENDING").length,
       documentCount: items.length,
