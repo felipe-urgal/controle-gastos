@@ -49,6 +49,26 @@ function dateLabel(value: { year: number; month: number; day: number }) {
   ].join("-");
 }
 
+type PayrollCreditCandidate = {
+  kind: string;
+  type: string;
+  status: string;
+  account: {
+    type: string;
+    currency: string;
+  };
+};
+
+function isEligiblePayrollCredit(transaction: PayrollCreditCandidate) {
+  return (
+    transaction.kind === "NORMAL" &&
+    transaction.type === "INCOME" &&
+    transaction.status === "COMPLETED" &&
+    transaction.account.type === "CREDIT_DEBIT" &&
+    transaction.account.currency === "BRL"
+  );
+}
+
 function transactionSummary(transaction: {
   id: string;
   amount: number;
@@ -69,7 +89,11 @@ function transactionSummary(transaction: {
     description: transaction.description,
     date: dateLabel(transaction),
     reconciliationStatus: transaction.reconciliationStatus,
-    account: transaction.account,
+    account: {
+      id: transaction.account.id,
+      name: transaction.account.name,
+      currency: transaction.account.currency,
+    },
   };
 }
 
@@ -84,7 +108,7 @@ export async function getPayrollTransactionReconciliationForUser(
           transaction: {
             include: {
               account: {
-                select: { id: true, name: true, currency: true },
+                select: { id: true, name: true, type: true, currency: true },
               },
             },
           },
@@ -123,8 +147,7 @@ export async function getPayrollTransactionReconciliationForUser(
         const transaction = document.transactionLink.transaction;
         const valid =
           transaction.userId === userId &&
-          transaction.type === "INCOME" &&
-          transaction.status === "COMPLETED" &&
+          isEligiblePayrollCredit(transaction) &&
           transaction.amount === document.netPaidCents &&
           inPaymentWindow(transaction, {
             year: document.year,
@@ -152,15 +175,20 @@ export async function getPayrollTransactionReconciliationForUser(
       const candidates = await prisma.transaction.findMany({
         where: {
           userId,
+          kind: "NORMAL",
           type: "INCOME",
           status: "COMPLETED",
           amount: document.netPaidCents,
+          account: {
+            type: "CREDIT_DEBIT",
+            currency: "BRL",
+          },
           payrollTransactionLink: null,
           OR: candidateWindow(document.year, document.month),
         },
         include: {
           account: {
-            select: { id: true, name: true, currency: true },
+            select: { id: true, name: true, type: true, currency: true },
           },
         },
         orderBy: [
@@ -268,10 +296,17 @@ export async function linkPayrollTransaction(request: Request) {
             userId: true,
             amount: true,
             type: true,
+            kind: true,
             status: true,
             year: true,
             month: true,
             day: true,
+            account: {
+              select: {
+                type: true,
+                currency: true,
+              },
+            },
             payrollTransactionLink: {
               select: { id: true, payrollDocumentId: true },
             },
@@ -288,13 +323,10 @@ export async function linkPayrollTransaction(request: Request) {
             ),
           };
         }
-        if (
-          transaction.type !== "INCOME" ||
-          transaction.status !== "COMPLETED"
-        ) {
+        if (!isEligiblePayrollCredit(transaction)) {
           return {
             error: failure(
-              "Somente créditos concluídos podem ser vinculados à folha",
+              "Somente créditos normais concluídos em conta de crédito/débito BRL podem ser vinculados à folha",
               409,
             ),
           };
