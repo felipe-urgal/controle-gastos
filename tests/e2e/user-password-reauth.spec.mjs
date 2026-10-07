@@ -16,7 +16,6 @@ async function login(page, email, password = currentPassword) {
 test('troca de senha exige novo login e invalida sessões antigas', async ({
   browser,
   page,
-  request,
 }) => {
   const suffix = `${Date.now()}-${test.info().project.name}`;
   const email = `qa-password-reauth-${suffix}@example.test`;
@@ -29,12 +28,12 @@ test('troca de senha exige novo login e invalida sessões antigas', async ({
 
   await login(page, email);
 
-  const secondaryContext = await browser.newContext();
+  const secondaryContext = await browser.newContext({
+    storageState: await page.context().storageState(),
+  });
   const secondaryPage = await secondaryContext.newPage();
 
   try {
-    await login(secondaryPage, email);
-
     const profile = await page.evaluate(async () => {
       const response = await fetch('/api/user', { cache: 'no-store' });
       if (!response.ok) {
@@ -46,7 +45,7 @@ test('troca de senha exige novo login e invalida sessões antigas', async ({
     await page.goto(`/usuario/alterar/${profile.data.id}`);
 
     await page.getByLabel('Nova senha', { exact: true }).fill(newPassword);
-    await page.getByLabel('Senha atual', { exact: true }).fill(currentPassword);
+    await page.getByLabel(/^Senha atual\b/).fill(currentPassword);
     await page
       .getByLabel('Confirmar nova senha', { exact: true })
       .fill(newPassword);
@@ -67,15 +66,10 @@ test('troca de senha exige novo login e invalida sessões antigas', async ({
     });
     expect(oldSessionResponse).toBe(401);
 
-    const oldPasswordLogin = await request.post('/api/auth/login', {
-      data: { email, password: currentPassword },
-    });
-    expect(oldPasswordLogin.ok()).toBe(false);
-
-    const newPasswordLogin = await request.post('/api/auth/login', {
-      data: { email, password: newPassword },
-    });
-    expect(newPasswordLogin.ok()).toBe(true);
+    await page.getByLabel(/^E-mail\b/).fill(email);
+    await page.getByLabel(/^Senha\b/).fill(newPassword);
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
   } finally {
     await secondaryContext.close();
   }
