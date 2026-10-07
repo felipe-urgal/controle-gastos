@@ -91,6 +91,10 @@ function compareRuleSpecificity(a: ImportRule, b: ImportRule) {
   return 0;
 }
 
+function hasSameRulePrecedence(a: ImportRule, b: ImportRule) {
+  return a.priority === b.priority && compareRuleSpecificity(a, b) === 0;
+}
+
 function canonicalRuleMatcherKey(rule: ImportRule) {
   return [
     rule.accountId ?? "*",
@@ -212,9 +216,16 @@ export function evaluateImportRules(
     return null;
   }
 
-  const categories = new Set(matches.map((rule) => rule.categoryId));
+  const samePrecedenceMatches = matches.filter((rule) =>
+    hasSameRulePrecedence(matchedRule, rule)
+  );
+  const categories = new Set(
+    samePrecedenceMatches.map((rule) => rule.categoryId)
+  );
   const normalizedDescriptions = new Set(
-    matches.map((rule) => normalizeImportRuleText(rule.normalizedDescription ?? "")),
+    samePrecedenceMatches.map((rule) =>
+      normalizeImportRuleText(rule.normalizedDescription ?? "")
+    ),
   );
   const conflict = categories.size > 1 || normalizedDescriptions.size > 1;
   const suggestedDescription = matchedRule.normalizedDescription?.trim();
@@ -222,8 +233,8 @@ export function evaluateImportRules(
   return {
     matchedRuleId: matchedRule.id,
     matchedRuleName: matchedRule.name,
-    suggestedCategoryId: matchedRule.categoryId,
-    suggestedDescription: suggestedDescription || null,
+    suggestedCategoryId: conflict ? null : matchedRule.categoryId,
+    suggestedDescription: conflict ? null : (suggestedDescription || null),
     conflict,
     matchingRuleIds: matches.map((rule) => rule.id),
     matchingRuleNames: matches.map((rule) => rule.name),
