@@ -184,6 +184,7 @@ export async function previewPayrollImport(request: Request) {
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         select: {
           id: true,
+          paymentType: true,
           createdAt: true,
           netPaidCents: true,
         },
