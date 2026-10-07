@@ -141,6 +141,136 @@ describe("import rules", () => {
     });
   });
 
+  it("prefers an account-specific rule over a global rule at the same priority", () => {
+    const result = evaluateImportRules(
+      [
+        { ...baseRule, id: "global", priority: 10, categoryId: "global" },
+        {
+          ...baseRule,
+          id: "account",
+          priority: 10,
+          accountId: "account-1",
+          categoryId: "account",
+        },
+      ],
+      candidate
+    );
+
+    expect(result).toMatchObject({
+      matchedRuleId: "account",
+      suggestedCategoryId: "account",
+      conflict: false,
+    });
+  });
+
+  it("prefers EQUALS over CONTAINS at the same priority", () => {
+    const exact = {
+      ...baseRule,
+      id: "equals",
+      priority: 10,
+      descriptionOperator: "EQUALS" as const,
+      descriptionPattern: "mercado central",
+      categoryId: "exact",
+    };
+    const broad = {
+      ...baseRule,
+      id: "contains",
+      priority: 10,
+      descriptionOperator: "CONTAINS" as const,
+      descriptionPattern: "mercado",
+      categoryId: "broad",
+    };
+
+    expect(evaluateImportRules([broad, exact], candidate)).toMatchObject({
+      matchedRuleId: "equals",
+      suggestedCategoryId: "exact",
+      conflict: false,
+    });
+  });
+
+  it("prefers STARTS_WITH over CONTAINS at the same priority", () => {
+    const starts = {
+      ...baseRule,
+      id: "starts",
+      priority: 10,
+      descriptionOperator: "STARTS_WITH" as const,
+      descriptionPattern: "mercado",
+      categoryId: "starts",
+    };
+    const contains = {
+      ...baseRule,
+      id: "contains",
+      priority: 10,
+      descriptionOperator: "CONTAINS" as const,
+      descriptionPattern: "mercado",
+      categoryId: "contains",
+    };
+
+    expect(evaluateImportRules([contains, starts], candidate)).toMatchObject({
+      matchedRuleId: "starts",
+      suggestedCategoryId: "starts",
+      conflict: false,
+    });
+  });
+
+  it("reports a conflict for equal-priority equally-specific rules with different outcomes", () => {
+    const result = evaluateImportRules(
+      [
+        {
+          ...baseRule,
+          id: "mercado",
+          priority: 10,
+          descriptionPattern: "mercado",
+          categoryId: "food",
+        },
+        {
+          ...baseRule,
+          id: "central",
+          priority: 10,
+          descriptionPattern: "central",
+          categoryId: "other",
+        },
+      ],
+      candidate
+    );
+
+    expect(result).toMatchObject({
+      suggestedCategoryId: null,
+      suggestedDescription: null,
+      conflict: true,
+    });
+    expect(new Set(result?.matchingRuleIds)).toEqual(
+      new Set(["mercado", "central"])
+    );
+  });
+
+  it("keeps a suggestion when equal-precedence rules have the same outcome", () => {
+    const result = evaluateImportRules(
+      [
+        {
+          ...baseRule,
+          id: "mercado",
+          priority: 10,
+          descriptionPattern: "mercado",
+          categoryId: "food",
+        },
+        {
+          ...baseRule,
+          id: "central",
+          priority: 10,
+          descriptionPattern: "central",
+          categoryId: "food",
+        },
+      ],
+      candidate
+    );
+
+    expect(result).toMatchObject({
+      suggestedCategoryId: "food",
+      conflict: false,
+    });
+  });
+
   it("returns an explicit normalized-description suggestion without mutating input", () => {
     const rules = [
       {
