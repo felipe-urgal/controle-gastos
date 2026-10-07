@@ -188,6 +188,39 @@ describe("transaction import integration", () => {
     );
   });
 
+  it("keeps Nubank credit-card CSV on the dedicated parser", async () => {
+    const { owner } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão Nubank ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const csv = [
+      "date,title,amount",
+      "2026-09-01,Supermercado,123.45",
+      "2026-09-05,Pagamento recebido,-100.00",
+      "2026-09-07,Estorno,-2.35",
+    ].join("\n");
+
+    const preview = await previewTransactionImport(
+      previewRequest(cardAccount.id, csv, "nubank.csv"),
+    );
+    const body = await preview.json();
+
+    expect(preview.status).toBe(200);
+    expect(body.data.detectedSource).toBe("NUBANK_CREDIT_CARD");
+    expect(body.data.nubankSummary).toEqual({
+      purchases: 1,
+      payments: 1,
+      credits: 1,
+    });
+  });
+
   it("previews and confirms XLSX using the same idempotent pipeline", async () => {
     const { owner, account, expenseCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
