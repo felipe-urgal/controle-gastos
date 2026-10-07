@@ -5,6 +5,12 @@ export const IMPORT_MAX_ITEMS = 1000;
 
 export type ImportSource = "CSV" | "OFX" | "QIF" | "XLSX";
 export type ImportTransactionType = "INCOME" | "EXPENSE";
+export type QifSectionType = "BANK" | "CASH" | "CCARD";
+
+export type QifImportResult = {
+  sectionType: QifSectionType;
+  items: ParsedImportItem[];
+};
 
 export interface ParsedImportItem {
   index: number;
@@ -329,11 +335,11 @@ function parseQifRecord(lines: string[], index: number): ParsedImportItem {
   };
 }
 
-export function parseQifImport(content: string): ParsedImportItem[] {
+export function parseQifImport(content: string): QifImportResult {
   const clean = content.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
   const lines = clean.split("\n");
   const items: ParsedImportItem[] = [];
-  let section: string | null = null;
+  let sectionType: QifSectionType | null = null;
   let record: string[] = [];
 
   for (const rawLine of lines) {
@@ -350,18 +356,26 @@ export function parseQifImport(content: string): ParsedImportItem[] {
         throw new ImportParseError(`Seção QIF não suportada: ${line.trim()}.`);
       }
 
-      const nextSection = typeMatch[1].trim().toLowerCase();
-      if (!["bank", "cash", "ccard"].includes(nextSection)) {
+      const normalizedSection = typeMatch[1].trim().toLowerCase();
+      const nextSection: QifSectionType | null =
+        normalizedSection === "bank"
+          ? "BANK"
+          : normalizedSection === "cash"
+            ? "CASH"
+            : normalizedSection === "ccard"
+              ? "CCARD"
+              : null;
+      if (!nextSection) {
         throw new ImportParseError(`Seção QIF não suportada: !Type:${typeMatch[1].trim()}.`);
       }
-      if (section !== null) {
+      if (sectionType !== null) {
         throw new ImportParseError("QIF com múltiplas seções não é suportado.");
       }
-      section = nextSection;
+      sectionType = nextSection;
       continue;
     }
 
-    if (section === null) {
+    if (sectionType === null) {
       throw new ImportParseError("QIF precisa iniciar com uma seção !Type:Bank, !Type:Cash ou !Type:CCard.");
     }
 
@@ -384,8 +398,11 @@ export function parseQifImport(content: string): ParsedImportItem[] {
   if (items.length === 0) {
     throw new ImportParseError("QIF sem transações reconhecíveis.");
   }
+  if (sectionType === null) {
+    throw new ImportParseError("QIF sem metadado de seção reconhecível.");
+  }
 
-  return items;
+  return { sectionType, items };
 }
 
 export function parseOfxImport(content: string, accountCurrency: string): ParsedImportItem[] {
@@ -439,7 +456,7 @@ export function parseImportContent(params: {
   if (extension === "ofx" || extension === "qfx") {
     return parseOfxImport(params.content, params.accountCurrency);
   }
-  if (extension === "qif") return parseQifImport(params.content);
+  if (extension === "qif") return parseQifImport(params.content).items;
   throw new ImportParseError("Formato não suportado. Envie um arquivo .csv, .ofx, .qfx, .qif ou .xlsx.");
 }
 
