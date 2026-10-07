@@ -77,22 +77,8 @@ describe("userCrud", () => {
     mocks.sendEmailVerification.mockResolvedValue(undefined);
   });
 
-  it("deletes the authenticated user exactly once", async () => {
-    mocks.user.findFirst.mockResolvedValue(existingUser);
-    mocks.user.delete.mockResolvedValue({ id: userId });
-
-    const response = await userCrud.remove(
-      new Request("http://localhost/api/user", { method: "DELETE" })
-    );
-
-    expect(response.status).toBe(200);
-    expect(mocks.user.findFirst).toHaveBeenCalledWith({
-      where: { id: userId },
-      include: undefined,
-    });
-    expect(mocks.user.delete).toHaveBeenCalledTimes(1);
-    expect(mocks.user.delete).toHaveBeenCalledWith({ where: { id: userId } });
-    expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
+  it("does not expose the generic remove handler", () => {
+    expect(userCrud).not.toHaveProperty("remove");
   });
 
   it("allows a name-only update without the current password", async () => {

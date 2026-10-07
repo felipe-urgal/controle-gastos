@@ -9,7 +9,7 @@ import { prisma } from "@/app/lib/prisma";
 import { consumeStepUpRateLimit } from "@/app/lib/security/step-up-auth";
 import { updateUserSchema } from "@/app/lib/users/user-schema";
 
-export const userCrud = baseCrudHandler({
+const baseUserCrud = baseCrudHandler({
   model: (db) => db.user,
   entityName: "Usuário",
   createSchema: updateUserSchema,
@@ -108,3 +108,8 @@ export const userCrud = baseCrudHandler({
     return updateData;
   },
 });
+
+export const userCrud = {
+  getById: baseUserCrud.getById,
+  update: baseUserCrud.update,
+};
