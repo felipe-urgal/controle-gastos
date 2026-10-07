@@ -30,9 +30,19 @@ export const updateUserSchema = z
     showValues: z.boolean().optional(),
     periodicSummaryEnabled: z.boolean().optional(),
     periodicSummaryFrequency: z.literal('WEEKLY').optional(),
+
+    cancelPendingEmail: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     const changesSensitiveData = Boolean(data.email || data.newPassword);
+
+    if (data.cancelPendingEmail && data.email) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["cancelPendingEmail"],
+        message: "Não é possível cancelar e solicitar outro e-mail na mesma operação",
+      });
+    }
 
     if (changesSensitiveData && !data.currentPassword) {
       ctx.addIssue({
