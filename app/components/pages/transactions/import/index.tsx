@@ -244,7 +244,6 @@ export default function TransactionImportPage() {
 
   useEffect(() => {
     if (!preview || result) return;
-    setPreviewNow(Date.now());
     const interval = window.setInterval(() => setPreviewNow(Date.now()), 15_000);
     return () => window.clearInterval(interval);
   }, [preview, result]);
