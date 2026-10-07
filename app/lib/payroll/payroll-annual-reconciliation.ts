@@ -381,7 +381,7 @@ export async function getPayrollAnnualReconciliationForUser(
 ): Promise<PayrollAnnualReconciliationReport> {
   const [documents, statements] = await Promise.all([
     prisma.payrollDocument.findMany({
-      where: { userId, year },
+      where: { userId, year, lifecycleStatus: "ACTIVE" },
       orderBy: [{ employerCnpj: "asc" }, { month: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,
@@ -402,7 +402,7 @@ export async function getPayrollAnnualReconciliationForUser(
       },
     }),
     prisma.annualEmploymentIncomeStatement.findMany({
-      where: { userId, calendarYear: year },
+      where: { userId, calendarYear: year, lifecycleStatus: "ACTIVE" },
       orderBy: [{ payerTaxId: "asc" }, { createdAt: "desc" }],
       select: {
         id: true,
