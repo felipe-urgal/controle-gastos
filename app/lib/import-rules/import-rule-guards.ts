@@ -8,6 +8,7 @@ export const BROAD_IMPORT_RULE_MIN_PATTERN_LENGTH = 3;
 
 type ComparableImportRule = Pick<
   ImportRuleInput,
+  | 'priority'
   | 'accountId'
   | 'transactionType'
   | 'descriptionOperator'
@@ -18,11 +19,26 @@ type ComparableImportRule = Pick<
   | 'normalizedDescription'
 >;
 
+export type ImportRuleOverlapResolution =
+  | 'CANDIDATE_WINS'
+  | 'EXISTING_WINS'
+  | 'SAME_OUTCOME'
+  | 'AMBIGUOUS';
+
 export type ImportRuleRelationship =
   | { kind: 'NONE' }
-  | { kind: 'EQUIVALENT'; ruleId: string; ruleName: string }
-  | { kind: 'CONFLICT'; ruleId: string; ruleName: string }
-  | { kind: 'OVERLAP'; ruleId: string; ruleName: string };
+  | {
+      kind: 'EQUIVALENT';
+      ruleId: string;
+      ruleName: string;
+      resolution: 'SAME_OUTCOME';
+    }
+  | {
+      kind: 'CONFLICT' | 'OVERLAP';
+      ruleId: string;
+      ruleName: string;
+      resolution: ImportRuleOverlapResolution;
+    };
 
 export function normalizeImportRulePattern(value: string) {
   return value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -162,6 +178,69 @@ function matcherScopesMayOverlap(
   );
 }
 
+function descriptionOperatorSpecificity(
+  operator: ImportRuleDescriptionOperator,
+) {
+  if (operator === 'EQUALS') return 3;
+  if (operator === 'STARTS_WITH') return 2;
+  return 1;
+}
+
+function ruleAmountBoundCount(rule: ComparableImportRule) {
+  return Number(rule.minAmountCents !== null) + Number(rule.maxAmountCents !== null);
+}
+
+function ruleAmountSpan(rule: ComparableImportRule) {
+  if (rule.minAmountCents === null || rule.maxAmountCents === null) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return rule.maxAmountCents - rule.minAmountCents;
+}
+
+function compareRuleSpecificity(
+  left: ComparableImportRule,
+  right: ComparableImportRule,
+) {
+  const accountSpecificity =
+    Number(right.accountId !== null) - Number(left.accountId !== null);
+  if (accountSpecificity !== 0) return accountSpecificity;
+
+  const operatorSpecificity =
+    descriptionOperatorSpecificity(right.descriptionOperator) -
+    descriptionOperatorSpecificity(left.descriptionOperator);
+  if (operatorSpecificity !== 0) return operatorSpecificity;
+
+  const patternSpecificity =
+    normalizeImportRulePattern(right.descriptionPattern).length -
+    normalizeImportRulePattern(left.descriptionPattern).length;
+  if (patternSpecificity !== 0) return patternSpecificity;
+
+  const boundSpecificity =
+    ruleAmountBoundCount(right) - ruleAmountBoundCount(left);
+  if (boundSpecificity !== 0) return boundSpecificity;
+
+  return ruleAmountSpan(left) - ruleAmountSpan(right);
+}
+
+function resolveOverlap(
+  candidate: ComparableImportRule,
+  existing: ComparableImportRule,
+): ImportRuleOverlapResolution {
+  if (sameOutcome(candidate, existing)) return 'SAME_OUTCOME';
+
+  if (candidate.priority !== existing.priority) {
+    return candidate.priority < existing.priority
+      ? 'CANDIDATE_WINS'
+      : 'EXISTING_WINS';
+  }
+
+  const specificity = compareRuleSpecificity(candidate, existing);
+  if (specificity < 0) return 'CANDIDATE_WINS';
+  if (specificity > 0) return 'EXISTING_WINS';
+  return 'AMBIGUOUS';
+}
+
 export function findImportRuleRelationships(
   candidate: ComparableImportRule,
   rules: readonly Pick<
@@ -178,8 +257,18 @@ export function findImportRuleRelationships(
     if (sameMatcher(candidate, rule)) {
       relationships.push(
         sameOutcome(candidate, rule)
-          ? { kind: 'EQUIVALENT', ruleId: rule.id, ruleName: rule.name }
-          : { kind: 'CONFLICT', ruleId: rule.id, ruleName: rule.name },
+          ? {
+              kind: 'EQUIVALENT',
+              ruleId: rule.id,
+              ruleName: rule.name,
+              resolution: 'SAME_OUTCOME',
+            }
+          : {
+              kind: 'CONFLICT',
+              ruleId: rule.id,
+              ruleName: rule.name,
+              resolution: resolveOverlap(candidate, rule),
+            },
       );
       continue;
     }
@@ -189,6 +278,7 @@ export function findImportRuleRelationships(
         kind: 'OVERLAP',
         ruleId: rule.id,
         ruleName: rule.name,
+        resolution: resolveOverlap(candidate, rule),
       });
     }
   }

@@ -14,6 +14,10 @@ import {
   importRuleToFormState,
   type ImportRuleFormState,
 } from '@/app/lib/import-rules/import-rule-form';
+import {
+  findImportRuleRelationships,
+  type ImportRuleRelationship,
+} from '@/app/lib/import-rules/import-rule-guards';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
 import { importRuleService } from '@/app/services/import-rule-service';
@@ -40,6 +44,24 @@ function operatorLabel(operator: ImportRuleDescriptionOperator) {
   if (operator === 'EQUALS') return 'é igual a';
   if (operator === 'STARTS_WITH') return 'começa com';
   return 'contém';
+}
+
+function impactLabel(relationship: ImportRuleRelationship) {
+  if (relationship.kind === 'NONE') return '';
+  if (relationship.kind === 'EQUIVALENT') {
+    return 'equivalente — já existe a mesma regra administrativa';
+  }
+
+  if (relationship.resolution === 'CANDIDATE_WINS') {
+    return 'também pode casar; esta regra venceria e a existente ficaria sombreada';
+  }
+  if (relationship.resolution === 'EXISTING_WINS') {
+    return 'também pode casar; a regra existente venceria e esta ficaria sombreada';
+  }
+  if (relationship.resolution === 'SAME_OUTCOME') {
+    return 'também pode casar, mas ambas produzem o mesmo resultado';
+  }
+  return 'também pode casar sem vencedor seguro; ajuste prioridade ou especificidade';
 }
 
 function amountRangeLabel(rule: ImportRuleModel, showValues: boolean) {
@@ -107,6 +129,17 @@ export default function ImportRuleManagementPage() {
     if (rules.length === 0) return 0;
     return Math.max(...rules.map((rule) => rule.priority)) + 10;
   }, [rules]);
+  const ruleImpact = useMemo(() => {
+    if (!formOpen) return [];
+
+    try {
+      return findImportRuleRelationships(importRuleFormToInput(form), rules, {
+        excludeRuleId: editingId ?? undefined,
+      });
+    } catch {
+      return [];
+    }
+  }, [editingId, form, formOpen, rules]);
 
   function clearMessages() {
     setError('');
@@ -525,6 +558,27 @@ export default function ImportRuleManagementPage() {
                     Continua sendo apenas sugestão no preview; não altera o conteúdo assinado.
                   </span>
                 </label>
+
+                {ruleImpact.length > 0 && (
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+                    <p className="text-sm font-semibold text-[var(--foreground)]">
+                      Impacto potencial
+                    </p>
+                    <ul className="mt-2 space-y-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                      {ruleImpact.map((relationship) => (
+                        <li key={relationship.kind === 'NONE' ? 'none' : relationship.ruleId}>
+                          {relationship.kind === 'NONE' ? null : (
+                            <>
+                              <strong className="text-[var(--foreground)]">{relationship.ruleName}</strong>
+                              {' — '}
+                              {impactLabel(relationship)}
+                            </>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 <label className="flex min-h-11 items-center gap-3 text-sm text-[var(--foreground)]">
                   <input
