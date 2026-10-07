@@ -9,7 +9,7 @@ vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
 
-import { importRuleCrud } from "@/app/lib/transactions/import/import-rule-crud";
+import { importRuleCrud, renumberImportRules } from "@/app/lib/transactions/import/import-rule-crud";
 import { prisma } from "@/app/lib/prisma";
 
 const createdUserIds: string[] = [];
@@ -653,6 +653,252 @@ describe("import rule CRUD", () => {
 
     expect(response.status).toBe(400);
     expect(response.status).not.toBe(500);
+  });
+
+
+  it("exposes effective dependency state and allows pausing a broken rule without reactivating dependencies", async () => {
+    const suffix = randomUUID();
+    const owner = await prisma.user.create({
+      data: {
+        name: "Broken Rule Owner",
+        email: `rule-broken-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    createdUserIds.push(owner.id);
+
+    const [account, category, secondCategory] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: `Conta quebrada ${suffix}`,
+          type: "CREDIT_DEBIT",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Categoria quebrada ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Categoria conta quebrada ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+    ]);
+
+    const firstRule = await prisma.transactionImportRule.create({
+      data: {
+        name: "Regra categoria quebrada",
+        isActive: true,
+        priority: 10,
+        accountId: account.id,
+        transactionType: "EXPENSE",
+        descriptionOperator: "EQUALS",
+        descriptionPattern: "categoria quebrada",
+        categoryId: category.id,
+        userId: owner.id,
+      },
+    });
+    const secondRule = await prisma.transactionImportRule.create({
+      data: {
+        name: "Regra conta quebrada",
+        isActive: true,
+        priority: 20,
+        accountId: account.id,
+        transactionType: "EXPENSE",
+        descriptionOperator: "EQUALS",
+        descriptionPattern: "conta quebrada",
+        categoryId: secondCategory.id,
+        userId: owner.id,
+      },
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    await prisma.category.update({
+      where: { id: category.id },
+      data: { isActive: false },
+    });
+
+    const categoryBrokenResponse = await importRuleCrud.list(
+      new Request("http://localhost/api/import-rules?page=1&pageSize=20"),
+    );
+    const categoryBrokenBody = await categoryBrokenResponse.json();
+    const categoryBroken = categoryBrokenBody.data.items.find(
+      (rule: { id: string }) => rule.id === firstRule.id,
+    );
+    expect(categoryBroken?.effectiveState).toBe("BROKEN_CATEGORY");
+
+    const pauseResponse = await importRuleCrud.update(
+      new Request(`http://localhost/api/import-rules/${firstRule.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: firstRule.name,
+          isActive: false,
+          priority: firstRule.priority,
+          accountId: firstRule.accountId,
+          transactionType: firstRule.transactionType,
+          descriptionOperator: firstRule.descriptionOperator,
+          descriptionPattern: firstRule.descriptionPattern,
+          minAmountCents: firstRule.minAmountCents,
+          maxAmountCents: firstRule.maxAmountCents,
+          categoryId: firstRule.categoryId,
+        }),
+      }),
+      { params: Promise.resolve({ id: firstRule.id }) },
+    );
+    const pauseBody = await pauseResponse.json();
+    expect(pauseResponse.status).toBe(200);
+    expect(pauseBody.data.effectiveState).toBe("PAUSED");
+    expect(
+      await prisma.category.findUniqueOrThrow({
+        where: { id: category.id },
+        select: { isActive: true },
+      }),
+    ).toEqual({ isActive: false });
+
+    await prisma.account.update({
+      where: { id: account.id },
+      data: { isActive: false },
+    });
+    const accountBrokenResponse = await importRuleCrud.getById(
+      new Request(`http://localhost/api/import-rules/${secondRule.id}`),
+      { params: Promise.resolve({ id: secondRule.id }) },
+    );
+    const accountBrokenBody = await accountBrokenResponse.json();
+    expect(accountBrokenBody.data.effectiveState).toBe("BROKEN_ACCOUNT");
+    expect(
+      await prisma.account.findUniqueOrThrow({
+        where: { id: account.id },
+        select: { isActive: true },
+      }),
+    ).toEqual({ isActive: false });
+  });
+
+  it("paginates, searches, filters and renumbers rules without loading the full list", async () => {
+    const suffix = randomUUID();
+    const owner = await prisma.user.create({
+      data: {
+        name: "Paged Rule Owner",
+        email: `rule-paged-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    createdUserIds.push(owner.id);
+
+    const [expenseAccount, incomeAccount, expenseCategory, incomeCategory] =
+      await Promise.all([
+        prisma.account.create({
+          data: {
+            name: `Conta despesas ${suffix}`,
+            type: "CREDIT_DEBIT",
+            userId: owner.id,
+          },
+        }),
+        prisma.account.create({
+          data: {
+            name: `Conta receitas ${suffix}`,
+            type: "CREDIT_DEBIT",
+            userId: owner.id,
+          },
+        }),
+        prisma.category.create({
+          data: {
+            name: `Despesa paginação ${suffix}`.slice(0, 50),
+            type: "EXPENSE",
+            userId: owner.id,
+          },
+        }),
+        prisma.category.create({
+          data: {
+            name: `Receita paginação ${suffix}`.slice(0, 50),
+            type: "INCOME",
+            userId: owner.id,
+          },
+        }),
+      ]);
+
+    await prisma.transactionImportRule.createMany({
+      data: Array.from({ length: 25 }, (_, index) => {
+        const expense = index < 13;
+        return {
+          name: `Regra paginada ${String(index).padStart(2, "0")}`,
+          isActive: index % 2 === 0,
+          priority: 1_000 - index * 7,
+          accountId: expense ? expenseAccount.id : incomeAccount.id,
+          transactionType: expense ? ("EXPENSE" as const) : ("INCOME" as const),
+          descriptionOperator: "EQUALS" as const,
+          descriptionPattern: `padrão paginado ${String(index).padStart(2, "0")}`,
+          categoryId: expense ? expenseCategory.id : incomeCategory.id,
+          userId: owner.id,
+        };
+      }),
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const pageResponse = await importRuleCrud.list(
+      new Request("http://localhost/api/import-rules?page=2&pageSize=10"),
+    );
+    const pageBody = await pageResponse.json();
+    expect(pageResponse.status).toBe(200);
+    expect(pageBody.data.items).toHaveLength(10);
+    expect(pageBody.data.total).toBe(25);
+    expect(pageBody.data.page).toBe(2);
+    expect(pageBody.data.pageSize).toBe(10);
+    expect(pageBody.data.totalPages).toBe(3);
+    expect(pageBody.data.summary.nextPriority).toBe(1_010);
+
+    const searchResponse = await importRuleCrud.list(
+      new Request(
+        "http://localhost/api/import-rules?page=1&pageSize=20&search=paginada%2024",
+      ),
+    );
+    const searchBody = await searchResponse.json();
+    expect(searchBody.data.items).toHaveLength(1);
+    expect(searchBody.data.items[0].name).toBe("Regra paginada 24");
+
+    const filterResponse = await importRuleCrud.list(
+      new Request(
+        `http://localhost/api/import-rules?page=1&pageSize=20&isActive=true&accountId=${expenseAccount.id}&transactionType=EXPENSE`,
+      ),
+    );
+    const filterBody = await filterResponse.json();
+    expect(filterBody.data.items.length).toBeGreaterThan(0);
+    expect(
+      filterBody.data.items.every(
+        (rule: {
+          isActive: boolean;
+          accountId: string | null;
+          transactionType: string;
+        }) =>
+          rule.isActive &&
+          rule.accountId === expenseAccount.id &&
+          rule.transactionType === "EXPENSE",
+      ),
+    ).toBe(true);
+
+    const renumberResponse = await renumberImportRules();
+    const renumberBody = await renumberResponse.json();
+    expect(renumberResponse.status).toBe(200);
+    expect(renumberBody.data).toEqual({
+      updated: 25,
+      nextPriority: 250,
+    });
+
+    const priorities = await prisma.transactionImportRule.findMany({
+      where: { userId: owner.id },
+      orderBy: [{ priority: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+      select: { priority: true },
+    });
+    expect(priorities.map((rule) => rule.priority)).toEqual(
+      Array.from({ length: 25 }, (_, index) => index * 10),
+    );
   });
 
 });
