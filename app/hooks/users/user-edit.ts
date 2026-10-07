@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { userService } from "@/app/services/user-service";
 import { User } from "@/app/types/user";
 
-export function useUser({ id }: { id: string }) {
+export function useUser() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +38,6 @@ export function useUser({ id }: { id: string }) {
     user,
     loading,
     error,
-    handleBack: `/usuario/show/${id}`,
+    handleBack: "/usuario",
   };
 }
