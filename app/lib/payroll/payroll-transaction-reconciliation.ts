@@ -246,7 +246,11 @@ export async function linkPayrollTransaction(request: Request) {
     const result = await prisma.$transaction(
       async (tx) => {
         const document = await tx.payrollDocument.findFirst({
-          where: { id: input.payrollDocumentId, userId },
+          where: {
+            id: input.payrollDocumentId,
+            userId,
+            lifecycleStatus: "ACTIVE",
+          },
           select: {
             id: true,
             year: true,
@@ -412,7 +416,7 @@ export async function unlinkPayrollTransaction(
       where: {
         userId,
         payrollDocumentId: documentId,
-        payrollDocument: { userId },
+        payrollDocument: { userId, lifecycleStatus: "ACTIVE" },
       },
     });
 
