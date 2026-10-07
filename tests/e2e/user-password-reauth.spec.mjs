@@ -36,15 +36,8 @@ test('troca de senha exige novo login e invalida sessões antigas', async ({
   await expect(secondaryPage).toHaveURL(/\/dashboard$/);
 
   try {
-    const profile = await page.evaluate(async () => {
-      const response = await fetch('/api/user', { cache: 'no-store' });
-      if (!response.ok) {
-        throw new Error(`profile load failed with ${response.status}`);
-      }
-      return response.json();
-    });
-
-    await page.goto(`/usuario/alterar/${profile.data.id}`);
+    await page.goto('/usuario/editar');
+    await expect(page).toHaveURL(/\/usuario\/editar$/);
 
     await page.getByLabel('Nova senha', { exact: true }).fill(newPassword);
     await page.getByLabel(/^Senha atual\b/).fill(currentPassword);
