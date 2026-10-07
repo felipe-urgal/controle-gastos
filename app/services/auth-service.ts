@@ -1,18 +1,5 @@
 import { apiClient } from "./api-client";
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  pendingEmail?: string | null;
-  pendingEmailRequestedAt?: string | null;
-  pendingEmailExpiresAt?: string | null;
-  showValues: boolean;
-  periodicSummaryEnabled: boolean;
-  periodicSummaryFrequency: 'WEEKLY';
-  periodicSummaryLastProcessedAt?: string | null;
-  totpEnabled: boolean;
-};
+import type { User } from "@/app/types/user";
 
 export interface LoginRequest {
   email: string;

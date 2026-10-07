@@ -82,6 +82,8 @@ export async function completeMfaLogin(args: {
       totpEnabled: true,
       totpSecretEncrypted: true,
       totpLastUsedStep: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
 
@@ -145,6 +147,8 @@ export async function completeMfaLogin(args: {
       periodicSummaryEnabled: user.periodicSummaryEnabled,
       periodicSummaryFrequency: user.periodicSummaryFrequency,
       totpEnabled: true,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     },
     authVersion: user.authVersion,
   };
