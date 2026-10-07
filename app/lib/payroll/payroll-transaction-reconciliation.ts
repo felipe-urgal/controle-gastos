@@ -5,11 +5,26 @@ import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
+import { logicalDateParts } from "@/app/lib/payroll/payroll-date";
+import {
+  pageInfo,
+  payrollSearchParams,
+} from "@/app/lib/payroll/payroll-query";
 import { prisma } from "@/app/lib/prisma";
 
 const linkSchema = z.object({
   payrollDocumentId: z.string().uuid(),
   transactionId: z.string().uuid(),
+});
+
+const filterSchema = z.object({
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+  status: z
+    .enum(["MATCHED", "SUGGESTED", "UNMATCHED", "REVIEW_REQUIRED"])
+    .optional(),
+  employerCnpj: z.string().max(18).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(12),
 });
 
 function nextMonth(year: number, month: number) {
@@ -69,18 +84,74 @@ function isEligiblePayrollCredit(transaction: PayrollCreditCandidate) {
   );
 }
 
-function transactionSummary(transaction: {
-  id: string;
-  amount: number;
-  type: string;
-  status: string;
-  description: string;
-  year: number;
-  month: number;
-  day: number;
-  reconciliationStatus: string;
-  account: { id: string; name: string; currency: string };
-}) {
+function foldEvidence(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Z0-9]/gi, "")
+    .toUpperCase();
+}
+
+function bankEvidence(
+  metadata: Prisma.JsonValue | null,
+  accountName: string,
+) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const bank =
+    typeof (metadata as Record<string, unknown>).bank === "string"
+      ? String((metadata as Record<string, unknown>).bank)
+      : "";
+  const agency =
+    typeof (metadata as Record<string, unknown>).agency === "string"
+      ? String((metadata as Record<string, unknown>).agency)
+      : "";
+  const account =
+    typeof (metadata as Record<string, unknown>).account === "string"
+      ? String((metadata as Record<string, unknown>).account)
+      : "";
+
+  if (!bank && !agency && !account) return null;
+
+  const normalizedBank = foldEvidence(bank);
+  const normalizedAccountName = foldEvidence(accountName);
+  const bankNameMatch =
+    bank.length > 0
+      ? normalizedAccountName.includes(normalizedBank) ||
+        normalizedBank.includes(normalizedAccountName)
+      : null;
+
+  return {
+    bankNameMatch,
+    agencyMatch: null,
+    accountMatch: null,
+    score: bankNameMatch === true ? 1 : 0,
+    explanation:
+      bankNameMatch === true
+        ? "O nome da conta cadastrada é compatível com o banco informado no holerite; evidência apenas auxiliar."
+        : bank
+          ? "O banco informado no holerite não foi confirmado pelo nome da conta cadastrada; o vínculo continua dependendo das invariantes financeiras e de confirmação explícita."
+          : "Agência/conta do holerite não são comparáveis ao cadastro atual; metadado mantido apenas como contexto.",
+  };
+}
+
+function transactionSummary(
+  transaction: {
+    id: string;
+    amount: number;
+    type: string;
+    status: string;
+    description: string;
+    year: number;
+    month: number;
+    day: number;
+    reconciliationStatus: string;
+    account: { id: string; name: string; currency: string };
+  },
+  evidence: ReturnType<typeof bankEvidence> = null,
+) {
   return {
     id: transaction.id,
     amountCents: transaction.amount,
@@ -89,6 +160,7 @@ function transactionSummary(transaction: {
     description: transaction.description,
     date: dateLabel(transaction),
     reconciliationStatus: transaction.reconciliationStatus,
+    evidence,
     account: {
       id: transaction.account.id,
       name: transaction.account.name,
@@ -97,18 +169,58 @@ function transactionSummary(transaction: {
   };
 }
 
+type PayrollTransactionReconciliationDb = Pick<
+  Prisma.TransactionClient,
+  "payrollDocument" | "transaction"
+>;
+
 export async function getPayrollTransactionReconciliationForUser(
   userId: string,
+  filters: { year?: number; employerCnpj?: string } = {},
+  db: PayrollTransactionReconciliationDb = prisma,
 ) {
-  const documents = await prisma.payrollDocument.findMany({
-    where: { userId, lifecycleStatus: "ACTIVE" },
-    include: {
+  const documents = await db.payrollDocument.findMany({
+    where: {
+      userId,
+      lifecycleStatus: "ACTIVE",
+      ...(filters.year ? { year: filters.year } : {}),
+      ...(filters.employerCnpj
+        ? { employerCnpj: filters.employerCnpj }
+        : {}),
+    },
+    select: {
+      id: true,
+      documentType: true,
+      paymentType: true,
+      employerName: true,
+      employerCnpj: true,
+      year: true,
+      month: true,
+      netPaidCents: true,
+      bankMetadata: true,
+      createdAt: true,
       transactionLink: {
-        include: {
+        select: {
           transaction: {
-            include: {
+            select: {
+              id: true,
+              userId: true,
+              amount: true,
+              type: true,
+              kind: true,
+              status: true,
+              description: true,
+              year: true,
+              month: true,
+              day: true,
+              reconciliationStatus: true,
               account: {
-                select: { id: true, name: true, type: true, currency: true },
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  currency: true,
+                },
               },
             },
           },
@@ -123,82 +235,96 @@ export async function getPayrollTransactionReconciliationForUser(
     ],
   });
 
-  return Promise.all(
-    documents.map(async (document) => {
-      if (document.netPaidCents === null) {
-        return {
-          documentId: document.id,
-          documentType: document.documentType,
-          paymentType: document.paymentType,
-          employerName: document.employerName,
-          employerCnpj: document.employerCnpj,
-          year: document.year,
-          month: document.month,
-          netPaidCents: null,
-          status: "REVIEW_REQUIRED" as const,
-          reason:
-            "O documento não possui valor líquido informado para conciliar com uma transação.",
-          matchedTransaction: null,
-          candidates: [],
-        };
-      }
+  const unmatched = documents.filter(
+    (document) =>
+      document.netPaidCents !== null && document.transactionLink === null,
+  );
 
-      if (document.transactionLink) {
-        const transaction = document.transactionLink.transaction;
-        const valid =
-          transaction.userId === userId &&
-          isEligiblePayrollCredit(transaction) &&
-          transaction.amount === document.netPaidCents &&
-          inPaymentWindow(transaction, {
-            year: document.year,
-            month: document.month,
-          });
-
-        return {
-          documentId: document.id,
-          documentType: document.documentType,
-          paymentType: document.paymentType,
-          employerName: document.employerName,
-          employerCnpj: document.employerCnpj,
-          year: document.year,
-          month: document.month,
-          netPaidCents: document.netPaidCents,
-          status: valid ? ("MATCHED" as const) : ("REVIEW_REQUIRED" as const),
-          reason: valid
-            ? null
-            : "A transação vinculada mudou e não corresponde mais ao pagamento líquido/competência.",
-          matchedTransaction: transactionSummary(transaction),
-          candidates: [],
-        };
-      }
-
-      const candidates = await prisma.transaction.findMany({
-        where: {
-          userId,
-          kind: "NORMAL",
-          type: "INCOME",
-          status: "COMPLETED",
-          amount: document.netPaidCents,
-          account: {
-            type: "CREDIT_DEBIT",
-            currency: "BRL",
-          },
-          payrollTransactionLink: null,
-          OR: candidateWindow(document.year, document.month),
-        },
-        include: {
-          account: {
-            select: { id: true, name: true, type: true, currency: true },
-          },
-        },
-        orderBy: [
-          { year: "asc" },
-          { month: "asc" },
-          { day: "asc" },
-          { createdAt: "asc" },
-          { id: "asc" },
-        ],
+  const searchClauses = new Map<string, {
+    amount: number;
+    OR: ReturnType<typeof candidateWindow>;
+  }>();
+  for (const document of unmatched) {
+    const amount = document.netPaidCents;
+    if (amount === null) continue;
+    const key = [amount, document.year, document.month].join("|");
+    if (!searchClauses.has(key)) {
+      searchClauses.set(key, {
+        amount,
+        OR: candidateWindow(document.year, document.month),
       });
+    }
+  }
+
+  const candidateTransactions =
+    searchClauses.size === 0
+      ? []
+      : await db.transaction.findMany({
+          where: {
+            userId,
+            kind: "NORMAL",
+            type: "INCOME",
+            status: "COMPLETED",
+            account: {
+              type: "CREDIT_DEBIT",
+              currency: "BRL",
+            },
+            payrollTransactionLink: null,
+            OR: [...searchClauses.values()],
+          },
+          select: {
+            id: true,
+            amount: true,
+            type: true,
+            status: true,
+            description: true,
+            year: true,
+            month: true,
+            day: true,
+            createdAt: true,
+            reconciliationStatus: true,
+            account: {
+              select: { id: true, name: true, type: true, currency: true },
+            },
+          },
+          orderBy: [
+            { year: "asc" },
+            { month: "asc" },
+            { day: "asc" },
+            { createdAt: "asc" },
+            { id: "asc" },
+          ],
+        });
+
+  return documents.map((document) => {
+    if (document.netPaidCents === null) {
+      return {
+        documentId: document.id,
+        documentType: document.documentType,
+        paymentType: document.paymentType,
+        employerName: document.employerName,
+        employerCnpj: document.employerCnpj,
+        year: document.year,
+        month: document.month,
+        netPaidCents: null,
+        status: "REVIEW_REQUIRED" as const,
+        reason:
+          "O documento não possui valor líquido informado para conciliar com uma transação.",
+        matchedTransaction: null,
+        candidates: [],
+      };
+    }
+
+    if (document.transactionLink) {
+      const transaction = document.transactionLink.transaction;
+      const valid =
+        transaction.userId === userId &&
+        isEligiblePayrollCredit(transaction) &&
+        transaction.amount === document.netPaidCents &&
+        inPaymentWindow(transaction, {
+          year: document.year,
+          month: document.month,
+        });
 
       return {
         documentId: document.id,
@@ -209,30 +335,112 @@ export async function getPayrollTransactionReconciliationForUser(
         year: document.year,
         month: document.month,
         netPaidCents: document.netPaidCents,
-        status:
-          candidates.length === 1
-            ? ("SUGGESTED" as const)
-            : candidates.length > 1
-              ? ("REVIEW_REQUIRED" as const)
-              : ("UNMATCHED" as const),
-        reason:
-          candidates.length > 1
-            ? "Mais de um crédito com o mesmo valor foi encontrado na janela da competência."
-            : candidates.length === 0
-              ? "Nenhum crédito bancário com o mesmo valor foi encontrado na janela da competência."
-              : null,
-        matchedTransaction: null,
-        candidates: candidates.map(transactionSummary),
+        status: valid ? ("MATCHED" as const) : ("REVIEW_REQUIRED" as const),
+        reason: valid
+          ? null
+          : "A transação vinculada mudou e não corresponde mais ao pagamento líquido/competência.",
+        matchedTransaction: transactionSummary(
+          transaction,
+          bankEvidence(document.bankMetadata, transaction.account.name),
+        ),
+        candidates: [],
       };
-    }),
-  );
+    }
+
+    const candidates = candidateTransactions
+      .filter(
+        (transaction) =>
+          transaction.amount === document.netPaidCents &&
+          inPaymentWindow(transaction, {
+            year: document.year,
+            month: document.month,
+          }),
+      )
+      .map((transaction) => ({
+        transaction,
+        evidence: bankEvidence(
+          document.bankMetadata,
+          transaction.account.name,
+        ),
+      }))
+      .sort((left, right) => {
+        const score =
+          (right.evidence?.score ?? 0) - (left.evidence?.score ?? 0);
+        if (score !== 0) return score;
+        const leftDate = [
+          left.transaction.year,
+          left.transaction.month,
+          left.transaction.day,
+          left.transaction.id,
+        ].join("-");
+        const rightDate = [
+          right.transaction.year,
+          right.transaction.month,
+          right.transaction.day,
+          right.transaction.id,
+        ].join("-");
+        return leftDate.localeCompare(rightDate);
+      });
+
+    return {
+      documentId: document.id,
+      documentType: document.documentType,
+      paymentType: document.paymentType,
+      employerName: document.employerName,
+      employerCnpj: document.employerCnpj,
+      year: document.year,
+      month: document.month,
+      netPaidCents: document.netPaidCents,
+      status:
+        candidates.length === 1
+          ? ("SUGGESTED" as const)
+          : candidates.length > 1
+            ? ("REVIEW_REQUIRED" as const)
+            : ("UNMATCHED" as const),
+      reason:
+        candidates.length > 1
+          ? "Mais de um crédito financeiramente compatível foi encontrado; metadados bancários podem apenas ordenar os candidatos, nunca confirmar automaticamente."
+          : candidates.length === 0
+            ? "Nenhum crédito bancário financeiramente compatível foi encontrado na janela da competência."
+            : candidates[0]?.evidence?.explanation ?? null,
+      matchedTransaction: null,
+      candidates: candidates.map(({ transaction, evidence }) =>
+        transactionSummary(transaction, evidence),
+      ),
+    };
+  });
 }
 
-export async function getPayrollTransactionReconciliation() {
+export async function getPayrollTransactionReconciliation(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    return success(await getPayrollTransactionReconciliationForUser(userId));
+    const query = filterSchema.parse(payrollSearchParams(request));
+    const selectedYear = query.year ?? logicalDateParts().year;
+    const items = await getPayrollTransactionReconciliationForUser(userId, {
+      year: selectedYear,
+      employerCnpj: query.employerCnpj,
+    });
+    const filtered = query.status
+      ? items.filter((item) => item.status === query.status)
+      : items;
+    const start = (query.page - 1) * query.limit;
+    const pageItems = filtered.slice(start, start + query.limit);
+
+    return success({
+      items: pageItems,
+      pageInfo: pageInfo({
+        page: query.page,
+        limit: query.limit,
+        fetched:
+          filtered.length > start + query.limit
+            ? query.limit + 1
+            : pageItems.length,
+      }),
+    });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return failure(error.issues[0]?.message ?? "Filtros inválidos", 400);
+    }
     if (isUnauthorizedError(error)) return failure("Não autenticado", 401);
     return failure("Não foi possível carregar a conciliação bancária da folha", 500);
   }
