@@ -199,13 +199,10 @@ export function matchesImportRule(
   }
 }
 
-export function evaluateImportRules(
-  rules: readonly ImportRule[],
-  candidate: ImportRuleCandidate
+export function evaluateMatchedImportRules(
+  rules: readonly ImportRule[]
 ): ImportRuleMatch | null {
-  const matches = [...rules]
-    .sort(compareRuleOrder)
-    .filter((rule) => matchesImportRule(rule, candidate));
+  const matches = [...rules].sort(compareRuleOrder);
 
   const matchedRule = matches[0];
   if (!matchedRule) {
@@ -237,4 +234,13 @@ export function evaluateImportRules(
     alsoMatchingRuleIds: matches.slice(1).map((rule) => rule.id),
     alsoMatchingRuleNames: matches.slice(1).map((rule) => rule.name),
   };
+}
+
+export function evaluateImportRules(
+  rules: readonly ImportRule[],
+  candidate: ImportRuleCandidate
+): ImportRuleMatch | null {
+  return evaluateMatchedImportRules(
+    rules.filter((rule) => matchesImportRule(rule, candidate))
+  );
 }

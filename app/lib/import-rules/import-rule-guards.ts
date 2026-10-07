@@ -3,6 +3,10 @@ import type {
   ImportRuleInput,
   ImportRuleModel,
 } from '@/app/types/import-rule';
+import {
+  evaluateMatchedImportRules,
+  type ImportRule,
+} from '@/app/lib/transactions/import-rules';
 
 export const BROAD_IMPORT_RULE_MIN_PATTERN_LENGTH = 3;
 
@@ -178,49 +182,25 @@ function matcherScopesMayOverlap(
   );
 }
 
-function descriptionOperatorSpecificity(
-  operator: ImportRuleDescriptionOperator,
-) {
-  if (operator === 'EQUALS') return 3;
-  if (operator === 'STARTS_WITH') return 2;
-  return 1;
-}
-
-function ruleAmountBoundCount(rule: ComparableImportRule) {
-  return Number(rule.minAmountCents !== null) + Number(rule.maxAmountCents !== null);
-}
-
-function ruleAmountSpan(rule: ComparableImportRule) {
-  if (rule.minAmountCents === null || rule.maxAmountCents === null) {
-    return Number.POSITIVE_INFINITY;
-  }
-
-  return rule.maxAmountCents - rule.minAmountCents;
-}
-
-function compareRuleSpecificity(
-  left: ComparableImportRule,
-  right: ComparableImportRule,
-) {
-  const accountSpecificity =
-    Number(right.accountId !== null) - Number(left.accountId !== null);
-  if (accountSpecificity !== 0) return accountSpecificity;
-
-  const operatorSpecificity =
-    descriptionOperatorSpecificity(right.descriptionOperator) -
-    descriptionOperatorSpecificity(left.descriptionOperator);
-  if (operatorSpecificity !== 0) return operatorSpecificity;
-
-  const patternSpecificity =
-    normalizeImportRulePattern(right.descriptionPattern).length -
-    normalizeImportRulePattern(left.descriptionPattern).length;
-  if (patternSpecificity !== 0) return patternSpecificity;
-
-  const boundSpecificity =
-    ruleAmountBoundCount(right) - ruleAmountBoundCount(left);
-  if (boundSpecificity !== 0) return boundSpecificity;
-
-  return ruleAmountSpan(left) - ruleAmountSpan(right);
+function toEvaluatorRule(
+  rule: ComparableImportRule,
+  id: string,
+  name: string,
+): ImportRule {
+  return {
+    id,
+    name,
+    isActive: true,
+    priority: rule.priority,
+    accountId: rule.accountId,
+    transactionType: rule.transactionType,
+    descriptionOperator: rule.descriptionOperator,
+    descriptionPattern: rule.descriptionPattern,
+    minAmountCents: rule.minAmountCents,
+    maxAmountCents: rule.maxAmountCents,
+    categoryId: rule.categoryId,
+    normalizedDescription: rule.normalizedDescription,
+  };
 }
 
 function resolveOverlap(
@@ -229,16 +209,16 @@ function resolveOverlap(
 ): ImportRuleOverlapResolution {
   if (sameOutcome(candidate, existing)) return 'SAME_OUTCOME';
 
-  if (candidate.priority !== existing.priority) {
-    return candidate.priority < existing.priority
-      ? 'CANDIDATE_WINS'
-      : 'EXISTING_WINS';
-  }
+  const evaluated = evaluateMatchedImportRules([
+    toEvaluatorRule(candidate, '__candidate__', 'Nova regra'),
+    toEvaluatorRule(existing, '__existing__', 'Regra existente'),
+  ]);
 
-  const specificity = compareRuleSpecificity(candidate, existing);
-  if (specificity < 0) return 'CANDIDATE_WINS';
-  if (specificity > 0) return 'EXISTING_WINS';
-  return 'AMBIGUOUS';
+  if (!evaluated || evaluated.conflict) return 'AMBIGUOUS';
+
+  return evaluated.matchedRuleId === '__candidate__'
+    ? 'CANDIDATE_WINS'
+    : 'EXISTING_WINS';
 }
 
 export function findImportRuleRelationships(
