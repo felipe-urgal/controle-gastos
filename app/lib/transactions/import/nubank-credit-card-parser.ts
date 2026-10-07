@@ -5,6 +5,10 @@ import {
   parseMoneyToCents,
   type ParsedImportItem,
 } from "@/app/lib/transactions/import/parser";
+import {
+  TRANSACTION_DESCRIPTION_MAX_LENGTH,
+  TRANSACTION_DESCRIPTION_MIN_LENGTH,
+} from "@/app/lib/transactions/transaction-field-contract";
 
 export type NubankCreditCardClassification = "PURCHASE" | "PAYMENT" | "CREDIT";
 
@@ -101,8 +105,8 @@ export function parseNubankCreditCardCsv(content: string): NubankCreditCardParse
     if (signedAmount === null || signedAmount === 0) {
       errors.push("Valor inválido ou igual a zero.");
     }
-    if (description.length < 2) errors.push("Descrição deve ter pelo menos 2 caracteres.");
-    if (description.length > 100) errors.push("Descrição deve ter no máximo 100 caracteres.");
+    if (description.length < TRANSACTION_DESCRIPTION_MIN_LENGTH) errors.push(`Descrição deve ter pelo menos ${TRANSACTION_DESCRIPTION_MIN_LENGTH} caracteres.`);
+    if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) errors.push(`Descrição deve ter no máximo ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`);
     if (classification === "PAYMENT") {
       errors.push("Pagamento recebido deve ser conciliado pelo fluxo de pagamento da fatura; não será importado como receita.");
     }
@@ -114,7 +118,7 @@ export function parseNubankCreditCardCsv(content: string): NubankCreditCardParse
       date: date ?? "",
       amountCents: amount,
       type: classification === "PURCHASE" ? ("EXPENSE" as const) : ("INCOME" as const),
-      description: description.slice(0, 100),
+      description: description.slice(0, TRANSACTION_DESCRIPTION_MAX_LENGTH),
       errors,
     };
   });

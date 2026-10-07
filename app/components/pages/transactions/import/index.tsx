@@ -10,41 +10,25 @@ import { Button } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { accountService } from '@/app/services/account-service';
+import { ApiClientError } from '@/app/services/api-client';
 import { categoryService } from '@/app/services/category-service';
 import { merchantService } from '@/app/services/merchant-service';
+import { transactionImportService } from '@/app/services/transaction-import-service';
 import type { AccountModel } from '@/app/types/account';
 import type { CategoryModel } from '@/app/types/category';
 import type { MerchantDTO } from '@/app/types/merchant';
 import type { MerchantAliasOperator } from '@/app/types/merchant-alias';
+import type {
+  TransactionImportConfirmData,
+  TransactionImportPreviewData,
+  TransactionImportPreviewItem,
+  TransactionImportQifDateOrder,
+} from '@/app/types/transaction-import';
 
-type ImportType = 'INCOME' | 'EXPENSE';
-type ImportSource = 'CSV' | 'OFX' | 'QIF' | 'XLSX';
+type QifDateOrder = TransactionImportQifDateOrder;
 type InboxState = 'review' | 'ready' | 'duplicate' | 'ignored';
 type InboxFilter = 'all' | InboxState;
-
-type PreviewItem = {
-  index: number;
-  source: ImportSource;
-  date: string;
-  amountCents: number;
-  type: ImportType;
-  description: string;
-  externalId?: string;
-  currency?: string;
-  errors: string[];
-  fingerprint: string;
-  duplicate: boolean;
-  matchedRuleId?: string | null;
-  matchedRuleName?: string | null;
-  suggestedCategoryId?: string | null;
-  importRuleConflict?: boolean;
-  matchingRuleNames?: string[];
-  alsoMatchingRuleNames?: string[];
-  matchedMerchantAliasId?: string | null;
-  suggestedMerchantId?: string | null;
-  suggestedMerchantName?: string | null;
-  merchantAliasConflict?: boolean;
-};
+type PreviewItem = TransactionImportPreviewItem;
 
 type EditablePreviewItem = PreviewItem & {
   selected: boolean;
@@ -56,34 +40,14 @@ type EditablePreviewItem = PreviewItem & {
   ignored: boolean;
 };
 
-type PreviewData = {
-  accountId: string;
-  fileName: string;
-  detectedSource?: 'GENERIC' | 'NUBANK_CREDIT_CARD';
-  nubankSummary?: { purchases: number; payments: number; credits: number } | null;
-  previewToken: string;
-  limits: { maxFileBytes: number; maxItems: number };
-  summary: { total: number; valid: number; invalid: number; duplicates: number };
-  items: PreviewItem[];
-};
-
-type ConfirmData = {
-  selected: number;
-  created: number;
-  duplicates: number;
-};
-
-type ApiEnvelope<T> = {
-  success: boolean;
-  data: T;
-  message?: string;
-};
+type PreviewData = TransactionImportPreviewData;
+type ConfirmData = TransactionImportConfirmData;
 
 const inboxFilters: Array<{ value: InboxFilter; label: string }> = [
   { value: 'all', label: 'Todas' },
   { value: 'review', label: 'Precisa revisar' },
   { value: 'ready', label: 'Prontas' },
-  { value: 'duplicate', label: 'Duplicadas' },
+  { value: 'duplicate', label: 'Já importadas' },
   { value: 'ignored', label: 'Ignoradas' },
 ];
 
@@ -112,7 +76,7 @@ function getInboxState(item: EditablePreviewItem): InboxState {
 function stateLabel(state: InboxState) {
   if (state === 'review') return 'Precisa revisar';
   if (state === 'ready') return 'Pronta';
-  if (state === 'duplicate') return 'Duplicada';
+  if (state === 'duplicate') return 'Já importada';
   return 'Ignorada';
 }
 
@@ -165,7 +129,11 @@ export default function TransactionImportPage() {
   const merchantSearchRequest = useRef(0);
   const [accountId, setAccountId] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [qifDateOrder, setQifDateOrder] = useState<'' | QifDateOrder>('');
   const [preview, setPreview] = useState<PreviewData | null>(null);
+  const [previewNow, setPreviewNow] = useState(() => Date.now());
+  const [bulkCategoryId, setBulkCategoryId] = useState('');
+  const [confirmMerchantConflictBulk, setConfirmMerchantConflictBulk] = useState(false);
   const [items, setItems] = useState<EditablePreviewItem[]>([]);
   const [result, setResult] = useState<ConfirmData | null>(null);
   const [filter, setFilter] = useState<InboxFilter>('all');
@@ -218,6 +186,12 @@ export default function TransactionImportPage() {
 
     void loadRelations();
   }, []);
+
+  useEffect(() => {
+    if (!preview || result) return;
+    const interval = window.setInterval(() => setPreviewNow(Date.now()), 15_000);
+    return () => window.clearInterval(interval);
+  }, [preview, result]);
 
   async function retryAccounts() {
     setRetryingSource('accounts');
@@ -316,6 +290,11 @@ export default function TransactionImportPage() {
   const reviewCount = stateCounts.review;
   const ignoredOnConfirm = stateCounts.duplicate + stateCounts.ignored;
   const step = result ? 3 : preview ? 2 : 1;
+  const previewExpiresAtMs = preview ? Date.parse(preview.previewExpiresAt) : 0;
+  const previewRemainingMs = preview ? previewExpiresAtMs - previewNow : 0;
+  const previewExpired = Boolean(preview) && previewRemainingMs <= 0;
+  const previewExpiring =
+    Boolean(preview) && !previewExpired && previewRemainingMs <= 2 * 60 * 1000;
 
   const visibleItems = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('pt-BR');
@@ -338,6 +317,8 @@ export default function TransactionImportPage() {
     setFile(null);
     setPreview(null);
     setItems([]);
+    setQifDateOrder('');
+    setBulkCategoryId('');
     setResult(null);
     setFilter('all');
     setSearch('');
@@ -347,16 +328,23 @@ export default function TransactionImportPage() {
   }
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
-    setFile(event.target.files?.[0] ?? null);
+    const nextFile = event.target.files?.[0] ?? null;
+    setFile(nextFile);
+    if (!nextFile?.name.toLowerCase().endsWith('.qif')) {
+      setQifDateOrder('');
+    }
     setError('');
   }
 
-  async function handlePreview(event: FormEvent) {
-    event.preventDefault();
+  async function generatePreview(preserveChoices: boolean) {
     if (!accountId || !file) {
       setError('Selecione uma conta e um arquivo CSV, OFX, QFX, QIF ou XLSX.');
       return;
     }
+
+    const previousByFingerprint = preserveChoices
+      ? new Map(items.map((item) => [item.fingerprint, item]))
+      : new Map<string, EditablePreviewItem>();
 
     setSubmitting(true);
     setError('');
@@ -364,12 +352,12 @@ export default function TransactionImportPage() {
       const formData = new FormData();
       formData.append('accountId', accountId);
       formData.append('file', file);
-      const response = await fetch('/api/transactions/import/preview', {
-        method: 'POST',
-        body: formData,
-      });
-      const payload = (await response.json()) as ApiEnvelope<PreviewData>;
-      if (!response.ok || !payload.success) throw new Error(payload.message || 'Falha ao gerar preview.');
+      if (qifDateOrder) formData.append('qifDateOrder', qifDateOrder);
+
+      const payload = await transactionImportService.preview(formData);
+      if (!payload.success || !payload.data) {
+        throw new Error(payload.error?.message || payload.message || 'Falha ao gerar preview.');
+      }
 
       const editableItems = payload.data.items.map((item): EditablePreviewItem => {
         const eligibleSuggestion = item.suggestedCategoryId
@@ -377,20 +365,31 @@ export default function TransactionImportPage() {
               (category) => category.id === item.suggestedCategoryId && category.type === item.type,
             )
           : null;
+        const previous = previousByFingerprint.get(item.fingerprint);
+        const canPreserve = Boolean(previous) && item.errors.length === 0 && !item.duplicate;
 
         return {
           ...item,
-          selected: item.errors.length === 0 && !item.duplicate,
-          categoryId: eligibleSuggestion?.id ?? null,
-          merchantId: item.merchantAliasConflict ? null : (item.suggestedMerchantId ?? null),
-          merchantReviewed: Boolean(item.suggestedMerchantId) && !item.merchantAliasConflict,
-          learnMerchantAlias: false,
-          merchantAliasOperator: 'EQUALS',
-          ignored: item.duplicate,
+          selected: canPreserve
+            ? previous!.selected
+            : item.errors.length === 0 && !item.duplicate,
+          categoryId: canPreserve
+            ? previous!.categoryId
+            : eligibleSuggestion?.id ?? null,
+          merchantId: canPreserve
+            ? previous!.merchantId
+            : item.merchantAliasConflict ? null : (item.suggestedMerchantId ?? null),
+          merchantReviewed: canPreserve
+            ? previous!.merchantReviewed
+            : Boolean(item.suggestedMerchantId) && !item.merchantAliasConflict,
+          learnMerchantAlias: canPreserve ? previous!.learnMerchantAlias : false,
+          merchantAliasOperator: canPreserve ? previous!.merchantAliasOperator : 'EQUALS',
+          ignored: canPreserve ? previous!.ignored : item.duplicate,
         };
       });
 
       setPreview(payload.data);
+      setPreviewNow(Date.now());
       setItems(editableItems);
       setFilter('all');
       setSearch('');
@@ -400,6 +399,11 @@ export default function TransactionImportPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handlePreview(event: FormEvent) {
+    event.preventDefault();
+    await generatePreview(false);
   }
 
   function updateItem(
@@ -438,25 +442,86 @@ export default function TransactionImportPage() {
     );
   }
 
+  function continueWithoutMerchantVisible() {
+    const candidates = visibleItems.filter(
+      (item) =>
+        item.selected &&
+        !item.ignored &&
+        !item.duplicate &&
+        item.errors.length === 0 &&
+        (!item.merchantReviewed || item.merchantAliasConflict),
+    );
+    const hasConflict = candidates.some((item) => item.merchantAliasConflict);
+
+    if (hasConflict && !confirmMerchantConflictBulk) {
+      setConfirmMerchantConflictBulk(true);
+      setError(
+        'Há conflito de estabelecimento entre os itens visíveis. Clique novamente para confirmar que eles devem continuar sem estabelecimento.',
+      );
+      return;
+    }
+
+    const visibleIds = new Set(candidates.map((item) => item.index));
+    setItems((current) =>
+      current.map((item) =>
+        visibleIds.has(item.index)
+          ? {
+              ...item,
+              merchantId: null,
+              merchantReviewed: true,
+              merchantAliasConflict: false,
+              learnMerchantAlias: false,
+            }
+          : item,
+      ),
+    );
+    setConfirmMerchantConflictBulk(false);
+    setError('');
+  }
+
+  function applyCategoryToVisibleSelected() {
+    const category = categories.find((candidate) => candidate.id === bulkCategoryId);
+    if (!category) return;
+
+    const visibleIds = new Set(visibleItems.map((item) => item.index));
+    setItems((current) =>
+      current.map((item) =>
+        visibleIds.has(item.index) &&
+        item.selected &&
+        !item.ignored &&
+        !item.duplicate &&
+        item.errors.length === 0 &&
+        item.type === category.type &&
+        !item.importRuleConflict
+          ? { ...item, categoryId: category.id }
+          : item,
+      ),
+    );
+  }
+
   async function handleConfirm() {
     if (!preview || selectedCount === 0 || reviewCount > 0) return;
+    if (previewExpired) {
+      setError('O preview expirou. Gere novamente o mesmo arquivo para revalidar e preservar suas escolhas.');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
-      const response = await fetch('/api/transactions/import/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accountId: preview.accountId,
-          previewToken: preview.previewToken,
-          items: items.map(toConfirmItem),
-        }),
+      const payload = await transactionImportService.confirm({
+        accountId: preview.accountId,
+        previewToken: preview.previewToken,
+        items: items.map(toConfirmItem),
       });
-      const payload = (await response.json()) as ApiEnvelope<ConfirmData>;
-      if (!response.ok || !payload.success) throw new Error(payload.message || 'Falha ao confirmar importação.');
+      if (!payload.success || !payload.data) {
+        throw new Error(payload.error?.message || payload.message || 'Falha ao confirmar importação.');
+      }
       setResult(payload.data);
       setMobileDetailOpen(false);
     } catch (cause) {
+      if (cause instanceof ApiClientError && cause.code === 'IMPORT_PREVIEW_EXPIRED') {
+        setPreviewNow(Date.parse(preview.previewExpiresAt));
+      }
       setError(cause instanceof Error ? cause.message : 'Falha ao confirmar importação.');
     } finally {
       setSubmitting(false);
@@ -519,7 +584,7 @@ export default function TransactionImportPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Import Inbox</p>
               <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">Escolha de onde vamos revisar</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
-                CSV, OFX e XLSX, até 2 MB e 1.000 transações. Gerar preview é somente leitura: nenhum lançamento é criado nesta etapa.
+                CSV, OFX/QFX, QIF e XLSX, até 2 MB e 1.000 transações. Gerar preview é somente leitura: nenhum lançamento é criado nesta etapa.
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -551,12 +616,31 @@ export default function TransactionImportPage() {
                   />
                 </label>
               </div>
+
+              {file?.name.toLowerCase().endsWith('.qif') && (
+                <label className="mt-4 block max-w-sm text-sm font-medium text-[var(--foreground)]">
+                  Formato de data QIF
+                  <select
+                    value={qifDateOrder}
+                    onChange={(event) => setQifDateOrder(event.target.value as '' | QifDateOrder)}
+                    disabled={submitting}
+                    className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                  >
+                    <option value="">Detectar pelo arquivo</option>
+                    <option value="MDY">MM/DD — mês/dia</option>
+                    <option value="DMY">DD/MM — dia/mês</option>
+                  </select>
+                  <span className="mt-1 block text-xs font-normal text-[var(--text-muted)]">
+                    Se todas as datas forem ambíguas, escolha a convenção explicitamente.
+                  </span>
+                </label>
+              )}
             </div>
 
             <aside className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
               <p className="text-sm font-semibold text-[var(--foreground)]">Antes de continuar</p>
               <ul className="mt-3 space-y-2 text-sm leading-relaxed text-[var(--text-muted)]">
-                <li>• duplicadas nunca são selecionadas automaticamente;</li>
+                <li>• “Já importada” significa a mesma identidade de importação; não é deduplicação financeira por data/valor/descrição;</li>
                 <li>• itens inválidos precisam ser ignorados explicitamente;</li>
                 <li>• regras podem sugerir categoria, mas você continua no controle;</li>
                 <li>• a confirmação final mostra exatamente o que será criado e ignorado.</li>
@@ -591,6 +675,37 @@ export default function TransactionImportPage() {
                 <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
                   {account?.name ?? 'Conta selecionada'} · {account?.currency ?? 'moeda da conta'} · {preview.summary.total} linha(s)
                 </p>
+                <p className={`mt-1 text-xs ${previewExpiring || previewExpired ? 'text-[var(--warning)]' : 'text-[var(--text-subtle)]'}`}>
+                  {previewExpired
+                    ? 'Preview expirado — regenere antes de confirmar.'
+                    : `Preview válido até ${new Date(preview.previewExpiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`}
+                </p>
+                {preview.qifDateOrder && (
+                  <p className="mt-1 text-xs text-[var(--text-subtle)]">
+                    QIF interpretado como {preview.qifDateOrder === 'MDY' ? 'MM/DD' : 'DD/MM'}.
+                  </p>
+                )}
+                {preview.xlsxWorksheet && (
+                  <p className="mt-1 text-xs text-[var(--text-subtle)]">
+                    XLSX: aba processada <strong>{preview.xlsxWorksheet.name}</strong>
+                    {preview.xlsxWorksheet.ignoredWorksheetNames.length > 0
+                      ? ` · abas ignoradas: ${preview.xlsxWorksheet.ignoredWorksheetNames.join(', ')}`
+                      : ''}
+                  </p>
+                )}
+                {(previewExpiring || previewExpired) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => void generatePreview(true)}
+                    isLoading={submitting}
+                    loadingText="Atualizando…"
+                  >
+                    Atualizar preview preservando escolhas
+                  </Button>
+                )}
                 {preview.detectedSource === 'NUBANK_CREDIT_CARD' && (
                   <p className="mt-1 text-sm text-[var(--foreground)]">
                     Arquivo detectado: <strong>Fatura Nubank</strong>
@@ -614,7 +729,7 @@ export default function TransactionImportPage() {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="status" aria-live="polite" aria-atomic="true">
                 <InboxMetric label="Revisar" value={stateCounts.review} state="review" />
                 <InboxMetric label="Prontas" value={stateCounts.ready} state="ready" />
-                <InboxMetric label="Duplicadas" value={stateCounts.duplicate} state="duplicate" />
+                <InboxMetric label="Já importadas" value={stateCounts.duplicate} state="duplicate" />
                 <InboxMetric label="Ignoradas" value={stateCounts.ignored} state="ignored" />
               </div>
             </div>
@@ -635,6 +750,7 @@ export default function TransactionImportPage() {
                           setFilter(option.value);
                           setActiveIndex(null);
                           setMobileDetailOpen(false);
+                          setConfirmMerchantConflictBulk(false);
                         }}
                         className={`min-h-11 shrink-0 rounded-full border px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
                           filter === option.value
@@ -655,7 +771,49 @@ export default function TransactionImportPage() {
                   <Button type="button" variant="outline" size="sm" onClick={ignoreVisibleReadyItems} disabled={submitting}>
                     Ignorar prontas visíveis
                   </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={continueWithoutMerchantVisible}
+                    disabled={submitting}
+                  >
+                    {confirmMerchantConflictBulk
+                      ? 'Confirmar sem estabelecimento nos conflitos'
+                      : 'Continuar sem estabelecimento'}
+                  </Button>
                 </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <label className="min-w-0 flex-1 text-sm font-medium text-[var(--foreground)]">
+                    Categoria em lote para selecionadas visíveis
+                    <select
+                      value={bulkCategoryId}
+                      onChange={(event) => setBulkCategoryId(event.target.value)}
+                      disabled={submitting || categoryLoadError.length > 0}
+                      className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                    >
+                      <option value="">Selecione uma categoria</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name} · {category.type === 'INCOME' ? 'Receita' : 'Despesa'}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={applyCategoryToVisibleSelected}
+                    disabled={!bulkCategoryId || submitting}
+                  >
+                    Aplicar categoria
+                  </Button>
+                </div>
+                <p className="text-xs text-[var(--text-subtle)]">
+                  A categoria em lote só é aplicada a itens selecionados, válidos e do mesmo tipo. Conflitos entre regras permanecem para revisão individual.
+                </p>
 
                 <label className="block text-sm font-medium text-[var(--foreground)]">
                   Buscar na revisão
@@ -666,6 +824,7 @@ export default function TransactionImportPage() {
                       setSearch(event.target.value);
                       setActiveIndex(null);
                       setMobileDetailOpen(false);
+                      setConfirmMerchantConflictBulk(false);
                     }}
                     placeholder="Descrição, data, origem ou regra"
                     className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)]"
@@ -750,6 +909,17 @@ export default function TransactionImportPage() {
                 </p>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
+                {previewExpired && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void generatePreview(true)}
+                    disabled={submitting}
+                  >
+                    Gerar preview novamente
+                  </Button>
+                )}
                 <Button type="button" size="sm" variant="outline" onClick={resetImport} disabled={submitting}>
                   Cancelar
                 </Button>
@@ -757,7 +927,7 @@ export default function TransactionImportPage() {
                   type="button"
                   size="sm"
                   onClick={handleConfirm}
-                  disabled={selectedCount === 0 || reviewCount > 0}
+                  disabled={selectedCount === 0 || reviewCount > 0 || previewExpired}
                   isLoading={submitting}
                   loadingText="Importando…"
                 >
@@ -767,6 +937,9 @@ export default function TransactionImportPage() {
             </div>
             {reviewCount > 0 && (
               <p className="mt-2 text-sm text-[var(--warning)]">Resolva ou ignore todos os itens em “Precisa revisar” antes de confirmar.</p>
+            )}
+            {previewExpired && (
+              <p className="mt-2 text-sm text-[var(--warning)]">O token deste preview expirou. Regenere o mesmo arquivo; escolhas compatíveis são remapeadas pela identidade de importação.</p>
             )}
           </div>
 
@@ -799,7 +972,7 @@ export default function TransactionImportPage() {
               <p className="text-sm font-semibold uppercase tracking-wide text-[var(--income)]">Importação concluída</p>
               <h2 className="mt-2 text-2xl font-bold text-[var(--foreground)]">{result.created} transação(ões) criada(s)</h2>
               <p className="mt-2 text-sm text-[var(--text-muted)]">
-                {result.selected} selecionada(s) · {result.duplicates} ignorada(s) por duplicidade na confirmação.
+                {result.selected} selecionada(s) · {result.duplicates} ignorada(s) porque a mesma identidade de importação já existia na confirmação.
               </p>
             </div>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -1177,9 +1350,75 @@ function MobileImportDetail({
   ) => void;
   onClose: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const restoreFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const dialog = dialogRef.current;
+    const focusables = () =>
+      Array.from(
+        dialog?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+
+    const frame = window.requestAnimationFrame(() => {
+      focusables()[0]?.focus();
+    });
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const elements = focusables();
+      if (elements.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      restoreFocus?.focus();
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/45 p-0 lg:hidden" role="dialog" aria-label="Revisar lançamento importado">
-      <div className="max-h-[88vh] w-full overflow-y-auto rounded-t-[var(--radius-xl)] bg-[var(--background)] p-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end bg-black/45 p-0 lg:hidden">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`mobile-import-detail-${item.index}`}
+        className="max-h-[88vh] w-full overscroll-contain overflow-y-auto rounded-t-[var(--radius-xl)] bg-[var(--background)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl"
+      >
         <div className="mb-3 flex justify-end">
           <Button type="button" variant="outline" size="sm" onClick={onClose}>
             Fechar

@@ -6,6 +6,7 @@ const authMocks = vi.hoisted(() => ({
 }));
 
 const observabilityMocks = vi.hoisted(() => ({
+  logEvent: vi.fn(),
   logServerOperation: vi.fn(),
 }));
 
@@ -16,6 +17,7 @@ vi.mock("@/app/lib/observability", () => ({
     response.headers.set("x-request-id", requestId);
     return response;
   },
+  logEvent: observabilityMocks.logEvent,
   logServerOperation: observabilityMocks.logServerOperation,
 }));
 
@@ -193,6 +195,41 @@ describe("transaction import integration", () => {
     ).toBe(0);
   });
 
+  it("does not treat a similar manual transaction as an imported duplicate", async () => {
+    const { owner, account, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await prisma.transaction.create({
+      data: {
+        amount: 1_000,
+        year: 2026,
+        month: 8,
+        day: 31,
+        type: "EXPENSE",
+        kind: "NORMAL",
+        description: "Compra manual parecida",
+        status: "COMPLETED",
+        accountId: account.id,
+        categoryId: expenseCategory.id,
+        userId: owner.id,
+      },
+    });
+
+    const preview = await previewTransactionImport(
+      previewRequest(
+        account.id,
+        "data,descricao,valor\n2026-08-31,Compra manual parecida,-10.00",
+      ),
+    );
+    const body = await preview.json();
+
+    expect(preview.status).toBe(200);
+    expect(body.data.items[0]).toMatchObject({
+      description: "Compra manual parecida",
+      duplicate: false,
+    });
+  });
+
   it("keeps merchant optional during confirmation", async () => {
     const { owner, account, expenseCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -280,12 +317,45 @@ describe("transaction import integration", () => {
         startedAt: expect.any(Number),
         context: {
           result: "success",
+          source: "CSV",
+          itemCount: 2,
+          invalidCount: 0,
+          duplicateCount: 0,
           selectedCount: 1,
           createdCount: 1,
-          duplicateCount: 0,
+          skippedDuplicateCount: 0,
         },
       }),
     );
+  });
+
+  it("logs parser diagnostics without financial content", async () => {
+    const { owner, account } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    observabilityMocks.logEvent.mockClear();
+
+    const response = await previewTransactionImport(
+      previewRequest(
+        account.id,
+        'data,descricao,valor\n2026-08-31,"SEGREDO FINANCEIRO 987.65,-10.01',
+      ),
+      { requestId: "parser-diagnostic-test" },
+    );
+
+    expect(response.status).toBe(400);
+    expect(observabilityMocks.logEvent).toHaveBeenCalledWith(
+      "warn",
+      "transaction_import_parser_diagnostic",
+      {
+        requestId: "parser-diagnostic-test",
+        source: "CSV",
+        parserError: "ImportParseError",
+      },
+    );
+    const serializedLog = JSON.stringify(observabilityMocks.logEvent.mock.calls);
+    expect(serializedLog).not.toContain("SEGREDO FINANCEIRO");
+    expect(serializedLog).not.toContain("987.65");
+    expect(serializedLog).not.toContain("10.01");
   });
 
   it("keeps Nubank credit-card CSV on the dedicated parser", async () => {
@@ -341,6 +411,10 @@ describe("transaction import integration", () => {
 
     expect(preview.status).toBe(200);
     expect(body.data.summary).toEqual({ total: 1, valid: 1, invalid: 0, duplicates: 0 });
+    expect(body.data.xlsxWorksheet).toEqual({
+      name: "Principal",
+      ignoredWorksheetNames: [],
+    });
     expect(body.data.items[0]).toMatchObject({
       source: "XLSX",
       date: "2026-08-31",

@@ -223,7 +223,7 @@ test('preview aplica sugestão, override manual prevalece e confirmação persis
 });
 
 
-test('correção manual cria regra explícita e a próxima importação reutiliza a classificação', async ({ page, request }) => {
+test('correção manual aprende categoria e estabelecimento apenas quando solicitado', async ({ page, request }) => {
   test.setTimeout(90_000);
 
   const suffix = `${Date.now()}-learning-${test.info().retry}`;
@@ -231,6 +231,7 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
   const accountName = `Conta aprendizado ${suffix}`;
   const categoryName = `Categoria aprendizado ${suffix}`.slice(0, 50);
   const description = `Assinatura aprendizado ${suffix}`;
+  const merchantName = `Estabelecimento aprendizado ${suffix}`;
   const firstFile = `learning-first-${suffix}.csv`;
   const secondFile = `learning-second-${suffix}.csv`;
 
@@ -246,7 +247,7 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
   await login(page, email);
 
   const relations = await page.evaluate(
-    async ({ accountName: accountLabel, categoryName: categoryLabel }) => {
+    async ({ accountName: accountLabel, categoryName: categoryLabel, merchantName: merchantLabel }) => {
       async function create(url, data) {
         const response = await fetch(url, {
           method: 'POST',
@@ -280,9 +281,19 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
         position: 0,
       });
 
-      return { accountId: account.id, categoryId: category.id };
+      const merchant = await create('/api/merchants', {
+        name: merchantLabel,
+        description: 'Estabelecimento do aprendizado explícito',
+        isActive: true,
+      });
+
+      return {
+        accountId: account.id,
+        categoryId: category.id,
+        merchantId: merchant.id,
+      };
     },
-    { accountName, categoryName },
+    { accountName, categoryName, merchantName },
   );
 
   await page.goto('/transacoes/importar');
@@ -298,7 +309,11 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
   await expect(firstDetail).toBeVisible();
   const firstCategory = firstDetail.getByLabel('Categoria', { exact: true });
   await firstCategory.selectOption(relations.categoryId);
-  await firstDetail.getByRole('button', { name: 'Continuar sem estabelecimento', exact: true }).click();
+  const firstMerchant = firstDetail.getByLabel('Estabelecimento', { exact: true });
+  await firstMerchant.selectOption(relations.merchantId);
+  await firstDetail
+    .getByLabel('Aprender esta descrição para próximas importações', { exact: true })
+    .check();
 
   const createRuleButton = firstDetail.getByRole('button', {
     name: 'Criar regra com esta classificação',
@@ -336,7 +351,101 @@ test('correção manual cria regra explícita e a próxima importação reutiliz
   await expect(secondDetail).toBeVisible();
   await expect(secondDetail.getByText(generatedRuleName, { exact: true })).toBeVisible();
   await expect(secondDetail.getByLabel('Categoria', { exact: true })).toHaveValue(relations.categoryId);
-  await expect(secondDetail.getByText('Estabelecimento não reconhecido', { exact: true })).toBeVisible();
-  await secondDetail.getByRole('button', { name: 'Continuar sem estabelecimento', exact: true }).click();
+  await expect(secondDetail.getByText(merchantName, { exact: true })).toBeVisible();
+  await expect(secondDetail.getByLabel('Estabelecimento', { exact: true })).toHaveValue(relations.merchantId);
   await expect(secondDetail.getByText('Pronta', { exact: true })).toBeVisible();
+});
+
+
+test('detalhe mobile mantém foco, Escape e largura segura em 320/360/390', async ({ page, request }) => {
+  test.setTimeout(90_000);
+
+  const suffix = `${Date.now()}-mobile-${test.info().retry}`;
+  const email = `playwright-import-mobile-${suffix}@example.test`;
+  const description = `Compra mobile ${suffix}`;
+  const signupResponse = await request.post('/api/auth/signup', {
+    data: {
+      name: 'Playwright Import Mobile E2E',
+      email,
+      password,
+    },
+  });
+  expect(signupResponse.ok()).toBeTruthy();
+  await login(page, email);
+
+  const accountId = await page.evaluate(async (label) => {
+    const response = await fetch('/api/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: label,
+        type: 'CREDIT_DEBIT',
+        currency: 'BRL',
+        color: '#2563EB',
+        icon: 'wallet',
+        description: 'Conta do teste mobile',
+        isActive: true,
+      }),
+    });
+    const body = await response.json();
+    if (!response.ok) throw new Error(JSON.stringify(body));
+    return body.data.id;
+  }, `Conta mobile ${suffix}`);
+
+  const hideValues = await page.evaluate(async () => {
+    const response = await fetch('/api/user', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ showValues: false }),
+    });
+    return response.ok;
+  });
+  expect(hideValues).toBe(true);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/transacoes/importar');
+  await page.getByRole('combobox').first().selectOption(accountId);
+  await page.getByLabel('Arquivo', { exact: true }).setInputFiles({
+    name: `mobile-${suffix}.csv`,
+    mimeType: 'text/csv',
+    buffer: Buffer.from(`data;descricao;valor\n2026-10-07;${description};-39.90`),
+  });
+  await page.getByRole('button', { name: 'Revisar arquivo', exact: true }).click();
+
+  const row = page.locator('li').filter({ hasText: description }).getByRole('button').first();
+  await expect(row).toBeVisible();
+  expect((await page.locator('body').innerText()).includes('39,90')).toBe(false);
+  const leakedAccessibleAmounts = await page.locator('[aria-label], [title]').evaluateAll(
+    (elements) =>
+      elements
+        .map((element) =>
+          [element.getAttribute('aria-label'), element.getAttribute('title')]
+            .filter(Boolean)
+            .join(' '),
+        )
+        .filter((value) => value.includes('39,90') || value.includes('3990')),
+  );
+  expect(leakedAccessibleAmounts).toEqual([]);
+
+  for (const width of [320, 360, 390]) {
+    await page.setViewportSize({ width, height: 760 });
+    await row.click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute('aria-modal', 'true');
+
+    const box = await dialog.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.width).toBeLessThanOrEqual(width);
+
+    await page.keyboard.press('Shift+Tab');
+    expect(await page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]'))))
+      .toBe(true);
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(row).toBeFocused();
+  }
 });

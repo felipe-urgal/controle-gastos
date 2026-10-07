@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt, { JwtPayload, TokenExpiredError } from "jsonwebtoken";
 
 import type { PreviewImportItem } from "@/app/lib/transactions/import/parser";
 
 const PREVIEW_ISSUER = "controle-gastos-import-preview";
 const PREVIEW_AUDIENCE = "controle-gastos-import-confirm";
-const PREVIEW_TTL = "20m";
+export const IMPORT_PREVIEW_TTL_SECONDS = 20 * 60;
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
@@ -47,8 +47,15 @@ export function signImportPreviewToken(params: {
     subject: params.userId,
     issuer: PREVIEW_ISSUER,
     audience: PREVIEW_AUDIENCE,
-    expiresIn: PREVIEW_TTL,
+    expiresIn: IMPORT_PREVIEW_TTL_SECONDS,
   });
+}
+
+export class ImportPreviewTokenExpiredError extends Error {
+  constructor() {
+    super("IMPORT_PREVIEW_EXPIRED");
+    this.name = "ImportPreviewTokenExpiredError";
+  }
 }
 
 export function verifyImportPreviewToken(params: {
@@ -57,12 +64,20 @@ export function verifyImportPreviewToken(params: {
   accountId: string;
   items: PreviewImportItem[];
 }) {
-  const payload = jwt.verify(params.token, getJwtSecret(), {
-    algorithms: ["HS256"],
-    issuer: PREVIEW_ISSUER,
-    audience: PREVIEW_AUDIENCE,
-    subject: params.userId,
-  }) as JwtPayload;
+  let payload: JwtPayload;
+  try {
+    payload = jwt.verify(params.token, getJwtSecret(), {
+      algorithms: ["HS256"],
+      issuer: PREVIEW_ISSUER,
+      audience: PREVIEW_AUDIENCE,
+      subject: params.userId,
+    }) as JwtPayload;
+  } catch (error) {
+    if (error instanceof TokenExpiredError) {
+      throw new ImportPreviewTokenExpiredError();
+    }
+    throw error;
+  }
 
   const expectedDigest = createPreviewDigest({ accountId: params.accountId, items: params.items });
   if (payload.digest !== expectedDigest) throw new Error("INVALID_PREVIEW_TOKEN");

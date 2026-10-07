@@ -1,12 +1,18 @@
 import { z } from "zod";
 
+import { IMPORT_MAX_ITEMS } from "@/app/lib/transactions/import/parser";
+import {
+  TRANSACTION_DESCRIPTION_MAX_LENGTH,
+  TRANSACTION_MAX_AMOUNT_CENTS,
+} from "@/app/lib/transactions/transaction-field-contract";
+
 const previewItemSchema = z.object({
   index: z.number().int().min(0),
   source: z.enum(["CSV", "OFX", "QIF", "XLSX"]),
   date: z.string(),
-  amountCents: z.number().int().min(0).max(1_000_000_000),
+  amountCents: z.number().int().min(0).max(TRANSACTION_MAX_AMOUNT_CENTS),
   type: z.enum(["INCOME", "EXPENSE"]),
-  description: z.string().max(100),
+  description: z.string().max(TRANSACTION_DESCRIPTION_MAX_LENGTH),
   externalId: z.string().max(191).optional(),
   currency: z.string().length(3).optional(),
   errors: z.array(z.string()),
@@ -28,7 +34,7 @@ export const confirmTransactionImportSchema = z.object({
         .optional()
         .default("EQUALS"),
     }),
-  ).min(1).max(1000),
+  ).min(1).max(IMPORT_MAX_ITEMS),
 });
 
 export type ConfirmTransactionImportInput = z.infer<typeof confirmTransactionImportSchema>;

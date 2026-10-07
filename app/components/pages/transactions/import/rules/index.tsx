@@ -15,12 +15,10 @@ import {
   importRuleToFormState,
   type ImportRuleFormState,
 } from '@/app/lib/import-rules/import-rule-form';
-import {
-  findImportRuleRelationships,
-  type ImportRuleRelationship,
-} from '@/app/lib/import-rules/import-rule-guards';
+import type { ImportRuleRelationship } from '@/app/lib/import-rules/import-rule-guards';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
+import { ApiClientError } from '@/app/services/api-client';
 import { importRuleService } from '@/app/services/import-rule-service';
 import type { AccountModel } from '@/app/types/account';
 import type { CategoryModel } from '@/app/types/category';
@@ -98,17 +96,47 @@ function amountRangeLabel(
   return `até ${formatAmount(max!)}`;
 }
 
+const RULES_PAGE_SIZE = 20;
+
+function effectiveStateLabel(rule: ImportRuleModel) {
+  if (rule.effectiveState === 'OPERATIONAL') return 'Operacional';
+  if (rule.effectiveState === 'PAUSED') return 'Pausada';
+  if (rule.effectiveState === 'BROKEN_CATEGORY') return 'Categoria indisponível';
+  return 'Conta indisponível';
+}
+
+function effectiveStateClass(rule: ImportRuleModel) {
+  if (rule.effectiveState === 'OPERATIONAL') {
+    return 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]';
+  }
+  if (rule.effectiveState === 'PAUSED') {
+    return 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-muted)]';
+  }
+  return 'border-[var(--warning)]/40 bg-[var(--warning-subtle)] text-[var(--warning)]';
+}
+
 export default function ImportRuleManagementPage() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [rules, setRules] = useState<ImportRuleModel[]>([]);
+  const [rulesTotal, setRulesTotal] = useState(0);
+  const [rulesTotalPages, setRulesTotalPages] = useState(1);
+  const [nextPriority, setNextPriority] = useState(0);
+  const [rulesPage, setRulesPage] = useState(1);
+  const [rulesSearchInput, setRulesSearchInput] = useState('');
+  const [rulesSearch, setRulesSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'true' | 'false'>('all');
+  const [accountFilter, setAccountFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'' | ImportRuleTransactionType>('');
+  const [rulesRevision, setRulesRevision] = useState(0);
   const [form, setForm] = useState<ImportRuleFormState>(() => emptyImportRuleForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingRelations, setLoadingRelations] = useState(true);
+  const [loadingRules, setLoadingRules] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [dependencyWarning, setDependencyWarning] = useState('');
@@ -117,58 +145,104 @@ export default function ImportRuleManagementPage() {
   const [rulesUnavailable, setRulesUnavailable] = useState(false);
   const [retryingSource, setRetryingSource] = useState<'accounts' | 'categories' | 'rules' | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [ruleImpact, setRuleImpact] = useState<ImportRuleRelationship[]>([]);
+  const [impactLoading, setImpactLoading] = useState(false);
+
+  const ruleQuery = useMemo(
+    () => ({
+      page: rulesPage,
+      pageSize: RULES_PAGE_SIZE,
+      ...(rulesSearch ? { search: rulesSearch } : {}),
+      ...(activeFilter === 'all' ? {} : { isActive: activeFilter }),
+      ...(accountFilter ? { accountId: accountFilter } : {}),
+      ...(typeFilter ? { transactionType: typeFilter } : {}),
+    }),
+    [accountFilter, activeFilter, rulesPage, rulesSearch, typeFilter],
+  );
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError('');
+    const timeout = window.setTimeout(() => {
+      setRulesPage(1);
+      setRulesSearch(rulesSearchInput.trim());
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [rulesSearchInput]);
+
+  useEffect(() => {
+    async function loadRelations() {
+      setLoadingRelations(true);
       setDependencyWarning('');
 
-      const [accountResult, categoryResult, ruleResult] = await Promise.allSettled([
+      const [accountResult, categoryResult] = await Promise.allSettled([
         accountService.getAll(),
         categoryService.getAll(),
-        importRuleService.getAll(),
       ]);
 
       const nextAccountUnavailable = accountResult.status !== 'fulfilled';
       const nextCategoryUnavailable = categoryResult.status !== 'fulfilled';
-
       setAccountUnavailable(nextAccountUnavailable);
       setCategoryUnavailable(nextCategoryUnavailable);
 
-      if (accountResult.status === 'fulfilled') {
-        setAccounts((accountResult.value.data?.items ?? []).filter((account) => account.isActive));
-      } else {
-        setAccounts([]);
-      }
-
-      if (categoryResult.status === 'fulfilled') {
-        setCategories((categoryResult.value.data?.items ?? []).filter((category) => category.isActive));
-      } else {
-        setCategories([]);
-      }
-
-      if (ruleResult.status === 'fulfilled') {
-        setRules([...(ruleResult.value.data?.items ?? [])].sort(ruleOrder));
-        setRulesUnavailable(false);
-      } else {
-        setRules([]);
-        setRulesUnavailable(true);
-        setError(
-          ruleResult.reason instanceof Error
-            ? ruleResult.reason.message
-            : 'Não foi possível carregar as regras de importação.',
-        );
-      }
-
+      setAccounts(
+        accountResult.status === 'fulfilled'
+          ? (accountResult.value.data?.items ?? []).filter((account) => account.isActive)
+          : [],
+      );
+      setCategories(
+        categoryResult.status === 'fulfilled'
+          ? (categoryResult.value.data?.items ?? []).filter((category) => category.isActive)
+          : [],
+      );
       setDependencyWarning(
         ruleDependencyWarning(nextAccountUnavailable, nextCategoryUnavailable),
       );
-      setLoading(false);
+      setLoadingRelations(false);
     }
 
-    void load();
+    void loadRelations();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRules() {
+      setLoadingRules(true);
+      try {
+        const response = await importRuleService.getAll(ruleQuery);
+        if (cancelled) return;
+        const data = response.data;
+        const totalPages = Math.max(1, data.totalPages ?? Math.ceil(data.total / RULES_PAGE_SIZE));
+        if (rulesPage > totalPages) {
+          setRulesPage(totalPages);
+          return;
+        }
+        setRules([...(data.items ?? [])].sort(ruleOrder));
+        setRulesTotal(data.total ?? 0);
+        setRulesTotalPages(totalPages);
+        setNextPriority(data.summary?.nextPriority ?? 0);
+        setRulesUnavailable(false);
+        setError('');
+      } catch (cause) {
+        if (cancelled) return;
+        setRules([]);
+        setRulesUnavailable(true);
+        setError(
+          cause instanceof ApiClientError && cause.code === 'PAGINATION_REQUIRED'
+            ? 'A lista de regras exige paginação. A tela já solicita páginas server-side; tente recarregar a listagem.'
+            : cause instanceof Error
+              ? cause.message
+              : 'Não foi possível carregar as regras de importação.',
+        );
+      } finally {
+        if (!cancelled) setLoadingRules(false);
+      }
+    }
+
+    void loadRules();
+    return () => {
+      cancelled = true;
+    };
+  }, [ruleQuery, rulesPage, rulesRevision]);
 
   async function retryAccounts() {
     setRetryingSource('accounts');
@@ -202,21 +276,8 @@ export default function ImportRuleManagementPage() {
 
   async function retryRules() {
     setRetryingSource('rules');
-    try {
-      const response = await importRuleService.getAll();
-      setRules([...(response.data?.items ?? [])].sort(ruleOrder));
-      setRulesUnavailable(false);
-      setError('');
-    } catch (cause) {
-      setRulesUnavailable(true);
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : 'Não foi possível carregar as regras de importação.',
-      );
-    } finally {
-      setRetryingSource(null);
-    }
+    setRulesRevision((current) => current + 1);
+    setRetryingSource(null);
   }
 
   const accountById = useMemo(
@@ -234,21 +295,43 @@ export default function ImportRuleManagementPage() {
   const selectedRuleAccount = form.accountId
     ? accountById.get(form.accountId) ?? null
     : null;
-  const nextPriority = useMemo(() => {
-    if (rules.length === 0) return 0;
-    return Math.max(...rules.map((rule) => rule.priority)) + 10;
-  }, [rules]);
-  const ruleImpact = useMemo(() => {
-    if (!formOpen) return [];
+  useEffect(() => {
+    if (!formOpen) return;
 
-    try {
-      return findImportRuleRelationships(importRuleFormToInput(form), rules, {
-        excludeRuleId: editingId ?? undefined,
-      });
-    } catch {
-      return [];
-    }
-  }, [editingId, form, formOpen, rules]);
+    let cancelled = false;
+    const timeout = window.setTimeout(async () => {
+      let input: ReturnType<typeof importRuleFormToInput>;
+      try {
+        input = importRuleFormToInput(form);
+      } catch {
+        if (!cancelled) {
+          setRuleImpact([]);
+          setImpactLoading(false);
+        }
+        return;
+      }
+
+      setImpactLoading(true);
+      try {
+        const response = await importRuleService.impact(
+          input,
+          editingId ?? undefined,
+        );
+        if (!cancelled) {
+          setRuleImpact(response.data.relationships ?? []);
+        }
+      } catch {
+        if (!cancelled) setRuleImpact([]);
+      } finally {
+        if (!cancelled) setImpactLoading(false);
+      }
+    }, 200);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [editingId, form, formOpen]);
 
   function clearMessages() {
     setError('');
@@ -258,6 +341,8 @@ export default function ImportRuleManagementPage() {
   function closeForm() {
     setFormOpen(false);
     setEditingId(null);
+    setRuleImpact([]);
+    setImpactLoading(false);
     setForm(emptyImportRuleForm(nextPriority));
   }
 
@@ -297,9 +382,10 @@ export default function ImportRuleManagementPage() {
         replaceRule(response.data);
         setSuccessMessage('Regra atualizada com sucesso.');
       } else {
-        setRules((current) => [...current, response.data].sort(ruleOrder));
         setSuccessMessage('Regra criada com sucesso.');
+        setRulesPage(1);
       }
+      setRulesRevision((current) => current + 1);
       closeForm();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível salvar a regra.');
@@ -320,6 +406,7 @@ export default function ImportRuleManagementPage() {
       setSuccessMessage(
         response.data.isActive ? 'Regra ativada com sucesso.' : 'Regra pausada com sucesso.',
       );
+      setRulesRevision((current) => current + 1);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível alterar o estado da regra.');
     } finally {
@@ -339,11 +426,34 @@ export default function ImportRuleManagementPage() {
     try {
       await importRuleService.delete(rule.id);
       setRules((current) => current.filter((candidate) => candidate.id !== rule.id));
+      setRulesRevision((current) => current + 1);
       setPendingDeleteId(null);
       if (editingId === rule.id) closeForm();
       setSuccessMessage('Regra removida com sucesso.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível remover a regra.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function renumberRules() {
+    setSubmitting(true);
+    clearMessages();
+    try {
+      const response = await importRuleService.renumber();
+      setNextPriority(response.data.nextPriority);
+      setRulesPage(1);
+      setRulesRevision((current) => current + 1);
+      setSuccessMessage(
+        `${response.data.updated} regra(s) renumerada(s) em passos de 10.`,
+      );
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Não foi possível renumerar as prioridades.',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -359,6 +469,8 @@ export default function ImportRuleManagementPage() {
       };
     });
   }
+
+  const loading = loadingRelations || loadingRules;
 
   return (
     <ProtectedRoute>
@@ -438,23 +550,98 @@ export default function ImportRuleManagementPage() {
                   Suas regras
                 </h2>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  {rules.length} regra(s), já na ordem em que serão avaliadas.
+                  {rulesTotal} regra(s) · página {rulesPage} de {rulesTotalPages}.
                 </p>
               </div>
-              <Button type="button" size="sm" onClick={openCreate} disabled={loading || submitting}>
-                Nova regra
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void renumberRules()}
+                  disabled={loading || submitting || rulesTotal === 0}
+                >
+                  Renumerar prioridades
+                </Button>
+                <Button type="button" size="sm" onClick={openCreate} disabled={loading || submitting}>
+                  Nova regra
+                </Button>
+              </div>
             </header>
 
-            {loading ? (
+            <div className="grid gap-3 border-b border-[var(--border)] p-4 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="text-sm font-medium text-[var(--foreground)] sm:col-span-2 lg:col-span-1">
+                Buscar
+                <input
+                  type="search"
+                  value={rulesSearchInput}
+                  onChange={(event) => setRulesSearchInput(event.target.value)}
+                  placeholder="Nome ou padrão"
+                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                />
+              </label>
+              <label className="text-sm font-medium text-[var(--foreground)]">
+                Estado
+                <select
+                  value={activeFilter}
+                  onChange={(event) => {
+                    setActiveFilter(event.target.value as 'all' | 'true' | 'false');
+                    setRulesPage(1);
+                  }}
+                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                >
+                  <option value="all">Todas</option>
+                  <option value="true">Configuradas como ativas</option>
+                  <option value="false">Pausadas</option>
+                </select>
+              </label>
+              <label className="text-sm font-medium text-[var(--foreground)]">
+                Conta
+                <select
+                  value={accountFilter}
+                  onChange={(event) => {
+                    setAccountFilter(event.target.value);
+                    setRulesPage(1);
+                  }}
+                  disabled={accountUnavailable}
+                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 disabled:opacity-50"
+                >
+                  <option value="">Todas as contas</option>
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>{account.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium text-[var(--foreground)]">
+                Tipo
+                <select
+                  value={typeFilter}
+                  onChange={(event) => {
+                    setTypeFilter(event.target.value as '' | ImportRuleTransactionType);
+                    setRulesPage(1);
+                  }}
+                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                >
+                  <option value="">Receitas e despesas</option>
+                  <option value="EXPENSE">Despesas</option>
+                  <option value="INCOME">Receitas</option>
+                </select>
+              </label>
+            </div>
+
+            {loadingRules ? (
               <p className="p-6 text-sm text-[var(--text-muted)]" role="status">
                 Carregando regras…
               </p>
             ) : rules.length === 0 ? (
               <div className="p-6">
-                <p className="font-medium text-[var(--foreground)]">Nenhuma regra cadastrada.</p>
+                <p className="font-medium text-[var(--foreground)]">
+                  {rulesTotal === 0 ? 'Nenhuma regra cadastrada.' : 'Nenhuma regra corresponde aos filtros.'}
+                </p>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  Crie uma regra para sugerir categoria e descrição durante o preview.
+                  {rulesTotal === 0
+                    ? 'Crie uma regra para sugerir categoria durante o preview.'
+                    : 'Ajuste a busca ou os filtros para continuar.'}
                 </p>
               </div>
             ) : (
@@ -471,13 +658,9 @@ export default function ImportRuleManagementPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <strong className="break-words text-[var(--foreground)]">{rule.name}</strong>
                             <span
-                              className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                                rule.isActive
-                                  ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]'
-                                  : 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-muted)]'
-                              }`}
+                              className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${effectiveStateClass(rule)}`}
                             >
-                              {rule.isActive ? 'Ativa' : 'Pausada'}
+                              {effectiveStateLabel(rule)}
                             </span>
                             <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--text-muted)]">
                               prioridade {rule.priority}
@@ -503,7 +686,9 @@ export default function ImportRuleManagementPage() {
                             disabled={submitting}
                             onClick={() => openEdit(rule)}
                           >
-                            Editar
+                            {rule.effectiveState === 'BROKEN_ACCOUNT' || rule.effectiveState === 'BROKEN_CATEGORY'
+                              ? 'Corrigir dependência'
+                              : 'Editar'}
                           </Button>
                           <Button
                             type="button"
@@ -540,6 +725,34 @@ export default function ImportRuleManagementPage() {
                   );
                 })}
               </ul>
+            )}
+
+            {!loadingRules && rulesTotal > 0 && (
+              <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] p-4">
+                <p className="text-sm text-[var(--text-muted)]">
+                  Mostrando {rules.length} de {rulesTotal} regra(s).
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={rulesPage <= 1 || submitting}
+                    onClick={() => setRulesPage((current) => Math.max(1, current - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={rulesPage >= rulesTotalPages || submitting}
+                    onClick={() => setRulesPage((current) => Math.min(rulesTotalPages, current + 1))}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </footer>
             )}
           </section>
 
@@ -705,24 +918,30 @@ export default function ImportRuleManagementPage() {
                   </div>
                 )}
 
-                {ruleImpact.length > 0 && (
+                {(impactLoading || ruleImpact.length > 0) && (
                   <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
                     <p className="text-sm font-semibold text-[var(--foreground)]">
                       Impacto potencial
                     </p>
-                    <ul className="mt-2 space-y-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                      {ruleImpact.map((relationship) => (
-                        <li key={relationship.kind === 'NONE' ? 'none' : relationship.ruleId}>
-                          {relationship.kind === 'NONE' ? null : (
-                            <>
-                              <strong className="text-[var(--foreground)]">{relationship.ruleName}</strong>
-                              {' — '}
-                              {impactLabel(relationship)}
-                            </>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
+                    {impactLoading ? (
+                      <p className="mt-2 text-xs text-[var(--text-muted)]" role="status">
+                        Verificando todas as regras compatíveis…
+                      </p>
+                    ) : (
+                      <ul className="mt-2 space-y-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                        {ruleImpact.map((relationship) => (
+                          <li key={relationship.kind === 'NONE' ? 'none' : relationship.ruleId}>
+                            {relationship.kind === 'NONE' ? null : (
+                              <>
+                                <strong className="text-[var(--foreground)]">{relationship.ruleName}</strong>
+                                {' — '}
+                                {impactLabel(relationship)}
+                              </>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 )}
 

@@ -1,3 +1,4 @@
+import { normalizeImportRuleText } from '@/app/lib/import-rules/import-rule-normalization';
 import type {
   ImportRuleDescriptionOperator,
   ImportRuleInput,
@@ -7,6 +8,8 @@ import {
   evaluateMatchedImportRules,
   type ImportRule,
 } from '@/app/lib/transactions/import-rules';
+
+export const normalizeImportRulePattern = normalizeImportRuleText;
 
 export const BROAD_IMPORT_RULE_MIN_PATTERN_LENGTH = 3;
 
@@ -45,15 +48,11 @@ export type ImportRuleRelationship =
       resolution: ImportRuleOverlapResolution;
     };
 
-export function normalizeImportRulePattern(value: string) {
-  return value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase();
-}
-
 export function assertImportRulePatternIsSafe(
   operator: ImportRuleDescriptionOperator,
   pattern: string,
 ) {
-  const normalized = normalizeImportRulePattern(pattern);
+  const normalized = normalizeImportRuleText(pattern);
 
   if (!normalized) {
     throw new Error('Padrão da descrição é obrigatório');
@@ -74,7 +73,7 @@ export function importRuleMatcherKey(rule: ImportRuleMatcher) {
     rule.accountId ?? null,
     rule.transactionType,
     rule.descriptionOperator,
-    normalizeImportRulePattern(rule.descriptionPattern),
+    normalizeImportRuleText(rule.descriptionPattern),
     rule.minAmountCents ?? null,
     rule.maxAmountCents ?? null,
   ]);
@@ -119,8 +118,8 @@ function descriptionMatchersMayOverlap(
   left: ComparableImportRule,
   right: ComparableImportRule,
 ) {
-  const leftPattern = normalizeImportRulePattern(left.descriptionPattern);
-  const rightPattern = normalizeImportRulePattern(right.descriptionPattern);
+  const leftPattern = normalizeImportRuleText(left.descriptionPattern);
+  const rightPattern = normalizeImportRuleText(right.descriptionPattern);
   if (!leftPattern || !rightPattern) return false;
 
   if (left.descriptionOperator === 'EQUALS') {

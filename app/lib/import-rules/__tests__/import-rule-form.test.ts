@@ -13,6 +13,7 @@ const rule: ImportRuleModel = {
   id: "11111111-1111-4111-8111-111111111111",
   name: "Mercado",
   isActive: true,
+  effectiveState: "OPERATIONAL",
   priority: 20,
   accountId: null,
   transactionType: "EXPENSE",

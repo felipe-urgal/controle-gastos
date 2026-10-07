@@ -65,6 +65,36 @@ async function assertRuleReferences(
   }
 }
 
+function isPauseOnlyUpdate(
+  existing: {
+    name: string;
+    isActive: boolean;
+    priority: number;
+    accountId: string | null;
+    transactionType: string;
+    descriptionOperator: string;
+    descriptionPattern: string;
+    minAmountCents: number | null;
+    maxAmountCents: number | null;
+    categoryId: string;
+  },
+  input: ImportRuleInput,
+) {
+  return (
+    existing.isActive &&
+    input.isActive === false &&
+    existing.name === input.name &&
+    existing.priority === input.priority &&
+    existing.accountId === input.accountId &&
+    existing.transactionType === input.transactionType &&
+    existing.descriptionOperator === input.descriptionOperator &&
+    existing.descriptionPattern === input.descriptionPattern &&
+    existing.minAmountCents === input.minAmountCents &&
+    existing.maxAmountCents === input.maxAmountCents &&
+    existing.categoryId === input.categoryId
+  );
+}
+
 async function assertRuleGuards(
   db: Prisma.TransactionClient,
   input: ImportRuleInput,
@@ -121,16 +151,41 @@ async function assertRuleGuards(
   }
 }
 
+const importRuleDependencies = {
+  account: {
+    select: {
+      isActive: true,
+    },
+  },
+  category: {
+    select: {
+      isActive: true,
+      type: true,
+    },
+  },
+} as const;
+
 const baseImportRuleCrud = baseCrudHandler({
   model: (db) => db.transactionImportRule,
   entityName: "Regra de importação",
   createSchema: importRuleInputSchema,
   updateSchema: importRuleInputSchema,
+  include: importRuleDependencies,
   filterableFields: ["isActive", "accountId", "transactionType"],
   searchableFields: ["name", "descriptionPattern"],
-  orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+  orderBy: [{ priority: "asc" }, { createdAt: "asc" }, { id: "asc" }],
   limit: true,
   mapper: toImportRuleDTO,
+  async summary({ userId }) {
+    const aggregate = await prisma.transactionImportRule.aggregate({
+      where: { userId },
+      _max: { priority: true },
+    });
+    const currentMax = aggregate._max.priority;
+    const nextPriority =
+      currentMax === null ? 0 : Math.min(currentMax + 10, 2_147_483_647);
+    return { nextPriority };
+  },
 
   async beforeCreate(data, userId) {
     return prisma.$transaction(async (tx) => {
@@ -143,6 +198,7 @@ const baseImportRuleCrud = baseCrudHandler({
           ...data,
           userId,
         },
+        include: importRuleDependencies,
       });
     });
   },
@@ -163,19 +219,22 @@ async function updateImportRule(
       await lockImportRuleMutations(tx, userId);
       const existing = await tx.transactionImportRule.findFirst({
         where: { id, userId },
-        select: { id: true },
       });
 
       if (!existing) {
         throw new HttpError("Regra de importação não encontrada", 404);
       }
 
-      await assertRuleReferences(tx, input, userId);
-      await assertRuleGuards(tx, input, userId, id);
+      const pauseOnly = isPauseOnlyUpdate(existing, input);
+      if (!pauseOnly) {
+        await assertRuleReferences(tx, input, userId);
+        await assertRuleGuards(tx, input, userId, id);
+      }
 
       return tx.transactionImportRule.update({
         where: { id },
         data: input,
+        include: importRuleDependencies,
       });
     });
 
@@ -197,6 +256,37 @@ async function updateImportRule(
     }
 
     return failure("Erro ao atualizar regra de importação", 500);
+  }
+}
+
+export async function renumberImportRules() {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const result = await prisma.$transaction(async (tx) => {
+      await lockImportRuleMutations(tx, userId);
+      const rules = await tx.transactionImportRule.findMany({
+        where: { userId },
+        orderBy: [{ priority: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+        select: { id: true },
+      });
+
+      for (const [index, rule] of rules.entries()) {
+        await tx.transactionImportRule.update({
+          where: { id: rule.id },
+          data: { priority: index * 10 },
+        });
+      }
+
+      return {
+        updated: rules.length,
+        nextPriority: rules.length * 10,
+      };
+    });
+
+    return success(result, "Prioridades renumeradas com sucesso");
+  } catch (error) {
+    if (isUnauthorizedError(error)) return failure("Não autenticado", 401);
+    return failure("Não foi possível renumerar as prioridades", 500);
   }
 }
 

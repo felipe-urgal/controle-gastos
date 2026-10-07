@@ -44,6 +44,42 @@ describe("apiClient errors", () => {
     });
   });
 
+  it("exposes Retry-After for callers that need actionable throttling UX", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: {
+              code: "IMPORT_PREVIEW_RATE_LIMITED",
+              message: "Muitas operações",
+            },
+          }),
+          {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+              "Retry-After": "42",
+            },
+          },
+        ),
+      ),
+    );
+
+    const error = await apiClient("/api/transactions/import/preview", {
+      method: "POST",
+      body: new FormData(),
+    }).catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(ApiClientError);
+    expect(error).toMatchObject({
+      status: 429,
+      code: "IMPORT_PREVIEW_RATE_LIMITED",
+      retryAfterSeconds: 42,
+    });
+  });
+
   it("keeps the HTTP status when the error body is not JSON", async () => {
     vi.stubGlobal(
       "fetch",

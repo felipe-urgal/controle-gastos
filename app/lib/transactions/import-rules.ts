@@ -1,3 +1,7 @@
+import { normalizeImportRuleText } from "@/app/lib/import-rules/import-rule-normalization";
+
+export { normalizeImportRuleText } from "@/app/lib/import-rules/import-rule-normalization";
+
 export type ImportRuleDescriptionOperator =
   | "EQUALS"
   | "STARTS_WITH"
@@ -36,14 +40,6 @@ export type ImportRuleMatch = {
   alsoMatchingRuleIds: string[];
   alsoMatchingRuleNames: string[];
 };
-
-export function normalizeImportRuleText(value: string) {
-  return value
-    .normalize("NFKC")
-    .trim()
-    .replace(/\s+/g, " ")
-    .toLowerCase();
-}
 
 function descriptionOperatorSpecificity(
   operator: ImportRuleDescriptionOperator

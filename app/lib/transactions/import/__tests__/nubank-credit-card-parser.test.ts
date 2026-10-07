@@ -34,6 +34,24 @@ describe("Nubank credit card CSV parser", () => {
     expect(parsed.items[3].description).toBe("Loja Parcela 2/6");
   });
 
+  it("activates the institution parser only for the exact exported contract", () => {
+    expect(
+      isNubankCreditCardCsv(
+        ["date,title,amount", "2026-09-01,Compra,10.00"].join("\n"),
+      ),
+    ).toBe(true);
+    expect(
+      isNubankCreditCardCsv(
+        ["date,description,amount", "2026-09-01,Compra,10.00"].join("\n"),
+      ),
+    ).toBe(false);
+    expect(
+      isNubankCreditCardCsv(
+        ["date,title,amount,category", "2026-09-01,Compra,10.00,Outros"].join("\n"),
+      ),
+    ).toBe(false);
+  });
+
   it("keeps received payment outside common transaction import", () => {
     const parsed = parseNubankCreditCardCsv([
       "date,title,amount",

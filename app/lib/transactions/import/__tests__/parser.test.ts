@@ -10,7 +10,10 @@ import {
   parseQifImport,
   withImportFingerprints,
 } from "@/app/lib/transactions/import/parser";
-import { parseXlsxImport } from "@/app/lib/transactions/import/xlsx-parser";
+import {
+  parseXlsxImport,
+  parseXlsxImportWithMetadata,
+} from "@/app/lib/transactions/import/xlsx-parser";
 import {
   createXlsxFixture,
   xlsxFormula,
@@ -75,8 +78,8 @@ describe("transaction import parser", () => {
     ]);
   });
 
-  it("uses only the first XLSX worksheet", () => {
-    const items = parseXlsxImport(createXlsxFixture({
+  it("uses only the first XLSX worksheet and reports ignored tabs", () => {
+    const parsed = parseXlsxImportWithMetadata(createXlsxFixture({
       rows: [
         [xlsxText("data"), xlsxText("descricao"), xlsxText("valor")],
         [xlsxText("2026-08-31"), xlsxText("Primeira"), xlsxNumber("-12.50")],
@@ -87,8 +90,10 @@ describe("transaction import parser", () => {
       ],
     }));
 
-    expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ description: "Primeira", amountCents: 1250 });
+    expect(parsed.worksheetName).toBe("Principal");
+    expect(parsed.ignoredWorksheetNames).toEqual(["Secundaria"]);
+    expect(parsed.items).toHaveLength(1);
+    expect(parsed.items[0]).toMatchObject({ description: "Primeira", amountCents: 1250 });
   });
 
   it("rejects formulas as XLSX data sources", () => {
@@ -183,6 +188,54 @@ describe("transaction import parser", () => {
     expect(first[0].fingerprint).not.toBe(first[1].fingerprint);
   });
 
+  it("keeps occurrence identity stable across partial overlap and unrelated reordering", () => {
+    const firstFile = withImportFingerprints({
+      userId: "u1",
+      accountId: "a1",
+      items: parseCsvImport([
+        "data,descricao,valor",
+        "2026-08-31,Café,-10.00",
+        "2026-08-30,Padaria,-5.00",
+        "2026-08-31,Café,-10.00",
+      ].join("\n")),
+    });
+    const reordered = withImportFingerprints({
+      userId: "u1",
+      accountId: "a1",
+      items: parseCsvImport([
+        "data,descricao,valor",
+        "2026-08-31,Café,-10.00",
+        "2026-08-31,Café,-10.00",
+        "2026-08-30,Padaria,-5.00",
+      ].join("\n")),
+    });
+    const partial = withImportFingerprints({
+      userId: "u1",
+      accountId: "a1",
+      items: parseCsvImport("data,descricao,valor\n2026-08-31,Café,-10.00"),
+    });
+
+    expect(reordered.map((item) => item.fingerprint).sort())
+      .toEqual(firstFile.map((item) => item.fingerprint).sort());
+    expect(partial[0].fingerprint).toBe(firstFile[0].fingerprint);
+    expect(firstFile[0].fingerprint).not.toBe(firstFile[2].fingerprint);
+  });
+
+  it("prefers external identity over mutable transaction text", () => {
+    const [first] = withImportFingerprints({
+      userId: "u1",
+      accountId: "a1",
+      items: parseCsvImport("data,descricao,valor,id\n2026-08-31,Café,-10.00,bank-42"),
+    });
+    const [changed] = withImportFingerprints({
+      userId: "u1",
+      accountId: "a1",
+      items: parseCsvImport("data,descricao,valor,id\n2026-09-01,Café corrigido,-11.00,bank-42"),
+    });
+
+    expect(changed.fingerprint).toBe(first.fingerprint);
+  });
+
   it("rejects files above the transaction count limit", () => {
     const rows = Array.from({ length: IMPORT_MAX_ITEMS + 1 }, (_, index) => `2026-08-31,item ${index},-1.00`);
     expect(() => parseCsvImport(["data,descricao,valor", ...rows].join("\n"))).toThrow(ImportParseError);
@@ -201,49 +254,85 @@ describe("transaction import parser", () => {
     })).toThrow("Moeda do OFX (USD) difere da moeda da conta (BRL).");
   });
 
-  it("parses QIF income/expense, payee/memo and common date forms", () => {
-    const { items, sectionType } = parseQifImport([
+  it("infers QIF date convention only from unambiguous evidence", () => {
+    const us = parseQifImport([
       "!Type:Bank",
       "D8/31'26",
       "T-42.37",
       "PMercado",
-      "MCompra do mês",
       "^",
+      "D8/9/2026",
+      "T10.00",
+      "PEntrada",
+      "^",
+    ].join("\n"));
+    expect(us.dateOrder).toBe("MDY");
+    expect(us.items.map((item) => item.date)).toEqual([
+      "2026-08-31",
+      "2026-08-09",
+    ]);
+
+    const br = parseQifImport([
+      "!Type:Bank",
       "D31/08/2026",
-      "T1234.56",
-      "PSalário",
+      "T-42.37",
+      "PMercado",
+      "^",
+      "D9/8/2026",
+      "T10.00",
+      "PEntrada",
+      "^",
+    ].join("\n"));
+    expect(br.dateOrder).toBe("DMY");
+    expect(br.items.map((item) => item.date)).toEqual([
+      "2026-08-31",
+      "2026-08-09",
+    ]);
+  });
+
+  it("does not report a MM/DD or DD/MM convention for ISO-only QIF dates", () => {
+    const result = parseQifImport([
+      "!Type:Bank",
+      "D2026-08-31",
+      "T-10.00",
+      "PCompra ISO",
       "^",
     ].join("\n"));
 
-    expect(sectionType).toBe("BANK");
-    expect(items).toMatchObject([
-      {
-        source: "QIF",
-        date: "2026-08-31",
-        amountCents: 4237,
-        type: "EXPENSE",
-        description: "Mercado — Compra do mês",
-        errors: [],
-      },
-      {
-        source: "QIF",
-        date: "2026-08-31",
-        amountCents: 123456,
-        type: "INCOME",
-        description: "Salário",
-        errors: [],
-      },
-    ]);
-    expect(items.every((item) => item.externalId === undefined)).toBe(true);
+    expect(result.dateOrder).toBeNull();
+    expect(result.items[0].date).toBe("2026-08-31");
+  });
 
-    const { items: [ambiguous] } = parseQifImport([
+  it("requires an explicit convention for QIF files with only ambiguous dates", () => {
+    const content = [
       "!Type:Bank",
       "D8/9/2026",
       "T1.00",
       "PTeste",
       "^",
-    ].join("\n"));
-    expect(ambiguous.date).toBe("2026-08-09");
+    ].join("\n");
+
+    expect(() => parseQifImport(content)).toThrow("QIF contém datas ambíguas");
+    expect(parseQifImport(content, "MDY").items[0].date).toBe("2026-08-09");
+    expect(parseQifImport(content, "DMY").items[0].date).toBe("2026-09-08");
+  });
+
+  it("rejects mixed QIF date conventions instead of guessing per row", () => {
+    const content = [
+      "!Type:Bank",
+      "D8/31/2026",
+      "T1.00",
+      "PUS",
+      "^",
+      "D31/8/2026",
+      "T2.00",
+      "PBR",
+      "^",
+    ].join("\n");
+
+    expect(() => parseQifImport(content)).toThrow(
+      "QIF contém datas com convenções incompatíveis",
+    );
   });
 
   it("keeps malformed QIF transactions in preview with item-level reasons", () => {

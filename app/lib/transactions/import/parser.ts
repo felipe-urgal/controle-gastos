@@ -1,11 +1,17 @@
 import { createHash } from "node:crypto";
 
+import {
+  TRANSACTION_DESCRIPTION_MAX_LENGTH,
+  TRANSACTION_DESCRIPTION_MIN_LENGTH,
+} from "@/app/lib/transactions/transaction-field-contract";
+
 export const IMPORT_MAX_FILE_BYTES = 2 * 1024 * 1024;
 export const IMPORT_MAX_ITEMS = 1000;
 
 export type ImportSource = "CSV" | "OFX" | "QIF" | "XLSX";
 export type ImportTransactionType = "INCOME" | "EXPENSE";
 export type QifSectionType = "BANK" | "CASH" | "CCARD";
+export type QifDateOrder = "MDY" | "DMY";
 export type OfxAccountType = "BANK" | "CREDIT_CARD";
 
 export type OfxAccountMetadata = {
@@ -20,6 +26,7 @@ export type OfxImportResult = {
 
 export type QifImportResult = {
   sectionType: QifSectionType;
+  dateOrder: QifDateOrder | null;
   items: ParsedImportItem[];
 };
 
@@ -238,8 +245,8 @@ export function parseTabularImportRows(
 
     if (!date) errors.push("Data inválida.");
     if (signedAmount === null || signedAmount === 0) errors.push("Valor inválido ou igual a zero.");
-    if (description.length < 2) errors.push("Descrição deve ter pelo menos 2 caracteres.");
-    if (description.length > 100) errors.push("Descrição deve ter no máximo 100 caracteres.");
+    if (description.length < TRANSACTION_DESCRIPTION_MIN_LENGTH) errors.push(`Descrição deve ter pelo menos ${TRANSACTION_DESCRIPTION_MIN_LENGTH} caracteres.`);
+    if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) errors.push(`Descrição deve ter no máximo ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`);
 
     const safeAmount = signedAmount ?? 0;
     return {
@@ -272,35 +279,80 @@ function extractOfxTag(block: string, tag: string) {
   return match ? decodeOfxText(match[1]) : "";
 }
 
-function parseQifDate(raw: string) {
+function qifDateParts(raw: string) {
+  const value = raw.trim();
+  const match = /^(\d{1,2})[/\.\-](\d{1,2})[/'\.\-](\d{2}|\d{4})$/.exec(value);
+  if (!match) return null;
+  return {
+    first: Number(match[1]),
+    second: Number(match[2]),
+  };
+}
+
+function detectQifDateOrder(
+  lines: readonly string[],
+  explicitDateOrder?: QifDateOrder,
+): QifDateOrder | null {
+  if (explicitDateOrder) return explicitDateOrder;
+
+  let detected: QifDateOrder | null = null;
+  let hasAmbiguousDate = false;
+
+  for (const line of lines) {
+    if (!line.startsWith("D")) continue;
+    const parts = qifDateParts(line.slice(1));
+    if (!parts) continue;
+
+    let evidence: QifDateOrder | null = null;
+    if (parts.first > 12 && parts.second <= 12) evidence = "DMY";
+    else if (parts.second > 12 && parts.first <= 12) evidence = "MDY";
+    else if (parts.first <= 12 && parts.second <= 12) hasAmbiguousDate = true;
+
+    if (!evidence) continue;
+    if (detected && detected !== evidence) {
+      throw new ImportParseError(
+        "QIF contém datas com convenções incompatíveis (MM/DD e DD/MM).",
+      );
+    }
+    detected = evidence;
+  }
+
+  if (detected) return detected;
+  if (hasAmbiguousDate) {
+    throw new ImportParseError(
+      "QIF contém datas ambíguas. Escolha a convenção MM/DD ou DD/MM antes de gerar o preview.",
+    );
+  }
+
+  return null;
+}
+
+function parseQifDate(raw: string, dateOrder: QifDateOrder | null) {
   const value = raw.trim();
   if (/^\d{4}(?:-\d{2}-\d{2}|\d{4})/.test(value)) {
     return parseImportDate(value);
   }
 
-  const match = /^(\d{1,2})[/.\-](\d{1,2})[/'\.\-](\d{2}|\d{4})$/.exec(value);
+  const match = /^(\d{1,2})[/\.\-](\d{1,2})[/'\.\-](\d{2}|\d{4})$/.exec(value);
   if (!match) return null;
 
   const first = Number(match[1]);
   const second = Number(match[2]);
   const rawYear = Number(match[3]);
   const year = match[3].length === 2 ? 2000 + rawYear : rawYear;
-
-  let month = first;
-  let day = second;
-  if (first > 12 && second <= 12) {
-    day = first;
-    month = second;
-  } else if (second > 12 && first <= 12) {
-    month = first;
-    day = second;
-  }
+  if (!dateOrder) return null;
+  const month = dateOrder === "MDY" ? first : second;
+  const day = dateOrder === "MDY" ? second : first;
 
   if (year < 2000 || year > 2100 || !isValidDate(year, month, day)) return null;
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-function parseQifRecord(lines: string[], index: number): ParsedImportItem {
+function parseQifRecord(
+  lines: string[],
+  index: number,
+  dateOrder: QifDateOrder | null,
+): ParsedImportItem {
   const errors: string[] = [];
   let rawDate = "";
   let rawAmount = "";
@@ -321,7 +373,7 @@ function parseQifRecord(lines: string[], index: number): ParsedImportItem {
     }
   }
 
-  const date = parseQifDate(rawDate);
+  const date = parseQifDate(rawDate, dateOrder);
   const signedAmount = parseMoneyToCents(rawAmount);
   const description = normalizeDescription(
     [payee, memo].filter(Boolean).join(" — ") || "Transação QIF",
@@ -332,7 +384,7 @@ function parseQifRecord(lines: string[], index: number): ParsedImportItem {
     errors.push("Valor inválido ou igual a zero.");
   }
   if (!payee && !memo) errors.push("Payee ou descrição ausente.");
-  if (description.length > 100) errors.push("Descrição deve ter no máximo 100 caracteres.");
+  if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) errors.push(`Descrição deve ter no máximo ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`);
 
   const safeAmount = signedAmount ?? 0;
   return {
@@ -341,14 +393,18 @@ function parseQifRecord(lines: string[], index: number): ParsedImportItem {
     date: date ?? "",
     amountCents: Math.abs(safeAmount),
     type: safeAmount >= 0 ? "INCOME" : "EXPENSE",
-    description: description.slice(0, 100),
+    description: description.slice(0, TRANSACTION_DESCRIPTION_MAX_LENGTH),
     errors,
   };
 }
 
-export function parseQifImport(content: string): QifImportResult {
+export function parseQifImport(
+  content: string,
+  explicitDateOrder?: QifDateOrder,
+): QifImportResult {
   const clean = content.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
   const lines = clean.split("\n");
+  const dateOrder = detectQifDateOrder(lines, explicitDateOrder);
   const items: ParsedImportItem[] = [];
   let sectionType: QifSectionType | null = null;
   let record: string[] = [];
@@ -392,7 +448,7 @@ export function parseQifImport(content: string): QifImportResult {
 
     if (line === "^") {
       if (record.length === 0) continue;
-      items.push(parseQifRecord(record, items.length));
+      items.push(parseQifRecord(record, items.length, dateOrder));
       record = [];
       if (items.length > IMPORT_MAX_ITEMS) {
         throw new ImportParseError(`Arquivo excede o limite de ${IMPORT_MAX_ITEMS} transações.`);
@@ -413,7 +469,7 @@ export function parseQifImport(content: string): QifImportResult {
     throw new ImportParseError("QIF sem metadado de seção reconhecível.");
   }
 
-  return { sectionType, items };
+  return { sectionType, dateOrder, items };
 }
 
 export function parseOfxImport(content: string, accountCurrency: string): OfxImportResult {
@@ -459,7 +515,7 @@ export function parseOfxImport(content: string, accountCurrency: string): OfxImp
 
     if (!date) errors.push("Data inválida.");
     if (signedAmount === null || signedAmount === 0) errors.push("Valor inválido ou igual a zero.");
-    if (description.length > 100) errors.push("Descrição deve ter no máximo 100 caracteres.");
+    if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) errors.push(`Descrição deve ter no máximo ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`);
 
     const safeAmount = signedAmount ?? 0;
     return {
@@ -468,7 +524,7 @@ export function parseOfxImport(content: string, accountCurrency: string): OfxImp
       date: date ?? "",
       amountCents: Math.abs(safeAmount),
       type: safeAmount >= 0 ? ("INCOME" as const) : ("EXPENSE" as const),
-      description: description.slice(0, 100),
+      description: description.slice(0, TRANSACTION_DESCRIPTION_MAX_LENGTH),
       externalId,
       currency: currency || accountCurrency.toUpperCase(),
       errors,
@@ -513,6 +569,9 @@ export function withImportFingerprints(params: {
   accountId: string;
   items: ParsedImportItem[];
 }) {
+  // Sem identificador externo, a ocorrência faz parte da identidade para não
+  // colapsar compras legitimamente idênticas no mesmo arquivo. A ordem entre
+  // descrições diferentes não altera a ocorrência de cada conteúdo.
   const occurrences = new Map<string, number>();
   const seenExternal = new Set<string>();
 

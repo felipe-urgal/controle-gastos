@@ -12,11 +12,15 @@ import { reassignMerchantAliasWithTx } from "@/app/lib/merchants/merchant-alias-
 import { prisma } from "@/app/lib/prisma";
 import {
   getRequestId,
+  logEvent,
   logServerOperation,
   type LogContext,
   withRequestId,
 } from "@/app/lib/observability";
-import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
+import {
+  consumeTransactionImportConfirmRateLimit,
+  consumeTransactionImportPreviewRateLimit,
+} from "@/app/lib/security/application-rate-limit";
 import {
   isNubankCreditCardCsv,
   parseNubankCreditCardCsv,
@@ -27,23 +31,32 @@ import {
   ImportParseError,
   ParsedImportItem,
   PreviewImportItem,
+  type QifDateOrder,
   parseImportContent,
   parseImportDate,
   parseOfxImport,
   parseQifImport,
   withImportFingerprints,
 } from "@/app/lib/transactions/import/parser";
-import { parseXlsxImport } from "@/app/lib/transactions/import/xlsx-parser";
+import { parseXlsxImportWithMetadata } from "@/app/lib/transactions/import/xlsx-parser";
 import {
+  IMPORT_PREVIEW_TTL_SECONDS,
+  ImportPreviewTokenExpiredError,
   signImportPreviewToken,
   verifyImportPreviewToken,
 } from "@/app/lib/transactions/import/preview-token";
 import {
+  TRANSACTION_DESCRIPTION_MIN_LENGTH,
+  TRANSACTION_MAX_AMOUNT_CENTS,
+} from "@/app/lib/transactions/transaction-field-contract";
+import {
   ConfirmTransactionImportInput,
   confirmTransactionImportSchema,
 } from "@/app/lib/transactions/import/transaction-import-schema";
-
-const MAX_TRANSACTION_AMOUNT_CENTS = 1_000_000_000;
+import type {
+  TransactionImportConfirmData,
+  TransactionImportPreviewData,
+} from "@/app/types/transaction-import";
 
 function unauthorizedResponse(error: unknown) {
   return isUnauthorizedError(error)
@@ -69,21 +82,41 @@ function previewItemFromConfirmation(
   };
 }
 
-export async function previewTransactionImport(request: Request) {
+function importSourceHint(fileName: string) {
+  const extension = fileName.toLowerCase().split(".").pop();
+  if (extension === "csv") return "CSV";
+  if (extension === "ofx" || extension === "qfx") return "OFX";
+  if (extension === "qif") return "QIF";
+  if (extension === "xlsx") return "XLSX";
+  return "UNKNOWN";
+}
+
+export async function previewTransactionImport(
+  request: Request,
+  options: { requestId?: string } = {},
+) {
+  const requestId = options.requestId ?? getRequestId(request);
+  let parserSource = "UNKNOWN";
+
   try {
     const userId = await getAuthenticatedUserId();
-    const limit = await consumeImportRateLimit(userId);
+    const limit = await consumeTransactionImportPreviewRateLimit(userId);
     if (limit.limited) {
       return rateLimitFailure(
         "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
         limit.retryAfterSeconds,
-        "IMPORT_RATE_LIMITED",
+        "IMPORT_PREVIEW_RATE_LIMITED",
       );
     }
 
     const formData = await request.formData();
     const accountId = formData.get("accountId");
     const file = formData.get("file");
+    const qifDateOrderValue = formData.get("qifDateOrder");
+    const qifDateOrder: QifDateOrder | undefined =
+      qifDateOrderValue === "MDY" || qifDateOrderValue === "DMY"
+        ? qifDateOrderValue
+        : undefined;
 
     if (typeof accountId !== "string" || !accountId) {
       return failure("Selecione uma conta válida", 400);
@@ -91,6 +124,7 @@ export async function previewTransactionImport(request: Request) {
     if (!(file instanceof File)) {
       return failure("Selecione um arquivo CSV, OFX, QFX, QIF ou XLSX", 400);
     }
+    parserSource = importSourceHint(file.name);
     if (file.size === 0) return failure("O arquivo está vazio", 400);
     if (file.size > IMPORT_MAX_FILE_BYTES) {
       return failure("Arquivo excede o limite de 2 MB", 413);
@@ -107,8 +141,18 @@ export async function previewTransactionImport(request: Request) {
     let parsedItems: ParsedImportItem[];
     let detectedSource: "GENERIC" | "NUBANK_CREDIT_CARD" = "GENERIC";
     let nubankSummary: { purchases: number; payments: number; credits: number } | null = null;
+    let detectedQifDateOrder: QifDateOrder | null = null;
+    let xlsxWorksheet: {
+      name: string;
+      ignoredWorksheetNames: string[];
+    } | null = null;
     if (extension === "xlsx") {
-      parsedItems = parseXlsxImport(bytes);
+      const xlsx = parseXlsxImportWithMetadata(bytes);
+      parsedItems = xlsx.items;
+      xlsxWorksheet = {
+        name: xlsx.worksheetName,
+        ignoredWorksheetNames: xlsx.ignoredWorksheetNames,
+      };
     } else {
       let content: string;
       try {
@@ -126,7 +170,8 @@ export async function previewTransactionImport(request: Request) {
         detectedSource = "NUBANK_CREDIT_CARD";
         nubankSummary = nubank.summary;
       } else if (extension === "qif") {
-        const qif = parseQifImport(content);
+        const qif = parseQifImport(content, qifDateOrder);
+        detectedQifDateOrder = qif.dateOrder;
         if (qif.sectionType === "CCARD" && account.type !== "CREDIT_CARD") {
           return failure(
             "QIF !Type:CCard deve ser importado em uma conta do tipo cartão de crédito",
@@ -171,7 +216,7 @@ export async function previewTransactionImport(request: Request) {
       }
     }
     const parsed = parsedItems.map((item) =>
-      item.amountCents > MAX_TRANSACTION_AMOUNT_CENTS
+      item.amountCents > TRANSACTION_MAX_AMOUNT_CENTS
         ? { ...item, errors: [...item.errors, "Valor excede o limite permitido por transação."] }
         : item,
     );
@@ -197,13 +242,19 @@ export async function previewTransactionImport(request: Request) {
       duplicate: item.errors.length === 0 && existingFingerprints.has(item.fingerprint),
     }));
     const previewToken = signImportPreviewToken({ userId, accountId, items });
+    const previewExpiresAt = new Date(
+      Date.now() + IMPORT_PREVIEW_TTL_SECONDS * 1000,
+    ).toISOString();
 
-    return success({
+    const previewData = {
       accountId,
       fileName: file.name,
       detectedSource,
       nubankSummary,
+      qifDateOrder: detectedQifDateOrder,
+      xlsxWorksheet,
       previewToken,
+      previewExpiresAt,
       limits: {
         maxFileBytes: IMPORT_MAX_FILE_BYTES,
         maxItems: IMPORT_MAX_ITEMS,
@@ -215,11 +266,20 @@ export async function previewTransactionImport(request: Request) {
         duplicates: items.filter((item) => item.duplicate).length,
       },
       items,
-    });
+    } satisfies TransactionImportPreviewData;
+
+    return success(previewData);
   } catch (error) {
     const unauthorized = unauthorizedResponse(error);
     if (unauthorized) return unauthorized;
-    if (error instanceof ImportParseError) return failure(error.message, 400);
+    if (error instanceof ImportParseError) {
+      logEvent("warn", "transaction_import_parser_diagnostic", {
+        requestId,
+        source: parserSource,
+        parserError: error.name,
+      });
+      return failure(error.message, 400, "IMPORT_PARSE_ERROR");
+    }
     return failure("Não foi possível analisar o arquivo", 500);
   }
 }
@@ -247,13 +307,13 @@ export async function confirmTransactionImport(request: Request) {
 
   try {
     const userId = await getAuthenticatedUserId();
-    const limit = await consumeImportRateLimit(userId);
+    const limit = await consumeTransactionImportConfirmRateLimit(userId);
     if (limit.limited) {
       return finish(
         rateLimitFailure(
           "Muitas operações de importação em pouco tempo. Tente novamente mais tarde",
           limit.retryAfterSeconds,
-          "IMPORT_RATE_LIMITED",
+          "IMPORT_CONFIRM_RATE_LIMITED",
         ),
         { result: "rate_limited" },
       );
@@ -271,21 +331,33 @@ export async function confirmTransactionImport(request: Request) {
         accountId: input.accountId,
         items: previewItems,
       });
-    } catch {
+    } catch (error) {
+      const expired = error instanceof ImportPreviewTokenExpiredError;
       return finish(
         failure(
-          "Preview expirado ou inválido. Gere um novo preview antes de confirmar",
+          expired
+            ? "Preview expirado. Gere novamente para preservar e revalidar suas escolhas"
+            : "Preview inválido. Gere um novo preview antes de confirmar",
           400,
+          expired ? "IMPORT_PREVIEW_EXPIRED" : "IMPORT_PREVIEW_INVALID",
         ),
-        { result: "invalid_preview" },
+        { result: expired ? "expired_preview" : "invalid_preview" },
       );
     }
 
     const selected = input.items.filter((item) => item.selected);
+    const sources = [...new Set(input.items.map((item) => item.source))];
+    const confirmMetrics = {
+      source: sources.length === 1 ? sources[0] : "MIXED",
+      itemCount: input.items.length,
+      invalidCount: input.items.filter((item) => item.errors.length > 0).length,
+      duplicateCount: input.items.filter((item) => item.duplicate).length,
+    };
+
     if (selected.length === 0) {
       return finish(
         failure("Selecione ao menos uma transação válida", 400),
-        { result: "no_selection" },
+        { result: "no_selection", ...confirmMetrics },
       );
     }
 
@@ -307,8 +379,8 @@ export async function confirmTransactionImport(request: Request) {
         if (
           !parseImportDate(item.date) ||
           item.amountCents <= 0 ||
-          item.amountCents > MAX_TRANSACTION_AMOUNT_CENTS ||
-          item.description.length < 2
+          item.amountCents > TRANSACTION_MAX_AMOUNT_CENTS ||
+          item.description.length < TRANSACTION_DESCRIPTION_MIN_LENGTH
         ) {
           throw new Error("INVALID_ITEM");
         }
@@ -407,16 +479,17 @@ export async function confirmTransactionImport(request: Request) {
         selected: selected.length,
         created: created.count,
         duplicates: selected.length - created.count,
-      };
+      } satisfies TransactionImportConfirmData;
     });
 
     return finish(
       success(result, "Importação confirmada com sucesso", 201),
       {
         result: "success",
+        ...confirmMetrics,
         selectedCount: result.selected,
         createdCount: result.created,
-        duplicateCount: result.duplicates,
+        skippedDuplicateCount: result.duplicates,
       },
     );
   } catch (error) {

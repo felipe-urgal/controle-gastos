@@ -1,3 +1,4 @@
+import type { CategoryType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
@@ -12,6 +13,9 @@ import {
 } from "@/app/lib/observability";
 import { applyImportRulesToPreview } from "@/app/lib/transactions/import/rule-preview";
 import { previewTransactionImport } from "@/app/lib/transactions/import/transaction-import";
+
+const IMPORT_RULE_QUERY_BUDGET = 5_000;
+const IMPORT_PREVIEW_EVALUATION_BUDGET_MS = 1_000;
 
 export async function previewTransactionImportWithRules(request: Request) {
   const requestId = getRequestId(request);
@@ -34,7 +38,7 @@ export async function previewTransactionImportWithRules(request: Request) {
     return withRequestId(response, requestId);
   }
 
-  const baseResponse = await previewTransactionImport(request);
+  const baseResponse = await previewTransactionImport(request, { requestId });
   if (!baseResponse.ok) {
     return finish(baseResponse, {
       result: baseResponse.status === 429 ? "rate_limited" : "rejected",
@@ -54,11 +58,35 @@ export async function previewTransactionImportWithRules(request: Request) {
       );
     }
 
+    const transactionTypes: CategoryType[] = Array.from(
+      new Set<CategoryType>(
+        items.flatMap((item: { type?: unknown; errors?: unknown; duplicate?: unknown }) =>
+          (item.type === "INCOME" || item.type === "EXPENSE") &&
+          Array.isArray(item.errors) &&
+          item.errors.length === 0 &&
+          item.duplicate !== true
+            ? [item.type]
+            : [],
+        ),
+      ),
+    );
+    const descriptions = items.flatMap(
+      (item: { description?: unknown; errors?: unknown; duplicate?: unknown }) =>
+        typeof item.description === "string" &&
+        Array.isArray(item.errors) &&
+        item.errors.length === 0 &&
+        item.duplicate !== true
+          ? [item.description]
+          : [],
+    );
+
+    const dependencyLoadStartedAt = performance.now();
     const [rules, merchantAliasesByDescription] = await Promise.all([
       prisma.transactionImportRule.findMany({
         where: {
           userId,
           isActive: true,
+          transactionType: { in: transactionTypes },
           OR: [{ accountId: null }, { accountId }],
           category: { isActive: true },
         },
@@ -77,26 +105,51 @@ export async function previewTransactionImportWithRules(request: Request) {
           category: { select: { type: true } },
         },
         orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+        take: IMPORT_RULE_QUERY_BUDGET + 1,
       }),
-      findMatchingMerchantAliasesForDescriptions(
-        userId,
-        items.map((item: { description?: unknown }) =>
-          typeof item.description === "string" ? item.description : "",
-        ),
-      ),
+      findMatchingMerchantAliasesForDescriptions(userId, descriptions),
     ]);
+    const dependencyLoadMs = performance.now() - dependencyLoadStartedAt;
+
+    if (rules.length > IMPORT_RULE_QUERY_BUDGET) {
+      return finish(
+        failure(
+          "Há regras demais para avaliar com segurança neste preview. Refine ou pause regras antigas antes de continuar.",
+          422,
+          "IMPORT_RULE_BUDGET_EXCEEDED",
+        ),
+        {
+          result: "rule_budget_exceeded",
+          itemCount: items.length,
+          ruleCount: rules.length,
+          dependencyLoadMs: Math.round(dependencyLoadMs),
+        },
+      );
+    }
 
     const eligibleRules = rules.filter(
       (rule) => rule.category.type === rule.transactionType,
     );
 
+    const evaluationStartedAt = performance.now();
     const previewItems = applyImportRulesToPreview({
       accountId,
       items,
       rules: eligibleRules,
       merchantAliasesByDescription,
     });
+    const evaluationMs = performance.now() - evaluationStartedAt;
     const summary = body.data?.summary;
+    const source =
+      typeof previewItems[0]?.source === "string"
+        ? previewItems[0].source
+        : "UNKNOWN";
+    const ruleConflictCount = previewItems.filter(
+      (item) => item.importRuleConflict === true,
+    ).length;
+    const merchantConflictCount = previewItems.filter(
+      (item) => item.merchantAliasConflict === true,
+    ).length;
 
     return finish(
       success(
@@ -109,6 +162,11 @@ export async function previewTransactionImportWithRules(request: Request) {
       ),
       {
         result: "success",
+        source,
+        parserContract:
+          body.data?.detectedSource === "NUBANK_CREDIT_CARD"
+            ? "NUBANK_CREDIT_CARD"
+            : "GENERIC",
         itemCount: previewItems.length,
         ruleCount: eligibleRules.length,
         merchantAliasCount: Array.from(
@@ -122,6 +180,13 @@ export async function previewTransactionImportWithRules(request: Request) {
           typeof summary?.duplicates === "number"
             ? summary.duplicates
             : undefined,
+        ruleConflictCount,
+        merchantConflictCount,
+        dependencyLoadMs: Math.round(dependencyLoadMs),
+        evaluationMs: Math.round(evaluationMs),
+        evaluationBudgetMs: IMPORT_PREVIEW_EVALUATION_BUDGET_MS,
+        evaluationBudgetExceeded:
+          evaluationMs > IMPORT_PREVIEW_EVALUATION_BUDGET_MS,
       },
     );
   } catch (error) {
