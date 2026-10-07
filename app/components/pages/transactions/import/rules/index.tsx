@@ -100,27 +100,55 @@ export default function ImportRuleManagementPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [dependencyWarning, setDependencyWarning] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       setError('');
-      try {
-        const [accountResponse, categoryResponse, ruleResponse] = await Promise.all([
-          accountService.getAll(),
-          categoryService.getAll(),
-          importRuleService.getAll(),
-        ]);
+      setDependencyWarning('');
 
-        setAccounts((accountResponse.data?.items ?? []).filter((account) => account.isActive));
-        setCategories((categoryResponse.data?.items ?? []).filter((category) => category.isActive));
-        setRules([...(ruleResponse.data?.items ?? [])].sort(ruleOrder));
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Não foi possível carregar as regras de importação.');
-      } finally {
-        setLoading(false);
+      const [accountResult, categoryResult, ruleResult] = await Promise.allSettled([
+        accountService.getAll(),
+        categoryService.getAll(),
+        importRuleService.getAll(),
+      ]);
+
+      const unavailable: string[] = [];
+
+      if (accountResult.status === 'fulfilled') {
+        setAccounts((accountResult.value.data?.items ?? []).filter((account) => account.isActive));
+      } else {
+        setAccounts([]);
+        unavailable.push('contas');
       }
+
+      if (categoryResult.status === 'fulfilled') {
+        setCategories((categoryResult.value.data?.items ?? []).filter((category) => category.isActive));
+      } else {
+        setCategories([]);
+        unavailable.push('categorias');
+      }
+
+      if (ruleResult.status === 'fulfilled') {
+        setRules([...(ruleResult.value.data?.items ?? [])].sort(ruleOrder));
+      } else {
+        setRules([]);
+        setError(
+          ruleResult.reason instanceof Error
+            ? ruleResult.reason.message
+            : 'Não foi possível carregar as regras de importação.',
+        );
+      }
+
+      if (unavailable.length > 0) {
+        setDependencyWarning(
+          `Não foi possível carregar ${unavailable.join(' e ')}. A lista de regras continua disponível, mas criação e edição podem ficar limitadas.`,
+        );
+      }
+
+      setLoading(false);
     }
 
     void load();
@@ -281,6 +309,7 @@ export default function ImportRuleManagementPage() {
           variant="info"
           message="Menor prioridade executa primeiro. Em empate, a regra mais específica vence; se ainda houver resultados incompatíveis na mesma precedência, o preview pede revisão. As sugestões nunca confirmam transações sozinhas."
         />
+        {dependencyWarning && <Alert variant="warning" message={dependencyWarning} />}
         {error && <Alert variant="error" message={error} onClose={() => setError('')} />}
         {successMessage && (
           <Alert
