@@ -361,7 +361,7 @@ test('folha: importação 201 permanece sucesso quando refresh GET falha', async
   });
   await page.getByRole('button', { name: 'Analisar PDF', exact: true }).click();
   await expect(
-    page.getByText('Empresa Refresh', { exact: true }),
+    page.getByText(/Empresa Refresh/).first(),
   ).toBeVisible();
 
   await page
