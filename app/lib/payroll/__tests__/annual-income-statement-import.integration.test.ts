@@ -109,6 +109,57 @@ describe("annual employment income statement import", () => {
     expect(await prisma.annualEmploymentIncomeStatement.count({ where: { userId: user.id } })).toBe(1);
   });
 
+  it("imports an annual statement retification when fiscal values change", async () => {
+    const user = await createUser();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(user.id);
+
+    const original = parsed();
+    const originalStatement = {
+      ...original,
+      fingerprint: annualEmploymentIncomeFingerprint(user.id, original),
+      duplicate: false,
+    };
+    const originalToken = signAnnualStatementPreview(user.id, originalStatement);
+
+    const first = await confirmAnnualEmploymentIncomeStatement(request({
+      previewToken: originalToken,
+      selected: true,
+      statement: originalStatement,
+    }));
+    expect(first.status).toBe(201);
+
+    const retified = {
+      ...original,
+      taxableIncomeCents: (original.taxableIncomeCents ?? 0) + 100,
+      irrfCents: (original.irrfCents ?? 0) + 10,
+    };
+    const retifiedStatement = {
+      ...retified,
+      fingerprint: annualEmploymentIncomeFingerprint(user.id, retified),
+      duplicate: false,
+    };
+    const retifiedToken = signAnnualStatementPreview(user.id, retifiedStatement);
+
+    expect(retifiedStatement.fingerprint).not.toBe(originalStatement.fingerprint);
+
+    const second = await confirmAnnualEmploymentIncomeStatement(request({
+      previewToken: retifiedToken,
+      selected: true,
+      statement: retifiedStatement,
+    }));
+    expect(second.status).toBe(201);
+
+    const stored = await prisma.annualEmploymentIncomeStatement.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(stored).toHaveLength(2);
+    expect(stored.map((item) => item.taxableIncomeCents)).toEqual([
+      original.taxableIncomeCents,
+      retified.taxableIncomeCents,
+    ]);
+  });
+
   it("rejects a preview signed for another user", async () => {
     const owner = await createUser();
     const other = await createUser();
