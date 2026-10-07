@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test';
 import jwt from 'jsonwebtoken';
 
-import { createVerifiedUser } from './support/verified-user.mjs';
+import {
+  createVerifiedUser,
+  setPendingEmailChange,
+} from './support/verified-user.mjs';
 
 const currentPassword = 'Playwright123!';
 
-function emailChangeToken({ userId, email }) {
+function emailChangeToken({ userId, email, pendingEmailVersion }) {
   return jwt.sign(
     {
       sub: userId,
@@ -13,6 +16,7 @@ function emailChangeToken({ userId, email }) {
       email,
       kind: 'email-change',
       authVersion: 0,
+      pendingEmailVersion,
     },
     process.env.JWT_SECRET,
     {
@@ -32,6 +36,16 @@ async function login(page, email) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
+async function currentProfile(page) {
+  return page.evaluate(async () => {
+    const response = await fetch('/api/user', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`profile load failed with ${response.status}`);
+    }
+    return response.json();
+  });
+}
+
 test('troca de e-mail aguarda confirmação e exige novo login', async ({ page }) => {
   const suffix = `${Date.now()}-${test.info().project.name}`;
   const currentEmail = `qa-email-current-${suffix}@example.test`;
@@ -44,14 +58,7 @@ test('troca de e-mail aguarda confirmação e exige novo login', async ({ page }
   });
 
   await login(page, currentEmail);
-
-  const profile = await page.evaluate(async () => {
-    const response = await fetch('/api/user', { cache: 'no-store' });
-    if (!response.ok) {
-      throw new Error(`profile load failed with ${response.status}`);
-    }
-    return response.json();
-  });
+  const profile = await currentProfile(page);
 
   let emailChangeRequests = 0;
   let lastPayload = null;
@@ -96,9 +103,16 @@ test('troca de e-mail aguarda confirmação e exige novo login', async ({ page }
   await page.getByRole('button', { name: 'Reenviar confirmação', exact: true }).click();
   await expect.poll(() => emailChangeRequests).toBe(2);
 
+  await setPendingEmailChange({
+    userId: profile.data.id,
+    email: newEmail,
+    pendingEmailVersion: 2,
+  });
+
   const token = emailChangeToken({
     userId: profile.data.id,
     email: newEmail,
+    pendingEmailVersion: 2,
   });
 
   await page.goto(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
@@ -120,4 +134,46 @@ test('troca de e-mail aguarda confirmação e exige novo login', async ({ page }
   await page.getByLabel(/^Senha\b/).fill(currentPassword);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
+});
+
+test('solicitação pendente persiste e pode ser cancelada', async ({ page }) => {
+  const suffix = `${Date.now()}-${test.info().project.name}`;
+  const currentEmail = `qa-email-cancel-current-${suffix}@example.test`;
+  const newEmail = `qa-email-cancel-new-${suffix}@example.test`;
+
+  await createVerifiedUser({
+    name: 'QA Email Cancel',
+    email: currentEmail,
+    password: currentPassword,
+  });
+
+  await login(page, currentEmail);
+  const profile = await currentProfile(page);
+
+  await setPendingEmailChange({
+    userId: profile.data.id,
+    email: newEmail,
+  });
+
+  await page.goto(`/usuario/alterar/${profile.data.id}`);
+
+  const pendingStatus = page
+    .getByRole('status')
+    .filter({ hasText: 'Aguardando confirmação' });
+  await expect(pendingStatus).toContainText(newEmail);
+  await expect(page.getByLabel('Novo e-mail', { exact: true })).toHaveValue(newEmail);
+
+  await page
+    .getByRole('button', { name: 'Cancelar solicitação', exact: true })
+    .click();
+
+  await expect(pendingStatus).toHaveCount(0);
+
+  await page.reload();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Aguardando confirmação' }),
+  ).toHaveCount(0);
+
+  const refreshed = await currentProfile(page);
+  expect(refreshed.data.pendingEmail).toBeNull();
 });
