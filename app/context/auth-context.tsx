@@ -145,6 +145,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const requireReauthentication = useCallback((reason?: 'password-changed') => {
     clearOfflineTransactionLocalState();
     dispatch({ type: 'LOGOUT' });
+
+    if (reason === 'password-changed') {
+      window.sessionStorage.setItem('auth-notice', reason);
+    }
+
     window.location.replace(
       reason === 'password-changed'
         ? '/login?reason=password-changed'
