@@ -254,31 +254,23 @@ export function findImportRuleRelationships(
   for (const rule of rules) {
     if (rule.id === options.excludeRuleId) continue;
 
-    if (sameMatcher(candidate, rule)) {
-      relationships.push(
-        sameOutcome(candidate, rule)
-          ? {
-              kind: 'EQUIVALENT',
-              ruleId: rule.id,
-              ruleName: rule.name,
-              resolution: 'SAME_OUTCOME',
-            }
-          : {
-              kind: 'CONFLICT',
-              ruleId: rule.id,
-              ruleName: rule.name,
-              resolution: resolveOverlap(candidate, rule),
-            },
-      );
+    if (sameMatcher(candidate, rule) && sameOutcome(candidate, rule)) {
+      relationships.push({
+        kind: 'EQUIVALENT',
+        ruleId: rule.id,
+        ruleName: rule.name,
+        resolution: 'SAME_OUTCOME',
+      });
       continue;
     }
 
     if (matcherScopesMayOverlap(candidate, rule)) {
+      const resolution = resolveOverlap(candidate, rule);
       relationships.push({
-        kind: 'OVERLAP',
+        kind: resolution === 'AMBIGUOUS' ? 'CONFLICT' : 'OVERLAP',
         ruleId: rule.id,
         ruleName: rule.name,
-        resolution: resolveOverlap(candidate, rule),
+        resolution,
       });
     }
   }
