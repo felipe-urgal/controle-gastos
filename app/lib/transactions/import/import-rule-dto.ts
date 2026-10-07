@@ -1,31 +1,50 @@
-import type { TransactionImportRule } from "@prisma/client";
-
-export type ImportRuleEffectiveState =
-  | "OPERATIONAL"
-  | "PAUSED"
-  | "BROKEN_CATEGORY"
-  | "BROKEN_ACCOUNT";
+import type { CategoryType, TransactionImportRule } from "@prisma/client";
 
 type ImportRuleWithDependencies = TransactionImportRule & {
-  account?: { isActive: boolean } | null;
-  category?: { isActive: boolean } | null;
+  account?: {
+    name: string;
+    isActive: boolean;
+  } | null;
+  category?: {
+    name: string;
+    isActive: boolean;
+    type: CategoryType;
+  } | null;
 };
 
-export function importRuleEffectiveState(
-  rule: ImportRuleWithDependencies,
-): ImportRuleEffectiveState {
-  if (!rule.isActive) return "PAUSED";
-  if (!rule.category?.isActive) return "BROKEN_CATEGORY";
-  if (rule.accountId !== null && !rule.account?.isActive) return "BROKEN_ACCOUNT";
-  return "OPERATIONAL";
-}
-
 export function toImportRuleDTO(rule: ImportRuleWithDependencies) {
+  let operationalState:
+    | "ACTIVE"
+    | "PAUSED"
+    | "BROKEN_ACCOUNT"
+    | "BROKEN_CATEGORY" = "ACTIVE";
+  let operationalReason: string | null = null;
+
+  if (!rule.isActive) {
+    operationalState = "PAUSED";
+  } else if (
+    rule.accountId &&
+    (!rule.account || !rule.account.isActive)
+  ) {
+    operationalState = "BROKEN_ACCOUNT";
+    operationalReason = rule.account
+      ? "A conta vinculada está inativa."
+      : "A conta vinculada não está disponível.";
+  } else if (
+    !rule.category ||
+    !rule.category.isActive ||
+    rule.category.type !== rule.transactionType
+  ) {
+    operationalState = "BROKEN_CATEGORY";
+    operationalReason = rule.category
+      ? "A categoria vinculada está inativa ou incompatível com o tipo."
+      : "A categoria vinculada não está disponível.";
+  }
+
   return {
     id: rule.id,
     name: rule.name,
     isActive: rule.isActive,
-    effectiveState: importRuleEffectiveState(rule),
     priority: rule.priority,
     accountId: rule.accountId,
     transactionType: rule.transactionType,
@@ -34,6 +53,12 @@ export function toImportRuleDTO(rule: ImportRuleWithDependencies) {
     minAmountCents: rule.minAmountCents,
     maxAmountCents: rule.maxAmountCents,
     categoryId: rule.categoryId,
+    operationalState,
+    operationalReason,
+    accountName: rule.account?.name ?? null,
+    accountIsActive: rule.account?.isActive ?? null,
+    categoryName: rule.category?.name ?? null,
+    categoryIsActive: rule.category?.isActive ?? false,
     createdAt: rule.createdAt.toISOString(),
     updatedAt: rule.updatedAt.toISOString(),
   };
