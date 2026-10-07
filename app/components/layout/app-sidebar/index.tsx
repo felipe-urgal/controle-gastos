@@ -25,8 +25,8 @@ export default function AppSidebar({
   const pathname = usePathname();
   const { logout, user } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
-  const navigation = getAppNavigation(user?.id).filter((item) => item.key !== 'profile');
-  const profileHref = user?.id ? `/usuario/show/${user.id}` : '/usuario';
+  const navigation = getAppNavigation().filter((item) => item.key !== 'profile');
+  const profileHref = '/usuario';
   const profileActive = pathname === '/usuario' || pathname.startsWith('/usuario/');
   const initial = user?.name?.trim().charAt(0).toUpperCase() || 'U';
 
