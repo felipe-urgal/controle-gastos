@@ -160,6 +160,39 @@ describe("transaction import integration", () => {
     expect(body.error?.message).toBe("Selecione uma conta válida");
   });
 
+  it("requires a category for every selected item at confirmation", async () => {
+    const { owner, account } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const { body } = await getPreview(account.id);
+    const items = body.data.items.map((item: { index: number }) => ({
+      ...item,
+      selected: item.index === 0,
+      categoryId: null,
+    }));
+
+    const response = await confirmTransactionImport(
+      new Request("http://localhost/api/transactions/import/confirm", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          accountId: account.id,
+          previewToken: body.data.previewToken,
+          items,
+        }),
+      }),
+    );
+    const responseBody = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(responseBody.error?.message).toBe(
+      "Defina uma categoria para cada item selecionado",
+    );
+    expect(
+      await prisma.transaction.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+  });
+
   it("generates preview without writes and confirms only selected items", async () => {
     const { owner, account, expenseCategory, incomeCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
