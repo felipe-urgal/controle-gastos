@@ -144,16 +144,6 @@ export const authService = {
     return response;
   },
 
-  async updateUser(data: UpdateUserRequest): Promise<User> {
-    const response = await apiClient<ApiResponse, UpdateUserRequest>("/api/auth/update-user", {method: "PUT", body: data, credentials: "include"});
-    
-    if (!response.success) {
-      throw new AuthError(response.message, response.status);
-    }
-    
-    return response.user!;
-  },
-
   async forgotPassword(email: string): Promise<forgotPasswordResponse> {
     const response = await apiClient<forgotPasswordResponse, forgotPasswordRequest>("/api/auth/forgot-password", {method: "POST", body: { email }});
     return response;
