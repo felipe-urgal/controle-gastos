@@ -43,6 +43,8 @@ async function createUserData(label: string) {
       name: `Usuário ${label}`,
       email: `export-${label}-${suffix}@example.test`,
       password: `hash-${label}-nao-exportar`,
+      showValues: label !== "owner",
+      periodicSummaryEnabled: label === "owner",
     },
   });
   createdUserIds.push(user.id);
@@ -93,7 +95,71 @@ async function createUserData(label: string) {
     },
   });
 
-  return { user, account, category, tag, transaction };
+  const merchant = await prisma.merchant.create({
+    data: {
+      name: `Mercado ${label}`,
+      normalizedName: `mercado ${label}`,
+      userId: user.id,
+    },
+  });
+
+  const goal = await prisma.financialGoal.create({
+    data: {
+      name: `Meta ${label}`,
+      targetAmount: 50_000,
+      currency: "BRL",
+      userId: user.id,
+      accountId: account.id,
+    },
+  });
+
+  const investmentAsset = await prisma.investmentAsset.create({
+    data: {
+      symbol: `TST${label.slice(0, 1).toUpperCase()}`,
+      name: `Ativo ${label}`,
+      type: "STOCK",
+      currency: "BRL",
+      userId: user.id,
+    },
+  });
+
+  const periodicSummary = await prisma.periodicFinancialSummary.create({
+    data: {
+      currency: "BRL",
+      periodStartYear: 2026,
+      periodStartMonth: 8,
+      periodStartDay: 24,
+      periodEndYear: 2026,
+      periodEndMonth: 8,
+      periodEndDay: 30,
+      content: { summary: `Resumo ${label}` },
+      userId: user.id,
+    },
+  });
+
+  const mcpToken = await prisma.mcpAccessToken.create({
+    data: {
+      name: `Token ${label}`,
+      tokenHash: (label === "owner" ? "a" : "b").repeat(64),
+      tokenPrefix: label === "owner" ? "mcp_owner" : "mcp_other",
+      scope: "finance:read",
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+      userId: user.id,
+    },
+  });
+
+  return {
+    user,
+    account,
+    category,
+    tag,
+    transaction,
+    merchant,
+    goal,
+    investmentAsset,
+    periodicSummary,
+    mcpToken,
+  };
 }
 
 async function ownedCounts(userId: string) {
