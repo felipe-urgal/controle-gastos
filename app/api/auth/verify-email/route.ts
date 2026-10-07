@@ -29,6 +29,9 @@ export async function GET(request: Request) {
         emailVerifiedAt: true,
         authVersion: true,
         isActive: true,
+        pendingEmail: true,
+        pendingEmailExpiresAt: true,
+        pendingEmailVersion: true,
       },
     });
 
@@ -55,7 +58,15 @@ export async function GET(request: Request) {
         });
       }
     } else {
-      if (user.email === verification.email) return redirect(request, "success");
+      if (
+        !verification.pendingEmailVersion ||
+        user.pendingEmail !== verification.email ||
+        user.pendingEmailVersion !== verification.pendingEmailVersion ||
+        !user.pendingEmailExpiresAt ||
+        user.pendingEmailExpiresAt.getTime() <= Date.now()
+      ) {
+        return redirect(request, "invalid");
+      }
 
       const conflict = await prisma.user.findFirst({
         where: {
@@ -70,11 +81,18 @@ export async function GET(request: Request) {
         where: {
           id: user.id,
           authVersion: verification.authVersion,
+          pendingEmail: verification.email,
+          pendingEmailVersion: verification.pendingEmailVersion,
+          pendingEmailExpiresAt: { gt: new Date() },
         },
         data: {
           email: verification.email,
           emailVerifiedAt: new Date(),
           authVersion: { increment: 1 },
+          pendingEmail: null,
+          pendingEmailRequestedAt: null,
+          pendingEmailExpiresAt: null,
+          pendingEmailVersion: { increment: 1 },
         },
       });
       if (updated.count !== 1) return redirect(request, "invalid");
