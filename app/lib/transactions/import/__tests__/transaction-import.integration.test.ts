@@ -385,6 +385,74 @@ describe("transaction import integration", () => {
     });
   });
 
+  it("preserves generic CSV and QIF sign semantics on credit-card accounts", async () => {
+    const { owner } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão sinais genéricos ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const csvPreview = await previewTransactionImport(
+      previewRequest(
+        cardAccount.id,
+        [
+          "data,descricao,valor",
+          "2026-09-16,Compra CSV,-25.00",
+          "2026-09-17,Crédito CSV,10.00",
+        ].join("\n"),
+        "generic-card.csv",
+      ),
+    );
+    const csvBody = await csvPreview.json();
+
+    expect(csvPreview.status).toBe(200);
+    expect(csvBody.data.detectedSource).toBe("GENERIC");
+    expect(
+      csvBody.data.items.map((item: { type: string; amountCents: number }) => ({
+        type: item.type,
+        amountCents: item.amountCents,
+      })),
+    ).toEqual([
+      { type: "EXPENSE", amountCents: 2500 },
+      { type: "INCOME", amountCents: 1000 },
+    ]);
+
+    const qifPreview = await previewTransactionImport(
+      previewRequest(
+        cardAccount.id,
+        [
+          "!Type:CCard",
+          "D9/16/2026",
+          "T-25.00",
+          "PCompra QIF",
+          "^",
+          "D9/17/2026",
+          "T10.00",
+          "PCrédito QIF",
+          "^",
+        ].join("\n"),
+        "generic-card.qif",
+      ),
+    );
+    const qifBody = await qifPreview.json();
+
+    expect(qifPreview.status).toBe(200);
+    expect(
+      qifBody.data.items.map((item: { type: string; amountCents: number }) => ({
+        type: item.type,
+        amountCents: item.amountCents,
+      })),
+    ).toEqual([
+      { type: "EXPENSE", amountCents: 2500 },
+      { type: "INCOME", amountCents: 1000 },
+    ]);
+  });
+
   it("applies the paid-statement guard to every supported import format", async () => {
     const { owner, account: sourceAccount, expenseCategory } = await createFixture();
     const cardAccount = await prisma.account.create({
