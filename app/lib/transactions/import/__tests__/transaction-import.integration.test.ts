@@ -403,6 +403,37 @@ describe("transaction import integration", () => {
     expect(xlsxBody.data.accountId).toBe(cardAccount.id);
   });
 
+  it("rejects bank OFX when the selected account is a credit card", async () => {
+    const { owner } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão OFX banco ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const bankOfx = [
+      "OFXHEADER:100",
+      "<OFX><CURDEF>BRL",
+      "<BANKACCTFROM><BANKID>001<ACCTID>bank-123</BANKACCTFROM>",
+      "<BANKTRANLIST><STMTTRN><DTPOSTED>20260831<TRNAMT>-10.00<FITID>bank-card-mismatch<NAME>Compra</STMTTRN></BANKTRANLIST>",
+      "</OFX>",
+    ].join("\n");
+
+    const preview = await previewTransactionImport(
+      previewRequest(cardAccount.id, bankOfx, "bank-on-card.ofx"),
+    );
+    const body = await preview.json();
+
+    expect(preview.status).toBe(400);
+    expect(body.error?.message).toBe(
+      "OFX/QFX bancário não é compatível com conta de cartão de crédito",
+    );
+  });
+
   it("validates OFX account type but never redirects by ACCTID", async () => {
     const { owner, account } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
