@@ -392,6 +392,16 @@ test('detalhe mobile mantém foco, Escape e largura segura em 320/360/390', asyn
     return body.data.id;
   }, `Conta mobile ${suffix}`);
 
+  const hideValues = await page.evaluate(async () => {
+    const response = await fetch('/api/user', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ showValues: false }),
+    });
+    return response.ok;
+  });
+  expect(hideValues).toBe(true);
+
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/transacoes/importar');
   await page.getByRole('combobox').first().selectOption(accountId);
@@ -404,6 +414,18 @@ test('detalhe mobile mantém foco, Escape e largura segura em 320/360/390', asyn
 
   const row = page.locator('li').filter({ hasText: description }).getByRole('button').first();
   await expect(row).toBeVisible();
+  expect((await page.locator('body').innerText()).includes('39,90')).toBe(false);
+  const leakedAccessibleAmounts = await page.locator('[aria-label], [title]').evaluateAll(
+    (elements) =>
+      elements
+        .map((element) =>
+          [element.getAttribute('aria-label'), element.getAttribute('title')]
+            .filter(Boolean)
+            .join(' '),
+        )
+        .filter((value) => value.includes('39,90') || value.includes('3990')),
+  );
+  expect(leakedAccessibleAmounts).toEqual([]);
 
   for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 760 });
