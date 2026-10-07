@@ -129,8 +129,22 @@ const baseImportRuleCrud = baseCrudHandler({
   filterableFields: ["isActive", "accountId", "transactionType"],
   searchableFields: ["name", "descriptionPattern"],
   orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+  include: {
+    account: { select: { isActive: true } },
+    category: { select: { isActive: true } },
+  },
   limit: true,
   mapper: toImportRuleDTO,
+  async summary({ userId }) {
+    const aggregate = await prisma.transactionImportRule.aggregate({
+      where: { userId },
+      _max: { priority: true },
+    });
+    const currentMax = aggregate._max.priority;
+    const nextPriority =
+      currentMax === null ? 0 : Math.min(currentMax + 10, 2_147_483_647);
+    return { nextPriority };
+  },
 
   async beforeCreate(data, userId) {
     return prisma.$transaction(async (tx) => {
@@ -142,6 +156,10 @@ const baseImportRuleCrud = baseCrudHandler({
         data: {
           ...data,
           userId,
+        },
+        include: {
+          account: { select: { isActive: true } },
+          category: { select: { isActive: true } },
         },
       });
     });
@@ -176,6 +194,10 @@ async function updateImportRule(
       return tx.transactionImportRule.update({
         where: { id },
         data: input,
+        include: {
+          account: { select: { isActive: true } },
+          category: { select: { isActive: true } },
+        },
       });
     });
 
@@ -197,6 +219,37 @@ async function updateImportRule(
     }
 
     return failure("Erro ao atualizar regra de importação", 500);
+  }
+}
+
+export async function renumberImportRules() {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const result = await prisma.$transaction(async (tx) => {
+      await lockImportRuleMutations(tx, userId);
+      const rules = await tx.transactionImportRule.findMany({
+        where: { userId },
+        orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+        select: { id: true },
+      });
+
+      for (const [index, rule] of rules.entries()) {
+        await tx.transactionImportRule.update({
+          where: { id: rule.id },
+          data: { priority: index * 10 },
+        });
+      }
+
+      return {
+        updated: rules.length,
+        nextPriority: rules.length * 10,
+      };
+    });
+
+    return success(result, "Prioridades renumeradas com sucesso");
+  } catch (error) {
+    if (isUnauthorizedError(error)) return failure("Não autenticado", 401);
+    return failure("Não foi possível renumerar as prioridades", 500);
   }
 }
 
