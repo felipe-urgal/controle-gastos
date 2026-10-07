@@ -4,8 +4,8 @@ import { EditPage } from '@/app/components/base-pages';
 import { UserForm } from '@/app/components/pages/user';
 import { useUser } from '@/app/hooks/users/user-edit';
 
-export default function Edit({ id }: { id: string }) {
-  const { user, loading, error, handleBack } = useUser({ id });
+export default function Edit() {
+  const { user, loading, error, handleBack } = useUser();
 
   return (
     <EditPage
