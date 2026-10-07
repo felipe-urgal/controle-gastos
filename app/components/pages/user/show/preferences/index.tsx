@@ -59,14 +59,10 @@ export default function Preferences({ user, onUserChange }: PreferencesProps) {
     setFeedback(null);
 
     try {
-      await updateUser({
-        periodicSummaryEnabled,
-        periodicSummaryFrequency: 'WEEKLY',
-      });
+      await updateUser({ periodicSummaryEnabled });
       onUserChange({
         ...user,
         periodicSummaryEnabled,
-        periodicSummaryFrequency: 'WEEKLY',
       });
       setFeedback({
         type: 'success',
@@ -93,7 +89,7 @@ export default function Preferences({ user, onUserChange }: PreferencesProps) {
           Preferências
         </h2>
         <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-          Ajuste como informações financeiras e a aparência são apresentadas neste dispositivo.
+          Preferências da conta acompanham seu login. A aparência é local a este navegador.
         </p>
       </div>
 
@@ -106,7 +102,7 @@ export default function Preferences({ user, onUserChange }: PreferencesProps) {
             <div>
               <h3 className="text-base font-semibold text-[var(--foreground)]">Valores financeiros</h3>
               <p className="mt-0.5 text-sm leading-relaxed text-[var(--text-muted)]">
-                Controle se saldos e valores ficam visíveis nas telas financeiras.
+                Preferência da conta: controla se saldos e valores ficam visíveis nas telas financeiras.
               </p>
             </div>
           </div>
@@ -129,7 +125,7 @@ export default function Preferences({ user, onUserChange }: PreferencesProps) {
             <div>
               <h3 className="text-base font-semibold text-[var(--foreground)]">Resumo financeiro periódico</h3>
               <p className="mt-0.5 text-sm leading-relaxed text-[var(--text-muted)]">
-                Gera um resumo semanal dentro do app. O envio fica desligado por padrão e não usa e-mail.
+                Configuração da conta: gera um resumo semanal dentro do app. O histórico existente é preservado ao desativar.
               </p>
             </div>
           </div>
@@ -143,7 +139,13 @@ export default function Preferences({ user, onUserChange }: PreferencesProps) {
             inactiveLabel={isSavingPeriodicSummary ? 'Salvando…' : 'Desativado'}
           />
           <p className="mt-2 text-xs text-[var(--text-muted)]">
-            Frequência disponível: semanal, com período fechado de segunda a domingo.
+            Cadência atual: semanal, com período fechado de segunda a domingo.
+            {user.periodicSummaryLastProcessedAt
+              ? ` Último processamento: ${new Intl.DateTimeFormat('pt-BR', {
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                }).format(new Date(user.periodicSummaryLastProcessedAt))}.`
+              : ' Ainda não há processamento registrado.'}
           </p>
         </div>
 
@@ -155,7 +157,7 @@ export default function Preferences({ user, onUserChange }: PreferencesProps) {
             <div>
               <h3 className="text-base font-semibold text-[var(--foreground)]">Tema</h3>
               <p className="mt-0.5 text-sm leading-relaxed text-[var(--text-muted)]">
-                Esta preferência fica neste navegador e não altera seus dados financeiros.
+                Preferência deste navegador/dispositivo: não é sincronizada com sua conta.
               </p>
             </div>
           </div>
