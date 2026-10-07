@@ -53,13 +53,21 @@ function aggregateCents<T>(items: T[], valueOf: (item: T) => number | null): Cen
   return { value: total, complete: true };
 }
 
-export async function reconcilePayrollCompetence(params: {
-  userId: string;
-  employerCnpj: string;
-  year: number;
-  month: number;
-}) {
-  const documents = await prisma.payrollDocument.findMany({
+type PayrollReconciliationDb = Pick<
+  Prisma.TransactionClient,
+  "payrollDocument" | "payrollAdvanceLink"
+>;
+
+export async function reconcilePayrollCompetence(
+  params: {
+    userId: string;
+    employerCnpj: string;
+    year: number;
+    month: number;
+  },
+  db: PayrollReconciliationDb = prisma,
+) {
+  const documents = await db.payrollDocument.findMany({
     where: {
       userId: params.userId,
       employerCnpj: params.employerCnpj,
@@ -81,7 +89,7 @@ export async function reconcilePayrollCompetence(params: {
 
   if (regulars.length === 0) {
     if (advances.length > 0) {
-      await prisma.payrollAdvanceLink.deleteMany({
+      await db.payrollAdvanceLink.deleteMany({
         where: { userId: params.userId, advanceDocumentId: { in: advances.map((item) => item.id) } },
       });
     }
@@ -108,7 +116,7 @@ export async function reconcilePayrollCompetence(params: {
       );
 
       if (sameAmountAdvances.length === 1) {
-        await prisma.payrollAdvanceLink.upsert({
+        await db.payrollAdvanceLink.upsert({
           where: { advanceDocumentId: advance.id },
           create: {
             userId: params.userId,
@@ -143,7 +151,7 @@ export async function reconcilePayrollCompetence(params: {
       }
     }
 
-    await prisma.payrollAdvanceLink.upsert({
+    await db.payrollAdvanceLink.upsert({
       where: { advanceDocumentId: advance.id },
       create: {
         userId: params.userId,
