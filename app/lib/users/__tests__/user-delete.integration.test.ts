@@ -9,55 +9,61 @@ function hash64(seed: string) {
 }
 
 async function ownedCounts(userId: string) {
-  const entries = await Promise.all([
-    ["users", prisma.user.count({ where: { id: userId } })],
-    ["accounts", prisma.account.count({ where: { userId } })],
-    ["categories", prisma.category.count({ where: { userId } })],
-    ["categoryMonthlyLimits", prisma.categoryMonthlyLimit.count({ where: { userId } })],
-    ["importRules", prisma.transactionImportRule.count({ where: { userId } })],
-    ["reconciliationEvents", prisma.accountReconciliationEvent.count({ where: { userId } })],
-    ["transactions", prisma.transaction.count({ where: { userId } })],
-    ["merchants", prisma.merchant.count({ where: { userId } })],
-    ["merchantAliases", prisma.merchantAlias.count({ where: { userId } })],
-    ["merchantAliasEvents", prisma.merchantAliasEvent.count({ where: { userId } })],
-    ["tags", prisma.tag.count({ where: { userId } })],
-    ["transactionTags", prisma.transactionTag.count({ where: { userId } })],
-    ["transactionAllocations", prisma.transactionAllocation.count({ where: { userId } })],
-    ["transactionTemplates", prisma.transactionTemplate.count({ where: { userId } })],
-    ["transactionSeries", prisma.transactionSeries.count({ where: { userId } })],
-    ["subscriptionReviews", prisma.subscriptionReview.count({ where: { userId } })],
-    ["recurrencePatternReviews", prisma.recurrencePatternReview.count({ where: { userId } })],
-    ["transfers", prisma.transfer.count({ where: { userId } })],
-    ["creditCardPayments", prisma.creditCardPayment.count({ where: { userId } })],
-    ["financialGoals", prisma.financialGoal.count({ where: { userId } })],
-    ["financialGoalEntries", prisma.financialGoalEntry.count({ where: { userId } })],
-    ["exchangeRates", prisma.exchangeRate.count({ where: { userId } })],
-    ["debts", prisma.debt.count({ where: { userId } })],
-    ["debtAdjustments", prisma.debtAdjustment.count({ where: { userId } })],
-    ["periodicFinancialSummaries", prisma.periodicFinancialSummary.count({ where: { userId } })],
-    ["investmentAssets", prisma.investmentAsset.count({ where: { userId } })],
-    ["investmentOperations", prisma.investmentOperation.count({ where: { userId } })],
-    ["investmentIncomes", prisma.investmentIncome.count({ where: { userId } })],
-    ["investmentFiscalEvents", prisma.investmentFiscalEvent.count({ where: { userId } })],
-    ["investmentFiscalCostAdjustments", prisma.investmentFiscalCostAdjustment.count({ where: { userId } })],
-    ["investmentTaxLossAdjustments", prisma.investmentTaxLossAdjustment.count({ where: { userId } })],
-    ["investmentTaxWithholdings", prisma.investmentTaxWithholding.count({ where: { userId } })],
-    ["investmentTaxPayments", prisma.investmentTaxPayment.count({ where: { userId } })],
-    ["investmentForeignTaxesPaid", prisma.investmentForeignTaxPaid.count({ where: { userId } })],
-    ["investmentBrokerageTaxReviews", prisma.investmentBrokerageTaxReview.count({ where: { userId } })],
-    ["investmentFiscalPendingResolutions", prisma.investmentFiscalPendingResolution.count({ where: { userId } })],
-    ["annualFinancialTaxStatements", prisma.annualFinancialTaxStatement.count({ where: { userId } })],
-    ["mcpAccessTokens", prisma.mcpAccessToken.count({ where: { userId } })],
-    ["totpRecoveryCodes", prisma.totpRecoveryCode.count({ where: { userId } })],
-    ["mfaLoginChallenges", prisma.mfaLoginChallenge.count({ where: { userId } })],
-    ["passwordResetTokens", prisma.passwordResetToken.count({ where: { userId } })],
-    ["payrollDocuments", prisma.payrollDocument.count({ where: { userId } })],
-    ["payrollAdvanceLinks", prisma.payrollAdvanceLink.count({ where: { userId } })],
-    ["payrollTransactionLinks", prisma.payrollTransactionLink.count({ where: { userId } })],
-    ["annualEmploymentIncomeStatements", prisma.annualEmploymentIncomeStatement.count({ where: { userId } })],
-  ] as const);
+  const queries = {
+    users: prisma.user.count({ where: { id: userId } }),
+    accounts: prisma.account.count({ where: { userId } }),
+    categories: prisma.category.count({ where: { userId } }),
+    categoryMonthlyLimits: prisma.categoryMonthlyLimit.count({ where: { userId } }),
+    importRules: prisma.transactionImportRule.count({ where: { userId } }),
+    reconciliationEvents: prisma.accountReconciliationEvent.count({ where: { userId } }),
+    transactions: prisma.transaction.count({ where: { userId } }),
+    merchants: prisma.merchant.count({ where: { userId } }),
+    merchantAliases: prisma.merchantAlias.count({ where: { userId } }),
+    merchantAliasEvents: prisma.merchantAliasEvent.count({ where: { userId } }),
+    tags: prisma.tag.count({ where: { userId } }),
+    transactionTags: prisma.transactionTag.count({ where: { userId } }),
+    transactionAllocations: prisma.transactionAllocation.count({ where: { userId } }),
+    transactionTemplates: prisma.transactionTemplate.count({ where: { userId } }),
+    transactionSeries: prisma.transactionSeries.count({ where: { userId } }),
+    subscriptionReviews: prisma.subscriptionReview.count({ where: { userId } }),
+    recurrencePatternReviews: prisma.recurrencePatternReview.count({ where: { userId } }),
+    transfers: prisma.transfer.count({ where: { userId } }),
+    creditCardPayments: prisma.creditCardPayment.count({ where: { userId } }),
+    financialGoals: prisma.financialGoal.count({ where: { userId } }),
+    financialGoalEntries: prisma.financialGoalEntry.count({ where: { userId } }),
+    exchangeRates: prisma.exchangeRate.count({ where: { userId } }),
+    debts: prisma.debt.count({ where: { userId } }),
+    debtAdjustments: prisma.debtAdjustment.count({ where: { userId } }),
+    periodicFinancialSummaries: prisma.periodicFinancialSummary.count({ where: { userId } }),
+    investmentAssets: prisma.investmentAsset.count({ where: { userId } }),
+    investmentOperations: prisma.investmentOperation.count({ where: { userId } }),
+    investmentIncomes: prisma.investmentIncome.count({ where: { userId } }),
+    investmentFiscalEvents: prisma.investmentFiscalEvent.count({ where: { userId } }),
+    investmentFiscalCostAdjustments: prisma.investmentFiscalCostAdjustment.count({ where: { userId } }),
+    investmentTaxLossAdjustments: prisma.investmentTaxLossAdjustment.count({ where: { userId } }),
+    investmentTaxWithholdings: prisma.investmentTaxWithholding.count({ where: { userId } }),
+    investmentTaxPayments: prisma.investmentTaxPayment.count({ where: { userId } }),
+    investmentForeignTaxesPaid: prisma.investmentForeignTaxPaid.count({ where: { userId } }),
+    investmentBrokerageTaxReviews: prisma.investmentBrokerageTaxReview.count({ where: { userId } }),
+    investmentFiscalPendingResolutions: prisma.investmentFiscalPendingResolution.count({ where: { userId } }),
+    annualFinancialTaxStatements: prisma.annualFinancialTaxStatement.count({ where: { userId } }),
+    mcpAccessTokens: prisma.mcpAccessToken.count({ where: { userId } }),
+    totpRecoveryCodes: prisma.totpRecoveryCode.count({ where: { userId } }),
+    mfaLoginChallenges: prisma.mfaLoginChallenge.count({ where: { userId } }),
+    passwordResetTokens: prisma.passwordResetToken.count({ where: { userId } }),
+    payrollDocuments: prisma.payrollDocument.count({ where: { userId } }),
+    payrollAdvanceLinks: prisma.payrollAdvanceLink.count({ where: { userId } }),
+    payrollTransactionLinks: prisma.payrollTransactionLink.count({ where: { userId } }),
+    annualEmploymentIncomeStatements: prisma.annualEmploymentIncomeStatement.count({ where: { userId } }),
+    transactionCreateOperations: prisma.transactionCreateOperation.count({ where: { userId } }),
+    investmentMutationRequests: prisma.investmentMutationRequest.count({ where: { userId } }),
+  };
 
-  return Object.fromEntries(entries) as Record<string, number>;
+  const entries = await Promise.all(
+    Object.entries(queries).map(async ([key, query]) => [key, await query] as const),
+  );
+
+  return Object.fromEntries(entries);
 }
 
 describe("user deletion cascade", () => {
@@ -194,6 +200,15 @@ describe("user deletion cascade", () => {
         status: "COMPLETED",
         accountId: sourceAccount.id,
         userId: user.id,
+      },
+    });
+
+    await prisma.transactionCreateOperation.create({
+      data: {
+        idempotencyKeyHash: "f".repeat(64),
+        requestHash: "e".repeat(64),
+        userId: user.id,
+        transactionId: payrollTransaction.id,
       },
     });
 
@@ -353,10 +368,20 @@ describe("user deletion cascade", () => {
         userId: user.id,
       },
     });
+
+    await prisma.investmentMutationRequest.create({
+      data: {
+        scope: "operation:create",
+        idempotencyKeyHash: "2".repeat(64),
+        requestHash: "3".repeat(64),
+        resourceId: asset.id,
+        userId: user.id,
+      },
+    });
     const operation = await prisma.investmentOperation.create({
       data: {
         type: "BUY",
-        quantityUnits: 1_000_000n,
+        quantityUnits: BigInt(1_000_000),
         unitPriceCents: 1_000,
         year: 2026,
         month: 10,
@@ -369,7 +394,7 @@ describe("user deletion cascade", () => {
     const income = await prisma.investmentIncome.create({
       data: {
         type: "DIVIDEND",
-        quantityUnits: 1_000_000n,
+        quantityUnits: BigInt(1_000_000),
         unitValueCents: 100,
         netAmountCents: 100,
         year: 2026,
@@ -384,7 +409,7 @@ describe("user deletion cascade", () => {
       data: {
         type: "BUY",
         originalType: "BUY",
-        quantityUnits: 1_000_000n,
+        quantityUnits: BigInt(1_000_000),
         year: 2026,
         month: 10,
         day: 7,
@@ -396,7 +421,7 @@ describe("user deletion cascade", () => {
     });
     await prisma.investmentFiscalCostAdjustment.create({
       data: {
-        quantityUnits: 1_000_000n,
+        quantityUnits: BigInt(1_000_000),
         costBasisCents: 1_000,
         year: 2026,
         month: 10,
