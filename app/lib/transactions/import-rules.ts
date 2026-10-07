@@ -220,8 +220,8 @@ export function evaluateImportRules(
   return {
     matchedRuleId: matchedRule.id,
     matchedRuleName: matchedRule.name,
-    suggestedCategoryId: conflict ? null : matchedRule.categoryId,
-    suggestedDescription: conflict ? null : (suggestedDescription || null),
+    suggestedCategoryId: matchedRule.categoryId,
+    suggestedDescription: suggestedDescription || null,
     conflict,
     matchingRuleIds: matches.map((rule) => rule.id),
     matchingRuleNames: matches.map((rule) => rule.name),
