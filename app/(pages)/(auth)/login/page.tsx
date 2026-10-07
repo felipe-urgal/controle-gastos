@@ -46,7 +46,8 @@ export default function LoginPage() {
     }
 
     const params = new URLSearchParams(window.location.search);
-    const reason = params.get('reason');
+    const storedNotice = window.sessionStorage.getItem('auth-notice');
+    const reason = params.get('reason') ?? storedNotice;
     const verification = params.get('verification');
     const nextNotice =
       reason === 'password-changed'
@@ -58,6 +59,8 @@ export default function LoginPage() {
             : '';
 
     if (!nextNotice) return;
+
+    window.sessionStorage.removeItem('auth-notice');
 
     const noticeTimer = window.setTimeout(() => {
       setNotice(nextNotice);
