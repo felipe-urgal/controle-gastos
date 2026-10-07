@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
 
+import {
+  TRANSACTION_DESCRIPTION_MAX_LENGTH,
+  TRANSACTION_DESCRIPTION_MIN_LENGTH,
+} from "@/app/lib/transactions/transaction-field-contract";
+
 export const IMPORT_MAX_FILE_BYTES = 2 * 1024 * 1024;
 export const IMPORT_MAX_ITEMS = 1000;
 
@@ -240,8 +245,8 @@ export function parseTabularImportRows(
 
     if (!date) errors.push("Data inválida.");
     if (signedAmount === null || signedAmount === 0) errors.push("Valor inválido ou igual a zero.");
-    if (description.length < 2) errors.push("Descrição deve ter pelo menos 2 caracteres.");
-    if (description.length > 100) errors.push("Descrição deve ter no máximo 100 caracteres.");
+    if (description.length < TRANSACTION_DESCRIPTION_MIN_LENGTH) errors.push(`Descrição deve ter pelo menos ${TRANSACTION_DESCRIPTION_MIN_LENGTH} caracteres.`);
+    if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) errors.push(`Descrição deve ter no máximo ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`);
 
     const safeAmount = signedAmount ?? 0;
     return {
@@ -379,7 +384,7 @@ function parseQifRecord(
     errors.push("Valor inválido ou igual a zero.");
   }
   if (!payee && !memo) errors.push("Payee ou descrição ausente.");
-  if (description.length > 100) errors.push("Descrição deve ter no máximo 100 caracteres.");
+  if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) errors.push(`Descrição deve ter no máximo ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`);
 
   const safeAmount = signedAmount ?? 0;
   return {
@@ -388,7 +393,7 @@ function parseQifRecord(
     date: date ?? "",
     amountCents: Math.abs(safeAmount),
     type: safeAmount >= 0 ? "INCOME" : "EXPENSE",
-    description: description.slice(0, 100),
+    description: description.slice(0, TRANSACTION_DESCRIPTION_MAX_LENGTH),
     errors,
   };
 }
@@ -510,7 +515,7 @@ export function parseOfxImport(content: string, accountCurrency: string): OfxImp
 
     if (!date) errors.push("Data inválida.");
     if (signedAmount === null || signedAmount === 0) errors.push("Valor inválido ou igual a zero.");
-    if (description.length > 100) errors.push("Descrição deve ter no máximo 100 caracteres.");
+    if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) errors.push(`Descrição deve ter no máximo ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`);
 
     const safeAmount = signedAmount ?? 0;
     return {
@@ -519,7 +524,7 @@ export function parseOfxImport(content: string, accountCurrency: string): OfxImp
       date: date ?? "",
       amountCents: Math.abs(safeAmount),
       type: safeAmount >= 0 ? ("INCOME" as const) : ("EXPENSE" as const),
-      description: description.slice(0, 100),
+      description: description.slice(0, TRANSACTION_DESCRIPTION_MAX_LENGTH),
       externalId,
       currency: currency || accountCurrency.toUpperCase(),
       errors,
