@@ -563,6 +563,9 @@ export function withImportFingerprints(params: {
   accountId: string;
   items: ParsedImportItem[];
 }) {
+  // Sem identificador externo, a ocorrência faz parte da identidade para não
+  // colapsar compras legitimamente idênticas no mesmo arquivo. A ordem entre
+  // descrições diferentes não altera a ocorrência de cada conteúdo.
   const occurrences = new Map<string, number>();
   const seenExternal = new Set<string>();
 
