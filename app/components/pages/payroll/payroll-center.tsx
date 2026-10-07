@@ -55,6 +55,7 @@ type PayrollDocument = {
 
 type ReplacementCandidate = {
   id: string;
+  paymentType: PayrollPaymentType;
   createdAt: string;
   netPaidCents: number | null;
 };
@@ -458,7 +459,7 @@ export default function PayrollCenter() {
                       <option value="">Importar como documento adicional</option>
                       {preview.replacementCandidates.map((candidate) => (
                         <option key={candidate.id} value={candidate.id}>
-                          Versão de {new Date(candidate.createdAt).toLocaleDateString('pt-BR')} · líquido {money(candidate.netPaidCents)}
+                          {paymentTypeLabel(candidate.paymentType)} · versão de {new Date(candidate.createdAt).toLocaleDateString('pt-BR')} · líquido {money(candidate.netPaidCents)}
                         </option>
                       ))}
                     </select>
