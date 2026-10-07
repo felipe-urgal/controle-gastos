@@ -15,8 +15,8 @@ export default function MobileTopbar({
   const pathname = usePathname();
   const { logout, user } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
-  const profileHref = user?.id ? `/usuario/show/${user.id}` : '/usuario';
-  const profileActive = getAppNavigation(user?.id)
+  const profileHref = '/usuario';
+  const profileActive = getAppNavigation()
     .find((item) => item.key === 'profile')
     ?.isActive(pathname);
   const initial = user?.name?.trim().charAt(0).toUpperCase() || 'U';
