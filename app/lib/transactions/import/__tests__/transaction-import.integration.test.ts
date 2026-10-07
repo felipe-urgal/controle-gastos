@@ -134,6 +134,32 @@ async function getPreview(accountId: string) {
 }
 
 describe("transaction import integration", () => {
+  it("requires an account before starting an import preview", async () => {
+    const { owner } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new File(
+        ["data,descricao,valor\n2026-08-31,Café,-10.00"],
+        "extrato.csv",
+        { type: "text/csv" },
+      ),
+    );
+
+    const response = await previewTransactionImport(
+      new Request("http://localhost/api/transactions/import/preview", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error?.message).toBe("Selecione uma conta válida");
+  });
+
   it("generates preview without writes and confirms only selected items", async () => {
     const { owner, account, expenseCategory, incomeCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
