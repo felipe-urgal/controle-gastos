@@ -157,6 +157,8 @@ export default function TransactionImportPage() {
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
   const [merchantOptionsUnavailable, setMerchantOptionsUnavailable] = useState(false);
+  const [accountLoadError, setAccountLoadError] = useState('');
+  const [categoryLoadError, setCategoryLoadError] = useState('');
   const [accountId, setAccountId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
@@ -172,26 +174,39 @@ export default function TransactionImportPage() {
 
   useEffect(() => {
     async function loadRelations() {
-      try {
-        const [accountResponse, categoryResponse] = await Promise.all([
-          accountService.getAll(),
-          categoryService.getAll(),
-        ]);
-        let merchantResponse: MerchantDTO[] = [];
-        try {
-          merchantResponse = await merchantService.getAllOptions();
-          setMerchantOptionsUnavailable(false);
-        } catch {
-          setMerchantOptionsUnavailable(true);
-        }
+      setLoadingRelations(true);
 
-        const activeAccounts = (accountResponse.data?.items ?? []).filter((account) => account.isActive);
+      const [accountResult, categoryResult] = await Promise.allSettled([
+        accountService.getAll(),
+        categoryService.getAll(),
+      ]);
+
+      if (accountResult.status === 'fulfilled') {
+        const activeAccounts = (accountResult.value.data?.items ?? []).filter((account) => account.isActive);
         setAccounts(activeAccounts);
-        setCategories((categoryResponse.data?.items ?? []).filter((category) => category.isActive));
-        setMerchants(merchantResponse.filter((merchant) => merchant.isActive));
+        setAccountLoadError('');
         if (activeAccounts.length === 1) setAccountId(activeAccounts[0].id);
+      } else {
+        setAccounts([]);
+        setAccountId('');
+        setAccountLoadError('Não foi possível carregar contas.');
+      }
+
+      if (categoryResult.status === 'fulfilled') {
+        setCategories((categoryResult.value.data?.items ?? []).filter((category) => category.isActive));
+        setCategoryLoadError('');
+      } else {
+        setCategories([]);
+        setCategoryLoadError('Não foi possível carregar categorias.');
+      }
+
+      try {
+        const merchantResponse = await merchantService.getAllOptions();
+        setMerchants(merchantResponse.filter((merchant) => merchant.isActive));
+        setMerchantOptionsUnavailable(false);
       } catch {
-        setError('Não foi possível carregar contas e categorias.');
+        setMerchants([]);
+        setMerchantOptionsUnavailable(true);
       } finally {
         setLoadingRelations(false);
       }
@@ -389,6 +404,8 @@ export default function TransactionImportPage() {
         <span className={step >= 3 ? 'font-semibold text-[var(--foreground)]' : ''}>Concluído</span>
       </div>
 
+      {accountLoadError && <Alert variant="error" message={accountLoadError} />}
+      {categoryLoadError && <Alert variant="error" message={categoryLoadError} />}
       {error && <Alert variant="error" message={error} />}
 
       {step === 1 && (
