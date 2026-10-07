@@ -14,9 +14,9 @@ function fold(value: string) {
     .toUpperCase();
 }
 
-function compensationValues(value: Prisma.JsonValue) {
+export function payrollCompensationValues(value: Prisma.JsonValue) {
   if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
+  return value.flatMap((item, rubricIndex) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return [];
     const rubric = item as PayrollRubric;
     const description = typeof rubric.description === "string" ? rubric.description : "";
@@ -27,7 +27,7 @@ function compensationValues(value: Prisma.JsonValue) {
     ) {
       return [];
     }
-    return [{ description, amount }];
+    return [{ rubricIndex, description, amount }];
   });
 }
 
@@ -83,6 +83,13 @@ export async function reconcilePayrollCompetence(
       grossIncomeCents: true,
       totalEarningsCents: true,
       deductions: true,
+      advanceLinks: {
+        select: {
+          status: true,
+          regularDocumentId: true,
+          evidence: true,
+        },
+      },
     },
   });
 
@@ -99,13 +106,32 @@ export async function reconcilePayrollCompetence(
   }
 
   const regularCompensations = regulars.flatMap((regular) =>
-    compensationValues(regular.deductions).map((rubric) => ({
+    payrollCompensationValues(regular.deductions).map((rubric) => ({
       regularDocumentId: regular.id,
       ...rubric,
     })),
   );
 
   for (const advance of advances) {
+    const manualMatch = advance.advanceLinks.find((link) => {
+      if (
+        link.status !== "MATCHED" ||
+        !link.regularDocumentId ||
+        !regulars.some((regular) => regular.id === link.regularDocumentId)
+      ) {
+        return false;
+      }
+      if (
+        !link.evidence ||
+        typeof link.evidence !== "object" ||
+        Array.isArray(link.evidence)
+      ) {
+        return false;
+      }
+      return (link.evidence as Record<string, unknown>).source === "MANUAL";
+    });
+    if (manualMatch) continue;
+
     const expected = advance.totalEarningsCents ?? advance.grossIncomeCents;
     const matches = expected === null
       ? []
@@ -225,14 +251,26 @@ export async function getPayrollCompetenceSummaries(userId: string) {
     const regulars = items.filter((item) => item.paymentType === "REGULAR");
     const advances = items.filter((item) => item.paymentType === "ADVANCE");
     const links = advances.flatMap((item) => item.advanceLinks);
-    const grossIncome = aggregateCents(
-      regulars.length > 0 ? regulars : advances,
-      (item) => item.grossIncomeCents ?? item.totalEarningsCents,
-    );
-    const netPaid = aggregateCents(items, (item) => item.netPaidCents);
-    const irrf = aggregateCents(items, (item) => item.irrfCents);
+    const ambiguousRegulars = regulars.length > 1;
+    const incomplete = { value: null, complete: false } satisfies CentsAggregation;
+    const grossIncome = ambiguousRegulars
+      ? incomplete
+      : aggregateCents(
+          regulars.length > 0 ? regulars : advances,
+          (item) => item.grossIncomeCents ?? item.totalEarningsCents,
+        );
+    const netPaid = ambiguousRegulars
+      ? incomplete
+      : aggregateCents(items, (item) => item.netPaidCents);
+    const irrf = ambiguousRegulars
+      ? incomplete
+      : aggregateCents(items, (item) => item.irrfCents);
     const advanceNetPaid = aggregateCents(advances, (item) => item.netPaidCents);
-    const regularNetPaid = aggregateCents(regulars, (item) => item.netPaidCents);
+    const regularNetPaid = ambiguousRegulars
+      ? incomplete
+      : aggregateCents(regulars, (item) => item.netPaidCents);
+    const matchedAdvances = links.filter((item) => item.status === "MATCHED").length;
+    const pendingAdvances = links.filter((item) => item.status === "PENDING").length;
 
     return {
       employerName: items[0]?.employerName ?? "",
@@ -249,8 +287,15 @@ export async function getPayrollCompetenceSummaries(userId: string) {
       advanceNetPaidComplete: advanceNetPaid.complete,
       regularNetPaidCents: regularNetPaid.value,
       regularNetPaidComplete: regularNetPaid.complete,
-      matchedAdvances: links.filter((item) => item.status === "MATCHED").length,
-      pendingAdvances: links.filter((item) => item.status === "PENDING").length,
+      matchedAdvances,
+      pendingAdvances,
+      regularDocumentCount: regulars.length,
+      reviewRequired: ambiguousRegulars || pendingAdvances > 0,
+      reviewReason: ambiguousRegulars
+        ? `Há ${regulars.length} folhas REGULAR vigentes nesta competência. Arquive/superseda duplicatas ou reclassifique pagamentos diferentes antes de usar os totais.`
+        : pendingAdvances > 0
+          ? `${pendingAdvances} adiantamento(s) ainda precisam de resolução.`
+          : null,
       documentCount: items.length,
     };
   });

@@ -19,6 +19,7 @@ on:
       - "tests/e2e/recurrences-flow.spec.mjs"
       - "tests/e2e/commitments-flow.spec.mjs"
       - "tests/e2e/calendar-flow.spec.mjs"
+      - "tests/e2e/payroll-flow.spec.mjs"
       - "tests/e2e/support/**"
       - "app/components/pages/account/**"
       - "app/components/pages/category/**"
@@ -65,6 +66,10 @@ on:
       - "app/lib/subscriptions/**"
       - "app/lib/commitments/**"
       - "app/lib/calendar/**"
+      - "app/lib/payroll/**"
+      - "app/api/payroll/**"
+      - "app/components/pages/payroll/**"
+      - "app/(pages)/(home)/rendimentos-trabalho/**"
       - "app/components/pages/recurrences/**"
       - "app/components/pages/financial-commitments/**"
       - "app/components/pages/calendar/**"
@@ -182,6 +187,7 @@ jobs:
           tests/e2e/recurrences-flow.spec.mjs
           tests/e2e/commitments-flow.spec.mjs
           tests/e2e/calendar-flow.spec.mjs
+          tests/e2e/payroll-flow.spec.mjs
           --project=${{ matrix.browser }}
 
       - name: Run full E2E

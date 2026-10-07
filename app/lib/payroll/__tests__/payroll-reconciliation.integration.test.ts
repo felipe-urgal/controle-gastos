@@ -247,6 +247,53 @@ describe("payroll advance reconciliation", () => {
     });
   });
 
+  it("marks multiple active REGULAR documents as ambiguous instead of summing them", async () => {
+    const user = await createUser();
+    const first = await createRegular(user.id, {
+      gross: 724228,
+      net: 349495,
+      irrf: 120000,
+    });
+    const second = await createRegular(user.id, {
+      gross: 700000,
+      net: 330000,
+      irrf: 110000,
+    });
+
+    let [summary] = await getPayrollCompetenceSummaries(user.id);
+    expect(summary).toMatchObject({
+      reviewRequired: true,
+      regularDocumentCount: 2,
+      grossIncomeCents: null,
+      grossIncomeComplete: false,
+      regularNetPaidCents: null,
+      regularNetPaidComplete: false,
+      netPaidCents: null,
+      netPaidComplete: false,
+      irrfCents: null,
+      irrfComplete: false,
+    });
+    expect(summary.reviewReason).toContain("2 folhas REGULAR vigentes");
+
+    await prisma.payrollDocument.update({
+      where: { id: second.id },
+      data: {
+        lifecycleStatus: "SUPERSEDED",
+        supersededAt: new Date(),
+      },
+    });
+
+    [summary] = await getPayrollCompetenceSummaries(user.id);
+    expect(summary).toMatchObject({
+      reviewRequired: false,
+      regularDocumentCount: 1,
+      grossIncomeCents: first.grossIncomeCents,
+      grossIncomeComplete: true,
+      regularNetPaidCents: first.netPaidCents,
+      regularNetPaidComplete: true,
+    });
+  });
+
   it("preserves null when monthly aggregate values are incomplete", async () => {
     const user = await createUser();
     await createAdvance(user.id, { net: null });

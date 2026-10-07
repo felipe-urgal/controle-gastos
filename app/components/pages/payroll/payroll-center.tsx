@@ -6,6 +6,7 @@ import { FaFileImport, FaRedo } from 'react-icons/fa';
 import { PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { AnnualIncomeStatementSection } from '@/app/components/pages/payroll/annual-income-statement-section';
+import { PayrollAdvanceReconciliationSection } from '@/app/components/pages/payroll/payroll-advance-reconciliation-section';
 import { PayrollAnnualReconciliationSection } from '@/app/components/pages/payroll/payroll-annual-reconciliation-section';
 import { PayrollTransactionReconciliationSection } from '@/app/components/pages/payroll/payroll-transaction-reconciliation-section';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -88,6 +89,9 @@ type PayrollSummary = {
   regularNetPaidComplete: boolean;
   matchedAdvances: number;
   pendingAdvances: number;
+  regularDocumentCount: number;
+  reviewRequired: boolean;
+  reviewReason: string | null;
   documentCount: number;
 };
 
@@ -163,6 +167,7 @@ export default function PayrollCenter() {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [paymentType, setPaymentType] = useState<PayrollPaymentType>('REGULAR');
   const [supersedesId, setSupersedesId] = useState('');
+  const [reconciliationRefreshKey, setReconciliationRefreshKey] = useState(0);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -193,6 +198,12 @@ export default function PayrollCenter() {
     if (!preview?.document) return [];
     return [...preview.document.earnings, ...preview.document.deductions];
   }, [preview]);
+
+  async function refreshReconciliationReadModels() {
+    const response = await fetch('/api/payroll/summary', { cache: 'no-store' });
+    setSummaries(await readEnvelope<PayrollSummary[]>(response));
+    setReconciliationRefreshKey((current) => current + 1);
+  }
 
   async function generatePreview() {
     if (!file) return;
@@ -231,6 +242,7 @@ export default function PayrollCenter() {
       ]);
       setDocuments(await readEnvelope<StoredDocument[]>(listResponse));
       setSummaries(await readEnvelope<PayrollSummary[]>(summaryResponse));
+      setReconciliationRefreshKey((current) => current + 1);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Não foi possível arquivar o documento.');
     } finally {
@@ -314,9 +326,9 @@ export default function PayrollCenter() {
                         {String(summary.month).padStart(2, '0')}/{summary.year} · {summary.employerCnpj}
                       </p>
                     </div>
-                    {summary.pendingAdvances > 0 ? (
+                    {summary.reviewRequired ? (
                       <span className="rounded-full bg-[var(--warning-subtle)] px-2 py-1 text-xs font-semibold text-[var(--warning)]">
-                        Revisão necessária
+                        Revisar competência
                       </span>
                     ) : summary.matchedAdvances > 0 ? (
                       <span className="rounded-full bg-[var(--success-subtle)] px-2 py-1 text-xs font-semibold text-[var(--success)]">
@@ -333,11 +345,25 @@ export default function PayrollCenter() {
                   <p className="mt-3 text-xs text-[var(--text-muted)]">
                     IRRF retido na competência: <strong className="text-[var(--foreground)]">{summaryMoney(summary.irrfCents, summary.irrfComplete)}</strong>
                   </p>
+                  {summary.reviewReason && (
+                    <p className="mt-3 rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--warning)]">
+                      {summary.reviewReason}
+                    </p>
+                  )}
                 </article>
               ))}
             </div>
           </section>
         )}
+
+        <PayrollAdvanceReconciliationSection
+          refreshKey={
+            documents.map((document) => document.id).join('|') +
+            ':' +
+            reconciliationRefreshKey
+          }
+          onChanged={refreshReconciliationReadModels}
+        />
 
         <PayrollTransactionReconciliationSection
           refreshKey={documents.map((document) => document.id).join('|')}
@@ -345,7 +371,9 @@ export default function PayrollCenter() {
 
         <AnnualIncomeStatementSection />
 
-        <PayrollAnnualReconciliationSection />
+        <PayrollAnnualReconciliationSection
+          refreshKey={reconciliationRefreshKey}
+        />
 
                 <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
           <section className="ds-panel p-5">

@@ -83,19 +83,23 @@ async function envelope<T>(response: Response): Promise<T> {
   return body.data as T;
 }
 
-export function PayrollAnnualReconciliationSection() {
+export function PayrollAnnualReconciliationSection({
+  refreshKey = 0,
+}: {
+  refreshKey?: number;
+}) {
   const lastClosedYear = new Date().getFullYear() - 1;
   const [year, setYear] = useState(lastClosedYear);
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  async function load(selectedYear: number) {
+  async function refresh() {
     setLoading(true);
     setError('');
     try {
       const response = await fetch(
-        '/api/payroll/annual/reconciliation?year=' + selectedYear,
+        '/api/payroll/annual/reconciliation?year=' + year,
         { cache: 'no-store' },
       );
       setReport(await envelope<Report>(response));
@@ -112,24 +116,29 @@ export function PayrollAnnualReconciliationSection() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/payroll/annual/reconciliation?year=' + lastClosedYear, {
+
+    fetch('/api/payroll/annual/reconciliation?year=' + year, {
       cache: 'no-store',
     })
       .then((response) => envelope<Report>(response))
       .then((data) => {
-        if (!cancelled) setReport(data);
+        if (!cancelled) {
+          setError('');
+          setReport(data);
+          setLoading(false);
+        }
       })
       .catch(() => {
-        if (!cancelled) setError('Não foi possível carregar a conciliação anual.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setError('Não foi possível carregar a conciliação anual.');
+          setLoading(false);
+        }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [lastClosedYear]);
+  }, [refreshKey, year]);
 
   const years = Array.from({ length: 6 }, (_, index) => lastClosedYear - index);
 
@@ -151,7 +160,6 @@ export function PayrollAnnualReconciliationSection() {
             onChange={(event) => {
               const selectedYear = Number(event.target.value);
               setYear(selectedYear);
-              void load(selectedYear);
             }}
             className="ds-control min-h-10 px-3 text-sm"
             aria-label="Ano da conciliação"
@@ -165,7 +173,7 @@ export function PayrollAnnualReconciliationSection() {
           <button
             type="button"
             disabled={loading}
-            onClick={() => void load(year)}
+            onClick={() => void refresh()}
             className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
           >
             <FaRedo aria-hidden="true" />
