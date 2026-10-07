@@ -294,6 +294,66 @@ describe("transaction templates HTTP contract", () => {
     ).toBe(1);
   });
 
+  it("returns one success and one 409 for concurrent equivalent updates", async () => {
+    const owner = await createFixture("update-conflict");
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.user.id);
+
+    const firstCreate = await createTemplate(
+      jsonRequest("http://localhost/api/transaction-templates", "POST", {
+        name: "Modelo origem A",
+        type: "EXPENSE",
+      }),
+    );
+    const secondCreate = await createTemplate(
+      jsonRequest("http://localhost/api/transaction-templates", "POST", {
+        name: "Modelo origem B",
+        type: "EXPENSE",
+      }),
+    );
+
+    const firstBody = await responseBody(firstCreate);
+    const secondBody = await responseBody(secondCreate);
+
+    const [firstUpdate, secondUpdate] = await Promise.all([
+      updateTemplate(
+        jsonRequest(
+          `http://localhost/api/transaction-templates/${firstBody.data.id}`,
+          "PUT",
+          { name: "Destino compartilhado" },
+        ),
+        context(firstBody.data.id),
+      ),
+      updateTemplate(
+        jsonRequest(
+          `http://localhost/api/transaction-templates/${secondBody.data.id}`,
+          "PUT",
+          { name: "  destino   compartilhado " },
+        ),
+        context(secondBody.data.id),
+      ),
+    ]);
+
+    const responses = [firstUpdate, secondUpdate].sort(
+      (left, right) => left.status - right.status,
+    );
+    expect(responses.map((response) => response.status)).toEqual([200, 409]);
+
+    const conflictBody = await responseBody(responses[1]);
+    expect(conflictBody.error).toMatchObject({
+      code: "TEMPLATE_NAME_CONFLICT",
+      message: "Já existe um Modelo com esse nome",
+    });
+
+    expect(
+      await prisma.transactionTemplate.count({
+        where: {
+          userId: owner.user.id,
+          normalizedName: "destino compartilhado",
+        },
+      }),
+    ).toBe(1);
+  });
+
   it("allows the same canonical name for another user", async () => {
     const first = await createFixture("same-name-a");
     const second = await createFixture("same-name-b");
