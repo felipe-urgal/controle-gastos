@@ -649,7 +649,7 @@ export default function TransactionImportPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Import Inbox</p>
               <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">Escolha de onde vamos revisar</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
-                CSV, OFX e XLSX, até 2 MB e 1.000 transações. Gerar preview é somente leitura: nenhum lançamento é criado nesta etapa.
+                CSV, OFX/QFX, QIF e XLSX, até 2 MB e 1.000 transações. Gerar preview é somente leitura: nenhum lançamento é criado nesta etapa.
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -815,6 +815,7 @@ export default function TransactionImportPage() {
                           setFilter(option.value);
                           setActiveIndex(null);
                           setMobileDetailOpen(false);
+                          setConfirmMerchantConflictBulk(false);
                         }}
                         className={`min-h-11 shrink-0 rounded-full border px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
                           filter === option.value
@@ -888,6 +889,7 @@ export default function TransactionImportPage() {
                       setSearch(event.target.value);
                       setActiveIndex(null);
                       setMobileDetailOpen(false);
+                      setConfirmMerchantConflictBulk(false);
                     }}
                     placeholder="Descrição, data, origem ou regra"
                     className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)]"
@@ -972,6 +974,17 @@ export default function TransactionImportPage() {
                 </p>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
+                {previewExpired && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void generatePreview(true)}
+                    disabled={submitting}
+                  >
+                    Gerar preview novamente
+                  </Button>
+                )}
                 <Button type="button" size="sm" variant="outline" onClick={resetImport} disabled={submitting}>
                   Cancelar
                 </Button>
@@ -979,7 +992,7 @@ export default function TransactionImportPage() {
                   type="button"
                   size="sm"
                   onClick={handleConfirm}
-                  disabled={selectedCount === 0 || reviewCount > 0}
+                  disabled={selectedCount === 0 || reviewCount > 0 || previewExpired}
                   isLoading={submitting}
                   loadingText="Importando…"
                 >
@@ -989,6 +1002,9 @@ export default function TransactionImportPage() {
             </div>
             {reviewCount > 0 && (
               <p className="mt-2 text-sm text-[var(--warning)]">Resolva ou ignore todos os itens em “Precisa revisar” antes de confirmar.</p>
+            )}
+            {previewExpired && (
+              <p className="mt-2 text-sm text-[var(--warning)]">O token deste preview expirou. Regenere o mesmo arquivo; escolhas compatíveis são remapeadas pela identidade de importação.</p>
             )}
           </div>
 
@@ -1021,7 +1037,7 @@ export default function TransactionImportPage() {
               <p className="text-sm font-semibold uppercase tracking-wide text-[var(--income)]">Importação concluída</p>
               <h2 className="mt-2 text-2xl font-bold text-[var(--foreground)]">{result.created} transação(ões) criada(s)</h2>
               <p className="mt-2 text-sm text-[var(--text-muted)]">
-                {result.selected} selecionada(s) · {result.duplicates} ignorada(s) por duplicidade na confirmação.
+                {result.selected} selecionada(s) · {result.duplicates} ignorada(s) porque a mesma identidade de importação já existia na confirmação.
               </p>
             </div>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
