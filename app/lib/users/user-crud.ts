@@ -42,6 +42,7 @@ const baseUserCrud = baseCrudHandler({
       showValues: user.showValues,
       periodicSummaryEnabled: user.periodicSummaryEnabled,
       periodicSummaryFrequency: user.periodicSummaryFrequency,
+      periodicSummaryLastProcessedAt: user.periodicSummaryLastProcessedAt,
       totpEnabled: user.totpEnabled,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
