@@ -22,6 +22,18 @@ export const APPLICATION_RATE_LIMIT_POLICIES = {
     windowMs: FIFTEEN_MINUTES_MS,
     blockMs: FIFTEEN_MINUTES_MS,
   },
+  transactionImportPreview: {
+    action: "transaction-import-preview-user",
+    maxAttempts: 30,
+    windowMs: FIFTEEN_MINUTES_MS,
+    blockMs: FIFTEEN_MINUTES_MS,
+  },
+  transactionImportConfirm: {
+    action: "transaction-import-confirm-user",
+    maxAttempts: 30,
+    windowMs: FIFTEEN_MINUTES_MS,
+    blockMs: FIFTEEN_MINUTES_MS,
+  },
   transactionMutation: {
     action: "transaction-mutation-user",
     maxAttempts: 120,
@@ -50,6 +62,20 @@ export function consumeDataExportRateLimit(userId: string) {
 export function consumeImportRateLimit(userId: string) {
   return consumeAuthenticatedRateLimit(
     APPLICATION_RATE_LIMIT_POLICIES.import,
+    userId,
+  );
+}
+
+export function consumeTransactionImportPreviewRateLimit(userId: string) {
+  return consumeAuthenticatedRateLimit(
+    APPLICATION_RATE_LIMIT_POLICIES.transactionImportPreview,
+    userId,
+  );
+}
+
+export function consumeTransactionImportConfirmRateLimit(userId: string) {
+  return consumeAuthenticatedRateLimit(
+    APPLICATION_RATE_LIMIT_POLICIES.transactionImportConfirm,
     userId,
   );
 }
