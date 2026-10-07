@@ -10,6 +10,7 @@ vi.mock("@/app/lib/auth", () => ({
 }));
 
 import {
+  archiveAnnualEmploymentIncomeStatement,
   confirmAnnualEmploymentIncomeStatement,
 } from "@/app/lib/payroll/annual-income-statement-import";
 import {
@@ -158,6 +159,85 @@ describe("annual employment income statement import", () => {
       original.taxableIncomeCents,
       retified.taxableIncomeCents,
     ]);
+  });
+
+  it("supersedes and archives annual statement versions auditably", async () => {
+    const user = await createUser();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(user.id);
+
+    const original = parsed();
+    const originalStatement = {
+      ...original,
+      fingerprint: annualEmploymentIncomeFingerprint(user.id, original),
+      duplicate: false,
+    };
+    const originalToken = signAnnualStatementPreview(user.id, originalStatement);
+
+    const first = await confirmAnnualEmploymentIncomeStatement(request({
+      previewToken: originalToken,
+      selected: true,
+      statement: originalStatement,
+    }));
+    expect(first.status).toBe(201);
+
+    const originalStored =
+      await prisma.annualEmploymentIncomeStatement.findFirstOrThrow({
+        where: {
+          userId: user.id,
+          importFingerprint: originalStatement.fingerprint,
+        },
+      });
+
+    const retified = {
+      ...original,
+      taxableIncomeCents: (original.taxableIncomeCents ?? 0) + 100,
+      irrfCents: (original.irrfCents ?? 0) + 10,
+    };
+    const retifiedStatement = {
+      ...retified,
+      fingerprint: annualEmploymentIncomeFingerprint(user.id, retified),
+      duplicate: false,
+    };
+    const retifiedToken = signAnnualStatementPreview(user.id, retifiedStatement);
+
+    const second = await confirmAnnualEmploymentIncomeStatement(request({
+      previewToken: retifiedToken,
+      selected: true,
+      statement: retifiedStatement,
+      supersedesId: originalStored.id,
+    }));
+    expect(second.status).toBe(201);
+
+    const versions = await prisma.annualEmploymentIncomeStatement.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(versions).toHaveLength(2);
+    expect(versions[0]).toMatchObject({
+      id: originalStored.id,
+      lifecycleStatus: "SUPERSEDED",
+    });
+    expect(versions[0]?.supersededAt).not.toBeNull();
+    expect(versions[1]).toMatchObject({
+      lifecycleStatus: "ACTIVE",
+      supersedesId: originalStored.id,
+      taxableIncomeCents: retified.taxableIncomeCents,
+    });
+
+    const archived = await archiveAnnualEmploymentIncomeStatement(
+      new Request("http://localhost/api/payroll/annual/archive", {
+        method: "POST",
+      }),
+      { params: Promise.resolve({ id: versions[1]!.id }) },
+    );
+    expect(archived.status).toBe(200);
+
+    const archivedVersion =
+      await prisma.annualEmploymentIncomeStatement.findUniqueOrThrow({
+        where: { id: versions[1]!.id },
+      });
+    expect(archivedVersion.lifecycleStatus).toBe("ARCHIVED");
+    expect(archivedVersion.archivedAt).not.toBeNull();
   });
 
   it("rejects a preview signed for another user", async () => {
