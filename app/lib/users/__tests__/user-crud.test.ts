@@ -118,6 +118,20 @@ describe("userCrud", () => {
     expect(mocks.user.update).not.toHaveBeenCalled();
   });
 
+  it("rejects an email change without the current password", async () => {
+    const response = await userCrud.update(
+      new Request("http://localhost/api/user", {
+        method: "PATCH",
+        body: JSON.stringify({ email: "novo@example.com" }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.user.findFirst).not.toHaveBeenCalled();
+    expect(mocks.sendEmailVerification).not.toHaveBeenCalled();
+    expect(mocks.user.update).not.toHaveBeenCalled();
+  });
+
   it("rate limits before checking an invalid current password", async () => {
     mocks.user.findFirst.mockResolvedValue(existingUser);
     mocks.bcryptCompare.mockResolvedValue(false);
@@ -187,6 +201,10 @@ describe("userCrud", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(mocks.consumeStepUpRateLimit).toHaveBeenCalledWith({
+      request: expect.any(Request),
+      userId,
+    });
     expect(mocks.signEmailVerificationToken).toHaveBeenCalledWith({
       userId,
       email: "novo@example.com",
