@@ -92,37 +92,49 @@ async function createIncomeTransaction(args: {
   month?: number;
   day?: number;
   description?: string;
+  accountType?: "CREDIT_DEBIT" | "INVESTMENT" | "CREDIT_CARD";
+  currency?: string;
+  kind?: "NORMAL" | "TRANSFER" | "CARD_PAYMENT";
+  type?: "INCOME" | "EXPENSE";
 }) {
-  const [account, category] = await Promise.all([
-    prisma.account.create({
-      data: {
-        name: "Conta " + randomUUID(),
-        type: "CREDIT_DEBIT",
-        currency: "BRL",
-        userId: args.userId,
-      },
-    }),
-    prisma.category.create({
-      data: {
-        name: "Salário " + randomUUID(),
-        type: "INCOME",
-        userId: args.userId,
-      },
-    }),
-  ]);
+  const kind = args.kind ?? "NORMAL";
+  const type = args.type ?? "INCOME";
+  const account = await prisma.account.create({
+    data: {
+      name: "Conta " + randomUUID(),
+      type: args.accountType ?? "CREDIT_DEBIT",
+      currency: args.currency ?? "BRL",
+      userId: args.userId,
+    },
+  });
+  const category = kind === "NORMAL"
+    ? await prisma.category.create({
+        data: {
+          name: "Salário " + randomUUID(),
+          type,
+          userId: args.userId,
+        },
+      })
+    : null;
+  const transfer = kind === "TRANSFER"
+    ? await prisma.transfer.create({ data: { userId: args.userId } })
+    : null;
 
   return prisma.transaction.create({
     data: {
       userId: args.userId,
       accountId: account.id,
-      categoryId: category.id,
+      categoryId: category?.id ?? null,
       amount: args.amountCents ?? 349495,
       year: args.year ?? 2026,
       month: args.month ?? 9,
       day: args.day ?? 30,
-      type: "INCOME",
+      type,
+      kind,
       status: "COMPLETED",
       description: args.description ?? "SALARIO EMPRESA TESTE",
+      transferId: transfer?.id ?? null,
+      transferRole: transfer ? "DESTINATION" : null,
     },
   });
 }
@@ -198,6 +210,64 @@ describe("payroll transaction reconciliation", () => {
       status: "REVIEW_REQUIRED",
     });
     expect(ambiguous?.candidates).toHaveLength(2);
+  });
+
+  it("rejects financially incompatible transactions as payroll candidates and manual links", async () => {
+    const owner = await createUser("Owner");
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const document = await createPayrollDocument({ userId: owner.id });
+
+    const incompatible = [
+      await createIncomeTransaction({
+        userId: owner.id,
+        kind: "TRANSFER",
+        description: "TRANSFERENCIA RECEBIDA",
+      }),
+      await createIncomeTransaction({
+        userId: owner.id,
+        accountType: "CREDIT_CARD",
+        description: "ESTORNO CARTAO",
+      }),
+      await createIncomeTransaction({
+        userId: owner.id,
+        accountType: "INVESTMENT",
+        description: "CREDITO INVESTIMENTO",
+      }),
+      await createIncomeTransaction({
+        userId: owner.id,
+        currency: "USD",
+        description: "CREDITO USD",
+      }),
+      await createIncomeTransaction({
+        userId: owner.id,
+        currency: "EUR",
+        description: "CREDITO EUR",
+      }),
+      await createIncomeTransaction({
+        userId: owner.id,
+        kind: "CARD_PAYMENT",
+        type: "EXPENSE",
+        description: "PAGAMENTO FATURA",
+      }),
+    ];
+
+    const items = await getPayrollTransactionReconciliationForUser(owner.id);
+    expect(items[0]).toMatchObject({
+      documentId: document.id,
+      status: "UNMATCHED",
+      candidates: [],
+    });
+
+    for (const transaction of incompatible) {
+      const response = await linkPayrollTransaction(
+        linkRequest(document.id, transaction.id),
+      );
+      expect(response?.status).toBe(409);
+    }
+
+    expect(
+      await prisma.payrollTransactionLink.count({ where: { userId: owner.id } }),
+    ).toBe(0);
   });
 
   it("does not infer a match when the document has no net amount", async () => {
@@ -334,6 +404,29 @@ describe("payroll transaction reconciliation", () => {
         where: { transactionId: transaction.id },
       }),
     ).toBe(1);
+  });
+
+  it("marks an existing link for review if its account becomes financially incompatible", async () => {
+    const owner = await createUser("Owner");
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const document = await createPayrollDocument({ userId: owner.id });
+    const transaction = await createIncomeTransaction({ userId: owner.id });
+
+    const linked = await linkPayrollTransaction(
+      linkRequest(document.id, transaction.id),
+    );
+    expect(linked?.status).toBe(201);
+
+    await prisma.account.update({
+      where: { id: transaction.accountId },
+      data: { currency: "USD" },
+    });
+
+    const items = await getPayrollTransactionReconciliationForUser(owner.id);
+    expect(items[0]).toMatchObject({
+      status: "REVIEW_REQUIRED",
+      matchedTransaction: expect.objectContaining({ id: transaction.id }),
+    });
   });
 
   it("marks an existing link for review if the source transaction later changes", async () => {
