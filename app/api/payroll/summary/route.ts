@@ -1,4 +1,4 @@
-import { z, ZodError } from "zod";
+import { ZodError } from "zod";
 
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
