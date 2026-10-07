@@ -6,7 +6,7 @@ import { prisma } from "@/app/lib/prisma";
 
 const ROUTE = "/api/auth/verify-email";
 
-function redirect(request: Request, state: "success" | "invalid") {
+function redirect(request: Request, state: "success" | "invalid" | "email-changed") {
   const url = new URL("/login", request.url);
   url.searchParams.set("verification", state);
   return NextResponse.redirect(url);
@@ -20,6 +20,7 @@ export async function GET(request: Request) {
 
   try {
     const verification = verifyEmailVerificationToken(token);
+    let successState: "success" | "email-changed" = "success";
     const user = await prisma.user.findUnique({
       where: { id: verification.userId },
       select: {
@@ -77,6 +78,7 @@ export async function GET(request: Request) {
         },
       });
       if (updated.count !== 1) return redirect(request, "invalid");
+      successState = "email-changed";
     }
 
     logEvent("info", "auth_email_verified", {
@@ -84,7 +86,11 @@ export async function GET(request: Request) {
       route: ROUTE,
       status: 302,
     });
-    return redirect(request, "success");
+    const response = redirect(request, successState);
+    if (successState === "email-changed") {
+      response.cookies.delete("token");
+    }
+    return response;
   } catch (error) {
     logEvent("warn", "auth_email_verification_rejected", {
       requestId,
