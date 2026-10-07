@@ -9,10 +9,15 @@ vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
 
-import { confirmPayrollImport } from "@/app/lib/payroll/payroll-import";
+import {
+  archivePayrollDocument,
+  confirmPayrollImport,
+} from "@/app/lib/payroll/payroll-import";
 import type { ParsedPayrollDocument } from "@/app/lib/payroll/payroll-parser";
 import { payrollImportFingerprint } from "@/app/lib/payroll/payroll-parser";
 import { signPayrollPreview } from "@/app/lib/payroll/preview-token";
+import { getPayrollCompetenceSummaries } from "@/app/lib/payroll/payroll-reconciliation";
+import { getPayrollTransactionReconciliationForUser } from "@/app/lib/payroll/payroll-transaction-reconciliation";
 import { prisma } from "@/app/lib/prisma";
 
 const userIds: string[] = [];
@@ -175,6 +180,143 @@ describe("payroll import integration", () => {
     });
     expect(stored).toHaveLength(2);
     expect(stored.map((item) => item.inssCents)).toEqual([87724, 87725]);
+  });
+
+  it("supersedes and archives payroll versions without leaving stale derived links", async () => {
+    const owner = await user("Payroll Lifecycle Owner");
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const original = document();
+    const originalPreview = {
+      ...original,
+      fingerprint: payrollImportFingerprint(owner.id, original),
+      duplicate: false,
+    };
+    const originalToken = signPayrollPreview({
+      userId: owner.id,
+      document: originalPreview,
+    });
+
+    const first = await confirmPayrollImport(request({
+      previewToken: originalToken,
+      selected: true,
+      document: originalPreview,
+    }));
+    expect(first.status).toBe(201);
+
+    const originalStored = await prisma.payrollDocument.findFirstOrThrow({
+      where: { userId: owner.id, importFingerprint: originalPreview.fingerprint },
+    });
+
+    const [account, category] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: "Conta lifecycle " + randomUUID(),
+          type: "CREDIT_DEBIT",
+          currency: "BRL",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: "Salário lifecycle " + randomUUID(),
+          type: "INCOME",
+          userId: owner.id,
+        },
+      }),
+    ]);
+    const transaction = await prisma.transaction.create({
+      data: {
+        userId: owner.id,
+        accountId: account.id,
+        categoryId: category.id,
+        amount: original.netPaidCents!,
+        year: original.year,
+        month: original.month,
+        day: 30,
+        type: "INCOME",
+        kind: "NORMAL",
+        status: "COMPLETED",
+        description: "SALARIO LIFECYCLE",
+      },
+    });
+    await prisma.payrollTransactionLink.create({
+      data: {
+        userId: owner.id,
+        payrollDocumentId: originalStored.id,
+        transactionId: transaction.id,
+        matchedAmountCents: original.netPaidCents!,
+      },
+    });
+
+    const retified = {
+      ...original,
+      inssCents: (original.inssCents ?? 0) + 1,
+      netPaidCents: (original.netPaidCents ?? 0) + 100,
+    };
+    const retifiedPreview = {
+      ...retified,
+      fingerprint: payrollImportFingerprint(owner.id, retified),
+      duplicate: false,
+    };
+    const retifiedToken = signPayrollPreview({
+      userId: owner.id,
+      document: retifiedPreview,
+    });
+
+    const second = await confirmPayrollImport(request({
+      previewToken: retifiedToken,
+      selected: true,
+      document: retifiedPreview,
+      supersedesId: originalStored.id,
+    }));
+    expect(second.status).toBe(201);
+
+    const versions = await prisma.payrollDocument.findMany({
+      where: { userId: owner.id },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(versions).toHaveLength(2);
+    expect(versions[0]).toMatchObject({
+      id: originalStored.id,
+      lifecycleStatus: "SUPERSEDED",
+    });
+    expect(versions[0]?.supersededAt).not.toBeNull();
+    expect(versions[1]).toMatchObject({
+      lifecycleStatus: "ACTIVE",
+      supersedesId: originalStored.id,
+    });
+    expect(
+      await prisma.payrollTransactionLink.count({
+        where: { payrollDocumentId: originalStored.id },
+      }),
+    ).toBe(0);
+
+    const summaries = await getPayrollCompetenceSummaries(owner.id);
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0]).toMatchObject({
+      documentCount: 1,
+      netPaidCents: retified.netPaidCents,
+    });
+
+    const bankReconciliation =
+      await getPayrollTransactionReconciliationForUser(owner.id);
+    expect(bankReconciliation).toHaveLength(1);
+    expect(bankReconciliation[0]?.documentId).toBe(versions[1]!.id);
+
+    const archived = await archivePayrollDocument(
+      new Request("http://localhost/api/payroll/archive", { method: "POST" }),
+      { params: Promise.resolve({ id: versions[1]!.id }) },
+    );
+    expect(archived.status).toBe(200);
+
+    const archivedVersion = await prisma.payrollDocument.findUniqueOrThrow({
+      where: { id: versions[1]!.id },
+    });
+    expect(archivedVersion.lifecycleStatus).toBe("ARCHIVED");
+    expect(archivedVersion.archivedAt).not.toBeNull();
+    expect(await getPayrollCompetenceSummaries(owner.id)).toEqual([]);
+    expect(await getPayrollTransactionReconciliationForUser(owner.id)).toEqual([]);
   });
 
   it("does not accept another user's signed preview", async () => {
