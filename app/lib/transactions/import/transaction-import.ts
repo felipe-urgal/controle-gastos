@@ -53,6 +53,10 @@ import {
   ConfirmTransactionImportInput,
   confirmTransactionImportSchema,
 } from "@/app/lib/transactions/import/transaction-import-schema";
+import type {
+  TransactionImportConfirmData,
+  TransactionImportPreviewData,
+} from "@/app/types/transaction-import";
 
 function unauthorizedResponse(error: unknown) {
   return isUnauthorizedError(error)
@@ -242,7 +246,7 @@ export async function previewTransactionImport(
       Date.now() + IMPORT_PREVIEW_TTL_SECONDS * 1000,
     ).toISOString();
 
-    return success({
+    const previewData = {
       accountId,
       fileName: file.name,
       detectedSource,
@@ -262,7 +266,9 @@ export async function previewTransactionImport(
         duplicates: items.filter((item) => item.duplicate).length,
       },
       items,
-    });
+    } satisfies TransactionImportPreviewData;
+
+    return success(previewData);
   } catch (error) {
     const unauthorized = unauthorizedResponse(error);
     if (unauthorized) return unauthorized;
@@ -473,7 +479,7 @@ export async function confirmTransactionImport(request: Request) {
         selected: selected.length,
         created: created.count,
         duplicates: selected.length - created.count,
-      };
+      } satisfies TransactionImportConfirmData;
     });
 
     return finish(
@@ -483,7 +489,7 @@ export async function confirmTransactionImport(request: Request) {
         ...confirmMetrics,
         selectedCount: result.selected,
         createdCount: result.created,
-        duplicateCount: result.duplicates,
+        skippedDuplicateCount: result.duplicates,
       },
     );
   } catch (error) {
