@@ -555,4 +555,59 @@ describe("import rule CRUD", () => {
     },
   );
 
+  it("returns 400 for out-of-domain rule fields before persistence", async () => {
+    const suffix = randomUUID();
+    const owner = await prisma.user.create({
+      data: {
+        name: "Rule Domain Owner",
+        email: `rule-domain-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    createdUserIds.push(owner.id);
+
+    const [account, category] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: `Conta domínio ${suffix}`,
+          type: "CREDIT_DEBIT",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Categoria domínio ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+    ]);
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const response = await importRuleCrud.create(
+      new Request("http://localhost/api/import-rules", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: "Overflow priority",
+          isActive: true,
+          priority: 2_147_483_648,
+          accountId: account.id,
+          transactionType: "EXPENSE",
+          descriptionOperator: "EQUALS",
+          descriptionPattern: "overflow priority",
+          minAmountCents: null,
+          maxAmountCents: null,
+          categoryId: category.id,
+          normalizedDescription: null,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(
+      await prisma.transactionImportRule.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+  });
+
 });
