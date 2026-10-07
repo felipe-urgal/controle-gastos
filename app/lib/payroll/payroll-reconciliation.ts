@@ -319,10 +319,10 @@ export async function getPayrollCompetenceSummaryPage(
   userId: string,
   query: { year?: number; page: number; limit: number },
 ) {
-  const where = {
+  const where: Prisma.PayrollDocumentWhereInput = {
     userId,
-    lifecycleStatus: "ACTIVE" as const,
-    paymentType: { in: ["ADVANCE", "REGULAR"] as const },
+    lifecycleStatus: "ACTIVE",
+    paymentType: { in: ["ADVANCE", "REGULAR"] },
     ...(query.year ? { year: query.year } : {}),
   };
 
