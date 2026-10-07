@@ -10,6 +10,8 @@ interface EditPageProps {
   description?: string;
   loading?: boolean;
   error?: any;
+  errorTitle?: string;
+  onRetry?: () => void;
   backUrl?: string;
   children: React.ReactNode;
   errorRedirectTo?: string;
@@ -21,6 +23,8 @@ export default function EditPage({
   description,
   loading,
   error,
+  errorTitle,
+  onRetry,
   backUrl,
   children,
   errorRedirectTo,
@@ -42,9 +46,11 @@ export default function EditPage({
           <PageLoading type="form" />
         ) : error ? (
           <PageError
+            title={errorTitle}
             message={error}
-            buttonText="Voltar"
-            redirectTo={errorRedirectTo}
+            buttonText={onRetry ? "Tentar novamente" : "Voltar"}
+            redirectTo={onRetry ? undefined : errorRedirectTo}
+            onRetry={onRetry}
           />
         ) : (
           children
