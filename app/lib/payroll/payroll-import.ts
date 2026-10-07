@@ -31,9 +31,18 @@ const rubricSchema = z.object({
   deductionsCents: z.number().int().nonnegative().nullable(),
 });
 
+const paymentTypeSchema = z.enum([
+  "ADVANCE",
+  "REGULAR",
+  "THIRTEENTH",
+  "VACATION",
+  "PLR",
+  "OTHER",
+]);
+
 const parsedSchema = z.object({
   documentType: z.enum(["PAYROLL_ADVANCE", "MONTHLY_PAYSLIP"]),
-  paymentType: z.enum(["ADVANCE", "REGULAR"]),
+  paymentType: paymentTypeSchema,
   employerName: z.string().min(1).max(160),
   employerCnpj: z.string().max(18),
   employeeName: z.string().max(160).nullable(),
@@ -62,6 +71,7 @@ const confirmSchema = z.object({
   previewToken: z.string().min(1),
   selected: z.boolean(),
   document: parsedSchema,
+  paymentType: paymentTypeSchema.optional(),
   supersedesId: z.string().uuid().nullable().optional(),
 });
 
@@ -71,6 +81,27 @@ function unauthorized(error: unknown) {
 
 function toJson(value: unknown) {
   return value as Prisma.InputJsonValue;
+}
+
+function paymentTypeMatchesDocument(
+  documentType: z.infer<typeof parsedSchema>["documentType"],
+  paymentType: z.infer<typeof paymentTypeSchema>,
+) {
+  return documentType === "PAYROLL_ADVANCE"
+    ? paymentType === "ADVANCE"
+    : paymentType !== "ADVANCE";
+}
+
+async function findPayrollImportReplay(userId: string, fingerprint: string) {
+  return prisma.payrollDocument.findUnique({
+    where: {
+      userId_importFingerprint: {
+        userId,
+        importFingerprint: fingerprint,
+      },
+    },
+    select: { id: true },
+  });
 }
 
 export async function previewPayrollImport(request: Request) {
@@ -145,7 +176,6 @@ export async function previewPayrollImport(request: Request) {
           userId,
           lifecycleStatus: "ACTIVE",
           documentType: identity.documentType,
-          paymentType: identity.paymentType,
           employerCnpj: identity.employerCnpj,
           year: identity.year,
           month: identity.month,
@@ -209,7 +239,6 @@ export async function persistPayrollImportAtomically(params: {
           userId: params.userId,
           lifecycleStatus: "ACTIVE",
           documentType: identity.documentType,
-          paymentType: identity.paymentType,
           employerCnpj: identity.employerCnpj,
           year: identity.year,
           month: identity.month,
@@ -311,9 +340,6 @@ export async function confirmPayrollImport(request: Request) {
     if (input.document.errors.length > 0) {
       return failure("O documento possui pendências que impedem a importação", 400);
     }
-    if (input.document.duplicate) {
-      return success({ created: false, duplicate: true }, "Documento já importado");
-    }
     if (
       !input.document.employerCnpj ||
       input.document.year < 2000 ||
@@ -323,26 +349,66 @@ export async function confirmPayrollImport(request: Request) {
       return failure("Documento incompleto para persistência", 400);
     }
 
-    const existing = await prisma.payrollDocument.findUnique({
-      where: {
-        userId_importFingerprint: {
-          userId,
-          importFingerprint: input.document.fingerprint,
-        },
-      },
-      select: { id: true },
-    });
-    if (existing) {
-      return success({ created: false, duplicate: true, id: existing.id }, "Documento já importado");
+    const paymentType = input.paymentType ?? input.document.paymentType;
+    if (!paymentTypeMatchesDocument(input.document.documentType, paymentType)) {
+      return failure("Classificação incompatível com o tipo de documento", 400);
     }
 
-    const created = await persistPayrollImportAtomically({
+    const confirmedDocument = {
+      ...input.document,
+      paymentType,
+      duplicate: false,
+    };
+    confirmedDocument.fingerprint = payrollImportFingerprint(
       userId,
-      document: input.document,
-      supersedesId: input.supersedesId ?? null,
-    });
+      confirmedDocument,
+    );
 
-    return success({ created: true, duplicate: false, id: created.id }, "Documento de folha importado", 201);
+    const existing = await findPayrollImportReplay(
+      userId,
+      confirmedDocument.fingerprint,
+    );
+    if (existing) {
+      return success(
+        { created: false, duplicate: true, id: existing.id },
+        "Documento já importado",
+      );
+    }
+
+    try {
+      const created = await persistPayrollImportAtomically({
+        userId,
+        document: confirmedDocument,
+        supersedesId: input.supersedesId ?? null,
+      });
+
+      return success(
+        { created: true, duplicate: false, id: created.id },
+        "Documento de folha importado",
+        201,
+      );
+    } catch (error) {
+      const replayableConflict =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002";
+      const supersedeRace =
+        error instanceof Error &&
+        error.message === "INVALID_SUPERSEDES_TARGET";
+
+      if (replayableConflict || supersedeRace) {
+        const replay = await findPayrollImportReplay(
+          userId,
+          confirmedDocument.fingerprint,
+        );
+        if (replay) {
+          return success(
+            { created: false, duplicate: true, id: replay.id },
+            "Documento já importado",
+          );
+        }
+      }
+      throw error;
+    }
   } catch (error) {
     const auth = unauthorized(error);
     if (auth) return auth;
