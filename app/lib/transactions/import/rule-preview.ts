@@ -16,6 +16,7 @@ export type ImportRulePreviewItem = PreviewImportItem & {
   suggestedDescription: string | null;
   importRuleConflict: boolean;
   matchingRuleNames: string[];
+  alsoMatchingRuleNames: string[];
   matchedMerchantAliasId: string | null;
   suggestedMerchantId: string | null;
   suggestedMerchantName: string | null;
@@ -42,6 +43,7 @@ export function applyImportRulesToPreview(args: {
         suggestedDescription: null,
         importRuleConflict: false,
         matchingRuleNames: [],
+        alsoMatchingRuleNames: [],
         matchedMerchantAliasId: null,
         suggestedMerchantId: null,
         suggestedMerchantName: null,
@@ -70,6 +72,7 @@ export function applyImportRulesToPreview(args: {
       suggestedDescription: match?.suggestedDescription ?? null,
       importRuleConflict: match?.conflict ?? false,
       matchingRuleNames: match?.matchingRuleNames ?? [],
+      alsoMatchingRuleNames: match?.alsoMatchingRuleNames ?? [],
       matchedMerchantAliasId: merchantMatch?.aliasId ?? null,
       suggestedMerchantId: merchantMatch?.conflict ? null : (merchantMatch?.merchantId ?? null),
       suggestedMerchantName: merchantMatch?.conflict ? null : (merchantMatch?.merchantName ?? null),

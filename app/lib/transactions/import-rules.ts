@@ -35,6 +35,8 @@ export type ImportRuleMatch = {
   conflict: boolean;
   matchingRuleIds: string[];
   matchingRuleNames: string[];
+  alsoMatchingRuleIds: string[];
+  alsoMatchingRuleNames: string[];
 };
 
 export function normalizeImportRuleText(value: string) {
@@ -225,5 +227,7 @@ export function evaluateImportRules(
     conflict,
     matchingRuleIds: matches.map((rule) => rule.id),
     matchingRuleNames: matches.map((rule) => rule.name),
+    alsoMatchingRuleIds: matches.slice(1).map((rule) => rule.id),
+    alsoMatchingRuleNames: matches.slice(1).map((rule) => rule.name),
   };
 }

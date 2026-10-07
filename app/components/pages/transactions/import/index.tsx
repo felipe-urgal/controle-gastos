@@ -40,6 +40,7 @@ type PreviewItem = {
   suggestedDescription?: string | null;
   importRuleConflict?: boolean;
   matchingRuleNames?: string[];
+  alsoMatchingRuleNames?: string[];
   matchedMerchantAliasId?: string | null;
   suggestedMerchantId?: string | null;
   suggestedMerchantName?: string | null;
@@ -744,6 +745,11 @@ function ImportDetail({
             {item.importRuleConflict
               ? `Conflito: ${(item.matchingRuleNames ?? []).join(', ') || 'múltiplas regras'}`
               : item.matchedRuleName ?? 'Nenhuma sugestão'}
+            {(item.alsoMatchingRuleNames?.length ?? 0) > 0 && (
+              <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                Também corresponderam: {item.alsoMatchingRuleNames?.join(', ')}
+              </span>
+            )}
           </dd>
         </div>
         <div>
