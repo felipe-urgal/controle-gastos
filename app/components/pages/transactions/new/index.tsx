@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -21,9 +22,12 @@ import {
   syncOfflineTransactionQueueItem,
   type OfflineTransactionQueueItem,
 } from '@/app/lib/pwa/offline-transaction-queue';
+import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
+import { templateToTransactionInitialValues } from '@/app/lib/templates/transaction-template-mapping';
 import { getDuplicateTransactionValues } from '@/app/lib/transactions/transaction-quick-actions';
 import { transactionService } from '@/app/services/transaction-service';
 import { transactionTemplateService } from '@/app/services/transaction-template-service';
+import type { TransactionTemplateDTO } from '@/app/types/transaction-template';
 
 type ComposeMode = 'transaction' | 'transfer';
 type CategoryType = 'INCOME' | 'EXPENSE';
@@ -53,6 +57,10 @@ export default function New({
   const [initialValues, setInitialValues] = useState<FormData>();
   const [loadingDuplicate, setLoadingDuplicate] = useState(Boolean(duplicateId || templateId));
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [templateWarnings, setTemplateWarnings] = useState<string[]>([]);
+  const [favoriteTemplates, setFavoriteTemplates] = useState<TransactionTemplateDTO[]>([]);
+  const [favoriteTemplatesLoading, setFavoriteTemplatesLoading] = useState(false);
+  const [favoriteTemplatesError, setFavoriteTemplatesError] = useState<string | null>(null);
   const [composeMode, setComposeMode] = useState<ComposeMode>(duplicateId || templateId ? 'transaction' : initialMode);
   const [preferredCategoryType, setPreferredCategoryType] = useState<CategoryType | null>(initialCategoryType);
   const [offlineDraft, setOfflineDraft] = useState<OfflineTransactionDraft | null>(null);
@@ -90,19 +98,11 @@ export default function New({
         } else if (templateId) {
           const response = await transactionTemplateService.getById(templateId);
           const template = response.data;
-          const now = new Date();
+          const today = logicalDateFromUtcInstant(new Date());
+          const prepared = templateToTransactionInitialValues(template, today);
           if (!cancelled) {
-            setInitialValues({
-              amount: template.amount ?? 0,
-              month: now.getMonth() + 1,
-              year: now.getFullYear(),
-              day: now.getDate(),
-              description: template.description,
-              status: template.status,
-              accountId: template.account?.id ?? '',
-              categoryId: template.category?.id ?? '',
-              allocations: [],
-            });
+            setInitialValues(prepared.values);
+            setTemplateWarnings(prepared.warnings);
             setPreferredCategoryType(template.type);
           }
         }
@@ -122,6 +122,39 @@ export default function New({
     void loadSource();
     return () => { cancelled = true; };
   }, [duplicateId, templateId]);
+
+  useEffect(() => {
+    if (!user?.id || isDuplicating || isUsingTemplate) return;
+
+    let cancelled = false;
+
+    async function loadFavoriteTemplates() {
+      setFavoriteTemplatesLoading(true);
+      setFavoriteTemplatesError(null);
+      try {
+        const response = await transactionTemplateService.getAll({
+          isFavorite: true,
+          limit: 3,
+        });
+        if (!cancelled) setFavoriteTemplates(response.data.items);
+      } catch (error) {
+        if (!cancelled) {
+          setFavoriteTemplatesError(
+            error instanceof Error
+              ? error.message
+              : 'Não foi possível carregar os Modelos favoritos',
+          );
+        }
+      } finally {
+        if (!cancelled) setFavoriteTemplatesLoading(false);
+      }
+    }
+
+    void loadFavoriteTemplates();
+    return () => {
+      cancelled = true;
+    };
+  }, [isDuplicating, isUsingTemplate, user?.id]);
 
   useEffect(() => {
     if (!user?.id || !canUseOfflineDraft) return;
@@ -292,6 +325,62 @@ export default function New({
             : 'Crie sua transação em poucos segundos.'
       }
     >
+      {!isDuplicating && !isUsingTemplate && !isTransfer && (
+        <section
+          className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4"
+          aria-labelledby="favorite-transaction-templates-heading"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2
+                id="favorite-transaction-templates-heading"
+                className="text-sm font-extrabold text-[var(--foreground)]"
+              >
+                Modelos favoritos
+              </h2>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                Atalhos para preencher o formulário. Nada é lançado automaticamente.
+              </p>
+            </div>
+            <Link
+              href="/modelos"
+              className="inline-flex min-h-11 items-center rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)]"
+            >
+              Gerenciar modelos
+            </Link>
+          </div>
+
+          {favoriteTemplatesLoading ? (
+            <p className="mt-3 text-xs text-[var(--text-muted)]">
+              Carregando favoritos…
+            </p>
+          ) : favoriteTemplatesError ? (
+            <p className="mt-3 text-xs text-[var(--text-muted)]" role="status">
+              Favoritos indisponíveis no momento. Você pode continuar criando a transação normalmente.
+            </p>
+          ) : favoriteTemplates.length > 0 ? (
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {favoriteTemplates.map((template) => (
+                <Link
+                  key={template.id}
+                  href={`/transacoes/nova?template=${encodeURIComponent(template.id)}`}
+                  className="flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
+                >
+                  <span className="truncate">{template.name}</span>
+                  <span className="shrink-0 text-xs text-[var(--text-muted)]">
+                    {template.type === 'EXPENSE' ? 'Despesa' : 'Receita'}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-[var(--text-muted)]">
+              Favorite um Modelo para acessar aqui com um toque.
+            </p>
+          )}
+        </section>
+      )}
+
       {offlineQueue.length > 0 && !isTransfer && (
         <section
           className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface)] p-4"
@@ -473,6 +562,23 @@ export default function New({
               </button>
             </div>
           </div>
+        </section>
+      )}
+
+      {templateWarnings.length > 0 && isUsingTemplate && (
+        <section
+          role="status"
+          aria-label="Referências do modelo"
+          className="mt-4 grid gap-2"
+        >
+          {templateWarnings.map((warning) => (
+            <p
+              key={warning}
+              className="rounded-[var(--radius-md)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm font-medium text-[var(--foreground)]"
+            >
+              {warning}
+            </p>
+          ))}
         </section>
       )}
 

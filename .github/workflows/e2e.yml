@@ -11,6 +11,7 @@ on:
       - "tests/e2e/monthly-planning-flow.spec.mjs"
       - "tests/e2e/monthly-closing-flow.spec.mjs"
       - "tests/e2e/merchants-flow.spec.mjs"
+      - "tests/e2e/transaction-templates-flow.spec.mjs"
       - "tests/e2e/dashboard-follow-up.spec.mjs"
       - "tests/e2e/financial-comparison-flow.spec.mjs"
       - "tests/e2e/credit-card-flow.spec.mjs"
@@ -39,6 +40,11 @@ on:
       - "app/services/monthly-closing-service.ts"
       - "app/types/monthly-closing.ts"
       - "app/components/pages/merchant/**"
+      - "app/components/pages/transaction-templates/**"
+      - "app/api/transaction-templates/**"
+      - "app/lib/templates/**"
+      - "app/services/transaction-template-service.ts"
+      - "app/types/transaction-template.ts"
       - "app/lib/merchants/**"
       - "app/api/merchant-aliases/**"
       - "app/api/merchants/**"
@@ -168,6 +174,7 @@ jobs:
           tests/e2e/monthly-planning-flow.spec.mjs
           tests/e2e/monthly-closing-flow.spec.mjs
           tests/e2e/merchants-flow.spec.mjs
+          tests/e2e/transaction-templates-flow.spec.mjs
           tests/e2e/dashboard-follow-up.spec.mjs
           tests/e2e/financial-comparison-flow.spec.mjs
           tests/e2e/credit-card-flow.spec.mjs

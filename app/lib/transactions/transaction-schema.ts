@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 import { validateTransactionAllocationSet } from "@/app/lib/transactions/transaction-allocations";
+import {
+  TRANSACTION_DESCRIPTION_MAX_LENGTH,
+  TRANSACTION_DESCRIPTION_MIN_LENGTH,
+  TRANSACTION_MAX_AMOUNT_CENTS,
+} from "@/app/lib/transactions/transaction-field-contract";
 
 export function isValidTransactionDate(
   year: number,
@@ -39,13 +44,13 @@ const transactionBaseSchema = z.object({
     .number()
     .int("Valor deve usar centavos inteiros")
     .positive("Valor deve ser maior que zero")
-    .max(1_000_000_000, "Valor não pode exceder 1.000.000.000"),
+    .max(TRANSACTION_MAX_AMOUNT_CENTS, `Valor não pode exceder ${TRANSACTION_MAX_AMOUNT_CENTS.toLocaleString("pt-BR")}`),
 
   description: z
     .string()
     .trim()
-    .min(2, "Descrição deve ter pelo menos 2 caracteres")
-    .max(100, "Descrição não pode exceder 100 caracteres"),
+    .min(TRANSACTION_DESCRIPTION_MIN_LENGTH, `Descrição deve ter pelo menos ${TRANSACTION_DESCRIPTION_MIN_LENGTH} caracteres`)
+    .max(TRANSACTION_DESCRIPTION_MAX_LENGTH, `Descrição não pode exceder ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres`),
 
   year: z.number().int().min(2000).max(2100),
   month: z.number().int().min(1).max(12),
