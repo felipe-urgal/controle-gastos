@@ -53,6 +53,28 @@ describe("import rule input schema", () => {
     }
   });
 
+  it("accepts monetary maximum and rejects maximum plus one", () => {
+    const scoped = {
+      ...validInput,
+      accountId: "11111111-1111-4111-8111-111111111111",
+    };
+
+    expect(
+      importRuleInputSchema.parse({
+        ...scoped,
+        minAmountCents: 1_000_000_000,
+        maxAmountCents: 1_000_000_000,
+      }).maxAmountCents,
+    ).toBe(1_000_000_000);
+
+    expect(
+      importRuleInputSchema.safeParse({
+        ...scoped,
+        maxAmountCents: 1_000_000_001,
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects blank names, patterns and normalized descriptions", () => {
     for (const input of [
       { ...validInput, name: "   " },
