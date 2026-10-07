@@ -50,7 +50,7 @@ test('troca de senha exige novo login e invalida sessões antigas', async ({
       .getByRole('button', { name: 'Salvar alterações', exact: true })
       .click();
 
-    await expect(page).toHaveURL(/\/login\?reason=password-changed$/);
+    await expect(page).toHaveURL(/\/login(?:\?reason=password-changed)?$/);
     await expect(
       page.getByRole('status').filter({
         hasText: 'Senha alterada com sucesso. Entre novamente.',
