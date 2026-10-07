@@ -3,7 +3,13 @@ import { createHash } from "node:crypto";
 import { parseMoneyToCents } from "@/app/lib/transactions/import/parser";
 
 export type PayrollDocumentType = "PAYROLL_ADVANCE" | "MONTHLY_PAYSLIP";
-export type PayrollPaymentType = "ADVANCE" | "REGULAR";
+export type PayrollPaymentType =
+  | "ADVANCE"
+  | "REGULAR"
+  | "THIRTEENTH"
+  | "VACATION"
+  | "PLR"
+  | "OTHER";
 export type PayrollRubric = {
   code: string | null;
   description: string;
@@ -48,12 +54,48 @@ function fold(value: string) {
     .toUpperCase();
 }
 
-export function detectPayrollDocumentType(text: string): PayrollDocumentType | null {
+export function detectPayrollPaymentType(
+  text: string,
+): PayrollPaymentType | null {
   const value = fold(text);
+
   if (/ADIANTAMENTO SALARIAL|IRRF ADIANTAMENTO|\bADIANTAMENTO\b/.test(value)) {
-    return "PAYROLL_ADVANCE";
+    return "ADVANCE";
   }
-  if (/FOLHA MENSAL|DIAS NORMAIS|I\.N\.S\.S\.|\bINSS\b/.test(value)) {
+  if (
+    /\b13\s*[º°O]?\s*(?:SALARIO|SALARIAL)\b|DECIMO TERCEIRO|GRATIFICACAO NATALINA/.test(
+      value,
+    )
+  ) {
+    return "THIRTEENTH";
+  }
+  if (
+    /RECIBO DE FERIAS|AVISO (?:E )?RECIBO DE FERIAS|FOLHA DE FERIAS|PAGAMENTO DE FERIAS/.test(
+      value,
+    )
+  ) {
+    return "VACATION";
+  }
+  if (
+    /\bPLR\b|PARTICIPACAO (?:NOS|EM) LUCROS|PARTICIPACAO (?:NOS|EM) RESULTADOS|LUCROS E RESULTADOS/.test(
+      value,
+    )
+  ) {
+    return "PLR";
+  }
+  if (/FOLHA MENSAL|DIAS NORMAIS|SALARIO MENSAL/.test(value)) {
+    return "REGULAR";
+  }
+  return null;
+}
+
+export function detectPayrollDocumentType(text: string): PayrollDocumentType | null {
+  const paymentType = detectPayrollPaymentType(text);
+  if (paymentType === "ADVANCE") return "PAYROLL_ADVANCE";
+  if (paymentType) return "MONTHLY_PAYSLIP";
+
+  const value = fold(text);
+  if (/I\.N\.S\.S\.|\bINSS\b|TOTAL (?:DE )?VENCIMENTOS|TOTAL (?:DE )?PROVENTOS/.test(value)) {
     return "MONTHLY_PAYSLIP";
   }
   return null;
@@ -150,6 +192,11 @@ function parseBankMetadata(text: string) {
 export function parsePayrollText(text: string): ParsedPayrollDocument {
   const type = detectPayrollDocumentType(text);
   if (!type) throw new Error("PAYROLL_DOCUMENT_NOT_RECOGNIZED");
+  const detectedPaymentType = detectPayrollPaymentType(text);
+  const paymentType: PayrollPaymentType =
+    type === "PAYROLL_ADVANCE"
+      ? "ADVANCE"
+      : detectedPaymentType ?? "OTHER";
 
   const competence = parseCompetence(text);
   const employerCnpj = capture(text, [/\b(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})\b/]);
@@ -207,6 +254,11 @@ export function parsePayrollText(text: string): ParsedPayrollDocument {
   if (!employerCnpj) errors.push("CNPJ da fonte pagadora não reconhecido.");
   if (!employerName) warnings.push("Nome da fonte pagadora não reconhecido.");
   if (rubrics.length === 0) warnings.push("Nenhuma rubrica estruturada foi reconhecida.");
+  if (paymentType === "OTHER") {
+    warnings.push(
+      "Tipo de pagamento não reconhecido com evidência suficiente. Revise a classificação antes de confirmar.",
+    );
+  }
 
   if (
     totalEarningsCents !== null &&
@@ -219,7 +271,7 @@ export function parsePayrollText(text: string): ParsedPayrollDocument {
 
   return {
     documentType: type,
-    paymentType: type === "PAYROLL_ADVANCE" ? "ADVANCE" : "REGULAR",
+    paymentType,
     employerName: employerName || "Fonte pagadora não identificada",
     employerCnpj: employerCnpj ?? "",
     employeeName,
