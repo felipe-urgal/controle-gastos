@@ -385,4 +385,97 @@ describe("import rule CRUD", () => {
     ).toBe(1);
   });
 
+  it("serializes update/create races for the same matcher", async () => {
+    const suffix = randomUUID();
+    const owner = await prisma.user.create({
+      data: {
+        name: "Update Create Owner",
+        email: `rule-update-create-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    createdUserIds.push(owner.id);
+
+    const [account, category] = await Promise.all([
+      prisma.account.create({
+        data: {
+          name: `Conta update/create ${suffix}`,
+          type: "CREDIT_DEBIT",
+          userId: owner.id,
+        },
+      }),
+      prisma.category.create({
+        data: {
+          name: `Categoria update/create ${suffix}`.slice(0, 50),
+          type: "EXPENSE",
+          userId: owner.id,
+        },
+      }),
+    ]);
+
+    const existing = await prisma.transactionImportRule.create({
+      data: {
+        name: "Regra original",
+        isActive: true,
+        priority: 10,
+        accountId: account.id,
+        transactionType: "EXPENSE",
+        descriptionOperator: "EQUALS",
+        descriptionPattern: "matcher original",
+        minAmountCents: null,
+        maxAmountCents: null,
+        categoryId: category.id,
+        normalizedDescription: null,
+        userId: owner.id,
+      },
+    });
+
+    const targetInput = {
+      name: "Regra alvo",
+      isActive: true,
+      priority: 10,
+      accountId: account.id,
+      transactionType: "EXPENSE" as const,
+      descriptionOperator: "EQUALS" as const,
+      descriptionPattern: "matcher alvo",
+      minAmountCents: null,
+      maxAmountCents: null,
+      categoryId: category.id,
+      normalizedDescription: null,
+    };
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const [updateResponse, createResponse] = await Promise.all([
+      importRuleCrud.update(
+        new Request(`http://localhost/api/import-rules/${existing.id}`, {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(targetInput),
+        }),
+        { params: Promise.resolve({ id: existing.id }) },
+      ),
+      importRuleCrud.create(
+        new Request("http://localhost/api/import-rules", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(targetInput),
+        }),
+      ),
+    ]);
+
+    const statuses = [updateResponse.status, createResponse.status];
+    expect(statuses.filter((status) => status === 409)).toHaveLength(1);
+    expect(statuses.filter((status) => status === 200 || status === 201)).toHaveLength(1);
+
+    const stored = await prisma.transactionImportRule.findMany({
+      where: { userId: owner.id },
+      select: { descriptionPattern: true },
+    });
+    expect(
+      stored.filter(
+        (rule) => rule.descriptionPattern.trim().toLowerCase() === "matcher alvo",
+      ),
+    ).toHaveLength(1);
+  });
+
 });
