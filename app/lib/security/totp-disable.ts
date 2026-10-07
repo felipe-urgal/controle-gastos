@@ -13,7 +13,11 @@ class TotpDisableRejected extends Error {}
 class TotpDisableInvalidFactor extends Error {}
 
 function invalidMfa() {
-  return new HttpError("Segundo fator inválido", 401, "INVALID_MFA");
+  return new HttpError(
+    "Credencial de confirmação inválida",
+    401,
+    "INVALID_STEP_UP_CREDENTIALS",
+  );
 }
 
 export async function disableTotp(args: {
@@ -54,11 +58,7 @@ export async function disableTotp(args: {
 
   const passwordMatches = await bcrypt.compare(args.currentPassword, user.password);
   if (!passwordMatches) {
-    throw new HttpError(
-      "Senha atual inválida",
-      401,
-      "INVALID_CURRENT_PASSWORD"
-    );
+    throw invalidMfa();
   }
 
   let timeStep: bigint | undefined;

@@ -9,6 +9,9 @@ import { sendEmailVerification } from "@/app/lib/auth/auth-email";
 import { hashPassword } from "@/app/lib/auth/password-policy";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
+import {
+  SENSITIVE_ACTIONS,
+} from "@/app/lib/security/sensitive-actions";
 import { consumeStepUpRateLimit } from "@/app/lib/security/step-up-auth";
 import { updateUserSchema } from "@/app/lib/users/user-schema";
 
@@ -58,7 +61,13 @@ const baseUserCrud = baseCrudHandler({
         throw new HttpError("Requisição inválida", 400, "INVALID_REQUEST");
       }
 
-      await consumeStepUpRateLimit({ request, userId });
+      await consumeStepUpRateLimit({
+        request,
+        userId,
+        action: data.newPassword
+          ? SENSITIVE_ACTIONS.USER_PASSWORD_CHANGE
+          : SENSITIVE_ACTIONS.USER_EMAIL_CHANGE,
+      });
 
       const passwordMatches = await bcrypt.compare(
         data.currentPassword!,
@@ -67,9 +76,9 @@ const baseUserCrud = baseCrudHandler({
 
       if (!passwordMatches) {
         throw new HttpError(
-          "Senha atual inválida",
+          "Credencial de confirmação inválida",
           401,
-          "INVALID_CURRENT_PASSWORD",
+          "INVALID_STEP_UP_CREDENTIALS",
         );
       }
     }
@@ -95,10 +104,6 @@ const baseUserCrud = baseCrudHandler({
           select: { id: true },
         });
 
-        if (emailExists) {
-          throw new HttpError("E-mail já está em uso", 409, "EMAIL_IN_USE");
-        }
-
         const now = new Date();
         const nextAuthVersion =
           Number(existing.authVersion ?? 0) + (data.newPassword ? 1 : 0);
@@ -112,18 +117,20 @@ const baseUserCrud = baseCrudHandler({
           pendingEmailVersion: nextPendingEmailVersion,
         });
 
-        try {
-          await sendEmailVerification({
-            to: formattedEmail,
-            name: existing.name,
-            token,
-          });
-        } catch {
-          throw new HttpError(
-            "Não foi possível enviar a confirmação do novo e-mail",
-            503,
-            "EMAIL_DELIVERY_FAILED",
-          );
+        if (!emailExists) {
+          try {
+            await sendEmailVerification({
+              to: formattedEmail,
+              name: existing.name,
+              token,
+            });
+          } catch {
+            throw new HttpError(
+              "Não foi possível processar a solicitação de alteração de e-mail",
+              503,
+              "EMAIL_CHANGE_UNAVAILABLE",
+            );
+          }
         }
 
         updateData.pendingEmail = formattedEmail;

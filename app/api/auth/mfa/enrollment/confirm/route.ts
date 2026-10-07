@@ -3,6 +3,8 @@ import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { isHttpError } from "@/app/lib/http-error";
+import { SENSITIVE_ACTIONS } from "@/app/lib/security/sensitive-actions";
+import { consumeStepUpRateLimit } from "@/app/lib/security/step-up-auth";
 import { confirmTotpEnrollment } from "@/app/lib/security/totp-enrollment";
 
 export async function POST(request: Request) {
@@ -26,6 +28,12 @@ export async function POST(request: Request) {
         "TOTP_ENROLLMENT_INPUT_REQUIRED"
       );
     }
+
+    await consumeStepUpRateLimit({
+      request,
+      userId,
+      action: SENSITIVE_ACTIONS.MFA_ENROLL_CONFIRM,
+    });
 
     const activation = await confirmTotpEnrollment({
       userId,

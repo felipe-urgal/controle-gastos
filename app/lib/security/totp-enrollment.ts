@@ -52,9 +52,9 @@ export async function startTotpEnrollment(args: {
   const passwordMatches = await bcrypt.compare(args.currentPassword, user.password);
   if (!passwordMatches) {
     throw new HttpError(
-      "Senha atual inválida",
+      "Credencial de confirmação inválida",
       401,
-      "INVALID_CURRENT_PASSWORD"
+      "INVALID_STEP_UP_CREDENTIALS",
     );
   }
 

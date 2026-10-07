@@ -1,6 +1,7 @@
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import { generateRecoveryCodes, hashRecoveryCode } from "@/app/lib/security/totp-secrets";
+import { SENSITIVE_ACTIONS } from "@/app/lib/security/sensitive-actions";
 import { verifyStepUpAuth } from "@/app/lib/security/step-up-auth";
 
 export async function getRecoveryCodeStatus(userId: string) {
@@ -36,7 +37,10 @@ export async function regenerateRecoveryCodes(args: {
     throw new HttpError("2FA não está ativado", 409, "TOTP_NOT_ENABLED");
   }
 
-  await verifyStepUpAuth(args);
+  await verifyStepUpAuth({
+    ...args,
+    action: SENSITIVE_ACTIONS.MFA_RECOVERY_REGENERATE,
+  });
 
   const recoveryCodes = generateRecoveryCodes();
 
