@@ -19,7 +19,7 @@ async function logout(page) {
     .getByRole('button', { name: 'Sair da conta', exact: true })
     .first()
     .click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/login$/);
 }
 
 test('2FA activation, recovery regeneration, recovery/TOTP login and strong disable', async ({
