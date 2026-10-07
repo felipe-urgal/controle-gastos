@@ -80,6 +80,24 @@ describe("import-rule-form", () => {
     });
   });
 
+  it("keeps a global rule valid when it has no monetary range", () => {
+    const form = {
+      ...emptyImportRuleForm(10),
+      name: "Regra global",
+      accountId: "",
+      descriptionPattern: "mercado",
+      categoryId: "44444444-4444-4444-8444-444444444444",
+      minAmountCents: "",
+      maxAmountCents: "",
+    };
+
+    expect(importRuleFormToInput(form)).toMatchObject({
+      accountId: null,
+      minAmountCents: null,
+      maxAmountCents: null,
+    });
+  });
+
   it("keeps manual classification defaults inside the API string limits", () => {
     const form = importRuleFormFromManualClassification({
       accountId: "33333333-3333-4333-8333-333333333333",
