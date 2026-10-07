@@ -74,10 +74,9 @@ export async function previewTransactionImportWithRules(request: Request) {
           minAmountCents: true,
           maxAmountCents: true,
           categoryId: true,
-          normalizedDescription: true,
           category: { select: { type: true } },
         },
-        orderBy: [{ priority: "asc" }, { id: "asc" }],
+        orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
       }),
       findMatchingMerchantAliasesForDescriptions(
         userId,

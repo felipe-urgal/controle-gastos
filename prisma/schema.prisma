@@ -686,7 +686,6 @@ model TransactionImportRule {
   descriptionPattern    String                        @db.VarChar(255)
   minAmountCents        Int?
   maxAmountCents        Int?
-  normalizedDescription String?                       @db.VarChar(255)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

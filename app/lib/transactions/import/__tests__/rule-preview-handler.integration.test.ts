@@ -115,7 +115,6 @@ describe("import rule preview ownership", () => {
           descriptionOperator: "CONTAINS",
           descriptionPattern: "café",
           categoryId: foreignCategory.id,
-          normalizedDescription: "Descrição externa",
         },
       }),
       prisma.transactionImportRule.create({
@@ -129,7 +128,6 @@ describe("import rule preview ownership", () => {
           descriptionOperator: "CONTAINS",
           descriptionPattern: "café",
           categoryId: ownerCategory.id,
-          normalizedDescription: "Café próprio",
         },
       }),
     ]);
@@ -176,7 +174,6 @@ describe("import rule preview ownership", () => {
       matchedRuleId: ownerRule.id,
       matchedRuleName: "Regra própria",
       suggestedCategoryId: ownerCategory.id,
-      suggestedDescription: "Café próprio",
       matchedMerchantAliasId: ownerAlias.id,
       suggestedMerchantId: ownerMerchant.id,
       suggestedMerchantName: ownerMerchant.name,

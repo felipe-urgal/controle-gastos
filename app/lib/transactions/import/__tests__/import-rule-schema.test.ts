@@ -12,7 +12,6 @@ const validInput = {
   minAmountCents: null,
   maxAmountCents: null,
   categoryId: "22222222-2222-4222-8222-222222222222",
-  normalizedDescription: null,
 };
 
 describe("import rule input schema", () => {
@@ -26,7 +25,6 @@ describe("import rule input schema", () => {
       accountId: "11111111-1111-4111-8111-111111111111",
       minAmountCents: 12_345,
       maxAmountCents: 12_345,
-      normalizedDescription: "Supermercado",
     });
 
     expect(result.minAmountCents).toBe(12_345);
@@ -43,6 +41,7 @@ describe("import rule input schema", () => {
 
     const inverted = importRuleInputSchema.safeParse({
       ...validInput,
+      accountId: "11111111-1111-4111-8111-111111111111",
       minAmountCents: 20_000,
       maxAmountCents: 10_000,
     });
@@ -53,14 +52,44 @@ describe("import rule input schema", () => {
     }
   });
 
-  it("rejects blank names, patterns and normalized descriptions", () => {
+  it("accepts monetary maximum and rejects maximum plus one", () => {
+    const scoped = {
+      ...validInput,
+      accountId: "11111111-1111-4111-8111-111111111111",
+    };
+
+    expect(
+      importRuleInputSchema.parse({
+        ...scoped,
+        minAmountCents: 1_000_000_000,
+        maxAmountCents: 1_000_000_000,
+      }).maxAmountCents,
+    ).toBe(1_000_000_000);
+
+    expect(
+      importRuleInputSchema.safeParse({
+        ...scoped,
+        maxAmountCents: 1_000_000_001,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects blank names and patterns", () => {
     for (const input of [
       { ...validInput, name: "   " },
       { ...validInput, descriptionPattern: "   " },
-      { ...validInput, normalizedDescription: "   " },
     ]) {
       expect(importRuleInputSchema.safeParse(input).success).toBe(false);
     }
+  });
+
+  it("does not retain a legacy normalized-description size contract", () => {
+    const parsed = importRuleInputSchema.parse({
+      ...validInput,
+      normalizedDescription: "x".repeat(10_000),
+    });
+
+    expect(parsed).not.toHaveProperty("normalizedDescription");
   });
 
   it("rejects malformed account/category ids", () => {
@@ -79,12 +108,30 @@ describe("import rule input schema", () => {
     ).toBe(false);
   });
 
-  it("does not impose an arbitrary priority range beyond integer semantics", () => {
+  it("limits priority to the signed 32-bit Int supported by Prisma", () => {
     expect(
-      importRuleInputSchema.parse({ ...validInput, priority: -100 }).priority
-    ).toBe(-100);
+      importRuleInputSchema.parse({
+        ...validInput,
+        priority: -2_147_483_648,
+      }).priority
+    ).toBe(-2_147_483_648);
     expect(
-      importRuleInputSchema.parse({ ...validInput, priority: 100_000 }).priority
-    ).toBe(100_000);
+      importRuleInputSchema.parse({
+        ...validInput,
+        priority: 2_147_483_647,
+      }).priority
+    ).toBe(2_147_483_647);
+    expect(
+      importRuleInputSchema.safeParse({
+        ...validInput,
+        priority: -2_147_483_649,
+      }).success
+    ).toBe(false);
+    expect(
+      importRuleInputSchema.safeParse({
+        ...validInput,
+        priority: 2_147_483_648,
+      }).success
+    ).toBe(false);
   });
 });

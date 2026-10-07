@@ -21,7 +21,6 @@ const rule: ImportRuleModel = {
   minAmountCents: 1000,
   maxAmountCents: 50_000,
   categoryId: "22222222-2222-4222-8222-222222222222",
-  normalizedDescription: "Supermercado",
   createdAt: "2026-09-07T12:00:00.000Z",
   updatedAt: "2026-09-07T12:00:00.000Z",
 };
@@ -38,7 +37,6 @@ describe("import-rule-form", () => {
       minAmountCents: "10000",
       maxAmountCents: "",
       categoryId: "44444444-4444-4444-8444-444444444444",
-      normalizedDescription: "  Salário mensal  ",
     };
 
     expect(importRuleFormToInput(form)).toEqual({
@@ -52,7 +50,6 @@ describe("import-rule-form", () => {
       minAmountCents: 10_000,
       maxAmountCents: null,
       categoryId: "44444444-4444-4444-8444-444444444444",
-      normalizedDescription: "Salário mensal",
     });
   });
 
@@ -76,7 +73,24 @@ describe("import-rule-form", () => {
       minAmountCents: null,
       maxAmountCents: null,
       categoryId: "44444444-4444-4444-8444-444444444444",
-      normalizedDescription: null,
+    });
+  });
+
+  it("keeps a global rule valid when it has no monetary range", () => {
+    const form = {
+      ...emptyImportRuleForm(10),
+      name: "Regra global",
+      accountId: "",
+      descriptionPattern: "mercado",
+      categoryId: "44444444-4444-4444-8444-444444444444",
+      minAmountCents: "",
+      maxAmountCents: "",
+    };
+
+    expect(importRuleFormToInput(form)).toMatchObject({
+      accountId: null,
+      minAmountCents: null,
+      maxAmountCents: null,
     });
   });
 
@@ -125,7 +139,6 @@ describe("import-rule-form", () => {
       priority: "20",
       minAmountCents: "1000",
       maxAmountCents: "50000",
-      normalizedDescription: "Supermercado",
     });
 
     expect(importRuleModelToInput(rule, { isActive: false })).toEqual({
@@ -139,7 +152,6 @@ describe("import-rule-form", () => {
       minAmountCents: 1000,
       maxAmountCents: 50_000,
       categoryId: "22222222-2222-4222-8222-222222222222",
-      normalizedDescription: "Supermercado",
     });
   });
 });

@@ -65,7 +65,6 @@ async function seedSearchFixture(page, marker) {
       transactionType: 'EXPENSE',
       descriptionOperator: 'CONTAINS',
       descriptionPattern: searchMarker,
-      normalizedDescription: searchMarker,
       accountId: account.id,
       categoryId: category.id,
       minAmountCents: null,

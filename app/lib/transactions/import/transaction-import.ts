@@ -29,6 +29,8 @@ import {
   PreviewImportItem,
   parseImportContent,
   parseImportDate,
+  parseOfxImport,
+  parseQifImport,
   withImportFingerprints,
 } from "@/app/lib/transactions/import/parser";
 import { parseXlsxImport } from "@/app/lib/transactions/import/xlsx-parser";
@@ -123,6 +125,43 @@ export async function previewTransactionImport(request: Request) {
         parsedItems = nubank.items;
         detectedSource = "NUBANK_CREDIT_CARD";
         nubankSummary = nubank.summary;
+      } else if (extension === "qif") {
+        const qif = parseQifImport(content);
+        if (qif.sectionType === "CCARD" && account.type !== "CREDIT_CARD") {
+          return failure(
+            "QIF !Type:CCard deve ser importado em uma conta do tipo cartão de crédito",
+            400,
+          );
+        }
+        if (qif.sectionType !== "CCARD" && account.type === "CREDIT_CARD") {
+          const sectionLabel = qif.sectionType === "BANK" ? "Bank" : "Cash";
+          return failure(
+            `QIF !Type:${sectionLabel} não é compatível com conta de cartão de crédito`,
+            400,
+          );
+        }
+        parsedItems = qif.items;
+      } else if (extension === "ofx" || extension === "qfx") {
+        const ofx = parseOfxImport(content, account.currency);
+        if (
+          ofx.accountMetadata?.type === "CREDIT_CARD" &&
+          account.type !== "CREDIT_CARD"
+        ) {
+          return failure(
+            "OFX/QFX de cartão deve ser importado em uma conta do tipo cartão de crédito",
+            400,
+          );
+        }
+        if (
+          ofx.accountMetadata?.type === "BANK" &&
+          account.type === "CREDIT_CARD"
+        ) {
+          return failure(
+            "OFX/QFX bancário não é compatível com conta de cartão de crédito",
+            400,
+          );
+        }
+        parsedItems = ofx.items;
       } else {
         parsedItems = parseImportContent({
           fileName: file.name,

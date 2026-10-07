@@ -23,6 +23,7 @@ vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
 
+import { payCreditCardStatementForUser } from "@/app/lib/cards/pay-credit-card-statement";
 import { prisma } from "@/app/lib/prisma";
 import {
   createXlsxFixture,
@@ -133,6 +134,105 @@ async function getPreview(accountId: string) {
 }
 
 describe("transaction import integration", () => {
+  it("requires an account before starting an import preview", async () => {
+    const { owner } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new File(
+        ["data,descricao,valor\n2026-08-31,Café,-10.00"],
+        "extrato.csv",
+        { type: "text/csv" },
+      ),
+    );
+
+    const response = await previewTransactionImport(
+      new Request("http://localhost/api/transactions/import/preview", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error?.message).toBe("Selecione uma conta válida");
+  });
+
+  it("requires a category for every selected item at confirmation", async () => {
+    const { owner, account } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const { body } = await getPreview(account.id);
+    const items = body.data.items.map((item: { index: number }) => ({
+      ...item,
+      selected: item.index === 0,
+      categoryId: null,
+    }));
+
+    const response = await confirmTransactionImport(
+      new Request("http://localhost/api/transactions/import/confirm", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          accountId: account.id,
+          previewToken: body.data.previewToken,
+          items,
+        }),
+      }),
+    );
+    const responseBody = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(responseBody.error?.message).toBe(
+      "Defina uma categoria para cada item selecionado",
+    );
+    expect(
+      await prisma.transaction.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+  });
+
+  it("keeps merchant optional during confirmation", async () => {
+    const { owner, account, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const preview = await previewTransactionImport(
+      previewRequest(
+        account.id,
+        "data,descricao,valor\n2026-08-31,Compra sem merchant,-10.00",
+      ),
+    );
+    const body = await preview.json();
+
+    const items = body.data.items.map((item: { index: number }) => ({
+      ...item,
+      selected: true,
+      categoryId: expenseCategory.id,
+      merchantId: null,
+    }));
+
+    const response = await confirmTransactionImport(
+      new Request("http://localhost/api/transactions/import/confirm", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          accountId: account.id,
+          previewToken: body.data.previewToken,
+          items,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(
+      await prisma.transaction.findFirst({
+        where: { userId: owner.id, description: "Compra sem merchant" },
+        select: { merchantId: true },
+      }),
+    ).toEqual({ merchantId: null });
+  });
+
   it("generates preview without writes and confirms only selected items", async () => {
     const { owner, account, expenseCategory, incomeCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -186,6 +286,42 @@ describe("transaction import integration", () => {
         },
       }),
     );
+  });
+
+  it("keeps Nubank credit-card CSV on the dedicated parser", async () => {
+    const { owner } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão Nubank ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const csv = [
+      "date,title,amount",
+      "2026-09-01,Supermercado,123.45",
+      "2026-09-05,Pagamento recebido,-100.00",
+      "2026-09-07,Estorno,-2.35",
+    ].join("\n");
+
+    const preview = await previewTransactionImport(
+      previewRequest(cardAccount.id, csv, "nubank.csv"),
+    );
+    const body = await preview.json();
+
+    expect(preview.status).toBe(200);
+    expect(body.data.detectedSource).toBe("NUBANK_CREDIT_CARD");
+    expect(body.data.nubankSummary).toEqual({
+      purchases: 1,
+      payments: 1,
+      credits: 1,
+    });
   });
 
   it("previews and confirms XLSX using the same idempotent pipeline", async () => {
@@ -297,6 +433,275 @@ describe("transaction import integration", () => {
     expect(await prisma.transaction.count({ where: { userId: owner.id } })).toBe(0);
   });
 
+  it("never creates CARD_PAYMENT from generic text heuristics", async () => {
+    const { owner, expenseCategory } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão genérico pagamento ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const preview = await previewTransactionImport(
+      previewRequest(
+        cardAccount.id,
+        "data,descricao,valor\n2026-09-10,Pagamento de fatura,-100.00",
+        "pagamento-generico.csv",
+      ),
+    );
+    const body = await preview.json();
+    expect(preview.status).toBe(200);
+
+    const items = body.data.items.map((item: { index: number }) => ({
+      ...item,
+      selected: true,
+      categoryId: expenseCategory.id,
+    }));
+    const confirm = await confirmTransactionImport(
+      new Request("http://localhost/api/transactions/import/confirm", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          accountId: cardAccount.id,
+          previewToken: body.data.previewToken,
+          items,
+        }),
+      }),
+    );
+    expect(confirm.status).toBe(201);
+
+    const stored = await prisma.transaction.findFirstOrThrow({
+      where: {
+        userId: owner.id,
+        importFingerprint: body.data.items[0].fingerprint,
+      },
+      select: { kind: true, type: true, description: true },
+    });
+    expect(stored).toEqual({
+      kind: "NORMAL",
+      type: "EXPENSE",
+      description: "Pagamento de fatura",
+    });
+  });
+
+  it("preserves generic CSV and QIF sign semantics on credit-card accounts", async () => {
+    const { owner } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão sinais genéricos ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const csvPreview = await previewTransactionImport(
+      previewRequest(
+        cardAccount.id,
+        [
+          "data,descricao,valor",
+          "2026-09-16,Compra CSV,-25.00",
+          "2026-09-17,Crédito CSV,10.00",
+        ].join("\n"),
+        "generic-card.csv",
+      ),
+    );
+    const csvBody = await csvPreview.json();
+
+    expect(csvPreview.status).toBe(200);
+    expect(csvBody.data.detectedSource).toBe("GENERIC");
+    expect(
+      csvBody.data.items.map((item: { type: string; amountCents: number }) => ({
+        type: item.type,
+        amountCents: item.amountCents,
+      })),
+    ).toEqual([
+      { type: "EXPENSE", amountCents: 2500 },
+      { type: "INCOME", amountCents: 1000 },
+    ]);
+
+    const qifPreview = await previewTransactionImport(
+      previewRequest(
+        cardAccount.id,
+        [
+          "!Type:CCard",
+          "D9/16/2026",
+          "T-25.00",
+          "PCompra QIF",
+          "^",
+          "D9/17/2026",
+          "T10.00",
+          "PCrédito QIF",
+          "^",
+        ].join("\n"),
+        "generic-card.qif",
+      ),
+    );
+    const qifBody = await qifPreview.json();
+
+    expect(qifPreview.status).toBe(200);
+    expect(
+      qifBody.data.items.map((item: { type: string; amountCents: number }) => ({
+        type: item.type,
+        amountCents: item.amountCents,
+      })),
+    ).toEqual([
+      { type: "EXPENSE", amountCents: 2500 },
+      { type: "INCOME", amountCents: 1000 },
+    ]);
+  });
+
+  it("applies the paid-statement guard to every supported import format", async () => {
+    const { owner, account: sourceAccount, expenseCategory } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão fatura paga ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
+        userId: owner.id,
+      },
+    });
+
+    await prisma.transaction.create({
+      data: {
+        amount: 10_000,
+        year: 2026,
+        month: 9,
+        day: 15,
+        type: "EXPENSE",
+        kind: "NORMAL",
+        description: "Compra original",
+        status: "COMPLETED",
+        accountId: cardAccount.id,
+        categoryId: expenseCategory.id,
+        userId: owner.id,
+      },
+    });
+
+    await payCreditCardStatementForUser(
+      owner.id,
+      cardAccount.id,
+      {
+        sourceAccountId: sourceAccount.id,
+        statementClosingDate: "2026-09-20",
+        paymentDate: "2026-09-20",
+      },
+      `import-paid-statement-${randomUUID()}`,
+    );
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const xlsx = createXlsxFixture({
+      rows: [
+        [xlsxText("data"), xlsxText("descricao"), xlsxText("valor")],
+        [xlsxText("2026-09-16"), xlsxText("Compra XLSX paga"), xlsxNumber("-25.00")],
+      ],
+    });
+
+    const cases: Array<{
+      name: string;
+      content: string | Uint8Array;
+    }> = [
+      {
+        name: "generic.csv",
+        content: "data,descricao,valor\n2026-09-16,Compra CSV paga,-25.00",
+      },
+      {
+        name: "nubank.csv",
+        content: "date,title,amount\n2026-09-16,Compra Nubank paga,25.00",
+      },
+      {
+        name: "card.qif",
+        content: [
+          "!Type:CCard",
+          "D9/16/2026",
+          "T-25.00",
+          "PCompra QIF paga",
+          "^",
+        ].join("\n"),
+      },
+      {
+        name: "card.ofx",
+        content: [
+          "OFXHEADER:100",
+          "<OFX><CURDEF>BRL",
+          "<CCACCTFROM><ACCTID>card-file</CCACCTFROM>",
+          "<BANKTRANLIST><STMTTRN><DTPOSTED>20260916<TRNAMT>-25.00<FITID>paid-ofx<NAME>Compra OFX paga</STMTTRN></BANKTRANLIST>",
+          "</OFX>",
+        ].join("\n"),
+      },
+      {
+        name: "card.qfx",
+        content: [
+          "OFXHEADER:100",
+          "<OFX><CURDEF>BRL",
+          "<CCACCTFROM><ACCTID>card-file</CCACCTFROM>",
+          "<BANKTRANLIST><STMTTRN><DTPOSTED>20260916<TRNAMT>-25.00<FITID>paid-qfx<NAME>Compra QFX paga</STMTTRN></BANKTRANLIST>",
+          "</OFX>",
+        ].join("\n"),
+      },
+      {
+        name: "card.xlsx",
+        content: xlsx,
+      },
+    ];
+
+    for (const current of cases) {
+      const preview = await previewTransactionImport(
+        previewRequest(cardAccount.id, current.content, current.name),
+      );
+      const previewBody = await preview.json();
+      expect(preview.status, current.name).toBe(200);
+
+      const items = previewBody.data.items.map((item: { index: number }) => ({
+        ...item,
+        selected: true,
+        categoryId: expenseCategory.id,
+      }));
+
+      const confirm = await confirmTransactionImport(
+        new Request("http://localhost/api/transactions/import/confirm", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            accountId: cardAccount.id,
+            previewToken: previewBody.data.previewToken,
+            items,
+          }),
+        }),
+      );
+      const confirmBody = await confirm.json();
+
+      expect(confirm.status, current.name).toBe(409);
+      expect(confirmBody.error?.code, current.name).toBe(
+        "CREDIT_CARD_STATEMENT_PAID",
+      );
+    }
+
+    expect(
+      await prisma.transaction.count({
+        where: {
+          userId: owner.id,
+          accountId: cardAccount.id,
+          importFingerprint: { not: null },
+        },
+      }),
+    ).toBe(0);
+  });
+
   it("detects an identical reimport and remains idempotent", async () => {
     const { owner, account, expenseCategory, incomeCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -332,6 +737,179 @@ describe("transaction import integration", () => {
     expect(secondBody.data).toEqual({ selected: 2, created: 0, duplicates: 2 });
     expect(await prisma.transaction.count({ where: { userId: owner.id } })).toBe(2);
   });
+  it.each(["Bank", "Cash"] as const)(
+    "rejects QIF !Type:%s when importing into a credit-card account",
+    async (section) => {
+      const { owner } = await createFixture();
+      const cardAccount = await prisma.account.create({
+        data: {
+          name: `Cartão QIF ${section} ${randomUUID()}`,
+          type: "CREDIT_CARD",
+          currency: "BRL",
+          creditLimit: 100_000,
+          statementClosingDay: 20,
+          statementDueDay: 27,
+          userId: owner.id,
+        },
+      });
+      authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+      const qif = [
+        `!Type:${section}`,
+        "D8/31/2026",
+        "T-42.37",
+        "PCompra",
+        "^",
+      ].join("\n");
+
+      const preview = await previewTransactionImport(
+        previewRequest(cardAccount.id, qif, `${section.toLowerCase()}.qif`),
+      );
+      const body = await preview.json();
+
+      expect(preview.status).toBe(400);
+      expect(body.error?.message).toBe(
+        `QIF !Type:${section} não é compatível com conta de cartão de crédito`,
+      );
+    },
+  );
+
+  it("keeps generic CSV/XLSX bound to the manually selected account", async () => {
+    const { owner } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão genérico ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const csvPreview = await previewTransactionImport(
+      previewRequest(
+        cardAccount.id,
+        "data,descricao,valor\n2026-08-31,Compra CSV,-10.00",
+        "generico.csv",
+      ),
+    );
+    const csvBody = await csvPreview.json();
+    expect(csvPreview.status).toBe(200);
+    expect(csvBody.data.accountId).toBe(cardAccount.id);
+
+    const xlsx = createXlsxFixture({
+      rows: [
+        [xlsxText("data"), xlsxText("descricao"), xlsxText("valor")],
+        [xlsxText("2026-08-31"), xlsxText("Compra XLSX"), xlsxNumber("-20.00")],
+      ],
+    });
+    const xlsxPreview = await previewTransactionImport(
+      previewRequest(cardAccount.id, xlsx, "generico.xlsx"),
+    );
+    const xlsxBody = await xlsxPreview.json();
+    expect(xlsxPreview.status).toBe(200);
+    expect(xlsxBody.data.accountId).toBe(cardAccount.id);
+  });
+
+  it("rejects bank OFX when the selected account is a credit card", async () => {
+    const { owner } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão OFX banco ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const bankOfx = [
+      "OFXHEADER:100",
+      "<OFX><CURDEF>BRL",
+      "<BANKACCTFROM><BANKID>001<ACCTID>bank-123</BANKACCTFROM>",
+      "<BANKTRANLIST><STMTTRN><DTPOSTED>20260831<TRNAMT>-10.00<FITID>bank-card-mismatch<NAME>Compra</STMTTRN></BANKTRANLIST>",
+      "</OFX>",
+    ].join("\n");
+
+    const preview = await previewTransactionImport(
+      previewRequest(cardAccount.id, bankOfx, "bank-on-card.ofx"),
+    );
+    const body = await preview.json();
+
+    expect(preview.status).toBe(400);
+    expect(body.error?.message).toBe(
+      "OFX/QFX bancário não é compatível com conta de cartão de crédito",
+    );
+  });
+
+  it("validates OFX account type but never redirects by ACCTID", async () => {
+    const { owner, account } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const bankOfx = [
+      "OFXHEADER:100",
+      "<OFX><CURDEF>BRL",
+      "<BANKACCTFROM><BANKID>001<ACCTID>arquivo-conta-diferente</BANKACCTFROM>",
+      "<BANKTRANLIST><STMTTRN><DTPOSTED>20260831<TRNAMT>-12.34<FITID>bank-meta-1<NAME>Compra</STMTTRN></BANKTRANLIST>",
+      "</OFX>",
+    ].join("\n");
+
+    const bankPreview = await previewTransactionImport(
+      previewRequest(account.id, bankOfx, "bank.ofx"),
+    );
+    const bankBody = await bankPreview.json();
+
+    expect(bankPreview.status).toBe(200);
+    expect(bankBody.data.accountId).toBe(account.id);
+
+    const cardOfx = [
+      "OFXHEADER:100",
+      "<OFX><CURDEF>BRL",
+      "<CCACCTFROM><ACCTID>cartao-no-arquivo</CCACCTFROM>",
+      "<BANKTRANLIST><STMTTRN><DTPOSTED>20260831<TRNAMT>-9.99<FITID>card-meta-1<NAME>Compra</STMTTRN></BANKTRANLIST>",
+      "</OFX>",
+    ].join("\n");
+
+    const mismatch = await previewTransactionImport(
+      previewRequest(account.id, cardOfx, "card.qfx"),
+    );
+    const mismatchBody = await mismatch.json();
+
+    expect(mismatch.status).toBe(400);
+    expect(mismatchBody.error?.message).toBe(
+      "OFX/QFX de cartão deve ser importado em uma conta do tipo cartão de crédito",
+    );
+  });
+
+  it("requires a credit-card account for QIF !Type:CCard", async () => {
+    const { owner, account } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const qif = [
+      "!Type:CCard",
+      "D8/31/2026",
+      "T-42.37",
+      "PCompra cartão",
+      "^",
+    ].join("\n");
+
+    const preview = await previewTransactionImport(
+      previewRequest(account.id, qif, "cartao.qif"),
+    );
+    const body = await preview.json();
+
+    expect(preview.status).toBe(400);
+    expect(body.error?.message).toBe(
+      "QIF !Type:CCard deve ser importado em uma conta do tipo cartão de crédito",
+    );
+  });
+
   it("previews QFX through OFX semantics and confirms QIF in the canonical pipeline", async () => {
     const { owner, account, expenseCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -520,6 +1098,16 @@ describe("transaction import integration", () => {
       pattern: "Café",
       normalizedPattern: "cafe",
     });
+
+    expect(
+      await prisma.merchantAlias.count({
+        where: {
+          userId: owner.id,
+          operator: "EQUALS",
+          normalizedPattern: "cafe",
+        },
+      }),
+    ).toBe(1);
 
     const secondPreview = await previewTransactionImportWithRules(
       previewRequest(

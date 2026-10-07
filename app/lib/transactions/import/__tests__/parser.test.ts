@@ -136,9 +136,16 @@ describe("transaction import parser", () => {
     expect(() => parseXlsxImport(createXlsxFixture({ rows }))).toThrow(ImportParseError);
   });
 
-  it("parses OFX and preserves FITID as external identity", () => {
-    const [item] = parseOfxImport(`OFXHEADER:100\n<OFX><CURDEF>BRL<BANKTRANLIST><STMTTRN><DTPOSTED>20260831120000[-3:BRT]<TRNAMT>-42.37<FITID>bank-123<NAME>Mercado<MEMO>Compra</STMTTRN></BANKTRANLIST></OFX>`, "BRL");
+  it("parses OFX and preserves FITID plus reliable account metadata", () => {
+    const { items: [item], accountMetadata } = parseOfxImport(
+      `OFXHEADER:100\n<OFX><CURDEF>BRL<BANKACCTFROM><BANKID>001<ACCTID>12345</BANKACCTFROM><BANKTRANLIST><STMTTRN><DTPOSTED>20260831120000[-3:BRT]<TRNAMT>-42.37<FITID>bank-123<NAME>Mercado<MEMO>Compra</STMTTRN></BANKTRANLIST></OFX>`,
+      "BRL",
+    );
 
+    expect(accountMetadata).toEqual({
+      type: "BANK",
+      accountId: "12345",
+    });
     expect(item).toMatchObject({
       date: "2026-08-31",
       amountCents: 4237,
@@ -147,6 +154,18 @@ describe("transaction import parser", () => {
       externalId: "bank-123",
       currency: "BRL",
       errors: [],
+    });
+  });
+
+  it("extracts credit-card metadata from CCACCTFROM", () => {
+    const result = parseOfxImport(
+      "<OFX><CURDEF>BRL<CCACCTFROM><ACCTID>card-987</CCACCTFROM><BANKTRANLIST><STMTTRN><DTPOSTED>20260831<TRNAMT>-10.00<NAME>Compra</STMTTRN></BANKTRANLIST></OFX>",
+      "BRL",
+    );
+
+    expect(result.accountMetadata).toEqual({
+      type: "CREDIT_CARD",
+      accountId: "card-987",
     });
   });
 
@@ -183,7 +202,7 @@ describe("transaction import parser", () => {
   });
 
   it("parses QIF income/expense, payee/memo and common date forms", () => {
-    const items = parseQifImport([
+    const { items, sectionType } = parseQifImport([
       "!Type:Bank",
       "D8/31'26",
       "T-42.37",
@@ -196,6 +215,7 @@ describe("transaction import parser", () => {
       "^",
     ].join("\n"));
 
+    expect(sectionType).toBe("BANK");
     expect(items).toMatchObject([
       {
         source: "QIF",
@@ -216,7 +236,7 @@ describe("transaction import parser", () => {
     ]);
     expect(items.every((item) => item.externalId === undefined)).toBe(true);
 
-    const [ambiguous] = parseQifImport([
+    const { items: [ambiguous] } = parseQifImport([
       "!Type:Bank",
       "D8/9/2026",
       "T1.00",
@@ -227,7 +247,7 @@ describe("transaction import parser", () => {
   });
 
   it("keeps malformed QIF transactions in preview with item-level reasons", () => {
-    const [item] = parseQifImport([
+    const { items: [item], sectionType } = parseQifImport([
       "!Type:Cash",
       "D31/02/2026",
       "Tabc",
@@ -235,6 +255,7 @@ describe("transaction import parser", () => {
       "^",
     ].join("\n"));
 
+    expect(sectionType).toBe("CASH");
     expect(item.errors).toEqual(expect.arrayContaining([
       "Data inválida.",
       "Valor inválido ou igual a zero.",
@@ -259,7 +280,7 @@ describe("transaction import parser", () => {
   });
 
   it("keeps QIF fingerprints stable without inventing external identity", () => {
-    const items = parseQifImport([
+    const { items } = parseQifImport([
       "!Type:Bank",
       "D8/31/2026",
       "T-10.00",

@@ -33,4 +33,34 @@ describe("Nubank credit card CSV parser", () => {
     });
     expect(parsed.items[3].description).toBe("Loja Parcela 2/6");
   });
+
+  it("keeps received payment outside common transaction import", () => {
+    const parsed = parseNubankCreditCardCsv([
+      "date,title,amount",
+      "2026-09-05,Pagamento recebido,-100.00",
+    ].join("\n"));
+
+    expect(parsed.classifications).toEqual(["PAYMENT"]);
+    expect(parsed.items[0]).toMatchObject({
+      type: "INCOME",
+      amountCents: 10_000,
+    });
+    expect(parsed.items[0].errors).toContain(
+      "Pagamento recebido deve ser conciliado pelo fluxo de pagamento da fatura; não será importado como receita.",
+    );
+  });
+  it("keeps credit and refund entries as INCOME on credit-card imports", () => {
+    const parsed = parseNubankCreditCardCsv([
+      "date,title,amount",
+      "2026-09-07,Estorno de compra,-23.45",
+    ].join("\n"));
+
+    expect(parsed.classifications).toEqual(["CREDIT"]);
+    expect(parsed.items[0]).toMatchObject({
+      type: "INCOME",
+      amountCents: 2345,
+      errors: [],
+    });
+  });
+
 });

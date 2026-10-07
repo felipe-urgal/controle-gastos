@@ -18,7 +18,6 @@ const baseRule: ImportRule = {
   minAmountCents: null,
   maxAmountCents: null,
   categoryId: "category-food",
-  normalizedDescription: null,
 };
 
 const candidate = {
@@ -96,12 +95,18 @@ describe("import rules", () => {
     ).toBe(false);
   });
 
-  it("selects the first valid rule by priority with a stable id tie-break", () => {
+  it("selects the first valid rule by priority and explicit specificity", () => {
     const result = evaluateImportRules(
       [
         { ...baseRule, id: "rule-z", priority: 20, categoryId: "late" },
-        { ...baseRule, id: "rule-b", priority: 5, categoryId: "tie-b" },
-        { ...baseRule, id: "rule-a", priority: 5, categoryId: "tie-a" },
+        { ...baseRule, id: "rule-b", priority: 5, categoryId: "global" },
+        {
+          ...baseRule,
+          id: "rule-a",
+          priority: 5,
+          accountId: "account-1",
+          categoryId: "account-specific",
+        },
       ],
       candidate
     );
@@ -109,11 +114,12 @@ describe("import rules", () => {
     expect(result).toEqual({
       matchedRuleId: "rule-a",
       matchedRuleName: "Mercado",
-      suggestedCategoryId: null,
-      suggestedDescription: null,
-      conflict: true,
+      suggestedCategoryId: "account-specific",
+      conflict: false,
       matchingRuleIds: ["rule-a", "rule-b", "rule-z"],
       matchingRuleNames: ["Mercado", "Mercado", "Mercado"],
+      alsoMatchingRuleIds: ["rule-b", "rule-z"],
+      alsoMatchingRuleNames: ["Mercado", "Mercado"],
     });
   });
 
@@ -133,18 +139,133 @@ describe("import rules", () => {
     });
   });
 
-  it("returns an explicit normalized-description suggestion without mutating input", () => {
-    const rules = [
-      {
-        ...baseRule,
-        normalizedDescription: "  Supermercado  ",
-      },
-    ];
+  it("prefers an account-specific rule over a global rule at the same priority", () => {
+    const result = evaluateImportRules(
+      [
+        { ...baseRule, id: "global", priority: 10, categoryId: "global" },
+        {
+          ...baseRule,
+          id: "account",
+          priority: 10,
+          accountId: "account-1",
+          categoryId: "account",
+        },
+      ],
+      candidate
+    );
 
-    const result = evaluateImportRules(rules, candidate);
+    expect(result).toMatchObject({
+      matchedRuleId: "account",
+      suggestedCategoryId: "account",
+      conflict: false,
+    });
+  });
 
-    expect(result?.suggestedDescription).toBe("Supermercado");
-    expect(candidate.description).toBe("  Mercado   Central  ");
+  it("prefers EQUALS over CONTAINS at the same priority", () => {
+    const exact = {
+      ...baseRule,
+      id: "equals",
+      priority: 10,
+      descriptionOperator: "EQUALS" as const,
+      descriptionPattern: "mercado central",
+      categoryId: "exact",
+    };
+    const broad = {
+      ...baseRule,
+      id: "contains",
+      priority: 10,
+      descriptionOperator: "CONTAINS" as const,
+      descriptionPattern: "mercado",
+      categoryId: "broad",
+    };
+
+    expect(evaluateImportRules([broad, exact], candidate)).toMatchObject({
+      matchedRuleId: "equals",
+      suggestedCategoryId: "exact",
+      conflict: false,
+    });
+  });
+
+  it("prefers STARTS_WITH over CONTAINS at the same priority", () => {
+    const starts = {
+      ...baseRule,
+      id: "starts",
+      priority: 10,
+      descriptionOperator: "STARTS_WITH" as const,
+      descriptionPattern: "mercado",
+      categoryId: "starts",
+    };
+    const contains = {
+      ...baseRule,
+      id: "contains",
+      priority: 10,
+      descriptionOperator: "CONTAINS" as const,
+      descriptionPattern: "mercado",
+      categoryId: "contains",
+    };
+
+    expect(evaluateImportRules([contains, starts], candidate)).toMatchObject({
+      matchedRuleId: "starts",
+      suggestedCategoryId: "starts",
+      conflict: false,
+    });
+  });
+
+  it("reports a conflict for equal-priority equally-specific rules with different outcomes", () => {
+    const result = evaluateImportRules(
+      [
+        {
+          ...baseRule,
+          id: "mercado",
+          priority: 10,
+          descriptionPattern: "mercado",
+          categoryId: "food",
+        },
+        {
+          ...baseRule,
+          id: "central",
+          priority: 10,
+          descriptionPattern: "central",
+          categoryId: "other",
+        },
+      ],
+      candidate
+    );
+
+    expect(result).toMatchObject({
+      suggestedCategoryId: null,
+      conflict: true,
+    });
+    expect(new Set(result?.matchingRuleIds)).toEqual(
+      new Set(["mercado", "central"])
+    );
+  });
+
+  it("keeps a suggestion when equal-precedence rules have the same outcome", () => {
+    const result = evaluateImportRules(
+      [
+        {
+          ...baseRule,
+          id: "mercado",
+          priority: 10,
+          descriptionPattern: "mercado",
+          categoryId: "food",
+        },
+        {
+          ...baseRule,
+          id: "central",
+          priority: 10,
+          descriptionPattern: "central",
+          categoryId: "food",
+        },
+      ],
+      candidate
+    );
+
+    expect(result).toMatchObject({
+      suggestedCategoryId: "food",
+      conflict: false,
+    });
   });
 
   it("returns null when no rule matches", () => {

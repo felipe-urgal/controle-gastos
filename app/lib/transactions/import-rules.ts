@@ -17,7 +17,6 @@ export type ImportRule = {
   minAmountCents: number | null;
   maxAmountCents: number | null;
   categoryId: string;
-  normalizedDescription: string | null;
 };
 
 export type ImportRuleCandidate = {
@@ -31,10 +30,11 @@ export type ImportRuleMatch = {
   matchedRuleId: string;
   matchedRuleName: string;
   suggestedCategoryId: string | null;
-  suggestedDescription: string | null;
   conflict: boolean;
   matchingRuleIds: string[];
   matchingRuleNames: string[];
+  alsoMatchingRuleIds: string[];
+  alsoMatchingRuleNames: string[];
 };
 
 export function normalizeImportRuleText(value: string) {
@@ -45,14 +45,77 @@ export function normalizeImportRuleText(value: string) {
     .toLowerCase();
 }
 
+function descriptionOperatorSpecificity(
+  operator: ImportRuleDescriptionOperator
+) {
+  if (operator === "EQUALS") return 3;
+  if (operator === "STARTS_WITH") return 2;
+  return 1;
+}
+
+function amountBoundCount(rule: ImportRule) {
+  return Number(rule.minAmountCents !== null) + Number(rule.maxAmountCents !== null);
+}
+
+function amountRangeSpan(rule: ImportRule) {
+  if (rule.minAmountCents === null || rule.maxAmountCents === null) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return rule.maxAmountCents - rule.minAmountCents;
+}
+
+function compareRuleSpecificity(a: ImportRule, b: ImportRule) {
+  const accountSpecificity = Number(b.accountId !== null) - Number(a.accountId !== null);
+  if (accountSpecificity !== 0) return accountSpecificity;
+
+  const operatorSpecificity =
+    descriptionOperatorSpecificity(b.descriptionOperator) -
+    descriptionOperatorSpecificity(a.descriptionOperator);
+  if (operatorSpecificity !== 0) return operatorSpecificity;
+
+  const patternSpecificity =
+    normalizeImportRuleText(b.descriptionPattern).length -
+    normalizeImportRuleText(a.descriptionPattern).length;
+  if (patternSpecificity !== 0) return patternSpecificity;
+
+  const boundSpecificity = amountBoundCount(b) - amountBoundCount(a);
+  if (boundSpecificity !== 0) return boundSpecificity;
+
+  const aSpan = amountRangeSpan(a);
+  const bSpan = amountRangeSpan(b);
+  if (aSpan !== bSpan) return aSpan - bSpan;
+
+  return 0;
+}
+
+function hasSameRulePrecedence(a: ImportRule, b: ImportRule) {
+  return a.priority === b.priority && compareRuleSpecificity(a, b) === 0;
+}
+
+function canonicalRuleMatcherKey(rule: ImportRule) {
+  return [
+    rule.accountId ?? "*",
+    rule.transactionType,
+    rule.descriptionOperator,
+    normalizeImportRuleText(rule.descriptionPattern),
+    rule.minAmountCents ?? "*",
+    rule.maxAmountCents ?? "*",
+  ].join("|");
+}
+
 function compareRuleOrder(a: ImportRule, b: ImportRule) {
   if (a.priority !== b.priority) {
     return a.priority - b.priority;
   }
 
-  if (a.id < b.id) return -1;
-  if (a.id > b.id) return 1;
-  return 0;
+  const specificity = compareRuleSpecificity(a, b);
+  if (specificity !== 0) return specificity;
+
+  const matcherOrder = canonicalRuleMatcherKey(a).localeCompare(
+    canonicalRuleMatcherKey(b)
+  );
+  return matcherOrder;
 }
 
 function hasValidAmountBounds(rule: ImportRule) {
@@ -134,33 +197,41 @@ export function matchesImportRule(
   }
 }
 
-export function evaluateImportRules(
-  rules: readonly ImportRule[],
-  candidate: ImportRuleCandidate
+export function evaluateMatchedImportRules(
+  rules: readonly ImportRule[]
 ): ImportRuleMatch | null {
-  const matches = [...rules]
-    .sort(compareRuleOrder)
-    .filter((rule) => matchesImportRule(rule, candidate));
+  const matches = [...rules].sort(compareRuleOrder);
 
   const matchedRule = matches[0];
   if (!matchedRule) {
     return null;
   }
 
-  const categories = new Set(matches.map((rule) => rule.categoryId));
-  const normalizedDescriptions = new Set(
-    matches.map((rule) => normalizeImportRuleText(rule.normalizedDescription ?? "")),
+  const samePrecedenceMatches = matches.filter((rule) =>
+    hasSameRulePrecedence(matchedRule, rule)
   );
-  const conflict = categories.size > 1 || normalizedDescriptions.size > 1;
-  const suggestedDescription = matchedRule.normalizedDescription?.trim();
+  const categories = new Set(
+    samePrecedenceMatches.map((rule) => rule.categoryId)
+  );
+  const conflict = categories.size > 1;
 
   return {
     matchedRuleId: matchedRule.id,
     matchedRuleName: matchedRule.name,
     suggestedCategoryId: conflict ? null : matchedRule.categoryId,
-    suggestedDescription: conflict ? null : (suggestedDescription || null),
     conflict,
     matchingRuleIds: matches.map((rule) => rule.id),
     matchingRuleNames: matches.map((rule) => rule.name),
+    alsoMatchingRuleIds: matches.slice(1).map((rule) => rule.id),
+    alsoMatchingRuleNames: matches.slice(1).map((rule) => rule.name),
   };
+}
+
+export function evaluateImportRules(
+  rules: readonly ImportRule[],
+  candidate: ImportRuleCandidate
+): ImportRuleMatch | null {
+  return evaluateMatchedImportRules(
+    rules.filter((rule) => matchesImportRule(rule, candidate))
+  );
 }

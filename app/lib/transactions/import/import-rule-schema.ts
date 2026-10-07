@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRANSACTION_MAX_AMOUNT_CENTS } from "@/app/lib/transactions/transaction-field-contract";
 
 export const importRuleDescriptionOperatorSchema = z.enum([
   "EQUALS",
@@ -8,13 +9,21 @@ export const importRuleDescriptionOperatorSchema = z.enum([
 
 export const importRuleTransactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
 
-const nullableAmountCentsSchema = z.number().int().nonnegative().nullable();
+export const PRISMA_INT_MIN = -2_147_483_648;
+export const PRISMA_INT_MAX = 2_147_483_647;
+
+const nullableAmountCentsSchema = z
+  .number()
+  .int()
+  .nonnegative()
+  .max(TRANSACTION_MAX_AMOUNT_CENTS)
+  .nullable();
 
 export const importRuleInputSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
     isActive: z.boolean(),
-    priority: z.number().int(),
+    priority: z.number().int().min(PRISMA_INT_MIN).max(PRISMA_INT_MAX),
     accountId: z.string().uuid().nullable(),
     transactionType: importRuleTransactionTypeSchema,
     descriptionOperator: importRuleDescriptionOperatorSchema,
@@ -22,9 +31,19 @@ export const importRuleInputSchema = z
     minAmountCents: nullableAmountCentsSchema,
     maxAmountCents: nullableAmountCentsSchema,
     categoryId: z.string().uuid(),
-    normalizedDescription: z.string().trim().min(1).max(255).nullable(),
   })
   .superRefine((input, ctx) => {
+    if (
+      input.accountId === null &&
+      (input.minAmountCents !== null || input.maxAmountCents !== null)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["accountId"],
+        message: "Regras com faixa de valor exigem uma conta específica",
+      });
+    }
+
     if (
       input.minAmountCents !== null &&
       input.maxAmountCents !== null &&

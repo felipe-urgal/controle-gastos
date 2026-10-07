@@ -72,7 +72,6 @@ export function buildCorrectionAutomationSuggestions(
             minAmountCents: null,
             maxAmountCents: null,
             categoryId: next.categoryId,
-            normalizedDescription: null,
           },
         }
       : null;

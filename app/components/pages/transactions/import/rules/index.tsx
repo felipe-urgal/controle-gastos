@@ -7,6 +7,7 @@ import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Button } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
 import {
   emptyImportRuleForm,
   importRuleFormToInput,
@@ -14,6 +15,10 @@ import {
   importRuleToFormState,
   type ImportRuleFormState,
 } from '@/app/lib/import-rules/import-rule-form';
+import {
+  findImportRuleRelationships,
+  type ImportRuleRelationship,
+} from '@/app/lib/import-rules/import-rule-guards';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
 import { importRuleService } from '@/app/services/import-rule-service';
@@ -27,7 +32,9 @@ import type {
 
 function ruleOrder(left: ImportRuleModel, right: ImportRuleModel) {
   if (left.priority !== right.priority) return left.priority - right.priority;
-  return left.id.localeCompare(right.id);
+  const createdAtOrder = left.createdAt.localeCompare(right.createdAt);
+  if (createdAtOrder !== 0) return createdAtOrder;
+  return left.name.localeCompare(right.name);
 }
 
 function typeLabel(type: ImportRuleTransactionType) {
@@ -40,14 +47,55 @@ function operatorLabel(operator: ImportRuleDescriptionOperator) {
   return 'contém';
 }
 
-function amountRangeLabel(rule: ImportRuleModel, showValues: boolean) {
+function impactLabel(relationship: ImportRuleRelationship) {
+  if (relationship.kind === 'NONE') return '';
+  if (relationship.kind === 'EQUIVALENT') {
+    return 'equivalente — já existe a mesma regra administrativa';
+  }
+
+  if (relationship.resolution === 'CANDIDATE_WINS') {
+    return 'também pode casar; esta regra venceria e a existente ficaria sombreada';
+  }
+  if (relationship.resolution === 'EXISTING_WINS') {
+    return 'também pode casar; a regra existente venceria e esta ficaria sombreada';
+  }
+  if (relationship.resolution === 'SAME_OUTCOME') {
+    return 'também pode casar, mas ambas produzem o mesmo resultado';
+  }
+  return 'também pode casar sem vencedor seguro; ajuste prioridade ou especificidade';
+}
+
+function ruleDependencyWarning(accountUnavailable: boolean, categoryUnavailable: boolean) {
+  const unavailable = [
+    accountUnavailable ? 'contas' : '',
+    categoryUnavailable ? 'categorias' : '',
+  ].filter(Boolean);
+
+  return unavailable.length > 0
+    ? `Não foi possível carregar ${unavailable.join(' e ')}. A lista de regras continua disponível, mas criação e edição podem ficar limitadas.`
+    : '';
+}
+
+function amountRangeLabel(
+  rule: ImportRuleModel,
+  showValues: boolean,
+  currency?: string,
+) {
   const min = rule.minAmountCents;
   const max = rule.maxAmountCents;
   if (min === null && max === null) return 'qualquer valor';
   if (!showValues) return 'faixa de valor oculta';
-  if (min !== null && max !== null) return `${min}–${max} centavos`;
-  if (min !== null) return `a partir de ${min} centavos`;
-  return `até ${max} centavos`;
+
+  const formatAmount = (amount: number) =>
+    currency
+      ? formatCurrency(amount, currency)
+      : `${amount} centavos (moeda indisponível)`;
+
+  if (min !== null && max !== null) {
+    return `${formatAmount(min)}–${formatAmount(max)}`;
+  }
+  if (min !== null) return `a partir de ${formatAmount(min)}`;
+  return `até ${formatAmount(max!)}`;
 }
 
 export default function ImportRuleManagementPage() {
@@ -63,31 +111,113 @@ export default function ImportRuleManagementPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [dependencyWarning, setDependencyWarning] = useState('');
+  const [accountUnavailable, setAccountUnavailable] = useState(false);
+  const [categoryUnavailable, setCategoryUnavailable] = useState(false);
+  const [rulesUnavailable, setRulesUnavailable] = useState(false);
+  const [retryingSource, setRetryingSource] = useState<'accounts' | 'categories' | 'rules' | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       setError('');
-      try {
-        const [accountResponse, categoryResponse, ruleResponse] = await Promise.all([
-          accountService.getAll(),
-          categoryService.getAll(),
-          importRuleService.getAll(),
-        ]);
+      setDependencyWarning('');
 
-        setAccounts((accountResponse.data?.items ?? []).filter((account) => account.isActive));
-        setCategories((categoryResponse.data?.items ?? []).filter((category) => category.isActive));
-        setRules([...(ruleResponse.data?.items ?? [])].sort(ruleOrder));
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Não foi possível carregar as regras de importação.');
-      } finally {
-        setLoading(false);
+      const [accountResult, categoryResult, ruleResult] = await Promise.allSettled([
+        accountService.getAll(),
+        categoryService.getAll(),
+        importRuleService.getAll(),
+      ]);
+
+      const nextAccountUnavailable = accountResult.status !== 'fulfilled';
+      const nextCategoryUnavailable = categoryResult.status !== 'fulfilled';
+
+      setAccountUnavailable(nextAccountUnavailable);
+      setCategoryUnavailable(nextCategoryUnavailable);
+
+      if (accountResult.status === 'fulfilled') {
+        setAccounts((accountResult.value.data?.items ?? []).filter((account) => account.isActive));
+      } else {
+        setAccounts([]);
       }
+
+      if (categoryResult.status === 'fulfilled') {
+        setCategories((categoryResult.value.data?.items ?? []).filter((category) => category.isActive));
+      } else {
+        setCategories([]);
+      }
+
+      if (ruleResult.status === 'fulfilled') {
+        setRules([...(ruleResult.value.data?.items ?? [])].sort(ruleOrder));
+        setRulesUnavailable(false);
+      } else {
+        setRules([]);
+        setRulesUnavailable(true);
+        setError(
+          ruleResult.reason instanceof Error
+            ? ruleResult.reason.message
+            : 'Não foi possível carregar as regras de importação.',
+        );
+      }
+
+      setDependencyWarning(
+        ruleDependencyWarning(nextAccountUnavailable, nextCategoryUnavailable),
+      );
+      setLoading(false);
     }
 
     void load();
   }, []);
+
+  async function retryAccounts() {
+    setRetryingSource('accounts');
+    try {
+      const response = await accountService.getAll();
+      setAccounts((response.data?.items ?? []).filter((account) => account.isActive));
+      setAccountUnavailable(false);
+      setDependencyWarning(ruleDependencyWarning(false, categoryUnavailable));
+    } catch {
+      setAccountUnavailable(true);
+      setDependencyWarning(ruleDependencyWarning(true, categoryUnavailable));
+    } finally {
+      setRetryingSource(null);
+    }
+  }
+
+  async function retryCategories() {
+    setRetryingSource('categories');
+    try {
+      const response = await categoryService.getAll();
+      setCategories((response.data?.items ?? []).filter((category) => category.isActive));
+      setCategoryUnavailable(false);
+      setDependencyWarning(ruleDependencyWarning(accountUnavailable, false));
+    } catch {
+      setCategoryUnavailable(true);
+      setDependencyWarning(ruleDependencyWarning(accountUnavailable, true));
+    } finally {
+      setRetryingSource(null);
+    }
+  }
+
+  async function retryRules() {
+    setRetryingSource('rules');
+    try {
+      const response = await importRuleService.getAll();
+      setRules([...(response.data?.items ?? [])].sort(ruleOrder));
+      setRulesUnavailable(false);
+      setError('');
+    } catch (cause) {
+      setRulesUnavailable(true);
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Não foi possível carregar as regras de importação.',
+      );
+    } finally {
+      setRetryingSource(null);
+    }
+  }
 
   const accountById = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
@@ -101,10 +231,24 @@ export default function ImportRuleManagementPage() {
     () => categories.filter((category) => category.type === form.transactionType),
     [categories, form.transactionType],
   );
+  const selectedRuleAccount = form.accountId
+    ? accountById.get(form.accountId) ?? null
+    : null;
   const nextPriority = useMemo(() => {
     if (rules.length === 0) return 0;
     return Math.max(...rules.map((rule) => rule.priority)) + 10;
   }, [rules]);
+  const ruleImpact = useMemo(() => {
+    if (!formOpen) return [];
+
+    try {
+      return findImportRuleRelationships(importRuleFormToInput(form), rules, {
+        excludeRuleId: editingId ?? undefined,
+      });
+    } catch {
+      return [];
+    }
+  }, [editingId, form, formOpen, rules]);
 
   function clearMessages() {
     setError('');
@@ -228,9 +372,56 @@ export default function ImportRuleManagementPage() {
       <div className="space-y-4">
         <Alert
           variant="info"
-          message="Menor prioridade executa primeiro. Em empate, a ordem é estável pelo identificador da regra. As sugestões nunca confirmam transações sozinhas."
+          message="Menor prioridade executa primeiro. Em empate, a regra mais específica vence; se ainda houver resultados incompatíveis na mesma precedência, o preview pede revisão. As sugestões nunca confirmam transações sozinhas."
         />
-        {error && <Alert variant="error" message={error} onClose={() => setError('')} />}
+        {dependencyWarning && (
+          <div className="space-y-2">
+            <Alert variant="warning" message={dependencyWarning} />
+            <div className="flex flex-wrap gap-2">
+              {accountUnavailable && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void retryAccounts()}
+                  isLoading={retryingSource === 'accounts'}
+                  loadingText="Recarregando contas…"
+                >
+                  Tentar novamente contas
+                </Button>
+              )}
+              {categoryUnavailable && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void retryCategories()}
+                  isLoading={retryingSource === 'categories'}
+                  loadingText="Recarregando categorias…"
+                >
+                  Tentar novamente categorias
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+        {error && (
+          <div className="space-y-2">
+            <Alert variant="error" message={error} onClose={() => setError('')} />
+            {rulesUnavailable && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void retryRules()}
+                isLoading={retryingSource === 'rules'}
+                loadingText="Recarregando regras…"
+              >
+                Tentar novamente regras
+              </Button>
+            )}
+          </div>
+        )}
         {successMessage && (
           <Alert
             variant="success"
@@ -297,11 +488,10 @@ export default function ImportRuleManagementPage() {
                             {typeLabel(rule.transactionType)} · descrição {operatorLabel(rule.descriptionOperator)} “{rule.descriptionPattern}”
                           </p>
                           <p className="mt-1 text-sm text-[var(--text-muted)]">
-                            {account?.name ?? (rule.accountId ? 'Conta indisponível' : 'Qualquer conta')} · {amountRangeLabel(rule, showValues)}
+                            {account?.name ?? (rule.accountId ? 'Conta indisponível' : 'Qualquer conta')} · {amountRangeLabel(rule, showValues, account?.currency)}
                           </p>
                           <p className="mt-1 text-sm text-[var(--text-muted)]">
                             Categoria: {category?.name ?? 'Categoria indisponível'}
-                            {rule.normalizedDescription ? ` · descrição sugerida: ${rule.normalizedDescription}` : ''}
                           </p>
                         </div>
 
@@ -473,31 +663,38 @@ export default function ImportRuleManagementPage() {
                 </div>
 
                 {showValues ? (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="block text-sm font-medium text-[var(--foreground)]">
-                      Valor mínimo (centavos)
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={form.minAmountCents}
-                        onChange={(event) => setForm((current) => ({ ...current, minAmountCents: event.target.value }))}
-                        disabled={submitting}
-                        className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                      />
-                    </label>
-                    <label className="block text-sm font-medium text-[var(--foreground)]">
-                      Valor máximo (centavos)
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={form.maxAmountCents}
-                        onChange={(event) => setForm((current) => ({ ...current, maxAmountCents: event.target.value }))}
-                        disabled={submitting}
-                        className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                      />
-                    </label>
+                  <div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)]">
+                        Valor mínimo (centavos{selectedRuleAccount ? ` de ${selectedRuleAccount.currency}` : ''})
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={form.minAmountCents}
+                          onChange={(event) => setForm((current) => ({ ...current, minAmountCents: event.target.value }))}
+                          disabled={submitting}
+                          className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-[var(--foreground)]">
+                        Valor máximo (centavos{selectedRuleAccount ? ` de ${selectedRuleAccount.currency}` : ''})
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={form.maxAmountCents}
+                          onChange={(event) => setForm((current) => ({ ...current, maxAmountCents: event.target.value }))}
+                          disabled={submitting}
+                          className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                        />
+                      </label>
+                    </div>
+                    <p className="mt-2 text-xs leading-relaxed text-[var(--text-subtle)]">
+                      {selectedRuleAccount
+                        ? `Os limites são comparados diretamente em ${selectedRuleAccount.currency}; nenhuma conversão de moeda é feita.`
+                        : 'Selecione uma conta específica para usar faixa de valor. Nenhuma conversão de moeda é feita.'}
+                    </p>
                   </div>
                 ) : (
                   <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
@@ -508,21 +705,26 @@ export default function ImportRuleManagementPage() {
                   </div>
                 )}
 
-                <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Descrição sugerida (opcional)
-                  <input
-                    value={form.normalizedDescription}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, normalizedDescription: event.target.value }))
-                    }
-                    maxLength={255}
-                    disabled={submitting}
-                    className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                  />
-                  <span className="mt-1 block text-xs font-normal text-[var(--text-subtle)]">
-                    Continua sendo apenas sugestão no preview; não altera o conteúdo assinado.
-                  </span>
-                </label>
+                {ruleImpact.length > 0 && (
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+                    <p className="text-sm font-semibold text-[var(--foreground)]">
+                      Impacto potencial
+                    </p>
+                    <ul className="mt-2 space-y-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                      {ruleImpact.map((relationship) => (
+                        <li key={relationship.kind === 'NONE' ? 'none' : relationship.ruleId}>
+                          {relationship.kind === 'NONE' ? null : (
+                            <>
+                              <strong className="text-[var(--foreground)]">{relationship.ruleName}</strong>
+                              {' — '}
+                              {impactLabel(relationship)}
+                            </>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 <label className="flex min-h-11 items-center gap-3 text-sm text-[var(--foreground)]">
                   <input
@@ -548,7 +750,7 @@ export default function ImportRuleManagementPage() {
                 <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Como funciona</p>
                 <h2 id="rule-form-title" className="mt-1 text-lg font-semibold text-[var(--foreground)]">Automação sob controle</h2>
                 <ul className="mt-4 space-y-3 text-sm leading-relaxed text-[var(--text-muted)]">
-                  <li>• a primeira regra ativa que casar produz uma sugestão;</li>
+                  <li>• a primeira regra elegível por prioridade e especificidade produz a sugestão;</li>
                   <li>• conta e faixa de valor são opcionais;</li>
                   <li>• a categoria precisa continuar ativa e compatível com o tipo;</li>
                   <li>• você ainda pode sobrescrever a categoria no preview;</li>

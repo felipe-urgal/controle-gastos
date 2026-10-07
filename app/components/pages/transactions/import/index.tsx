@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { PageHeader } from '@/app/components/base-pages';
 import { Alert } from '@/app/components/feedback';
@@ -37,9 +37,9 @@ type PreviewItem = {
   matchedRuleId?: string | null;
   matchedRuleName?: string | null;
   suggestedCategoryId?: string | null;
-  suggestedDescription?: string | null;
   importRuleConflict?: boolean;
   matchingRuleNames?: string[];
+  alsoMatchingRuleNames?: string[];
   matchedMerchantAliasId?: string | null;
   suggestedMerchantId?: string | null;
   suggestedMerchantName?: string | null;
@@ -156,6 +156,13 @@ export default function TransactionImportPage() {
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
+  const [merchantOptionsUnavailable, setMerchantOptionsUnavailable] = useState(false);
+  const [accountLoadError, setAccountLoadError] = useState('');
+  const [categoryLoadError, setCategoryLoadError] = useState('');
+  const [retryingSource, setRetryingSource] = useState<'accounts' | 'categories' | 'merchants' | null>(null);
+  const [merchantSearch, setMerchantSearch] = useState('');
+  const [merchantSearchLoading, setMerchantSearchLoading] = useState(false);
+  const merchantSearchRequest = useRef(0);
   const [accountId, setAccountId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
@@ -171,19 +178,39 @@ export default function TransactionImportPage() {
 
   useEffect(() => {
     async function loadRelations() {
-      try {
-        const [accountResponse, categoryResponse, merchantResponse] = await Promise.all([
-          accountService.getAll(),
-          categoryService.getAll(),
-          merchantService.getAllOptions(),
-        ]);
-        const activeAccounts = (accountResponse.data?.items ?? []).filter((account) => account.isActive);
+      setLoadingRelations(true);
+
+      const [accountResult, categoryResult] = await Promise.allSettled([
+        accountService.getAll(),
+        categoryService.getAll(),
+      ]);
+
+      if (accountResult.status === 'fulfilled') {
+        const activeAccounts = (accountResult.value.data?.items ?? []).filter((account) => account.isActive);
         setAccounts(activeAccounts);
-        setCategories((categoryResponse.data?.items ?? []).filter((category) => category.isActive));
-        setMerchants(merchantResponse.filter((merchant) => merchant.isActive));
+        setAccountLoadError('');
         if (activeAccounts.length === 1) setAccountId(activeAccounts[0].id);
+      } else {
+        setAccounts([]);
+        setAccountId('');
+        setAccountLoadError('Não foi possível carregar contas.');
+      }
+
+      if (categoryResult.status === 'fulfilled') {
+        setCategories((categoryResult.value.data?.items ?? []).filter((category) => category.isActive));
+        setCategoryLoadError('');
+      } else {
+        setCategories([]);
+        setCategoryLoadError('Não foi possível carregar categorias.');
+      }
+
+      try {
+        const merchantResponse = await merchantService.searchOptions();
+        setMerchants(merchantResponse.filter((merchant) => merchant.isActive));
+        setMerchantOptionsUnavailable(false);
       } catch {
-        setError('Não foi possível carregar contas e categorias.');
+        setMerchants([]);
+        setMerchantOptionsUnavailable(true);
       } finally {
         setLoadingRelations(false);
       }
@@ -191,6 +218,78 @@ export default function TransactionImportPage() {
 
     void loadRelations();
   }, []);
+
+  async function retryAccounts() {
+    setRetryingSource('accounts');
+    try {
+      const response = await accountService.getAll();
+      const activeAccounts = (response.data?.items ?? []).filter((account) => account.isActive);
+      setAccounts(activeAccounts);
+      setAccountId((current) =>
+        activeAccounts.some((account) => account.id === current)
+          ? current
+          : activeAccounts.length === 1
+            ? activeAccounts[0].id
+            : '',
+      );
+      setAccountLoadError('');
+    } catch {
+      setAccountLoadError('Não foi possível carregar contas.');
+    } finally {
+      setRetryingSource(null);
+    }
+  }
+
+  async function retryCategories() {
+    setRetryingSource('categories');
+    try {
+      const response = await categoryService.getAll();
+      setCategories((response.data?.items ?? []).filter((category) => category.isActive));
+      setCategoryLoadError('');
+    } catch {
+      setCategoryLoadError('Não foi possível carregar categorias.');
+    } finally {
+      setRetryingSource(null);
+    }
+  }
+
+  async function retryMerchants() {
+    setRetryingSource('merchants');
+    try {
+      const response = await merchantService.searchOptions(merchantSearch);
+      setMerchants(response.filter((merchant) => merchant.isActive));
+      setMerchantOptionsUnavailable(false);
+    } catch {
+      setMerchants([]);
+      setMerchantOptionsUnavailable(true);
+    } finally {
+      setRetryingSource(null);
+    }
+  }
+
+  async function searchMerchants(query: string) {
+    setMerchantSearch(query);
+    const requestId = merchantSearchRequest.current + 1;
+    merchantSearchRequest.current = requestId;
+    setMerchantSearchLoading(true);
+
+    try {
+      const response = await merchantService.searchOptions(query);
+      if (merchantSearchRequest.current !== requestId) return;
+
+      setMerchants(response.filter((merchant) => merchant.isActive));
+      setMerchantOptionsUnavailable(false);
+    } catch {
+      if (merchantSearchRequest.current !== requestId) return;
+
+      setMerchants([]);
+      setMerchantOptionsUnavailable(true);
+    } finally {
+      if (merchantSearchRequest.current === requestId) {
+        setMerchantSearchLoading(false);
+      }
+    }
+  }
 
   const account = useMemo(
     () => accounts.find((candidate) => candidate.id === accountId),
@@ -381,6 +480,36 @@ export default function TransactionImportPage() {
         <span className={step >= 3 ? 'font-semibold text-[var(--foreground)]' : ''}>Concluído</span>
       </div>
 
+      {accountLoadError && (
+        <div className="mb-3 space-y-2">
+          <Alert variant="error" message={accountLoadError} />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void retryAccounts()}
+            isLoading={retryingSource === 'accounts'}
+            loadingText="Recarregando contas…"
+          >
+            Tentar novamente contas
+          </Button>
+        </div>
+      )}
+      {categoryLoadError && (
+        <div className="mb-3 space-y-2">
+          <Alert variant="error" message={categoryLoadError} />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void retryCategories()}
+            isLoading={retryingSource === 'categories'}
+            loadingText="Recarregando categorias…"
+          >
+            Tentar novamente categorias
+          </Button>
+        </div>
+      )}
       {error && <Alert variant="error" message={error} />}
 
       {step === 1 && (
@@ -469,6 +598,16 @@ export default function TransactionImportPage() {
                       ? ` · ${preview.nubankSummary.purchases} compra(s) · ${preview.nubankSummary.payments} pagamento(s) · ${preview.nubankSummary.credits} crédito(s)`
                       : ''}
                   </p>
+                )}
+                {account?.type === 'CREDIT_CARD' && preview.detectedSource !== 'NUBANK_CREDIT_CARD' && (
+                  <div
+                    className="mt-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm leading-relaxed text-[var(--text-muted)]"
+                    role="note"
+                  >
+                    <strong className="text-[var(--foreground)]">Arquivo genérico no cartão:</strong>{' '}
+                    valores negativos são tratados como despesas; valores positivos, como créditos/estornos (receitas que reduzem a despesa do cartão).
+                    Pagamento de fatura não é inferido por descrição ou texto: use o fluxo próprio de pagamento da fatura.
+                  </div>
                 )}
               </div>
 
@@ -584,6 +723,12 @@ export default function TransactionImportPage() {
                     accountId={preview.accountId}
                     categories={categories}
                     merchants={merchants}
+                    merchantOptionsUnavailable={merchantOptionsUnavailable}
+                    merchantRetrying={retryingSource === 'merchants'}
+                    onRetryMerchants={() => void retryMerchants()}
+                    merchantSearch={merchantSearch}
+                    merchantSearchLoading={merchantSearchLoading}
+                    onSearchMerchants={(query) => void searchMerchants(query)}
                     accountCurrency={account?.currency}
                     showValues={showValues}
                     submitting={submitting}
@@ -631,6 +776,12 @@ export default function TransactionImportPage() {
               accountId={preview.accountId}
               categories={categories}
               merchants={merchants}
+              merchantOptionsUnavailable={merchantOptionsUnavailable}
+              merchantRetrying={retryingSource === 'merchants'}
+              onRetryMerchants={() => void retryMerchants()}
+              merchantSearch={merchantSearch}
+              merchantSearchLoading={merchantSearchLoading}
+              onSearchMerchants={(query) => void searchMerchants(query)}
               accountCurrency={account?.currency}
               showValues={showValues}
               submitting={submitting}
@@ -680,6 +831,12 @@ function ImportDetail({
   accountId,
   categories,
   merchants,
+  merchantOptionsUnavailable,
+  merchantRetrying,
+  onRetryMerchants,
+  merchantSearch,
+  merchantSearchLoading,
+  onSearchMerchants,
   accountCurrency,
   showValues,
   submitting,
@@ -690,6 +847,12 @@ function ImportDetail({
   accountId: string;
   categories: CategoryModel[];
   merchants: MerchantDTO[];
+  merchantOptionsUnavailable: boolean;
+  merchantRetrying: boolean;
+  onRetryMerchants: () => void;
+  merchantSearch: string;
+  merchantSearchLoading: boolean;
+  onSearchMerchants: (query: string) => void;
   accountCurrency?: string;
   showValues: boolean;
   submitting: boolean;
@@ -704,6 +867,10 @@ function ImportDetail({
   const selectedCategory = item.categoryId
     ? availableCategories.find((category) => category.id === item.categoryId)
     : undefined;
+  const suggestedMerchantOutsideOptions =
+    Boolean(item.merchantId) &&
+    item.merchantId === item.suggestedMerchantId &&
+    !merchants.some((merchant) => merchant.id === item.merchantId);
   const canCategorize = !item.duplicate && item.errors.length === 0 && !item.ignored;
   const reviewReasons = getReviewReasons(item);
 
@@ -744,14 +911,26 @@ function ImportDetail({
             {item.importRuleConflict
               ? `Conflito: ${(item.matchingRuleNames ?? []).join(', ') || 'múltiplas regras'}`
               : item.matchedRuleName ?? 'Nenhuma sugestão'}
+            {(item.alsoMatchingRuleNames?.length ?? 0) > 0 && (
+              <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                Também corresponderam: {item.alsoMatchingRuleNames?.join(', ')}
+              </span>
+            )}
           </dd>
         </div>
         <div>
           <dt className="text-[var(--text-muted)]">Estabelecimento</dt>
           <dd className="mt-0.5 break-words text-[var(--foreground)]">
-            {item.merchantAliasConflict
-              ? 'Conflito entre aliases — nenhum será aplicado'
-              : item.suggestedMerchantName ?? 'Nenhum alias reconhecido'}
+            {item.merchantAliasConflict ? (
+              <>
+                <span>Conflito entre aliases — nenhum será aplicado</span>
+                <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                  Busque abaixo qualquer estabelecimento ativo para resolver.
+                </span>
+              </>
+            ) : (
+              item.suggestedMerchantName ?? 'Nenhum alias reconhecido'
+            )}
           </dd>
         </div>
       </dl>
@@ -762,14 +941,6 @@ function ImportDetail({
           <ul className="mt-1 list-disc space-y-1 pl-5 text-[var(--text-muted)]">
             {reviewReasons.map((reason) => <li key={reason}>{reason}</li>)}
           </ul>
-        </div>
-      )}
-
-      {item.suggestedDescription && (
-        <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm">
-          <p className="font-medium text-[var(--foreground)]">Descrição sugerida</p>
-          <p className="mt-1 break-words text-[var(--text-muted)]">{item.suggestedDescription}</p>
-          <p className="mt-1 text-xs text-[var(--text-subtle)]">Informativa neste slice; o conteúdo assinado do preview não é alterado.</p>
         </div>
       )}
 
@@ -805,6 +976,39 @@ function ImportDetail({
         {canCategorize && (
           <label className="block text-sm font-medium text-[var(--foreground)]">
             Estabelecimento
+            {merchantOptionsUnavailable && (
+              <span
+                className="mt-2 block rounded-[var(--radius-md)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-2 text-xs font-normal leading-relaxed text-[var(--text-muted)]"
+                role="status"
+              >
+                Lista de estabelecimentos indisponível. Você pode continuar sem estabelecimento; sugestões já reconhecidas no preview podem ser mantidas.
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={onRetryMerchants}
+                  isLoading={merchantRetrying}
+                  loadingText="Recarregando…"
+                >
+                  Tentar carregar estabelecimentos
+                </Button>
+              </span>
+            )}
+            <input
+              type="search"
+              aria-label="Buscar estabelecimento"
+              value={merchantSearch}
+              onChange={(event) => onSearchMerchants(event.target.value)}
+              disabled={submitting || merchantOptionsUnavailable}
+              placeholder="Buscar por nome"
+              className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] disabled:opacity-50"
+            />
+            {merchantSearchLoading && (
+              <span className="mt-1 block text-xs font-normal text-[var(--text-muted)]" role="status">
+                Buscando estabelecimentos…
+              </span>
+            )}
             <select
               aria-label="Estabelecimento"
               value={item.merchantId ?? ''}
@@ -813,15 +1017,20 @@ function ImportDetail({
                 merchantReviewed: true,
                 learnMerchantAlias: false,
               })}
-              disabled={submitting}
+              disabled={submitting || merchantOptionsUnavailable}
               className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] disabled:opacity-50"
             >
               <option value="">Sem estabelecimento</option>
+              {suggestedMerchantOutsideOptions && item.merchantId && (
+                <option value={item.merchantId}>
+                  {item.suggestedMerchantName ?? 'Estabelecimento sugerido'}
+                </option>
+              )}
               {merchants.map((merchant) => (
                 <option key={merchant.id} value={merchant.id}>{merchant.name}</option>
               ))}
             </select>
-            {!item.merchantReviewed && (
+            {(!item.merchantReviewed || merchantOptionsUnavailable) && (
               <button
                 type="button"
                 onClick={() =>
@@ -937,6 +1146,12 @@ function MobileImportDetail({
   accountId,
   categories,
   merchants,
+  merchantOptionsUnavailable,
+  merchantRetrying,
+  onRetryMerchants,
+  merchantSearch,
+  merchantSearchLoading,
+  onSearchMerchants,
   accountCurrency,
   showValues,
   submitting,
@@ -947,6 +1162,12 @@ function MobileImportDetail({
   accountId: string;
   categories: CategoryModel[];
   merchants: MerchantDTO[];
+  merchantOptionsUnavailable: boolean;
+  merchantRetrying: boolean;
+  onRetryMerchants: () => void;
+  merchantSearch: string;
+  merchantSearchLoading: boolean;
+  onSearchMerchants: (query: string) => void;
   accountCurrency?: string;
   showValues: boolean;
   submitting: boolean;
@@ -969,6 +1190,12 @@ function MobileImportDetail({
           accountId={accountId}
           categories={categories}
           merchants={merchants}
+          merchantOptionsUnavailable={merchantOptionsUnavailable}
+          merchantRetrying={merchantRetrying}
+          onRetryMerchants={onRetryMerchants}
+          merchantSearch={merchantSearch}
+          merchantSearchLoading={merchantSearchLoading}
+          onSearchMerchants={onSearchMerchants}
           accountCurrency={accountCurrency}
           showValues={showValues}
           submitting={submitting}

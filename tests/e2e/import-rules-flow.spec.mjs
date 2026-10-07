@@ -20,7 +20,6 @@ async function seedImportRuleScenario(
     overrideCategoryName,
     ruleName,
     description,
-    normalizedDescription,
   },
 ) {
   return page.evaluate(
@@ -30,7 +29,6 @@ async function seedImportRuleScenario(
       overrideCategoryName: overrideCategory,
       ruleName: rule,
       description: pattern,
-      normalizedDescription: normalized,
     }) => {
       async function create(url, data) {
         const response = await fetch(url, {
@@ -88,7 +86,6 @@ async function seedImportRuleScenario(
         minAmountCents: null,
         maxAmountCents: null,
         categoryId: createdSuggestedCategory.id,
-        normalizedDescription: normalized,
       });
 
       return {
@@ -104,7 +101,6 @@ async function seedImportRuleScenario(
       overrideCategoryName,
       ruleName,
       description,
-      normalizedDescription,
     },
   );
 }
@@ -119,7 +115,6 @@ test('preview aplica sugestão, override manual prevalece e confirmação persis
   const overrideCategoryName = `Categoria override ${suffix}`;
   const ruleName = `Regra mercado E2E ${suffix}`;
   const description = `Mercado importado E2E ${suffix}`;
-  const normalizedDescription = `Mercado normalizado E2E ${suffix}`;
   const fileName = `import-rules-${suffix}.csv`;
 
   const signupResponse = await request.post('/api/auth/signup', {
@@ -139,7 +134,6 @@ test('preview aplica sugestão, override manual prevalece e confirmação persis
     overrideCategoryName,
     ruleName,
     description,
-    normalizedDescription,
   });
 
   expect(relations.accountId).toBeTruthy();
@@ -164,7 +158,6 @@ test('preview aplica sugestão, override manual prevalece e confirmação persis
   const detail = page.locator('aside[aria-labelledby^="import-detail-"]').filter({ hasText: description });
   await expect(detail).toBeVisible();
   await expect(detail.getByText(ruleName, { exact: true })).toBeVisible();
-  await expect(detail.getByText(normalizedDescription, { exact: true })).toBeVisible();
 
   const categorySelect = detail.getByLabel('Categoria', { exact: true });
   await expect(categorySelect).toHaveValue(relations.suggestedCategoryId);

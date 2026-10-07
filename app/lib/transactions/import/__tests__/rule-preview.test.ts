@@ -30,7 +30,6 @@ const rules: ImportRule[] = [
     minAmountCents: null,
     maxAmountCents: null,
     categoryId: "category-global",
-    normalizedDescription: "Uber",
   },
   {
     id: "rule-account",
@@ -44,7 +43,6 @@ const rules: ImportRule[] = [
     minAmountCents: 1_000,
     maxAmountCents: 10_000,
     categoryId: "category-account",
-    normalizedDescription: "Uber transporte",
   },
 ];
 
@@ -61,12 +59,11 @@ describe("applyImportRulesToPreview", () => {
       matchedRuleId: "rule-account",
       matchedRuleName: "Transporte da conta",
       suggestedCategoryId: "category-account",
-      suggestedDescription: "Uber transporte",
       importRuleConflict: false,
     });
   });
 
-  it("exposes conflicting matching rules instead of picking a category silently", () => {
+  it("keeps lower-precedence matches as provenance without creating a false conflict", () => {
     const [item] = applyImportRulesToPreview({
       accountId: "account-1",
       items: [baseItem],
@@ -75,10 +72,10 @@ describe("applyImportRulesToPreview", () => {
 
     expect(item).toMatchObject({
       matchedRuleId: "rule-account",
-      suggestedCategoryId: null,
-      suggestedDescription: null,
-      importRuleConflict: true,
+      suggestedCategoryId: "category-account",
+      importRuleConflict: false,
       matchingRuleNames: ["Transporte da conta", "Transporte global"],
+      alsoMatchingRuleNames: ["Transporte global"],
     });
   });
 
@@ -95,7 +92,6 @@ describe("applyImportRulesToPreview", () => {
     for (const item of items) {
       expect(item.matchedRuleId).toBeNull();
       expect(item.suggestedCategoryId).toBeNull();
-      expect(item.suggestedDescription).toBeNull();
     }
   });
 
