@@ -99,35 +99,36 @@ describe("streaming user export", () => {
     const body = JSON.parse(chunks.join(""));
 
     expect(metadata.transactionCount).toBe(1_200);
-    expect(metadata.tagCount).toBe(1);
+    expect(metadata.domainCount).toBeGreaterThan(30);
     expect(chunks.length).toBeGreaterThan(3);
-    expect(body.formatVersion).toBe(4);
-    expect(body.tags).toEqual([
+    expect(body.formatVersion).toBe(5);
+    expect(body.kind).toBe("logical-portability-snapshot");
+    expect(body.data.tags).toEqual([
       expect.objectContaining({
         id: tag.id,
         name: "historica",
-        isActive: false,
+        is_active: false,
       }),
     ]);
-    expect(body.debts).toEqual([]);
-    expect(body.transactions).toHaveLength(1_200);
+    expect(body.data.debts).toEqual([]);
+    expect(body.data.transactions).toHaveLength(1_200);
     expect(
-      body.transactions.find(
+      body.data.transactions.find(
         (transaction: { description: string }) =>
           transaction.description === "Export row 0",
       ),
     ).toMatchObject({
       description: "Export row 0",
-      amountCents: 1_000,
+      amount: 1_000,
     });
     expect(
-      body.transactions.find(
+      body.data.transactions.find(
         (transaction: { description: string }) =>
           transaction.description === "Export row 1199",
       ),
     ).toMatchObject({
       description: "Export row 1199",
-      amountCents: 2_199,
+      amount: 2_199,
     });
   }, 30_000);
 
@@ -168,10 +169,10 @@ describe("streaming user export", () => {
     chunks.push(decoder.decode());
 
     const body = JSON.parse(chunks.join(""));
-    const exportedTarget = body.transactions.find(
+    const exportedTarget = body.data.transactions.find(
       (transaction: { id: string }) => transaction.id === target.id,
     );
 
-    expect(exportedTarget.amountCents).toBe(1_599);
+    expect(exportedTarget.amount).toBe(1_599);
   }, 30_000);
 });
