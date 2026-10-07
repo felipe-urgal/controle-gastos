@@ -12,6 +12,7 @@ vi.mock("@/app/lib/auth", () => ({
 import {
   archivePayrollDocument,
   confirmPayrollImport,
+  persistPayrollImportAtomically,
 } from "@/app/lib/payroll/payroll-import";
 import type { ParsedPayrollDocument } from "@/app/lib/payroll/payroll-parser";
 import { payrollImportFingerprint } from "@/app/lib/payroll/payroll-parser";
@@ -110,6 +111,94 @@ describe("payroll import integration", () => {
     }));
     expect([200, 201]).toContain(second.status);
     expect(await prisma.payrollDocument.count({ where: { userId: owner.id } })).toBe(1);
+  });
+
+  it("rolls back the document when derived reconciliation fails", async () => {
+    const owner = await user("Payroll Atomic Owner");
+    const parsed = document();
+    const previewDocument = {
+      ...parsed,
+      fingerprint: payrollImportFingerprint(owner.id, parsed),
+      duplicate: false,
+    };
+
+    await expect(
+      persistPayrollImportAtomically({
+        userId: owner.id,
+        document: previewDocument,
+        supersedesId: null,
+        reconcile: async () => {
+          throw new Error("FORCED_RECONCILIATION_FAILURE");
+        },
+      }),
+    ).rejects.toThrow("FORCED_RECONCILIATION_FAILURE");
+
+    expect(
+      await prisma.payrollDocument.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+    expect(
+      await prisma.payrollAdvanceLink.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+  });
+
+  it("rolls back supersede state when derived reconciliation fails", async () => {
+    const owner = await user("Payroll Atomic Supersede Owner");
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const original = document();
+    const originalPreview = {
+      ...original,
+      fingerprint: payrollImportFingerprint(owner.id, original),
+      duplicate: false,
+    };
+    const originalToken = signPayrollPreview({
+      userId: owner.id,
+      document: originalPreview,
+    });
+    const first = await confirmPayrollImport(request({
+      previewToken: originalToken,
+      selected: true,
+      document: originalPreview,
+    }));
+    expect(first.status).toBe(201);
+
+    const originalStored = await prisma.payrollDocument.findFirstOrThrow({
+      where: {
+        userId: owner.id,
+        importFingerprint: originalPreview.fingerprint,
+      },
+    });
+
+    const retified = {
+      ...original,
+      netPaidCents: original.netPaidCents! + 100,
+    };
+    const retifiedDocument = {
+      ...retified,
+      fingerprint: payrollImportFingerprint(owner.id, retified),
+      duplicate: false,
+    };
+
+    await expect(
+      persistPayrollImportAtomically({
+        userId: owner.id,
+        document: retifiedDocument,
+        supersedesId: originalStored.id,
+        reconcile: async () => {
+          throw new Error("FORCED_RECONCILIATION_FAILURE");
+        },
+      }),
+    ).rejects.toThrow("FORCED_RECONCILIATION_FAILURE");
+
+    const versions = await prisma.payrollDocument.findMany({
+      where: { userId: owner.id },
+    });
+    expect(versions).toHaveLength(1);
+    expect(versions[0]).toMatchObject({
+      id: originalStored.id,
+      lifecycleStatus: "ACTIVE",
+      supersededAt: null,
+    });
   });
 
   it("imports a retified payslip when INSS or rubric content changes", async () => {
