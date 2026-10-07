@@ -86,6 +86,7 @@ async function assertRuleGuards(
     select: {
       id: true,
       name: true,
+      priority: true,
       accountId: true,
       transactionType: true,
       descriptionOperator: true,
