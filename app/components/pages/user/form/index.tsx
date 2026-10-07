@@ -268,33 +268,31 @@ export default function UserForm({ user }: UserFormProps) {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          {needsCurrentPassword && (
-            <Input
-              label="Senha atual"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => {
-                setCurrentPassword(e.target.value);
-                if (fieldErrors.currentPassword) {
-                  setFieldErrors((previous) => ({ ...previous, currentPassword: '' }));
-                }
-              }}
-              onInvalid={(e) => {
-                e.preventDefault();
-                setFieldErrors((previous) => ({
-                  ...previous,
-                  currentPassword: 'Informe a senha atual para alterar e-mail ou senha',
-                }));
-              }}
-              required
-              error={fieldErrors.currentPassword}
-              autoComplete="current-password"
-              enterKeyHint="next"
-              autoCapitalize="none"
-              spellCheck={false}
-              disabled={isSubmitting}
-            />
-          )}
+          <Input
+            label="Senha atual"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => {
+              setCurrentPassword(e.target.value);
+              if (fieldErrors.currentPassword) {
+                setFieldErrors((previous) => ({ ...previous, currentPassword: '' }));
+              }
+            }}
+            onInvalid={(e) => {
+              e.preventDefault();
+              setFieldErrors((previous) => ({
+                ...previous,
+                currentPassword: 'Informe a senha atual para alterar e-mail ou senha',
+              }));
+            }}
+            required={needsCurrentPassword}
+            error={fieldErrors.currentPassword}
+            autoComplete="current-password"
+            enterKeyHint="next"
+            autoCapitalize="none"
+            spellCheck={false}
+            disabled={isSubmitting}
+          />
 
           <Input
             label="Nova senha"
