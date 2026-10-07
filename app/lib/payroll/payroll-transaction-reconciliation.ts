@@ -22,7 +22,7 @@ const filterSchema = z.object({
   status: z
     .enum(["MATCHED", "SUGGESTED", "UNMATCHED", "REVIEW_REQUIRED"])
     .optional(),
-  employerCnpj: z.string().max(18).optional(),
+  employer: z.string().trim().max(160).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(12),
 });
@@ -176,7 +176,7 @@ type PayrollTransactionReconciliationDb = Pick<
 
 export async function getPayrollTransactionReconciliationForUser(
   userId: string,
-  filters: { year?: number; employerCnpj?: string } = {},
+  filters: { year?: number; employer?: string } = {},
   db: PayrollTransactionReconciliationDb = prisma,
 ) {
   const documents = await db.payrollDocument.findMany({
@@ -184,8 +184,18 @@ export async function getPayrollTransactionReconciliationForUser(
       userId,
       lifecycleStatus: "ACTIVE",
       ...(filters.year ? { year: filters.year } : {}),
-      ...(filters.employerCnpj
-        ? { employerCnpj: filters.employerCnpj }
+      ...(filters.employer
+        ? {
+            OR: [
+              { employerCnpj: { contains: filters.employer } },
+              {
+                employerName: {
+                  contains: filters.employer,
+                  mode: "insensitive",
+                },
+              },
+            ],
+          }
         : {}),
     },
     select: {
@@ -418,7 +428,7 @@ export async function getPayrollTransactionReconciliation(request: Request) {
     const selectedYear = query.year ?? logicalDateParts().year;
     const items = await getPayrollTransactionReconciliationForUser(userId, {
       year: selectedYear,
-      employerCnpj: query.employerCnpj,
+      employer: query.employer,
     });
     const filtered = query.status
       ? items.filter((item) => item.status === query.status)
