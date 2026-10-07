@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getAuthenticatedUserId: vi.fn(),
-  consumeImportRateLimit: vi.fn(),
+  consumeTransactionImportPreviewRateLimit: vi.fn(),
+  consumeTransactionImportConfirmRateLimit: vi.fn(),
   consumeTransactionMutationRateLimit: vi.fn(),
   account: {
     findFirst: vi.fn(),
@@ -18,7 +19,10 @@ vi.mock("@/app/lib/auth", () => ({
 }));
 
 vi.mock("@/app/lib/security/application-rate-limit", () => ({
-  consumeImportRateLimit: mocks.consumeImportRateLimit,
+  consumeTransactionImportPreviewRateLimit:
+    mocks.consumeTransactionImportPreviewRateLimit,
+  consumeTransactionImportConfirmRateLimit:
+    mocks.consumeTransactionImportConfirmRateLimit,
   consumeTransactionMutationRateLimit:
     mocks.consumeTransactionMutationRateLimit,
 }));
@@ -41,7 +45,11 @@ describe("transaction rate limit guards", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getAuthenticatedUserId.mockResolvedValue("user-1");
-    mocks.consumeImportRateLimit.mockResolvedValue({
+    mocks.consumeTransactionImportPreviewRateLimit.mockResolvedValue({
+      limited: false,
+      retryAfterSeconds: 0,
+    });
+    mocks.consumeTransactionImportConfirmRateLimit.mockResolvedValue({
       limited: false,
       retryAfterSeconds: 0,
     });
@@ -83,7 +91,7 @@ describe("transaction rate limit guards", () => {
   });
 
   it("blocks import preview before reading the file or querying financial data", async () => {
-    mocks.consumeImportRateLimit.mockResolvedValue({
+    mocks.consumeTransactionImportPreviewRateLimit.mockResolvedValue({
       limited: true,
       retryAfterSeconds: 900,
     });
@@ -107,13 +115,13 @@ describe("transaction rate limit guards", () => {
 
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("900");
-    expect(body.error.code).toBe("IMPORT_RATE_LIMITED");
+    expect(body.error.code).toBe("IMPORT_PREVIEW_RATE_LIMITED");
     expect(mocks.account.findFirst).not.toHaveBeenCalled();
     expect(mocks.transaction.findMany).not.toHaveBeenCalled();
   });
 
   it("blocks import confirmation before parsing or starting its write transaction", async () => {
-    mocks.consumeImportRateLimit.mockResolvedValue({
+    mocks.consumeTransactionImportConfirmRateLimit.mockResolvedValue({
       limited: true,
       retryAfterSeconds: 900,
     });
@@ -129,7 +137,7 @@ describe("transaction rate limit guards", () => {
 
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("900");
-    expect(body.error.code).toBe("IMPORT_RATE_LIMITED");
+    expect(body.error.code).toBe("IMPORT_CONFIRM_RATE_LIMITED");
     expect(mocks.transactionDb).not.toHaveBeenCalled();
   });
 });
