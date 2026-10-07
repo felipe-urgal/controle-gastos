@@ -108,6 +108,7 @@ export async function previewPayrollImport(request: Request) {
           requiresOcr: true,
           detectedType: null,
           previewToken: null,
+          replacementCandidates: [],
           document: null,
           warnings: [
             "PDF sem texto extraível. OCR/revisão manual é necessário; nenhum dado foi inferido ou persistido.",
