@@ -124,13 +124,11 @@ async function assertRuleGuards(
 const importRuleDependencies = {
   account: {
     select: {
-      name: true,
       isActive: true,
     },
   },
   category: {
     select: {
-      name: true,
       isActive: true,
       type: true,
     },
