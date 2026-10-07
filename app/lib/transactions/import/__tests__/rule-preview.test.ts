@@ -30,7 +30,6 @@ const rules: ImportRule[] = [
     minAmountCents: null,
     maxAmountCents: null,
     categoryId: "category-global",
-    normalizedDescription: "Uber",
   },
   {
     id: "rule-account",
@@ -44,7 +43,6 @@ const rules: ImportRule[] = [
     minAmountCents: 1_000,
     maxAmountCents: 10_000,
     categoryId: "category-account",
-    normalizedDescription: "Uber transporte",
   },
 ];
 

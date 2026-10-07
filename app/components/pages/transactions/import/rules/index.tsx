@@ -352,7 +352,6 @@ export default function ImportRuleManagementPage() {
                           </p>
                           <p className="mt-1 text-sm text-[var(--text-muted)]">
                             Categoria: {category?.name ?? 'Categoria indisponível'}
-                            {rule.normalizedDescription ? ` · descrição sugerida: ${rule.normalizedDescription}` : ''}
                           </p>
                         </div>
 

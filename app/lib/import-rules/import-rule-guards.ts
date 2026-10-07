@@ -199,7 +199,6 @@ function toEvaluatorRule(
     minAmountCents: rule.minAmountCents,
     maxAmountCents: rule.maxAmountCents,
     categoryId: rule.categoryId,
-    normalizedDescription: null,
   };
 }
 

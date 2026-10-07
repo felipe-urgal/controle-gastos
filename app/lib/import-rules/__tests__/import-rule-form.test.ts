@@ -21,7 +21,6 @@ const rule: ImportRuleModel = {
   minAmountCents: 1000,
   maxAmountCents: 50_000,
   categoryId: "22222222-2222-4222-8222-222222222222",
-  normalizedDescription: "Supermercado",
   createdAt: "2026-09-07T12:00:00.000Z",
   updatedAt: "2026-09-07T12:00:00.000Z",
 };
@@ -153,7 +152,6 @@ describe("import-rule-form", () => {
       minAmountCents: 1000,
       maxAmountCents: 50_000,
       categoryId: "22222222-2222-4222-8222-222222222222",
-      normalizedDescription: "Supermercado",
     });
   });
 });

@@ -16,7 +16,6 @@ export interface ImportRuleModel {
   minAmountCents: number | null;
   maxAmountCents: number | null;
   categoryId: string;
-  normalizedDescription: string | null;
   createdAt: string;
   updatedAt: string;
 }

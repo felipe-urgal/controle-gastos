@@ -18,7 +18,6 @@ const baseRule: ImportRule = {
   minAmountCents: null,
   maxAmountCents: null,
   categoryId: "category-food",
-  normalizedDescription: null,
 };
 
 const candidate = {
@@ -267,22 +266,6 @@ describe("import rules", () => {
       suggestedCategoryId: "food",
       conflict: false,
     });
-  });
-
-  it("ignores legacy normalizedDescription metadata when evaluating outcomes", () => {
-    const result = evaluateImportRules(
-      [
-        { ...baseRule, id: "rule-a", normalizedDescription: "Supermercado" },
-        { ...baseRule, id: "rule-b", normalizedDescription: "Outro nome" },
-      ],
-      candidate
-    );
-
-    expect(result).toMatchObject({
-      suggestedCategoryId: "category-food",
-      conflict: false,
-    });
-    expect(candidate.description).toBe("  Mercado   Central  ");
   });
 
   it("returns null when no rule matches", () => {

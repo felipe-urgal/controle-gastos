@@ -167,7 +167,6 @@ export async function getGlobalSearchForUser(
         OR: [
           { name: contains },
           { descriptionPattern: contains },
-          { normalizedDescription: contains },
         ],
       },
       select: {

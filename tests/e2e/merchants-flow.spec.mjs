@@ -250,7 +250,6 @@ test('importação: conflito é resolvido, aprendido e próxima descrição reco
           minAmountCents: null,
           maxAmountCents: null,
           categoryId,
-          normalizedDescription: null,
         }),
       });
       const body = await response.json();

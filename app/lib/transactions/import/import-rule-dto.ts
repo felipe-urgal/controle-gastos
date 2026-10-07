@@ -13,7 +13,6 @@ export function toImportRuleDTO(rule: TransactionImportRule) {
     minAmountCents: rule.minAmountCents,
     maxAmountCents: rule.maxAmountCents,
     categoryId: rule.categoryId,
-    normalizedDescription: rule.normalizedDescription,
     createdAt: rule.createdAt.toISOString(),
     updatedAt: rule.updatedAt.toISOString(),
   };

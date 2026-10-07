@@ -90,7 +90,6 @@ describe("import rule CRUD", () => {
       minAmountCents: 100,
       maxAmountCents: 50_000,
       categoryId: category.id,
-      normalizedDescription: "Supermercado",
     };
 
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -285,7 +284,6 @@ describe("import rule CRUD", () => {
       minAmountCents: null,
       maxAmountCents: null,
       categoryId: category.id,
-      normalizedDescription: null,
     };
 
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -355,7 +353,6 @@ describe("import rule CRUD", () => {
       descriptionPattern: "uber concorrente",
       minAmountCents: null,
       maxAmountCents: null,
-      normalizedDescription: null,
     };
 
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -425,7 +422,6 @@ describe("import rule CRUD", () => {
         minAmountCents: null,
         maxAmountCents: null,
         categoryId: category.id,
-        normalizedDescription: null,
         userId: owner.id,
       },
     });
@@ -441,7 +437,6 @@ describe("import rule CRUD", () => {
       minAmountCents: null,
       maxAmountCents: null,
       categoryId: category.id,
-      normalizedDescription: null,
     };
 
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -520,7 +515,6 @@ describe("import rule CRUD", () => {
         minAmountCents: 10_000,
         maxAmountCents: 20_000,
         categoryId: category.id,
-        normalizedDescription: null,
       };
 
       authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -599,7 +593,6 @@ describe("import rule CRUD", () => {
           minAmountCents: null,
           maxAmountCents: null,
           categoryId: category.id,
-          normalizedDescription: null,
         }),
       }),
     );
@@ -654,7 +647,6 @@ describe("import rule CRUD", () => {
           minAmountCents: null,
           maxAmountCents: 2_147_483_648,
           categoryId: category.id,
-          normalizedDescription: null,
         }),
       }),
     );

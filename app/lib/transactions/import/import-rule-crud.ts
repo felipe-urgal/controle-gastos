@@ -93,7 +93,6 @@ async function assertRuleGuards(
       minAmountCents: true,
       maxAmountCents: true,
       categoryId: true,
-      normalizedDescription: true,
     },
   });
 
@@ -124,7 +123,7 @@ const baseImportRuleCrud = baseCrudHandler({
   createSchema: importRuleInputSchema,
   updateSchema: importRuleInputSchema,
   filterableFields: ["isActive", "accountId", "transactionType"],
-  searchableFields: ["name", "descriptionPattern", "normalizedDescription"],
+  searchableFields: ["name", "descriptionPattern"],
   orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
   limit: true,
   mapper: toImportRuleDTO,

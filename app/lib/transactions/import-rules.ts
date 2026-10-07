@@ -17,7 +17,6 @@ export type ImportRule = {
   minAmountCents: number | null;
   maxAmountCents: number | null;
   categoryId: string;
-  normalizedDescription: string | null;
 };
 
 export type ImportRuleCandidate = {
