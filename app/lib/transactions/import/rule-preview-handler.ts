@@ -38,7 +38,7 @@ export async function previewTransactionImportWithRules(request: Request) {
     return withRequestId(response, requestId);
   }
 
-  const baseResponse = await previewTransactionImport(request);
+  const baseResponse = await previewTransactionImport(request, { requestId });
   if (!baseResponse.ok) {
     return finish(baseResponse, {
       result: baseResponse.status === 429 ? "rate_limited" : "rejected",
@@ -140,6 +140,16 @@ export async function previewTransactionImportWithRules(request: Request) {
     });
     const evaluationMs = performance.now() - evaluationStartedAt;
     const summary = body.data?.summary;
+    const source =
+      typeof previewItems[0]?.source === "string"
+        ? previewItems[0].source
+        : "UNKNOWN";
+    const ruleConflictCount = previewItems.filter(
+      (item) => item.importRuleConflict === true,
+    ).length;
+    const merchantConflictCount = previewItems.filter(
+      (item) => item.merchantAliasConflict === true,
+    ).length;
 
     return finish(
       success(
@@ -152,6 +162,11 @@ export async function previewTransactionImportWithRules(request: Request) {
       ),
       {
         result: "success",
+        source,
+        parserContract:
+          body.data?.detectedSource === "NUBANK_CREDIT_CARD"
+            ? "NUBANK_CREDIT_CARD"
+            : "GENERIC",
         itemCount: previewItems.length,
         ruleCount: eligibleRules.length,
         merchantAliasCount: Array.from(
@@ -165,6 +180,8 @@ export async function previewTransactionImportWithRules(request: Request) {
           typeof summary?.duplicates === "number"
             ? summary.duplicates
             : undefined,
+        ruleConflictCount,
+        merchantConflictCount,
         dependencyLoadMs: Math.round(dependencyLoadMs),
         evaluationMs: Math.round(evaluationMs),
         evaluationBudgetMs: IMPORT_PREVIEW_EVALUATION_BUDGET_MS,
