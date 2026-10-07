@@ -98,17 +98,47 @@ function amountRangeLabel(
   return `até ${formatAmount(max!)}`;
 }
 
+const RULES_PAGE_SIZE = 20;
+
+function effectiveStateLabel(rule: ImportRuleModel) {
+  if (rule.effectiveState === 'OPERATIONAL') return 'Operacional';
+  if (rule.effectiveState === 'PAUSED') return 'Pausada';
+  if (rule.effectiveState === 'BROKEN_CATEGORY') return 'Categoria indisponível';
+  return 'Conta indisponível';
+}
+
+function effectiveStateClass(rule: ImportRuleModel) {
+  if (rule.effectiveState === 'OPERATIONAL') {
+    return 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]';
+  }
+  if (rule.effectiveState === 'PAUSED') {
+    return 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-muted)]';
+  }
+  return 'border-[var(--warning)]/40 bg-[var(--warning-subtle)] text-[var(--warning)]';
+}
+
 export default function ImportRuleManagementPage() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [rules, setRules] = useState<ImportRuleModel[]>([]);
+  const [rulesTotal, setRulesTotal] = useState(0);
+  const [rulesTotalPages, setRulesTotalPages] = useState(1);
+  const [nextPriority, setNextPriority] = useState(0);
+  const [rulesPage, setRulesPage] = useState(1);
+  const [rulesSearchInput, setRulesSearchInput] = useState('');
+  const [rulesSearch, setRulesSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'true' | 'false'>('all');
+  const [accountFilter, setAccountFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'' | ImportRuleTransactionType>('');
+  const [rulesRevision, setRulesRevision] = useState(0);
   const [form, setForm] = useState<ImportRuleFormState>(() => emptyImportRuleForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingRelations, setLoadingRelations] = useState(true);
+  const [loadingRules, setLoadingRules] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [dependencyWarning, setDependencyWarning] = useState('');
@@ -118,57 +148,99 @@ export default function ImportRuleManagementPage() {
   const [retryingSource, setRetryingSource] = useState<'accounts' | 'categories' | 'rules' | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
+  const ruleQuery = useMemo(
+    () => ({
+      page: rulesPage,
+      pageSize: RULES_PAGE_SIZE,
+      ...(rulesSearch ? { search: rulesSearch } : {}),
+      ...(activeFilter === 'all' ? {} : { isActive: activeFilter }),
+      ...(accountFilter ? { accountId: accountFilter } : {}),
+      ...(typeFilter ? { transactionType: typeFilter } : {}),
+    }),
+    [accountFilter, activeFilter, rulesPage, rulesSearch, typeFilter],
+  );
+
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError('');
+    const timeout = window.setTimeout(() => {
+      setRulesPage(1);
+      setRulesSearch(rulesSearchInput.trim());
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [rulesSearchInput]);
+
+  useEffect(() => {
+    async function loadRelations() {
+      setLoadingRelations(true);
       setDependencyWarning('');
 
-      const [accountResult, categoryResult, ruleResult] = await Promise.allSettled([
+      const [accountResult, categoryResult] = await Promise.allSettled([
         accountService.getAll(),
         categoryService.getAll(),
-        importRuleService.getAll(),
       ]);
 
       const nextAccountUnavailable = accountResult.status !== 'fulfilled';
       const nextCategoryUnavailable = categoryResult.status !== 'fulfilled';
-
       setAccountUnavailable(nextAccountUnavailable);
       setCategoryUnavailable(nextCategoryUnavailable);
 
-      if (accountResult.status === 'fulfilled') {
-        setAccounts((accountResult.value.data?.items ?? []).filter((account) => account.isActive));
-      } else {
-        setAccounts([]);
-      }
-
-      if (categoryResult.status === 'fulfilled') {
-        setCategories((categoryResult.value.data?.items ?? []).filter((category) => category.isActive));
-      } else {
-        setCategories([]);
-      }
-
-      if (ruleResult.status === 'fulfilled') {
-        setRules([...(ruleResult.value.data?.items ?? [])].sort(ruleOrder));
-        setRulesUnavailable(false);
-      } else {
-        setRules([]);
-        setRulesUnavailable(true);
-        setError(
-          ruleResult.reason instanceof Error
-            ? ruleResult.reason.message
-            : 'Não foi possível carregar as regras de importação.',
-        );
-      }
-
+      setAccounts(
+        accountResult.status === 'fulfilled'
+          ? (accountResult.value.data?.items ?? []).filter((account) => account.isActive)
+          : [],
+      );
+      setCategories(
+        categoryResult.status === 'fulfilled'
+          ? (categoryResult.value.data?.items ?? []).filter((category) => category.isActive)
+          : [],
+      );
       setDependencyWarning(
         ruleDependencyWarning(nextAccountUnavailable, nextCategoryUnavailable),
       );
-      setLoading(false);
+      setLoadingRelations(false);
     }
 
-    void load();
+    void loadRelations();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRules() {
+      setLoadingRules(true);
+      try {
+        const response = await importRuleService.getAll(ruleQuery);
+        if (cancelled) return;
+        const data = response.data;
+        const totalPages = Math.max(1, data.totalPages ?? Math.ceil(data.total / RULES_PAGE_SIZE));
+        if (rulesPage > totalPages) {
+          setRulesPage(totalPages);
+          return;
+        }
+        setRules([...(data.items ?? [])].sort(ruleOrder));
+        setRulesTotal(data.total ?? 0);
+        setRulesTotalPages(totalPages);
+        setNextPriority(data.summary?.nextPriority ?? 0);
+        setRulesUnavailable(false);
+        setError('');
+      } catch (cause) {
+        if (cancelled) return;
+        setRules([]);
+        setRulesUnavailable(true);
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'Não foi possível carregar as regras de importação.',
+        );
+      } finally {
+        if (!cancelled) setLoadingRules(false);
+      }
+    }
+
+    void loadRules();
+    return () => {
+      cancelled = true;
+    };
+  }, [ruleQuery, rulesPage, rulesRevision]);
 
   async function retryAccounts() {
     setRetryingSource('accounts');
@@ -202,21 +274,8 @@ export default function ImportRuleManagementPage() {
 
   async function retryRules() {
     setRetryingSource('rules');
-    try {
-      const response = await importRuleService.getAll();
-      setRules([...(response.data?.items ?? [])].sort(ruleOrder));
-      setRulesUnavailable(false);
-      setError('');
-    } catch (cause) {
-      setRulesUnavailable(true);
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : 'Não foi possível carregar as regras de importação.',
-      );
-    } finally {
-      setRetryingSource(null);
-    }
+    setRulesRevision((current) => current + 1);
+    setRetryingSource(null);
   }
 
   const accountById = useMemo(
@@ -234,10 +293,6 @@ export default function ImportRuleManagementPage() {
   const selectedRuleAccount = form.accountId
     ? accountById.get(form.accountId) ?? null
     : null;
-  const nextPriority = useMemo(() => {
-    if (rules.length === 0) return 0;
-    return Math.max(...rules.map((rule) => rule.priority)) + 10;
-  }, [rules]);
   const ruleImpact = useMemo(() => {
     if (!formOpen) return [];
 
