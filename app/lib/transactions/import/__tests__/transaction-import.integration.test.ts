@@ -193,6 +193,41 @@ describe("transaction import integration", () => {
     ).toBe(0);
   });
 
+  it("does not treat a similar manual transaction as an imported duplicate", async () => {
+    const { owner, account, expenseCategory } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    await prisma.transaction.create({
+      data: {
+        amount: 1_000,
+        year: 2026,
+        month: 8,
+        day: 31,
+        type: "EXPENSE",
+        kind: "NORMAL",
+        description: "Compra manual parecida",
+        status: "COMPLETED",
+        accountId: account.id,
+        categoryId: expenseCategory.id,
+        userId: owner.id,
+      },
+    });
+
+    const preview = await previewTransactionImport(
+      previewRequest(
+        account.id,
+        "data,descricao,valor\n2026-08-31,Compra manual parecida,-10.00",
+      ),
+    );
+    const body = await preview.json();
+
+    expect(preview.status).toBe(200);
+    expect(body.data.items[0]).toMatchObject({
+      description: "Compra manual parecida",
+      duplicate: false,
+    });
+  });
+
   it("keeps merchant optional during confirmation", async () => {
     const { owner, account, expenseCategory } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -341,6 +376,10 @@ describe("transaction import integration", () => {
 
     expect(preview.status).toBe(200);
     expect(body.data.summary).toEqual({ total: 1, valid: 1, invalid: 0, duplicates: 0 });
+    expect(body.data.xlsxWorksheet).toEqual({
+      name: "Principal",
+      ignoredWorksheetNames: [],
+    });
     expect(body.data.items[0]).toMatchObject({
       source: "XLSX",
       date: "2026-08-31",
