@@ -86,13 +86,11 @@ test('exclusão de conta com MFA exige segundo fator e aceita recovery code', as
     .getByRole('button', { name: 'Confirmar e ativar' })
     .click();
 
-  const recoveryPanel = mfaSection
-    .getByText('Códigos de recuperação', { exact: true })
-    .locator('..');
-  const recoveryCodes = await recoveryPanel.locator('code').allTextContents();
+  await expect(mfaSection.locator('code')).toHaveCount(10);
+  const recoveryCodes = await mfaSection.locator('code').allTextContents();
   expect(recoveryCodes).toHaveLength(10);
 
-  await recoveryPanel.getByRole('button', { name: 'Já guardei' }).click();
+  await mfaSection.getByRole('button', { name: 'Já guardei' }).click();
 
   await openDeleteDialog(page);
   const dialog = page.getByRole('dialog', { name: 'Excluir sua conta' });
