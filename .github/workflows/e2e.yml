@@ -22,7 +22,7 @@ on:
       - "tests/e2e/payroll-flow.spec.mjs"
       - "tests/e2e/user-password-reauth.spec.mjs"
       - "tests/e2e/user-email-change.spec.mjs"
-      - "tests/e2e/user-profile-state.spec.mjs"
+      - "tests/e2e/user-profile-state.spec.mjs"\n      - "tests/e2e/user-delete-account.spec.mjs"
       - "tests/e2e/mfa-flow.spec.mjs"
       - "tests/e2e/support/**"
       - "app/components/pages/account/**"
