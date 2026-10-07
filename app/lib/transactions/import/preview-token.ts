@@ -6,7 +6,6 @@ import type { PreviewImportItem } from "@/app/lib/transactions/import/parser";
 const PREVIEW_ISSUER = "controle-gastos-import-preview";
 const PREVIEW_AUDIENCE = "controle-gastos-import-confirm";
 export const IMPORT_PREVIEW_TTL_SECONDS = 20 * 60;
-const PREVIEW_TTL = `${IMPORT_PREVIEW_TTL_SECONDS}s`;
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
@@ -48,7 +47,7 @@ export function signImportPreviewToken(params: {
     subject: params.userId,
     issuer: PREVIEW_ISSUER,
     audience: PREVIEW_AUDIENCE,
-    expiresIn: PREVIEW_TTL,
+    expiresIn: IMPORT_PREVIEW_TTL_SECONDS,
   });
 }
 
