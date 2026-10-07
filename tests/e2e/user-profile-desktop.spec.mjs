@@ -51,7 +51,7 @@ test('perfil desktop mantém todas as áreas acessíveis sem overflow', async ({
   ).toBe(true);
 
   await navigation.getByRole('button', { name: 'Conta', exact: true }).click();
-  await page.getByRole('link', { name: 'Editar perfil', exact: true }).click();
+  await page.locator('a[href="/usuario/editar"]').click();
   await expect(page).toHaveURL(/\/usuario\/editar$/);
   await expect(page.getByLabel('Nome', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Novo e-mail', { exact: true })).toBeVisible();
