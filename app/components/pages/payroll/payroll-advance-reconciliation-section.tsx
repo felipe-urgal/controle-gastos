@@ -74,13 +74,14 @@ export function PayrollAdvanceReconciliationSection({
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError('');
 
     fetch('/api/payroll/advance-reconciliation', { cache: 'no-store' })
       .then((response) => readEnvelope<AdvanceResolutionItem[]>(response))
       .then((data) => {
-        if (!cancelled) setItems(data);
+        if (!cancelled) {
+          setError('');
+          setItems(data);
+        }
       })
       .catch((requestError) => {
         if (!cancelled) {
