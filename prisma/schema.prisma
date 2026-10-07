@@ -9,9 +9,13 @@ datasource db {
 model User {
   id                  String    @id @default(uuid())
   name                String    @db.VarChar(100)
-  email               String    @unique @db.VarChar(120)
-  emailVerifiedAt     DateTime? @default(now()) @map("email_verified_at")
-  password            String    @db.VarChar(255)
+  email                   String    @unique @db.VarChar(120)
+  emailVerifiedAt         DateTime? @default(now()) @map("email_verified_at")
+  pendingEmail            String?   @map("pending_email") @db.VarChar(120)
+  pendingEmailRequestedAt DateTime? @map("pending_email_requested_at")
+  pendingEmailExpiresAt   DateTime? @map("pending_email_expires_at")
+  pendingEmailVersion     Int       @default(0) @map("pending_email_version")
+  password                String    @db.VarChar(255)
   lastLogin           DateTime? @map("last_login")
   isActive            Boolean   @default(true)
   authVersion         Int       @default(0) @map("auth_version")
@@ -77,6 +81,7 @@ model User {
   @@map("users")
   @@index([lastLogin])
   @@index([createdAt, isActive])
+  @@index([pendingEmailExpiresAt])
 }
 
 
