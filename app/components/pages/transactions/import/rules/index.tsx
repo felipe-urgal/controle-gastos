@@ -352,9 +352,10 @@ export default function ImportRuleManagementPage() {
         replaceRule(response.data);
         setSuccessMessage('Regra atualizada com sucesso.');
       } else {
-        setRules((current) => [...current, response.data].sort(ruleOrder));
         setSuccessMessage('Regra criada com sucesso.');
+        setRulesPage(1);
       }
+      setRulesRevision((current) => current + 1);
       closeForm();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível salvar a regra.');
@@ -375,6 +376,7 @@ export default function ImportRuleManagementPage() {
       setSuccessMessage(
         response.data.isActive ? 'Regra ativada com sucesso.' : 'Regra pausada com sucesso.',
       );
+      setRulesRevision((current) => current + 1);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível alterar o estado da regra.');
     } finally {
@@ -394,11 +396,34 @@ export default function ImportRuleManagementPage() {
     try {
       await importRuleService.delete(rule.id);
       setRules((current) => current.filter((candidate) => candidate.id !== rule.id));
+      setRulesRevision((current) => current + 1);
       setPendingDeleteId(null);
       if (editingId === rule.id) closeForm();
       setSuccessMessage('Regra removida com sucesso.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível remover a regra.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function renumberRules() {
+    setSubmitting(true);
+    clearMessages();
+    try {
+      const response = await importRuleService.renumber();
+      setNextPriority(response.data.nextPriority);
+      setRulesPage(1);
+      setRulesRevision((current) => current + 1);
+      setSuccessMessage(
+        `${response.data.updated} regra(s) renumerada(s) em passos de 10.`,
+      );
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Não foi possível renumerar as prioridades.',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -414,6 +439,8 @@ export default function ImportRuleManagementPage() {
       };
     });
   }
+
+  const loading = loadingRelations || loadingRules;
 
   return (
     <ProtectedRoute>
