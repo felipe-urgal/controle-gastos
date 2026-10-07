@@ -1,4 +1,4 @@
-export async function useIsolatedClientIp(page, seed) {
+export async function setIsolatedClientIp(page, seed) {
   let hash = 2166136261;
 
   for (const char of String(seed)) {

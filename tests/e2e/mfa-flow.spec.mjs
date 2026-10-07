@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 
 import { currentTotp, waitForNextTotpStep } from './helpers/totp.mjs';
-import { useIsolatedClientIp } from './support/client-ip.mjs';
+import { setIsolatedClientIp } from './support/client-ip.mjs';
 import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
 async function loginWithPassword(page, email) {
-  await useIsolatedClientIp(page, email);
+  await setIsolatedClientIp(page, email);
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);
