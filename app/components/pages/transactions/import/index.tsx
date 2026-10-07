@@ -470,6 +470,16 @@ export default function TransactionImportPage() {
                       : ''}
                   </p>
                 )}
+                {account?.type === 'CREDIT_CARD' && preview.detectedSource !== 'NUBANK_CREDIT_CARD' && (
+                  <div
+                    className="mt-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm leading-relaxed text-[var(--text-muted)]"
+                    role="note"
+                  >
+                    <strong className="text-[var(--foreground)]">Arquivo genérico no cartão:</strong>{' '}
+                    valores negativos são tratados como despesas; valores positivos, como créditos/estornos (receitas que reduzem a despesa do cartão).
+                    Pagamento de fatura não é inferido por descrição ou texto: use o fluxo próprio de pagamento da fatura.
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="status" aria-live="polite" aria-atomic="true">
