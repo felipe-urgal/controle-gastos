@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client";
-import type { User } from "./auth-service";
+import type { User } from "@/app/types/user";
 
 interface ApiEnvelope<T> {
   success: boolean;

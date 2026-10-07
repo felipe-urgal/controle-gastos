@@ -3,7 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { authService, User, UpdateUserRequest } from '@/app/services/auth-service';
+import { authService, type UpdateUserRequest } from '@/app/services/auth-service';
+import type { User } from '@/app/types/user';
 import { mfaService, type VerifyMfaLoginRequest } from '@/app/services/mfa-service';
 import { userService } from '@/app/services/user-service';
 import {
