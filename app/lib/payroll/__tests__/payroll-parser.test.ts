@@ -111,6 +111,23 @@ describe("payroll parser", () => {
     );
   });
 
+  it("keeps a regular monthly payslip regular when it contains an advance deduction rubric", () => {
+    const parsed = parsePayrollText([
+      "Empresa: Empresa Teste",
+      "CNPJ 12.345.678/0001-90",
+      "Competência: 09/2026",
+      "Folha Mensal",
+      "100 DIAS NORMAIS 30 3.000,00",
+      "500 ADIANTAMENTO SALARIAL 1.000,00",
+      "Total de Vencimentos 3.000,00",
+      "Total de Descontos 1.000,00",
+      "Valor Líquido 2.000,00",
+    ].join("\n"));
+
+    expect(parsed.documentType).toBe("MONTHLY_PAYSLIP");
+    expect(parsed.paymentType).toBe("REGULAR");
+  });
+
   it("marks inconsistent totals instead of silently correcting them", () => {
     const text = [
       "Empresa: Empresa Teste",
