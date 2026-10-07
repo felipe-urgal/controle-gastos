@@ -19,6 +19,7 @@ import type { MerchantAliasOperator } from '@/app/types/merchant-alias';
 
 type ImportType = 'INCOME' | 'EXPENSE';
 type ImportSource = 'CSV' | 'OFX' | 'QIF' | 'XLSX';
+type QifDateOrder = 'MDY' | 'DMY';
 type InboxState = 'review' | 'ready' | 'duplicate' | 'ignored';
 type InboxFilter = 'all' | InboxState;
 
@@ -62,6 +63,12 @@ type PreviewData = {
   detectedSource?: 'GENERIC' | 'NUBANK_CREDIT_CARD';
   nubankSummary?: { purchases: number; payments: number; credits: number } | null;
   previewToken: string;
+  previewExpiresAt: string;
+  qifDateOrder?: QifDateOrder | null;
+  xlsxWorksheet?: {
+    name: string;
+    ignoredWorksheetNames: string[];
+  } | null;
   limits: { maxFileBytes: number; maxItems: number };
   summary: { total: number; valid: number; invalid: number; duplicates: number };
   items: PreviewItem[];
@@ -75,15 +82,27 @@ type ConfirmData = {
 
 type ApiEnvelope<T> = {
   success: boolean;
-  data: T;
+  data?: T;
   message?: string;
+  error?: {
+    code?: string;
+    message?: string;
+  };
 };
+
+function apiErrorMessage<T>(response: Response, payload: ApiEnvelope<T>, fallback: string) {
+  const message = payload.error?.message || payload.message || fallback;
+  const retryAfter = response.headers.get('Retry-After');
+  return retryAfter
+    ? `${message}. Tente novamente em ${retryAfter}s.`
+    : message;
+}
 
 const inboxFilters: Array<{ value: InboxFilter; label: string }> = [
   { value: 'all', label: 'Todas' },
   { value: 'review', label: 'Precisa revisar' },
   { value: 'ready', label: 'Prontas' },
-  { value: 'duplicate', label: 'Duplicadas' },
+  { value: 'duplicate', label: 'Já importadas' },
   { value: 'ignored', label: 'Ignoradas' },
 ];
 
@@ -112,7 +131,7 @@ function getInboxState(item: EditablePreviewItem): InboxState {
 function stateLabel(state: InboxState) {
   if (state === 'review') return 'Precisa revisar';
   if (state === 'ready') return 'Pronta';
-  if (state === 'duplicate') return 'Duplicada';
+  if (state === 'duplicate') return 'Já importada';
   return 'Ignorada';
 }
 
@@ -165,7 +184,10 @@ export default function TransactionImportPage() {
   const merchantSearchRequest = useRef(0);
   const [accountId, setAccountId] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [qifDateOrder, setQifDateOrder] = useState<'' | QifDateOrder>('');
   const [preview, setPreview] = useState<PreviewData | null>(null);
+  const [previewNow, setPreviewNow] = useState(() => Date.now());
+  const [bulkCategoryId, setBulkCategoryId] = useState('');
   const [items, setItems] = useState<EditablePreviewItem[]>([]);
   const [result, setResult] = useState<ConfirmData | null>(null);
   const [filter, setFilter] = useState<InboxFilter>('all');
@@ -218,6 +240,13 @@ export default function TransactionImportPage() {
 
     void loadRelations();
   }, []);
+
+  useEffect(() => {
+    if (!preview || result) return;
+    setPreviewNow(Date.now());
+    const interval = window.setInterval(() => setPreviewNow(Date.now()), 15_000);
+    return () => window.clearInterval(interval);
+  }, [preview, result]);
 
   async function retryAccounts() {
     setRetryingSource('accounts');
@@ -316,6 +345,11 @@ export default function TransactionImportPage() {
   const reviewCount = stateCounts.review;
   const ignoredOnConfirm = stateCounts.duplicate + stateCounts.ignored;
   const step = result ? 3 : preview ? 2 : 1;
+  const previewExpiresAtMs = preview ? Date.parse(preview.previewExpiresAt) : 0;
+  const previewRemainingMs = preview ? previewExpiresAtMs - previewNow : 0;
+  const previewExpired = Boolean(preview) && previewRemainingMs <= 0;
+  const previewExpiring =
+    Boolean(preview) && !previewExpired && previewRemainingMs <= 2 * 60 * 1000;
 
   const visibleItems = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('pt-BR');
@@ -338,6 +372,8 @@ export default function TransactionImportPage() {
     setFile(null);
     setPreview(null);
     setItems([]);
+    setQifDateOrder('');
+    setBulkCategoryId('');
     setResult(null);
     setFilter('all');
     setSearch('');
@@ -347,16 +383,23 @@ export default function TransactionImportPage() {
   }
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
-    setFile(event.target.files?.[0] ?? null);
+    const nextFile = event.target.files?.[0] ?? null;
+    setFile(nextFile);
+    if (!nextFile?.name.toLowerCase().endsWith('.qif')) {
+      setQifDateOrder('');
+    }
     setError('');
   }
 
-  async function handlePreview(event: FormEvent) {
-    event.preventDefault();
+  async function generatePreview(preserveChoices: boolean) {
     if (!accountId || !file) {
       setError('Selecione uma conta e um arquivo CSV, OFX, QFX, QIF ou XLSX.');
       return;
     }
+
+    const previousByFingerprint = preserveChoices
+      ? new Map(items.map((item) => [item.fingerprint, item]))
+      : new Map<string, EditablePreviewItem>();
 
     setSubmitting(true);
     setError('');
@@ -364,12 +407,16 @@ export default function TransactionImportPage() {
       const formData = new FormData();
       formData.append('accountId', accountId);
       formData.append('file', file);
+      if (qifDateOrder) formData.append('qifDateOrder', qifDateOrder);
+
       const response = await fetch('/api/transactions/import/preview', {
         method: 'POST',
         body: formData,
       });
       const payload = (await response.json()) as ApiEnvelope<PreviewData>;
-      if (!response.ok || !payload.success) throw new Error(payload.message || 'Falha ao gerar preview.');
+      if (!response.ok || !payload.success || !payload.data) {
+        throw new Error(apiErrorMessage(response, payload, 'Falha ao gerar preview.'));
+      }
 
       const editableItems = payload.data.items.map((item): EditablePreviewItem => {
         const eligibleSuggestion = item.suggestedCategoryId
@@ -377,20 +424,31 @@ export default function TransactionImportPage() {
               (category) => category.id === item.suggestedCategoryId && category.type === item.type,
             )
           : null;
+        const previous = previousByFingerprint.get(item.fingerprint);
+        const canPreserve = Boolean(previous) && item.errors.length === 0 && !item.duplicate;
 
         return {
           ...item,
-          selected: item.errors.length === 0 && !item.duplicate,
-          categoryId: eligibleSuggestion?.id ?? null,
-          merchantId: item.merchantAliasConflict ? null : (item.suggestedMerchantId ?? null),
-          merchantReviewed: Boolean(item.suggestedMerchantId) && !item.merchantAliasConflict,
-          learnMerchantAlias: false,
-          merchantAliasOperator: 'EQUALS',
-          ignored: item.duplicate,
+          selected: canPreserve
+            ? previous!.selected
+            : item.errors.length === 0 && !item.duplicate,
+          categoryId: canPreserve
+            ? previous!.categoryId
+            : eligibleSuggestion?.id ?? null,
+          merchantId: canPreserve
+            ? previous!.merchantId
+            : item.merchantAliasConflict ? null : (item.suggestedMerchantId ?? null),
+          merchantReviewed: canPreserve
+            ? previous!.merchantReviewed
+            : Boolean(item.suggestedMerchantId) && !item.merchantAliasConflict,
+          learnMerchantAlias: canPreserve ? previous!.learnMerchantAlias : false,
+          merchantAliasOperator: canPreserve ? previous!.merchantAliasOperator : 'EQUALS',
+          ignored: canPreserve ? previous!.ignored : item.duplicate,
         };
       });
 
       setPreview(payload.data);
+      setPreviewNow(Date.now());
       setItems(editableItems);
       setFilter('all');
       setSearch('');
@@ -400,6 +458,11 @@ export default function TransactionImportPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handlePreview(event: FormEvent) {
+    event.preventDefault();
+    await generatePreview(false);
   }
 
   function updateItem(
