@@ -520,23 +520,98 @@ export default function ImportRuleManagementPage() {
                   Suas regras
                 </h2>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  {rules.length} regra(s), já na ordem em que serão avaliadas.
+                  {rulesTotal} regra(s) · página {rulesPage} de {rulesTotalPages}.
                 </p>
               </div>
-              <Button type="button" size="sm" onClick={openCreate} disabled={loading || submitting}>
-                Nova regra
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void renumberRules()}
+                  disabled={loading || submitting || rulesTotal === 0}
+                >
+                  Renumerar prioridades
+                </Button>
+                <Button type="button" size="sm" onClick={openCreate} disabled={loading || submitting}>
+                  Nova regra
+                </Button>
+              </div>
             </header>
 
-            {loading ? (
+            <div className="grid gap-3 border-b border-[var(--border)] p-4 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="text-sm font-medium text-[var(--foreground)] sm:col-span-2 lg:col-span-1">
+                Buscar
+                <input
+                  type="search"
+                  value={rulesSearchInput}
+                  onChange={(event) => setRulesSearchInput(event.target.value)}
+                  placeholder="Nome ou padrão"
+                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                />
+              </label>
+              <label className="text-sm font-medium text-[var(--foreground)]">
+                Estado
+                <select
+                  value={activeFilter}
+                  onChange={(event) => {
+                    setActiveFilter(event.target.value as 'all' | 'true' | 'false');
+                    setRulesPage(1);
+                  }}
+                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                >
+                  <option value="all">Todas</option>
+                  <option value="true">Configuradas como ativas</option>
+                  <option value="false">Pausadas</option>
+                </select>
+              </label>
+              <label className="text-sm font-medium text-[var(--foreground)]">
+                Conta
+                <select
+                  value={accountFilter}
+                  onChange={(event) => {
+                    setAccountFilter(event.target.value);
+                    setRulesPage(1);
+                  }}
+                  disabled={accountUnavailable}
+                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 disabled:opacity-50"
+                >
+                  <option value="">Todas as contas</option>
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>{account.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium text-[var(--foreground)]">
+                Tipo
+                <select
+                  value={typeFilter}
+                  onChange={(event) => {
+                    setTypeFilter(event.target.value as '' | ImportRuleTransactionType);
+                    setRulesPage(1);
+                  }}
+                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
+                >
+                  <option value="">Receitas e despesas</option>
+                  <option value="EXPENSE">Despesas</option>
+                  <option value="INCOME">Receitas</option>
+                </select>
+              </label>
+            </div>
+
+            {loadingRules ? (
               <p className="p-6 text-sm text-[var(--text-muted)]" role="status">
                 Carregando regras…
               </p>
             ) : rules.length === 0 ? (
               <div className="p-6">
-                <p className="font-medium text-[var(--foreground)]">Nenhuma regra cadastrada.</p>
+                <p className="font-medium text-[var(--foreground)]">
+                  {rulesTotal === 0 ? 'Nenhuma regra cadastrada.' : 'Nenhuma regra corresponde aos filtros.'}
+                </p>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  Crie uma regra para sugerir categoria e descrição durante o preview.
+                  {rulesTotal === 0
+                    ? 'Crie uma regra para sugerir categoria durante o preview.'
+                    : 'Ajuste a busca ou os filtros para continuar.'}
                 </p>
               </div>
             ) : (
@@ -553,13 +628,9 @@ export default function ImportRuleManagementPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <strong className="break-words text-[var(--foreground)]">{rule.name}</strong>
                             <span
-                              className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                                rule.isActive
-                                  ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)] text-[var(--income)]'
-                                  : 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-muted)]'
-                              }`}
+                              className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${effectiveStateClass(rule)}`}
                             >
-                              {rule.isActive ? 'Ativa' : 'Pausada'}
+                              {effectiveStateLabel(rule)}
                             </span>
                             <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--text-muted)]">
                               prioridade {rule.priority}
@@ -585,7 +656,9 @@ export default function ImportRuleManagementPage() {
                             disabled={submitting}
                             onClick={() => openEdit(rule)}
                           >
-                            Editar
+                            {rule.effectiveState === 'BROKEN_ACCOUNT' || rule.effectiveState === 'BROKEN_CATEGORY'
+                              ? 'Corrigir dependência'
+                              : 'Editar'}
                           </Button>
                           <Button
                             type="button"
@@ -622,6 +695,34 @@ export default function ImportRuleManagementPage() {
                   );
                 })}
               </ul>
+            )}
+
+            {!loadingRules && rulesTotal > 0 && (
+              <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] p-4">
+                <p className="text-sm text-[var(--text-muted)]">
+                  Mostrando {rules.length} de {rulesTotal} regra(s).
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={rulesPage <= 1 || submitting}
+                    onClick={() => setRulesPage((current) => Math.max(1, current - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={rulesPage >= rulesTotalPages || submitting}
+                    onClick={() => setRulesPage((current) => Math.min(rulesTotalPages, current + 1))}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </footer>
             )}
           </section>
 
