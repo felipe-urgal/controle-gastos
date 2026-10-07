@@ -366,6 +366,43 @@ describe("transaction import integration", () => {
     },
   );
 
+  it("keeps generic CSV/XLSX bound to the manually selected account", async () => {
+    const { owner } = await createFixture();
+    const cardAccount = await prisma.account.create({
+      data: {
+        name: `Cartão genérico ${randomUUID()}`,
+        type: "CREDIT_CARD",
+        currency: "BRL",
+        userId: owner.id,
+      },
+    });
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const csvPreview = await previewTransactionImport(
+      previewRequest(
+        cardAccount.id,
+        "data,descricao,valor\n2026-08-31,Compra CSV,-10.00",
+        "generico.csv",
+      ),
+    );
+    const csvBody = await csvPreview.json();
+    expect(csvPreview.status).toBe(200);
+    expect(csvBody.data.accountId).toBe(cardAccount.id);
+
+    const xlsx = createXlsxFixture({
+      rows: [
+        [xlsxText("data"), xlsxText("descricao"), xlsxText("valor")],
+        [xlsxText("2026-08-31"), xlsxText("Compra XLSX"), xlsxNumber("-20.00")],
+      ],
+    });
+    const xlsxPreview = await previewTransactionImport(
+      previewRequest(cardAccount.id, xlsx, "generico.xlsx"),
+    );
+    const xlsxBody = await xlsxPreview.json();
+    expect(xlsxPreview.status).toBe(200);
+    expect(xlsxBody.data.accountId).toBe(cardAccount.id);
+  });
+
   it("validates OFX account type but never redirects by ACCTID", async () => {
     const { owner, account } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
