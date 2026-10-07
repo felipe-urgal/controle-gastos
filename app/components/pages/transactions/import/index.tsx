@@ -37,7 +37,6 @@ type PreviewItem = {
   matchedRuleId?: string | null;
   matchedRuleName?: string | null;
   suggestedCategoryId?: string | null;
-  suggestedDescription?: string | null;
   importRuleConflict?: boolean;
   matchingRuleNames?: string[];
   alsoMatchingRuleNames?: string[];
@@ -768,14 +767,6 @@ function ImportDetail({
           <ul className="mt-1 list-disc space-y-1 pl-5 text-[var(--text-muted)]">
             {reviewReasons.map((reason) => <li key={reason}>{reason}</li>)}
           </ul>
-        </div>
-      )}
-
-      {item.suggestedDescription && (
-        <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm">
-          <p className="font-medium text-[var(--foreground)]">Descrição sugerida</p>
-          <p className="mt-1 break-words text-[var(--text-muted)]">{item.suggestedDescription}</p>
-          <p className="mt-1 text-xs text-[var(--text-subtle)]">Informativa neste slice; o conteúdo assinado do preview não é alterado.</p>
         </div>
       )}
 

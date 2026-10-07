@@ -13,7 +13,6 @@ export type ImportRulePreviewItem = PreviewImportItem & {
   matchedRuleId: string | null;
   matchedRuleName: string | null;
   suggestedCategoryId: string | null;
-  suggestedDescription: string | null;
   importRuleConflict: boolean;
   matchingRuleNames: string[];
   alsoMatchingRuleNames: string[];
@@ -40,7 +39,6 @@ export function applyImportRulesToPreview(args: {
         matchedRuleId: null,
         matchedRuleName: null,
         suggestedCategoryId: null,
-        suggestedDescription: null,
         importRuleConflict: false,
         matchingRuleNames: [],
         alsoMatchingRuleNames: [],
@@ -69,7 +67,6 @@ export function applyImportRulesToPreview(args: {
       matchedRuleId: match?.matchedRuleId ?? null,
       matchedRuleName: match?.matchedRuleName ?? null,
       suggestedCategoryId: match?.suggestedCategoryId ?? null,
-      suggestedDescription: match?.suggestedDescription ?? null,
       importRuleConflict: match?.conflict ?? false,
       matchingRuleNames: match?.matchingRuleNames ?? [],
       alsoMatchingRuleNames: match?.alsoMatchingRuleNames ?? [],

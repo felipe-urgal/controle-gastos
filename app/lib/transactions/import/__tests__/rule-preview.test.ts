@@ -61,7 +61,6 @@ describe("applyImportRulesToPreview", () => {
       matchedRuleId: "rule-account",
       matchedRuleName: "Transporte da conta",
       suggestedCategoryId: "category-account",
-      suggestedDescription: "Uber transporte",
       importRuleConflict: false,
     });
   });
@@ -76,7 +75,6 @@ describe("applyImportRulesToPreview", () => {
     expect(item).toMatchObject({
       matchedRuleId: "rule-account",
       suggestedCategoryId: null,
-      suggestedDescription: null,
       importRuleConflict: true,
       matchingRuleNames: ["Transporte da conta", "Transporte global"],
     });
@@ -95,7 +93,6 @@ describe("applyImportRulesToPreview", () => {
     for (const item of items) {
       expect(item.matchedRuleId).toBeNull();
       expect(item.suggestedCategoryId).toBeNull();
-      expect(item.suggestedDescription).toBeNull();
     }
   });
 
@@ -106,7 +103,6 @@ describe("applyImportRulesToPreview", () => {
       rules: [rules[1]],
     });
 
-    expect(item.suggestedDescription).toBe("Uber transporte");
     expect(item.description).toBe(baseItem.description);
     expect(item.fingerprint).toBe(baseItem.fingerprint);
     expect(item.amountCents).toBe(baseItem.amountCents);

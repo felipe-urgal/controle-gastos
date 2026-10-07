@@ -116,7 +116,6 @@ describe("import rules", () => {
       matchedRuleId: "rule-a",
       matchedRuleName: "Mercado",
       suggestedCategoryId: "account-specific",
-      suggestedDescription: null,
       conflict: false,
       matchingRuleIds: ["rule-a", "rule-b", "rule-z"],
       matchingRuleNames: ["Mercado", "Mercado", "Mercado"],
@@ -236,7 +235,6 @@ describe("import rules", () => {
 
     expect(result).toMatchObject({
       suggestedCategoryId: null,
-      suggestedDescription: null,
       conflict: true,
     });
     expect(new Set(result?.matchingRuleIds)).toEqual(
@@ -271,17 +269,19 @@ describe("import rules", () => {
     });
   });
 
-  it("returns an explicit normalized-description suggestion without mutating input", () => {
-    const rules = [
-      {
-        ...baseRule,
-        normalizedDescription: "  Supermercado  ",
-      },
-    ];
+  it("ignores legacy normalizedDescription metadata when evaluating outcomes", () => {
+    const result = evaluateImportRules(
+      [
+        { ...baseRule, id: "rule-a", normalizedDescription: "Supermercado" },
+        { ...baseRule, id: "rule-b", normalizedDescription: "Outro nome" },
+      ],
+      candidate
+    );
 
-    const result = evaluateImportRules(rules, candidate);
-
-    expect(result?.suggestedDescription).toBe("Supermercado");
+    expect(result).toMatchObject({
+      suggestedCategoryId: "category-food",
+      conflict: false,
+    });
     expect(candidate.description).toBe("  Mercado   Central  ");
   });
 

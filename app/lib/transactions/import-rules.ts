@@ -31,7 +31,6 @@ export type ImportRuleMatch = {
   matchedRuleId: string;
   matchedRuleName: string;
   suggestedCategoryId: string | null;
-  suggestedDescription: string | null;
   conflict: boolean;
   matchingRuleIds: string[];
   matchingRuleNames: string[];
@@ -215,19 +214,12 @@ export function evaluateMatchedImportRules(
   const categories = new Set(
     samePrecedenceMatches.map((rule) => rule.categoryId)
   );
-  const normalizedDescriptions = new Set(
-    samePrecedenceMatches.map((rule) =>
-      normalizeImportRuleText(rule.normalizedDescription ?? "")
-    ),
-  );
-  const conflict = categories.size > 1 || normalizedDescriptions.size > 1;
-  const suggestedDescription = matchedRule.normalizedDescription?.trim();
+  const conflict = categories.size > 1;
 
   return {
     matchedRuleId: matchedRule.id,
     matchedRuleName: matchedRule.name,
     suggestedCategoryId: conflict ? null : matchedRule.categoryId,
-    suggestedDescription: conflict ? null : (suggestedDescription || null),
     conflict,
     matchingRuleIds: matches.map((rule) => rule.id),
     matchingRuleNames: matches.map((rule) => rule.name),

@@ -96,11 +96,7 @@ function sameOutcome(
   left: ComparableImportRule,
   right: ComparableImportRule,
 ) {
-  return (
-    left.categoryId === right.categoryId &&
-    normalizeImportRulePattern(left.normalizedDescription ?? '') ===
-      normalizeImportRulePattern(right.normalizedDescription ?? '')
-  );
+  return left.categoryId === right.categoryId;
 }
 
 function accountScopesMayOverlap(

@@ -176,7 +176,6 @@ describe("import rule preview ownership", () => {
       matchedRuleId: ownerRule.id,
       matchedRuleName: "Regra própria",
       suggestedCategoryId: ownerCategory.id,
-      suggestedDescription: "Café próprio",
       matchedMerchantAliasId: ownerAlias.id,
       suggestedMerchantId: ownerMerchant.id,
       suggestedMerchantName: ownerMerchant.name,
