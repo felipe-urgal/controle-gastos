@@ -16,12 +16,13 @@ import { UserInfo } from '@/app/components/pages/user';
 import { useAuth } from '@/app/context';
 import { useUser } from '@/app/hooks/users/user-show';
 
-type SettingsSection = 'account' | 'preferences' | 'security' | 'export' | 'session' | 'risk';
+type SettingsSection = 'account' | 'preferences' | 'security' | 'integrations' | 'export' | 'session' | 'risk';
 
 const sections: Array<{ id: SettingsSection; label: string }> = [
   { id: 'account', label: 'Conta' },
   { id: 'preferences', label: 'Preferências' },
   { id: 'security', label: 'Segurança' },
+  { id: 'integrations', label: 'Integrações' },
   { id: 'export', label: 'Exportação' },
   { id: 'session', label: 'Sessão' },
   { id: 'risk', label: 'Risco' },
@@ -201,6 +202,19 @@ export default function Show() {
                 }}
               />
 
+            </div>
+          )}
+
+          {activeSection === 'integrations' && (
+            <div className="space-y-5">
+              <section className="ds-panel p-4 sm:p-5" aria-labelledby="integrations-title">
+                <h2 id="integrations-title" className="text-xl font-semibold text-[var(--foreground)]">
+                  Integrações / acesso externo
+                </h2>
+                <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
+                  Gerencie credenciais de acesso externo separadamente da segurança básica da conta.
+                </p>
+              </section>
               <McpAccessPanel totpEnabled={user.totpEnabled} />
             </div>
           )}
