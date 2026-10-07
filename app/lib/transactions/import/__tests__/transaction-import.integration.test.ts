@@ -295,6 +295,9 @@ describe("transaction import integration", () => {
         name: `Cartão Nubank ${randomUUID()}`,
         type: "CREDIT_CARD",
         currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
         userId: owner.id,
       },
     });
@@ -437,6 +440,9 @@ describe("transaction import integration", () => {
         name: `Cartão genérico pagamento ${randomUUID()}`,
         type: "CREDIT_CARD",
         currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
         userId: owner.id,
       },
     });
@@ -491,6 +497,9 @@ describe("transaction import integration", () => {
         name: `Cartão sinais genéricos ${randomUUID()}`,
         type: "CREDIT_CARD",
         currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
         userId: owner.id,
       },
     });
@@ -769,6 +778,9 @@ describe("transaction import integration", () => {
         name: `Cartão genérico ${randomUUID()}`,
         type: "CREDIT_CARD",
         currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
         userId: owner.id,
       },
     });
@@ -806,6 +818,9 @@ describe("transaction import integration", () => {
         name: `Cartão OFX banco ${randomUUID()}`,
         type: "CREDIT_CARD",
         currency: "BRL",
+        creditLimit: 100_000,
+        statementClosingDay: 20,
+        statementDueDay: 27,
         userId: owner.id,
       },
     });
