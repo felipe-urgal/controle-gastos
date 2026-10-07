@@ -13,3 +13,9 @@ Consequências:
 - regras podem sugerir categoria e Merchant, mas não texto substituto;
 - preview e confirmação preservam a descrição original;
 - normalização persistida de descrição exigiria um campo `rawDescription` separado e não está sendo adotada nesta revisão.
+
+## Normalização persistida
+
+A alternativa de persistir uma descrição normalizada não foi escolhida nesta revisão. Não será criado `rawDescription` separado somente para sustentar esse comportamento. Quando o objetivo for identidade de estabelecimento, o domínio de Merchant/aliases deve ser usado.
+
+Se uma normalização persistida de descrição voltar a ser necessária no futuro, ela deve ser modelada como dado distinto do raw antes de qualquer sobrescrita.
