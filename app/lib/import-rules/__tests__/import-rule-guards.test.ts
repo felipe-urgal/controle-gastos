@@ -25,6 +25,7 @@ function model(patch: Partial<ImportRuleModel> = {}): ImportRuleModel {
     id: '33333333-3333-4333-8333-333333333333',
     createdAt: new Date(0).toISOString(),
     updatedAt: new Date(0).toISOString(),
+    effectiveState: 'OPERATIONAL',
     ...baseInput,
     ...patch,
   };
