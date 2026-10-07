@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
@@ -9,7 +11,32 @@ import { deleteUser } from "@/app/lib/users/delete-user";
 import { userCrud } from "@/app/lib/users/user-crud";
 
 export const GET = userCrud.getById;
-export const PATCH = userCrud.update;
+
+async function requestsPasswordChange(request: Request) {
+  try {
+    const payload = asInputRecord(await parseJsonBody(request.clone()));
+    return Boolean(stringInput(payload, "newPassword"));
+  } catch {
+    return false;
+  }
+}
+
+export async function PATCH(request: Request) {
+  const changesPassword = await requestsPasswordChange(request);
+  const response = await userCrud.update(request);
+
+  if (!changesPassword || !response.ok) {
+    return response;
+  }
+
+  const payload = await response.json();
+  const reauthResponse = NextResponse.json(
+    { ...payload, reauthRequired: true },
+    { status: response.status, headers: response.headers },
+  );
+  reauthResponse.cookies.delete("token");
+  return reauthResponse;
+}
 
 export async function DELETE(request: Request) {
   try {
