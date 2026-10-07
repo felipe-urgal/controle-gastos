@@ -21,6 +21,7 @@ import {
 } from '@/app/lib/import-rules/import-rule-guards';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
+import { ApiClientError } from '@/app/services/api-client';
 import { importRuleService } from '@/app/services/import-rule-service';
 import type { AccountModel } from '@/app/types/account';
 import type { CategoryModel } from '@/app/types/category';
@@ -227,9 +228,11 @@ export default function ImportRuleManagementPage() {
         setRules([]);
         setRulesUnavailable(true);
         setError(
-          cause instanceof Error
-            ? cause.message
-            : 'Não foi possível carregar as regras de importação.',
+          cause instanceof ApiClientError && cause.code === 'PAGINATION_REQUIRED'
+            ? 'A lista de regras exige paginação. A tela já solicita páginas server-side; tente recarregar a listagem.'
+            : cause instanceof Error
+              ? cause.message
+              : 'Não foi possível carregar as regras de importação.',
         );
       } finally {
         if (!cancelled) setLoadingRules(false);
