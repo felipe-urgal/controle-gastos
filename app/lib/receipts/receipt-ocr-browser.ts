@@ -160,7 +160,7 @@ export async function recognizeReceiptImage(
   const terminateWorker = () => {
     if (!worker) return Promise.resolve();
     if (!termination) {
-      termination = worker.terminate().catch(() => undefined);
+      termination = worker.terminate().then(() => undefined, () => undefined);
     }
     return termination;
   };
