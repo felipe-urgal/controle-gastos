@@ -26,7 +26,7 @@ export interface ReceiptOcrSuggestions {
 /** Only sufficiently supported values may be applied after explicit user confirmation. */
 export function getApplicableReceiptOcrSuggestions(suggestions: ReceiptOcrSuggestions) {
   return {
-    amountCents: !suggestions.inconsistentAmountEvidence && suggestions.amount?.confidence !== 'low' && isValidOcrAmount(suggestions.amount?.value) ? suggestions.amount.value : undefined,
+    amountCents: !suggestions.inconsistentAmountEvidence && suggestions.amount?.confidence !== 'low' && isValidOcrAmount(suggestions.amount?.value) ? suggestions.amount?.value : undefined,
     date: suggestions.date?.confidence !== 'low' && suggestions.date && isValidOcrDate(suggestions.date.value) ? suggestions.date.value : undefined,
     description: suggestions.description?.confidence !== 'low' && suggestions.description && isValidOcrDescription(suggestions.description.value) ? suggestions.description.value : undefined,
   };
