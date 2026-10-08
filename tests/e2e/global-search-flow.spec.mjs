@@ -303,3 +303,52 @@ test('busca global: preferência showValues=false e Enter respeita match exato',
   await input.press('Enter');
   await expect(page).toHaveURL(new RegExp(`/contas/show/${exactAccountId}$`));
 });
+
+
+test('busca global: transferência pendente identifica as duas pernas sem revelar valores', async ({ page }) => {
+  test.setTimeout(90_000);
+  const suffix = Date.now().toString(36);
+  const marker = `BuscaTransf${suffix}`;
+  const email = `qa-search-transfer-${suffix}@example.test`;
+  await createVerifiedUser({ name: 'QA Busca Transferência', email, password });
+  await login(page, email);
+
+  await page.evaluate(async (description) => {
+    async function createAccount(name) {
+      const response = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, type: 'CREDIT_DEBIT', currency: 'BRL' }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(JSON.stringify(body));
+      return body.data.id;
+    }
+    const sourceAccountId = await createAccount(`${description} Origem`);
+    const destinationAccountId = await createAccount(`${description} Destino`);
+    const now = new Date();
+    const response = await fetch('/api/transfers', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': crypto.randomUUID(),
+      },
+      body: JSON.stringify({
+        sourceAccountId, destinationAccountId,
+        amountCents: 987654,
+        description,
+        year: now.getFullYear(), month: now.getMonth() + 1,
+        day: Math.min(now.getDate(), 28),
+        status: 'PENDING',
+      }),
+    });
+    if (!response.ok) throw new Error(JSON.stringify(await response.json()));
+  }, marker);
+
+  await page.keyboard.press('Control+K');
+  const dialog = page.getByRole('dialog', { name: 'Busca global' });
+  await dialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras').fill(marker);
+  await expect(dialog.getByText(/Transferência · Origem · Pendente/)).toBeVisible();
+  await expect(dialog.getByText(/Transferência · Destino · Pendente/)).toBeVisible();
+  await expect(dialog).not.toContainText('987654');
+});
