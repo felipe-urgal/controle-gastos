@@ -5,7 +5,7 @@ import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { Prisma } from '@prisma/client';
 
 import { prisma } from '@/app/lib/prisma';
-import { consumeRateLimit } from '@/app/lib/security/rate-limit';
+import { consumeGlobalSearchRateLimit } from '@/app/lib/search/global-search-rate-limit';
 import {
   GLOBAL_SEARCH_LIMIT_PER_GROUP,
   GLOBAL_SEARCH_TOTAL_LIMIT,
@@ -294,16 +294,10 @@ export async function getGlobalSearch(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
     const { q } = parseRequest(request);
-    const rate = await consumeRateLimit({
-      action: 'global-search-read',
-      identifier: userId,
-      maxAttempts: 90,
-      windowMs: 60_000,
-      blockMs: 30_000,
-    });
+    const rate = await consumeGlobalSearchRateLimit(userId);
     if (rate.limited) {
       return Response.json(
-        { success: false, error: 'Muitas buscas. Tente novamente em instantes.' },
+        { success: false, error: { code: 'GLOBAL_SEARCH_RATE_LIMITED', message: 'Muitas buscas. Tente novamente em instantes.' } },
         { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } },
       );
     }
