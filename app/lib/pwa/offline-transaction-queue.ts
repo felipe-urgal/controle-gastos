@@ -203,6 +203,12 @@ export function readOfflineTransactionQueue(userId: string) {
       return [];
     }
 
+    // Sucessos de versões anteriores não fazem parte da fila ativa.
+    if (candidate.status === "synced") {
+      changed = true;
+      return [];
+    }
+
     if (candidate.status === "sending") {
       changed = true;
       return [{
@@ -234,7 +240,7 @@ export function enqueueOfflineTransaction(
   options?: { id?: string; idempotencyKey?: string; sourceDraftId?: string },
 ) {
   const items = readOfflineTransactionQueue(userId);
-  if (items.length >= MAX_OFFLINE_TRANSACTION_QUEUE_ITEMS) {
+  if (items.filter((item) => item.status !== "synced").length >= MAX_OFFLINE_TRANSACTION_QUEUE_ITEMS) {
     throw new Error(
       "Fila offline cheia. Sincronize ou descarte lançamentos pendentes antes de continuar.",
     );
