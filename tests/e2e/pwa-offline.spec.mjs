@@ -371,7 +371,8 @@ test('rascunho offline valida limites antes de salvar e preserva rascunho legado
   test.setTimeout(90_000);
 
   const email = `pwa-limits-${Date.now()}-${test.info().retry}@example.test`;
-  await createVerifiedUser(email);
+  // showValues=false aproveita este login: o IP de CI tem limite de 30 logins por janela.
+  await createVerifiedUser(email, { showValues: false });
   await login(page, email);
   expect(await waitForServiceWorker(page)).toBe(true);
 
@@ -473,6 +474,13 @@ test('rascunho offline valida limites antes de salvar e preserva rascunho legado
   await expect(notice).toContainText('não pode exceder 100');
   expect(JSON.parse(await readDraft())).toEqual(legacy);
 
+  // showValues=false: o aviso e o badge global não expõem o valor do rascunho.
+  await expect(notice).toContainText('••••');
+  await expect(notice).not.toContainText('50,00');
+  const badge = page.getByTestId('offline-pending-badge').first();
+  await expect(badge).toHaveAttribute('aria-label', /1 lançamento local aguardando envio/);
+  await expect(badge).not.toContainText('50,00');
+
   // Continuar o rascunho carrega os dados sem truncar; editar não altera o rascunho salvo.
   await notice.getByRole('button', { name: 'Continuar rascunho', exact: true }).click();
   await expect(notice).toContainText('Rascunho offline carregado');
@@ -495,41 +503,4 @@ test('rascunho offline valida limites antes de salvar e preserva rascunho legado
   await expect(formDate).toHaveValue('2026-09-30');
   await expect(incomeButton).toHaveAttribute('aria-pressed', 'true');
   expect(JSON.parse(await readDraft())).toEqual(legacy);
-});
-
-test('showValues=false mascara valores do rascunho e exibe badge sem valores', async ({ page }) => {
-  const email = `pwa-hidden-${Date.now()}-${test.info().retry}@example.test`;
-  await createVerifiedUser(email, { showValues: false });
-  await login(page, email);
-
-  await page.evaluate(() => {
-    const owner = localStorage.getItem('controle-gastos:offline-draft-owner:v1');
-    const now = new Date().toISOString();
-    localStorage.setItem(
-      `controle-gastos:offline-transaction-draft:v1:${owner}`,
-      JSON.stringify({
-        version: 1,
-        id: crypto.randomUUID(),
-        ownerUserId: owner,
-        type: 'EXPENSE',
-        amount: 123456,
-        description: 'Segredo oculto',
-        year: 2026,
-        month: 10,
-        day: 8,
-        createdAt: now,
-        updatedAt: now,
-      }),
-    );
-  });
-
-  await page.goto('/transacoes/nova');
-  const notice = page.getByLabel('Rascunho offline');
-  await expect(notice).toContainText('Segredo oculto');
-  await expect(notice).not.toContainText('1.234,56');
-  await expect(notice).toContainText('••••');
-
-  const badge = page.getByTestId('offline-pending-badge').first();
-  await expect(badge).toHaveAttribute('aria-label', /1 lançamento local aguardando envio/);
-  await expect(badge).not.toContainText('1.234,56');
 });
