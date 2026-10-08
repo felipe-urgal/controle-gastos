@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/e2e.yml"
+      - "tests/e2e/global-search-accessibility.spec.mjs"
       - "tests/e2e/global-search-entities.spec.mjs"
       - "tests/e2e/pwa-offline.spec.mjs"
       - "tests/e2e/accounts-flow.spec.mjs"
@@ -192,6 +193,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: >-
           pnpm test:e2e
+          tests/e2e/global-search-accessibility.spec.mjs
           tests/e2e/global-search-entities.spec.mjs
           tests/e2e/pwa-offline.spec.mjs
           tests/e2e/accounts-flow.spec.mjs

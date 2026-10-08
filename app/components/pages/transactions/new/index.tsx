@@ -77,7 +77,6 @@ export default function New({
   const pendingQueueCount = offlineQueue.filter(
     (item) => item.status !== 'synced',
   ).length;
-  const syncedQueueCount = offlineQueue.length - pendingQueueCount;
 
   useEffect(() => {
     if (!duplicateId && !templateId) return;
@@ -231,9 +230,7 @@ export default function New({
         }
       }
 
-      setQueueMessage(
-        'Lançamento sincronizado. Limpe o item concluído quando não precisar mais da proteção contra recriação.',
-      );
+      setQueueMessage('Lançamento sincronizado com sucesso.');
     } catch (error) {
       setQueueMessage(
         error instanceof Error
@@ -250,9 +247,7 @@ export default function New({
     if (!user?.id || queueSyncingId) return;
     removeOfflineTransactionQueueItem(user.id, item.id);
     setQueueMessage(
-      item.status === 'synced'
-        ? 'Proteção do lançamento sincronizado removida.'
-        : 'Lançamento pendente descartado.',
+      'Lançamento pendente descartado.',
     );
     refreshOfflineQueue();
   }
@@ -393,9 +388,7 @@ export default function New({
                   ? pendingQueueCount === 1
                     ? '1 lançamento aguardando sincronização'
                     : `${pendingQueueCount} lançamentos aguardando sincronização`
-                  : syncedQueueCount === 1
-                    ? '1 lançamento sincronizado'
-                    : `${syncedQueueCount} lançamentos sincronizados`}
+                  : 'Nenhum lançamento pendente'}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
                 O envio é manual. Cada retry reutiliza a mesma chave para evitar duplicidade.
