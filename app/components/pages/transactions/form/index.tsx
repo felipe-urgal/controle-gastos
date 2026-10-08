@@ -36,7 +36,7 @@ import {
   type OfflineTransactionQueueItem,
   type OfflineTransactionQueuePayload,
 } from '@/app/lib/pwa/offline-transaction-queue';
-import { getApplicableReceiptOcrSuggestions, type ReceiptOcrSuggestions } from '@/app/lib/receipts/receipt-ocr-parser';
+import type { ReceiptOcrApplication } from '@/app/lib/receipts/receipt-ocr-parser';
 import { buildInstallmentOccurrences } from '@/app/lib/transactions/installments';
 import { buildCorrectionAutomationSuggestions } from '@/app/lib/transactions/transaction-learning';
 import {
@@ -554,10 +554,16 @@ export default function TransactionForm({
     });
   }
 
-  function handleReceiptOcrSuggestions(suggestions: ReceiptOcrSuggestions) {
+  const receiptOcrFormState = {
+    amountFilled: Number(formData.amount) > 0,
+    descriptionFilled: formData.description.trim().length > 0,
+    dateFixed: Boolean(initialDate),
+    currency: selectedAccount?.currency,
+  };
+
+  function handleReceiptOcrApplication(applicable: ReceiptOcrApplication) {
     if (isEditing) return;
 
-    const applicable = getApplicableReceiptOcrSuggestions(suggestions);
     if (applicable.description !== undefined) {
       handleDescriptionChange(applicable.description);
     }
@@ -1313,7 +1319,8 @@ export default function TransactionForm({
               {!isEditing ? (
                 <ReceiptOcrScanner
                   disabled={loading}
-                  onApply={handleReceiptOcrSuggestions}
+                  formState={receiptOcrFormState}
+                  onApply={handleReceiptOcrApplication}
                   className="grid gap-2"
                 />
               ) : null}
@@ -1776,7 +1783,8 @@ export default function TransactionForm({
             {!isEditing ? (
               <ReceiptOcrScanner
                 disabled={loading}
-                onApply={handleReceiptOcrSuggestions}
+                formState={receiptOcrFormState}
+                onApply={handleReceiptOcrApplication}
                 className="mx-auto mt-3 grid w-full max-w-[520px] gap-2"
               />
             ) : null}

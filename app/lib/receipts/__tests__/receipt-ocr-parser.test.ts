@@ -121,3 +121,48 @@ describe('OCR respects canonical Transaction limits', () => {
     })).toEqual({ amountCents: undefined, date: undefined, description: undefined });
   });
 });
+
+describe('OCR receipt date: purchase context', () => {
+  it('ignores due, validity and authorization dates', () => {
+    const result = parseReceiptOcrText(
+      'LOJA TESTE\nVENCIMENTO 15/12/2026\nAUTORIZACAO 02/10/2026\nEMISSAO 01/10/2026 12:42\nVALIDADE 01/01/2027',
+    );
+    expect(result.date).toEqual({
+      value: { year: 2026, month: 10, day: 1 },
+      confidence: 'high',
+      evidence: 'EMISSAO 01/10/2026 12:42',
+    });
+  });
+
+  it('returns low confidence for several plausible purchase dates', () => {
+    const result = parseReceiptOcrText('LOJA TESTE\n01/10/2026\n03/10/2026');
+    expect(result.date?.confidence).toBe('low');
+    expect(getApplicableReceiptOcrSuggestions(result).date).toBeUndefined();
+  });
+
+  it('suggests nothing when only a due date exists', () => {
+    expect(parseReceiptOcrText('LOJA TESTE\nVENCIMENTO 15/12/2026').date).toBeUndefined();
+  });
+});
+
+describe('OCR receipt currency scope', () => {
+  const brl = parseReceiptOcrText('LOJA TESTE\nTOTAL A PAGAR R$ 38,40');
+
+  it('detects R$ and applies the amount to BRL or unspecified accounts', () => {
+    expect(brl.detectedCurrency).toBe('BRL');
+    expect(getApplicableReceiptOcrSuggestions(brl).amountCents).toBe(3840);
+    expect(getApplicableReceiptOcrSuggestions(brl, { accountCurrency: 'BRL' }).amountCents).toBe(3840);
+  });
+
+  it.each(['USD', 'EUR'])('never applies the BRL amount to a %s account', (currency) => {
+    const applicable = getApplicableReceiptOcrSuggestions(brl, { accountCurrency: currency });
+    expect(applicable.amountCents).toBeUndefined();
+    expect(applicable.description).toBe('LOJA TESTE');
+  });
+
+  it.each(['TOTAL US$ 20,00', 'TOTAL USD 20,00', 'TOTAL € 20,00'])('does not apply %s as BRL', (line) => {
+    const result = parseReceiptOcrText('LOJA TESTE\n' + line);
+    expect(result.detectedCurrency).toBe('OTHER');
+    expect(getApplicableReceiptOcrSuggestions(result).amountCents).toBeUndefined();
+  });
+});
