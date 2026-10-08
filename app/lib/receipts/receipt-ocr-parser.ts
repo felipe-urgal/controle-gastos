@@ -144,7 +144,7 @@ function extractAmount(lines: string[]): ReceiptOcrSuggestions['amount'] {
 }
 
 function looksLikeMerchantLine(line: string) {
-  if (line.length < 3 || line.length > 100) return false;
+  if (line.length < 3 || line.length > 255) return false;
   if (!/[A-Za-zÀ-ÿ]/.test(line)) return false;
   if (/^(cnpj|cpf|coo|cupom|extrato|documento|nfc-?e|sat|data|hora|telefone|tel\.?|cep)\b/i.test(line)) {
     return false;
