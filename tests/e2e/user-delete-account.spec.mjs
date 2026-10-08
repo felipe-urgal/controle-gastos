@@ -27,7 +27,7 @@ async function expectDeletedCredentialsRejected(page, email) {
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
   await expect(page.getByText(/E-mail ou senha inválidos/i)).toBeVisible();
 }
 
@@ -46,7 +46,7 @@ test('exclusão de conta sem MFA exige senha atual e invalida o login', async ({
   await page.getByRole('dialog', { name: 'Excluir sua conta' }).getByLabel('Senha atual').fill(password);
   await page.getByRole('dialog', { name: 'Excluir sua conta' }).getByRole('button', { name: 'Excluir conta', exact: true }).click();
 
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
   await expectDeletedCredentialsRejected(page, email);
 });
 
@@ -98,6 +98,6 @@ test('exclusão de conta com MFA exige segundo fator e aceita recovery code', as
   await dialog.getByLabel('Recovery code').fill(recoveryCodes[0]);
   await dialog.getByRole('button', { name: 'Excluir conta', exact: true }).click();
 
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
   await expectDeletedCredentialsRejected(page, email);
 });

@@ -8,6 +8,9 @@ const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 const MFA_LOGIN_IP_ACTION = "mfa-login-ip";
 const MFA_LOGIN_PRINCIPAL_ACTION = "mfa-login-principal";
 
+// Revisado em #813: o principal do MFA é o userId extraído de um challenge
+// assinado, que só existe depois de senha válida. Um atacante sem a senha não
+// consegue travar a vítima aqui, então o limite baixo por usuário é mantido.
 export const MFA_LOGIN_RATE_LIMIT_POLICY = {
   ipMaxAttempts: 30,
   principalMaxAttempts: 5,

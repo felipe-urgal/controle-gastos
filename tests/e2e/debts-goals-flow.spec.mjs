@@ -26,7 +26,7 @@ test('dívidas e metas são protegidas antes do client-side guard', async ({ pag
   for (const route of ['/dividas', '/metas']) {
     await page.context().clearCookies();
     await page.goto(route);
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
   }
 });
 

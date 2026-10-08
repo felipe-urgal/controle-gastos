@@ -705,7 +705,7 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page }) => 
 
   await page.context().clearCookies();
   await page.goto('/dashboard');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
   await expect(page.getByRole('heading', { name: 'Entrar na sua conta', exact: true })).toBeVisible();
 
   await login(page, email);
@@ -713,5 +713,5 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page }) => 
   await expect(page).toHaveURL(/\/$/);
 
   await page.goto('/dashboard');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
 });

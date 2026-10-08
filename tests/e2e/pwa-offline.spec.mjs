@@ -123,7 +123,7 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
   await context.setOffline(false);
   await page.reload({ waitUntil: 'domcontentloaded' });
 
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
 });
 
 test('salva rascunho offline e exige confirmação online antes de criar', async ({

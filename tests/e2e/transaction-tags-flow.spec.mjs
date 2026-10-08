@@ -13,7 +13,7 @@ async function login(page, email) {
 
 test('tags: acesso direto sem sessão redireciona para login', async ({ page }) => {
   await page.goto('/tags');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
 });
 
 test('tags: criar, renomear, relatar, filtrar e preservar lifecycle', async ({

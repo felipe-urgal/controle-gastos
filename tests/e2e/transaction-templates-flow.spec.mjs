@@ -278,5 +278,5 @@ test('modelos: showValues=false oculta valor fixo e acesso sem sessão é proteg
 
   await page.context().clearCookies();
   await page.goto('/modelos');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
 });
