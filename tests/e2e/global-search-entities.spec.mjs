@@ -11,7 +11,7 @@ async function login(page, email) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
-test('busca global: entidades por usuário e destinos contextuais', async ({ page, request }) => {
+test('busca global: entidades por usuário e destinos contextuais', async ({ page }) => {
   test.setTimeout(120_000);
   const unique = `BuscaEnt${Date.now().toString(36)}`;
   const email = `qa-search-entities-${unique}@example.test`;
