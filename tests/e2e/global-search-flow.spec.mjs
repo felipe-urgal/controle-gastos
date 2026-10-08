@@ -260,7 +260,7 @@ test('busca global: preferência showValues=false e Enter respeita match exato',
     const account = await fetch('/api/accounts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Conta', type: 'CREDIT_DEBIT', currency: 'BRL' }),
+      body: JSON.stringify({ name: 'Conta', type: 'CREDIT_DEBIT', currency: 'BRL', description: null }),
     });
     return {
       updateStatus: update.status,
@@ -320,7 +320,7 @@ test('busca global: transferência pendente identifica as duas pernas sem revela
       const response = await fetch('/api/accounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, type: 'CREDIT_DEBIT', currency: 'BRL' }),
+        body: JSON.stringify({ name, type: 'CREDIT_DEBIT', currency: 'BRL', description: null }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(JSON.stringify(body));
