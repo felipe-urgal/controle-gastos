@@ -25,6 +25,9 @@ const groupLabels: Record<GlobalSearchResultType, string> = {
   ACCOUNT: 'Contas',
   CATEGORY: 'Categorias',
   IMPORT_RULE: 'Regras de importação',
+  MERCHANT: 'Estabelecimentos',
+  TAG: 'Tags',
+  DEBT: 'Dívidas',
 };
 
 const resultIcons = {
@@ -32,6 +35,9 @@ const resultIcons = {
   ACCOUNT: FaWallet,
   CATEGORY: FaTags,
   IMPORT_RULE: FaMagic,
+  MERCHANT: FaWallet,
+  TAG: FaTags,
+  DEBT: FaMoneyBillWave,
 } satisfies Record<GlobalSearchResultType, typeof FaSearch>;
 
 const quickActions = [
