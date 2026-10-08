@@ -77,7 +77,7 @@ describe("flexible transaction series integration", () => {
     const response = await createFlexibleRecurringTransactions(
       new Request("http://localhost/api/transactions/recurring/flexible", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify(input),
       }),
     );
@@ -118,7 +118,7 @@ describe("flexible transaction series integration", () => {
     const response = await createFlexibleRecurringTransactions(
       new Request("http://localhost/api/transactions/recurring/flexible", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({
           ...input,
           transaction: { ...input.transaction, tagIds: [tag.id] },
@@ -143,7 +143,7 @@ describe("flexible transaction series integration", () => {
     const update = await transactionCrud.update(
       new Request(`http://localhost/api/transactions/${occurrences[0].id}`, {
         method: "PUT",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({ tagIds: [] }),
       }),
       { params: Promise.resolve({ id: occurrences[0].id }) },
@@ -181,7 +181,7 @@ describe("flexible transaction series integration", () => {
     const response = await createFlexibleRecurringTransactions(
       new Request("http://localhost/api/transactions/recurring/flexible", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({
           ...input,
           transaction: { ...input.transaction, accountId: foreignAccount.id },
