@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { readOfflineTransactionQueue } from '@/app/lib/pwa/offline-transaction-queue';
 import { authService, type UpdateUserRequest } from '@/app/services/auth-service';
 import type { User } from '@/app/types/user';
 import { mfaService, type VerifyMfaLoginRequest } from '@/app/services/mfa-service';
@@ -10,6 +11,7 @@ import { userService } from '@/app/services/user-service';
 import {
   clearOfflineTransactionLocalState,
   setOfflineDraftOwner,
+  readOfflineTransactionDraft,
 } from '@/app/lib/pwa/offline-transaction-draft';
 
 type AuthState = {
@@ -158,6 +160,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    if (state.user?.id) {
+      const hasDraft = Boolean(readOfflineTransactionDraft(state.user.id));
+      const pendingCount = readOfflineTransactionQueue(state.user.id).filter(
+        (item) => item.status !== 'synced',
+      ).length;
+      if (hasDraft || pendingCount > 0) {
+        const detail = [
+          hasDraft ? 'um rascunho offline' : null,
+          pendingCount > 0 ? `${pendingCount} lançamento(s) pendente(s) de sincronização` : null,
+        ].filter(Boolean).join(' e ');
+        const confirmed = window.confirm(
+          `Você tem ${detail}. Sair apagará definitivamente esses dados deste dispositivo.\n\n` +
+          'Cancelar: voltar para revisar ou sincronizar em Transações.\n' +
+          'OK: sair e descartar os dados locais.',
+        );
+        if (!confirmed) return;
+      }
+    }
     try {
       await authService.logout();
       dispatch({ type: 'LOGOUT' });
@@ -166,7 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       clearOfflineTransactionLocalState();
     }
-  }, [router]);
+  }, [router, state.user?.id]);
 
   const signup = useCallback(async (data: SignupData) => {
     dispatch({ type: 'LOADING' });
