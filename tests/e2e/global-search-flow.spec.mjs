@@ -58,7 +58,7 @@ async function seedSearchFixture(page, marker) {
       type: 'EXPENSE',
     });
 
-    const rule = await create('/api/transactions/import/rules', {
+    const rule = await create('/api/import-rules', {
       name: `${searchMarker} Regra`,
       isActive: true,
       priority: 0,
