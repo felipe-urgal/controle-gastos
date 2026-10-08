@@ -8,6 +8,7 @@ import {
   asInputRecord,
   stringInput,
 } from "@/app/lib/auth/auth-input";
+import { isValidEmail, normalizeEmail } from "@/app/lib/auth/credential-rules";
 import { generatePasswordResetToken } from "@/app/lib/auth/password-reset-token";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 import { prisma } from "@/app/lib/prisma";
@@ -20,11 +21,7 @@ const ONE_HOUR = 60 * 60 * 1000;
 const ROUTE = "/api/auth/forgot-password";
 
 function genericMessage() {
-  return "Se o e-mail existir, enviaremos instruções para redefinição de senha.";
-}
-
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  return "Se for possível, enviaremos instruções para redefinir a senha do e-mail informado.";
 }
 
 function genericResponse(requestId: string) {
@@ -81,7 +78,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const payload = asInputRecord(body);
     const emailRaw = stringInput(payload, "email");
-    const email = emailRaw?.trim().toLowerCase();
+    const email = emailRaw === undefined ? undefined : normalizeEmail(emailRaw);
 
     if (
       !email ||

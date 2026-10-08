@@ -6,6 +6,7 @@ import {
   asInputRecord,
   stringInput,
 } from "@/app/lib/auth/auth-input";
+import { isValidEmail, normalizeEmail } from "@/app/lib/auth/credential-rules";
 import { sendSignupVerificationBestEffort } from "@/app/lib/auth/verification-delivery";
 import { isHttpError } from "@/app/lib/http-error";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
@@ -64,11 +65,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       throw error;
     }
 
-    const email = stringInput(asInputRecord(body), "email")?.trim().toLowerCase();
+    const rawEmail = stringInput(asInputRecord(body), "email");
+    const email = rawEmail === undefined ? undefined : normalizeEmail(rawEmail);
     if (
       !email ||
       email.length > AUTH_INPUT_LIMITS.email ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+      !isValidEmail(email)
     ) {
       return genericResponse(requestId);
     }

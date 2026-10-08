@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
+import { asInputRecord, stringInput } from "@/app/lib/auth/auth-input";
 import {
-  AUTH_INPUT_LIMITS,
-  asInputRecord,
-  stringInput,
-} from "@/app/lib/auth/auth-input";
+  getEmailError,
+  getNameError,
+  normalizeEmail,
+} from "@/app/lib/auth/credential-rules";
 import { sendSignupVerificationBestEffort } from "@/app/lib/auth/verification-delivery";
 import { hashPassword, validatePassword } from "@/app/lib/auth/password-policy";
 import { isHttpError } from "@/app/lib/http-error";
@@ -71,24 +72,16 @@ export async function POST(request: Request) {
     const body = await parseJsonBody(request);
     const payload = asInputRecord(body);
     const name = stringInput(payload, "name")?.trim();
-    const email = stringInput(payload, "email")?.trim().toLowerCase();
+    const email = normalizeEmail(stringInput(payload, "email") ?? "");
     const password = stringInput(payload, "password");
 
     const errors: string[] = [];
 
-    if (!name) errors.push("Nome é obrigatório");
-    if (!email) errors.push("E-mail é obrigatório");
+    const nameError = getNameError(name ?? "");
+    if (nameError) errors.push(nameError);
+    const emailError = getEmailError(email ?? "");
+    if (emailError) errors.push(emailError);
     if (!password) errors.push("Senha é obrigatória");
-
-    if (name && name.length < 2) errors.push("Nome deve ter pelo menos 2 caracteres");
-    if (name && name.length > AUTH_INPUT_LIMITS.name)
-      errors.push("Nome não pode exceder 100 caracteres");
-
-    if (email && email.length > AUTH_INPUT_LIMITS.email) {
-      errors.push("E-mail é muito longo");
-    } else if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.push("Formato de e-mail inválido");
-    }
 
     if (password) {
       const passwordError = validatePassword(password);

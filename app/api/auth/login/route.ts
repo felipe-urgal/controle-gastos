@@ -16,6 +16,7 @@ import {
   stringInput,
 } from "@/app/lib/auth/auth-input";
 import { createMfaLoginChallenge } from "@/app/lib/security/mfa-login";
+import { isValidEmail, normalizeEmail } from "@/app/lib/auth/credential-rules";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
 const FAKE_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOeQO8J1p0Cz6l5Qn8jY5h5E6E6E6E6E6";
@@ -42,29 +43,29 @@ export async function POST(request: Request): Promise<NextResponse> {
     const payload = asInputRecord(body);
     const emailRaw = stringInput(payload, "email");
     const password = stringInput(payload, "password");
-    const emailNormalized = emailRaw?.trim().toLowerCase();
-    const errors: string[] = [];
+    const emailNormalized = emailRaw === undefined ? undefined : normalizeEmail(emailRaw);
+    const fieldErrors: { email?: string; password?: string } = {};
 
-    if (!emailNormalized) errors.push("E-mail é obrigatório!");
-    if (!password) errors.push("Senha é obrigatória!");
+    if (!emailNormalized) fieldErrors.email = "E-mail é obrigatório!";
+    else if (emailNormalized.length > AUTH_INPUT_LIMITS.email)
+      fieldErrors.email = "E-mail é muito longo!";
+    else if (!isValidEmail(emailNormalized))
+      fieldErrors.email = "E-mail inválido!";
 
-    if (emailNormalized && emailNormalized.length > AUTH_INPUT_LIMITS.email) {
-      errors.push("E-mail é muito longo!");
-    } else if (
-      emailNormalized &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalized)
-    ) {
-      errors.push("E-mail inválido!");
-    }
+    // Login não aplica a política de criação: senhas antigas continuam válidas.
+    if (!password) fieldErrors.password = "Senha é obrigatória!";
+    else if (password.length > AUTH_INPUT_LIMITS.password)
+      fieldErrors.password = "Senha não pode exceder 100 caracteres!";
 
-    if (password && password.length > AUTH_INPUT_LIMITS.password) {
-      errors.push("Senha não pode exceder 100 caracteres!");
-    }
-
-    if (errors.length > 0) {
+    if (fieldErrors.email || fieldErrors.password) {
       return withRequestId(
         NextResponse.json(
-          { success: false, message: errors },
+          {
+            success: false,
+            code: "INVALID_LOGIN_INPUT",
+            message: Object.values(fieldErrors).join(" "),
+            fieldErrors,
+          },
           { status: 400 }
         ),
         requestId

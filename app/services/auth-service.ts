@@ -42,7 +42,6 @@ export interface forgotPasswordRequest {
 };
 
 export interface forgotPasswordResponse {
-  status: number;
   success: boolean;
   message: string;
 };
@@ -53,7 +52,6 @@ export interface ResetPasswordRequest {
 };
 
 export interface ResetPasswordResponse {
-  status: number;
   success: boolean;
   message: string;
 };
@@ -73,71 +71,60 @@ export interface ApiResponse<T = any> {
   user?: User;
 };
 
-export class AuthError extends Error {
-  constructor(message: string, public status?: number, public code?: string) {
-    super(message);
-    this.name = 'AuthError';
-  }
-};
-
+// Falhas HTTP chegam como ApiClientError (status, code, retryAfterSeconds,
+// fieldErrors); os fluxos de auth reutilizam esse envelope.
 export const authService = {
   async getCurrentUser(): Promise<User> {
-    try {
-      const response = await apiClient<AuthMeResponse>("/api/user", {method: "GET", credentials: "include"});
-      
-      if (!response.success) {
-        if (response.status === 401) {
-          throw new AuthError(response.message, response.status, 'NOT_AUTHENTICATED');
-        }
-        throw new AuthError(response.message, response.status);
-      }
-      
-      return response.data!;
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('Não autenticado')) {
-        throw new AuthError('Não autenticado', 401, 'NOT_AUTHENTICATED');
-      }
-      throw error;
-    }
+    const response = await apiClient<AuthMeResponse>("/api/user", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    return response.data;
   },
 
-  async login({ email, password }: LoginRequest): Promise<LoginResponse> {
-    const response = await apiClient<LoginResponse, LoginRequest>("/api/auth/login", {method: "POST", body: { email, password }, credentials: "include"});
-    
-    if (!response.success) {
-      throw new AuthError(response.message);
-    }
-    
-    return response;
+  login({ email, password }: LoginRequest) {
+    return apiClient<LoginResponse, LoginRequest>("/api/auth/login", {
+      method: "POST",
+      body: { email, password },
+      credentials: "include",
+    });
   },
 
   async logout(): Promise<{ message: string }> {
-    const response = await apiClient<ApiResponse>("/api/auth/logout", {method: "POST", credentials: "include"});
-    
-    if (!response.success) {
-      throw new AuthError(response.message, response.status);
-    }
-    
+    const response = await apiClient<ApiResponse>("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+
     return { message: response.message };
   },
 
-  async signup({ name, email, password }: SignupRequest): Promise<SignupResponse> {
-    const response = await apiClient<SignupResponse, SignupRequest>("/api/auth/signup", {method: "POST", body: { name, email, password }});
-    
-    if (!response.success) {
-      throw new AuthError(response.message);
-    }
-    
-    return response;
+  signup({ name, email, password }: SignupRequest) {
+    return apiClient<SignupResponse, SignupRequest>("/api/auth/signup", {
+      method: "POST",
+      body: { name, email, password },
+    });
   },
 
-  async forgotPassword(email: string): Promise<forgotPasswordResponse> {
-    const response = await apiClient<forgotPasswordResponse, forgotPasswordRequest>("/api/auth/forgot-password", {method: "POST", body: { email }});
-    return response;
+  resendVerification(email: string) {
+    return apiClient<SignupResponse, { email: string }>(
+      "/api/auth/resend-verification",
+      { method: "POST", body: { email } },
+    );
   },
 
-  async resetPassword({ token, novaSenha }: ResetPasswordRequest): Promise<ResetPasswordResponse> {
-    const response = await apiClient<ResetPasswordResponse, ResetPasswordRequest>("/api/auth/reset-password", {method: "POST", body: { token, novaSenha }});
-    return response;
+  forgotPassword(email: string) {
+    return apiClient<forgotPasswordResponse, forgotPasswordRequest>(
+      "/api/auth/forgot-password",
+      { method: "POST", body: { email } },
+    );
+  },
+
+  resetPassword({ token, novaSenha }: ResetPasswordRequest) {
+    return apiClient<ResetPasswordResponse, ResetPasswordRequest>(
+      "/api/auth/reset-password",
+      { method: "POST", body: { token, novaSenha } },
+    );
   },
 };
