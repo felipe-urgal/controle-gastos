@@ -99,7 +99,7 @@ describe('OCR respects canonical Transaction limits', () => {
   });
 
   it('never applies a valid total when another labeled total violates the limit', () => {
-    const result = parseReceiptOcrText('VALOR TOTAL 12,00\\nTOTAL GERAL 10.000.000,01');
+    const result = parseReceiptOcrText('VALOR TOTAL 12,00\nTOTAL GERAL 10.000.000,01');
     expect(result.inconsistentAmountEvidence).toBe('TOTAL GERAL 10.000.000,01');
     expect(getApplicableReceiptOcrSuggestions(result).amountCents).toBeUndefined();
   });
