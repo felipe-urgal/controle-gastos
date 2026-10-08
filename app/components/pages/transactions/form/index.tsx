@@ -190,6 +190,7 @@ export default function TransactionForm({
   const tagOptionsId = useId();
   const tagSearchSequenceRef = useRef(0);
   const submitInFlightRef = useRef(false);
+  const createAttemptRef = useRef<{ id: string; key: string; payload: string } | null>(null);
   const autoMatchedMerchantIdRef = useRef<string | null>(null);
   const autoMatchedDescriptionRef = useRef<string | null>(null);
   const manualMerchantChoiceRef = useRef(false);
@@ -689,15 +690,22 @@ export default function TransactionForm({
           type: category.type,
         };
         const serializedPayload = JSON.stringify(queuePayload);
-        let queued = readOfflineTransactionQueue(offlineOwnerUserId).find(
-          (item) => JSON.stringify(item.payload) === serializedPayload,
-        );
-
-        if (queued?.status === 'synced') {
+        // A tentativa, e não os dados financeiros, identifica um retry.
+        const previousAttempt = createAttemptRef.current;
+        if (previousAttempt && previousAttempt.payload !== serializedPayload) {
           throw new Error(
-            'Este lançamento já foi sincronizado. Limpe o item concluído antes de criar outro idêntico.',
+            'Existe uma tentativa anterior com resultado incerto. Revise ou descarte o item na fila antes de alterar o lançamento.',
           );
         }
+        const attempt = previousAttempt ?? {
+          id: globalThis.crypto.randomUUID(),
+          key: globalThis.crypto.randomUUID(),
+          payload: serializedPayload,
+        };
+        createAttemptRef.current = attempt;
+        let queued = readOfflineTransactionQueue(offlineOwnerUserId).find(
+          (item) => item.id === attempt.id,
+        );
 
         if (!queued) {
           try {
@@ -705,6 +713,8 @@ export default function TransactionForm({
               offlineOwnerUserId,
               queuePayload,
               {
+                id: attempt.id,
+                idempotencyKey: attempt.key,
                 sourceDraftId: offlineDraftId ?? undefined,
               },
             );
@@ -712,9 +722,10 @@ export default function TransactionForm({
             if (!(error instanceof OfflineTransactionQueueStorageError)) {
               throw error;
             }
-
-            const response = await transactionService.create(payload);
+            // A indisponibilidade de storage não pode retirar a idempotência.
+            const response = await transactionService.createIdempotent(queuePayload, attempt.key);
             savedTransaction = response.data;
+            createAttemptRef.current = null;
           }
         }
 
@@ -732,7 +743,7 @@ export default function TransactionForm({
                 ),
             );
             savedTransaction = result.data;
-            removeOfflineTransactionQueueItem(offlineOwnerUserId, queued.id);
+            createAttemptRef.current = null;
             onOfflineQueueChanged?.();
           } catch (error) {
             onOfflineQueueChanged?.();
