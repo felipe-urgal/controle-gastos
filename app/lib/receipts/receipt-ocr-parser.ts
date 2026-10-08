@@ -4,10 +4,28 @@ export interface ReceiptOcrDate {
   day: number;
 }
 
+export type ReceiptOcrConfidence = 'high' | 'medium' | 'low';
+
+export interface ReceiptOcrSuggestion<T> {
+  value: T;
+  confidence: ReceiptOcrConfidence;
+  /** Original, normalized line of OCR text used as evidence. */
+  evidence: string;
+}
+
 export interface ReceiptOcrSuggestions {
-  amountCents?: number;
-  date?: ReceiptOcrDate;
-  description?: string;
+  amount?: ReceiptOcrSuggestion<number>;
+  date?: ReceiptOcrSuggestion<ReceiptOcrDate>;
+  description?: ReceiptOcrSuggestion<string>;
+}
+
+/** Only sufficiently supported values may be applied after explicit user confirmation. */
+export function getApplicableReceiptOcrSuggestions(suggestions: ReceiptOcrSuggestions) {
+  return {
+    amountCents: suggestions.amount?.confidence !== 'low' ? suggestions.amount?.value : undefined,
+    date: suggestions.date?.confidence !== 'low' ? suggestions.date?.value : undefined,
+    description: suggestions.description?.confidence !== 'low' ? suggestions.description?.value : undefined,
+  };
 }
 
 const TOTAL_HINTS = [
@@ -66,66 +84,72 @@ function normalizeYear(year: number) {
   return year < 100 ? 2000 + year : year;
 }
 
-function extractDate(lines: string[]): ReceiptOcrDate | undefined {
+function extractDate(lines: string[]): ReceiptOcrSuggestions['date'] {
+  const candidates: Array<{ value: ReceiptOcrDate; evidence: string; contextual: boolean }> = [];
   for (const line of lines) {
-    ISO_DATE_PATTERN.lastIndex = 0;
-    const isoMatch = ISO_DATE_PATTERN.exec(line);
-    if (isoMatch) {
-      const year = Number(isoMatch[1]);
-      const month = Number(isoMatch[2]);
-      const day = Number(isoMatch[3]);
-      if (isValidDate(year, month, day)) return { year, month, day };
+    const contextual = /\b(data|emiss[aã]o|compra)\b/i.test(line);
+    for (const match of line.matchAll(ISO_DATE_PATTERN)) {
+      const [year, month, day] = match.slice(1).map(Number);
+      if (isValidDate(year, month, day)) candidates.push({ value: { year, month, day }, evidence: line, contextual });
     }
-
-    DATE_PATTERN.lastIndex = 0;
-    const match = DATE_PATTERN.exec(line);
-    if (!match) continue;
-
-    const day = Number(match[1]);
-    const month = Number(match[2]);
-    const year = normalizeYear(Number(match[3]));
-    if (isValidDate(year, month, day)) return { year, month, day };
+    for (const match of line.matchAll(DATE_PATTERN)) {
+      const day = Number(match[1]);
+      const month = Number(match[2]);
+      const year = normalizeYear(Number(match[3]));
+      if (isValidDate(year, month, day)) candidates.push({ value: { year, month, day }, evidence: line, contextual });
+    }
   }
-
-  return undefined;
+  if (!candidates.length) return undefined;
+  const selected = candidates.find((candidate) => candidate.contextual) ?? candidates[0];
+  const differentDates = candidates.some((candidate) =>
+    candidate.value.year !== selected.value.year ||
+    candidate.value.month !== selected.value.month ||
+    candidate.value.day !== selected.value.day,
+  );
+  return {
+    value: selected.value,
+    confidence: differentDates ? 'low' : selected.contextual ? 'high' : 'medium',
+    evidence: selected.evidence,
+  };
 }
 
-function extractAmount(lines: string[]) {
-  const candidates: Array<{ amountCents: number; score: number }> = [];
-
+function extractAmount(lines: string[]): ReceiptOcrSuggestions['amount'] {
+  const candidates: Array<{ value: number; score: number; evidence: string; strength: 'high' | 'medium' | 'low' }> = [];
   lines.forEach((line, lineIndex) => {
     MONEY_PATTERN.lastIndex = 0;
     const matches = [...line.matchAll(MONEY_PATTERN)];
     if (matches.length === 0) return;
-
     let score = lineIndex / Math.max(lines.length, 1);
+    let strength: 'high' | 'medium' | 'low' = 'low';
     TOTAL_HINTS.forEach((hint, index) => {
-      if (hint.test(line)) score += 120 - index * 12;
+      if (hint.test(line) && strength === 'low') {
+        score += 120 - index * 12;
+        strength = index <= 2 ? 'high' : index === 3 ? 'medium' : 'low';
+      }
     });
     AMOUNT_PENALTIES.forEach((penalty) => {
-      if (penalty.test(line)) score -= 80;
+      if (penalty.test(line)) {
+        score -= 80;
+        strength = 'low';
+      }
     });
-
     matches.forEach((match, matchIndex) => {
-      const amountCents = parseMoneyToken(match[0]);
-      if (!amountCents) return;
-
-      candidates.push({
-        amountCents,
-        score: score + matchIndex / 100,
-      });
+      const value = parseMoneyToken(match[0]);
+      if (!value) return;
+      candidates.push({ value, score: score + matchIndex / 100, evidence: line, strength });
     });
   });
-
-  if (candidates.length === 0) return undefined;
-
-  const hinted = candidates.filter((candidate) => candidate.score >= 20);
-  if (hinted.length > 0) {
-    return hinted.sort((a, b) => b.score - a.score || b.amountCents - a.amountCents)[0]
-      .amountCents;
-  }
-
-  return Math.max(...candidates.map((candidate) => candidate.amountCents));
+  if (!candidates.length) return undefined;
+  const hinted = candidates.filter((candidate) => candidate.score >= 20 && candidate.strength !== 'low');
+  const selected = hinted.length
+    ? hinted.sort((a, b) => b.score - a.score || b.value - a.value)[0]
+    : candidates.sort((a, b) => b.value - a.value)[0];
+  const conflicting = hinted.some((candidate) => candidate !== selected && candidate.value !== selected.value && candidate.score >= selected.score - 1);
+  return {
+    value: selected.value,
+    confidence: conflicting ? 'low' : selected.strength,
+    evidence: selected.evidence,
+  };
 }
 
 function looksLikeMerchantLine(line: string) {
@@ -144,12 +168,15 @@ function looksLikeMerchantLine(line: string) {
   return true;
 }
 
-function extractDescription(lines: string[]) {
-  const headerLines = lines.slice(0, 10);
-  const merchant = headerLines.find(looksLikeMerchantLine);
-  if (!merchant) return undefined;
-
-  return normalizeSpaces(merchant).slice(0, 255);
+function extractDescription(lines: string[]): ReceiptOcrSuggestions['description'] {
+  const index = lines.slice(0, 10).findIndex(looksLikeMerchantLine);
+  if (index === -1) return undefined;
+  const evidence = lines[index];
+  return {
+    value: normalizeSpaces(evidence).slice(0, 255),
+    confidence: index < 3 ? 'medium' : 'low',
+    evidence,
+  };
 }
 
 export function parseReceiptOcrText(text: string): ReceiptOcrSuggestions {
@@ -161,7 +188,7 @@ export function parseReceiptOcrText(text: string): ReceiptOcrSuggestions {
   if (lines.length === 0) return {};
 
   return {
-    amountCents: extractAmount(lines),
+    amount: extractAmount(lines),
     date: extractDate(lines),
     description: extractDescription(lines),
   };
