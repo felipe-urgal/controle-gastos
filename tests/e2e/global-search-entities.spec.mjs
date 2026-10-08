@@ -104,4 +104,63 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
       url.pathname === item.path && url.searchParams.get(item.key) === item.id,
     );
   }
+  // Itens inativos continuam localizáveis sem perder o contexto.
+  const archived = await page.evaluate(async (id) => {
+    const response = await fetch(`/api/merchants/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: false }),
+    });
+    return { status: response.status, body: await response.json() };
+  }, entities.merchant.id);
+  expect(archived.status).toBe(200);
+  await page.goto('/dashboard');
+  await page.keyboard.press('Control+K');
+  const inactiveDialog = page.getByRole('dialog', { name: 'Busca global' });
+  await inactiveDialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras').fill(`${unique} Loja`);
+  const inactiveMerchant = inactiveDialog.getByRole('button', { name: new RegExp(`${unique} Loja.*Inativo`) });
+  await expect(inactiveMerchant).toBeVisible();
+  await inactiveDialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras').press('Escape');
+
+  // Um dado exatamente igual deve ganhar de matches alfabéticos mais fracos.
+  const rankingTerm = `BuscaRank${unique}`;
+  const exactMerchantId = await page.evaluate(async (name) => {
+    async function createMerchant(value) {
+      const response = await fetch('/api/merchants', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: value }),
+      });
+      if (!response.ok) throw new Error(JSON.stringify(await response.json()));
+      return (await response.json()).data.id;
+    }
+    for (let i = 0; i < 7; i += 1) {
+      await createMerchant(`A${i} ${name}`);
+    }
+    return createMerchant(name);
+  }, rankingTerm);
+  await page.goto('/dashboard');
+  await page.keyboard.press('Control+K');
+  const rankDialog = page.getByRole('dialog', { name: 'Busca global' });
+  const rankInput = rankDialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
+  await rankInput.fill(rankingTerm);
+  await expect(rankDialog.getByText(rankingTerm, { exact: true })).toBeVisible();
+  await rankInput.press('Enter');
+  await expect(page).toHaveURL((url) =>
+    url.pathname === '/estabelecimentos' && url.searchParams.get('merchantId') === exactMerchantId,
+  );
+
+  // Acentos são preservados na identidade e busca pelo nome original.
+  const accentedTag = `Café${unique}`;
+  await page.evaluate(async (name) => {
+    const response = await fetch('/api/tags', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) throw new Error(JSON.stringify(await response.json()));
+  }, accentedTag);
+  await page.goto('/dashboard');
+  await page.keyboard.press('Control+K');
+  const accentDialog = page.getByRole('dialog', { name: 'Busca global' });
+  await accentDialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras').fill(`#${accentedTag}`);
+  await expect(accentDialog.getByText(`#${accentedTag}`, { exact: true })).toBeVisible();
+
 });
