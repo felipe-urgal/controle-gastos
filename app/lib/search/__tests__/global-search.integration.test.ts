@@ -112,13 +112,19 @@ describe('global search integration', () => {
       prisma.debt.create({ data: { userId: owner.id, name: `${marker} Dívida`, balance: 987654, status: 'PAID' } }),
       prisma.financialGoal.create({ data: { userId: owner.id, name: `${marker} Meta`, targetAmount: 987654, status: 'COMPLETED' } }),
     ]);
-    const foreignEntity = await prisma.debt.create({
-      data: { userId: foreign.id, name: `${marker} externa`, balance: 987654 },
-    });
+    const foreignEntities = await Promise.all([
+      prisma.merchant.create({ data: { userId: foreign.id, name: `${marker} Loja externa` } }),
+      prisma.tag.create({ data: { userId: foreign.id, name: marker.slice(0, 30), normalizedName: marker.slice(0, 30).toLowerCase() } }),
+      prisma.transactionTemplate.create({ data: { userId: foreign.id, name: `${marker} Modelo externo`, type: 'EXPENSE' } }),
+      prisma.debt.create({ data: { userId: foreign.id, name: `${marker} Dívida externa`, balance: 987654 } }),
+      prisma.financialGoal.create({ data: { userId: foreign.id, name: `${marker} Meta externa`, targetAmount: 987654 } }),
+    ]);
     const result = await getGlobalSearchForUser(owner.id, marker);
     const all = result.groups.flatMap((group) => group.items);
     expect(all.map((item) => item.id)).toEqual(expect.arrayContaining(entities.map((item) => item.id)));
-    expect(all.some((item) => item.id === foreignEntity.id)).toBe(false);
+    for (const foreignEntity of foreignEntities) {
+      expect(all.some((item) => item.id === foreignEntity.id)).toBe(false);
+    }
     expect(result.groups.map((group) => group.type)).toEqual(expect.arrayContaining(['MERCHANT', 'TAG', 'TEMPLATE', 'DEBT', 'GOAL']));
     expect(all.find((item) => item.id === entities[0].id)?.subtitle).toBe('Inativo');
     expect(all.find((item) => item.id === entities[1].id)?.subtitle).toBe('Arquivada');
