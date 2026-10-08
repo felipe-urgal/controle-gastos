@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   OFFLINE_TRANSACTION_QUEUE_PREFIX,
+  type OfflineTransactionQueuePayload,
   enqueueOfflineTransaction,
   readOfflineTransactionQueue,
   rekeyOfflineTransactionQueueItem,
@@ -115,7 +116,7 @@ describe("offline transaction queue", () => {
     });
     expect(readOfflineTransactionQueue("user-a")).toHaveLength(2);
     const created = new Map<string, string>();
-    const send = async (_: typeof payload, key: string) => {
+    const send = async (_: OfflineTransactionQueuePayload, key: string) => {
       if (!created.has(key)) created.set(key, `transaction-${created.size + 1}`);
       return { id: created.get(key) };
     };
@@ -131,7 +132,7 @@ describe("offline transaction queue", () => {
     enqueueOfflineTransaction("user-a", payload, { id: "attempt", idempotencyKey: "stable-key" });
     const created = new Map<string, string>();
     let requests = 0;
-    const simulateServer = async (_: typeof payload, key: string) => {
+    const simulateServer = async (_: OfflineTransactionQueuePayload, key: string) => {
       requests++;
       if (!created.has(key)) created.set(key, `transaction-${created.size + 1}`);
       if (requests === 1) throw new TypeError("Resposta perdida após criação");
@@ -175,7 +176,7 @@ describe("offline transaction queue", () => {
       originalSetItem(key, value);
     };
     const created = new Map<string, string>();
-    const send = async (_: typeof payload, key: string) => {
+    const send = async (_: OfflineTransactionQueuePayload, key: string) => {
       if (!created.has(key)) created.set(key, `created-${created.size + 1}`);
       return created.get(key);
     };
