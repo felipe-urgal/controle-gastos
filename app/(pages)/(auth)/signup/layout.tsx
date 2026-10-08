@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Signup- Controle de Gastos",
+  title: "Criar conta - Controle de Gastos",
   description: "Ferramenta para controlar seus gastos financeiros",
   openGraph: {
     url: "https://controle-gastos-pessoal.vercel.app/signup",

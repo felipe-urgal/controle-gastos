@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Resetar Senha - Controle de Gastos",
+  referrer: "no-referrer",
   description: "Ferramenta para controlar seus gastos financeiros",
   openGraph: {
     url: "https://controle-gastos-pessoal.vercel.app/reset-password",

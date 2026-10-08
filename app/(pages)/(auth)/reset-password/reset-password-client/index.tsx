@@ -14,16 +14,25 @@ import {
 
 import AuthShell from '@/app/components/layout/auth-shell';
 import { Button, Input } from '@/app/components/ui';
+import { ApiClientError } from '@/app/services/api-client';
+import { authService } from '@/app/services/auth-service';
 import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENT_LABEL, getPasswordRuleError } from '@/app/lib/auth/password-rules';
 
-export default function ResetPasswordClient({ token }: { token?: string }) {
+export default function ResetPasswordClient({ token: initialToken }: { token?: string }) {
   const router = useRouter();
+  // O token fica só em memória: removemos o segredo da URL (histórico, cópia de
+  // endereço). Um refresh perde o token e exige solicitar novo link.
+  const [token] = useState(initialToken);
   const [form, setForm] = useState({ novaSenha: '', confirmarSenha: '' });
   const [errors, setErrors] = useState({ novaSenha: '', confirmarSenha: '' });
   const [showPassword, setShowPassword] = useState({ novaSenha: false, confirmarSenha: false });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [redirectTimer, setRedirectTimer] = useState(5);
+
+  useEffect(() => {
+    if (initialToken) window.history.replaceState(null, '', '/reset-password');
+  }, [initialToken]);
 
   useEffect(() => {
     if (status !== 'success') return;
@@ -89,24 +98,17 @@ export default function ResetPasswordClient({ token }: { token?: string }) {
     setMessage('');
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, novaSenha: form.novaSenha }),
-      });
-      const data = await response.json();
-
-      if (response.ok) {
-        setStatus('success');
-        setMessage('Senha redefinida com sucesso!');
-        setForm({ novaSenha: '', confirmarSenha: '' });
-      } else {
-        setStatus('error');
-        setMessage(data.message || 'Erro ao redefinir senha.');
-      }
-    } catch {
+      await authService.resetPassword({ token, novaSenha: form.novaSenha });
+      setStatus('success');
+      setMessage('Senha redefinida com sucesso!');
+      setForm({ novaSenha: '', confirmarSenha: '' });
+    } catch (caught) {
       setStatus('error');
-      setMessage('Erro inesperado. Tente novamente.');
+      setMessage(
+        caught instanceof ApiClientError
+          ? caught.message
+          : 'Erro inesperado. Tente novamente.',
+      );
     }
   };
 
