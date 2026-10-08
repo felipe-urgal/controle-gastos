@@ -1,6 +1,3 @@
-const TESSERACT_CDN_URL =
-  "https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js";
-
 export const RECEIPT_OCR_MAX_FILE_BYTES = 6 * 1024 * 1024;
 export const RECEIPT_OCR_MAX_DIMENSION = 2200;
 
@@ -14,19 +11,7 @@ interface TesseractWorker {
   terminate(): Promise<void>;
 }
 
-interface TesseractApi {
-  createWorker(
-    language?: string,
-    oem?: number,
-    options?: { logger?: (message: TesseractProgress) => void },
-  ): Promise<TesseractWorker>;
-}
-
-declare global {
-  interface Window {
-    Tesseract?: TesseractApi;
-  }
-}
+type TesseractApi = typeof import("tesseract.js");
 
 let tesseractLoader: Promise<TesseractApi> | null = null;
 
@@ -65,57 +50,15 @@ export function validateReceiptImage(file: File) {
   }
 }
 
-function loadTesseract() {
+function loadTesseract(): Promise<TesseractApi> {
   assertReceiptOcrSupport();
-
-  if (window.Tesseract) return Promise.resolve(window.Tesseract);
-  if (tesseractLoader) return tesseractLoader;
-
-  tesseractLoader = new Promise<TesseractApi>((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-receipt-ocr="tesseract"]',
-    );
-
-    const resolveLoaded = () => {
-      if (window.Tesseract) {
-        resolve(window.Tesseract);
-      } else {
-        tesseractLoader = null;
-        reject(new Error("O mecanismo de OCR não ficou disponível."));
-      }
-    };
-
-    if (existing) {
-      existing.addEventListener("load", resolveLoaded, { once: true });
-      existing.addEventListener(
-        "error",
-        () => {
-          tesseractLoader = null;
-          reject(new Error("Não foi possível carregar o mecanismo de OCR."));
-        },
-        { once: true },
-      );
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = TESSERACT_CDN_URL;
-    script.async = true;
-    script.crossOrigin = "anonymous";
-    script.dataset.receiptOcr = "tesseract";
-    script.addEventListener("load", resolveLoaded, { once: true });
-    script.addEventListener(
-      "error",
-      () => {
-        tesseractLoader = null;
-        script.remove();
-        reject(new Error("Não foi possível carregar o mecanismo de OCR."));
-      },
-      { once: true },
-    );
-    document.head.appendChild(script);
-  });
-
+  if (!tesseractLoader) {
+    // Next.js generates a separate async chunk; no third-party script runs in the page.
+    tesseractLoader = import("tesseract.js").catch((error: unknown) => {
+      tesseractLoader = null;
+      throw error;
+    });
+  }
   return tesseractLoader;
 }
 
@@ -206,9 +149,9 @@ export interface RecognizeReceiptOptions {
 }
 
 /**
- * Tesseract.js 7.0.0, Apache-2.0.
- * The ~61 KB browser loader, worker/WASM and Portuguese language data are fetched
- * only after the user selects a receipt. The image itself never leaves the browser.
+ * The version-pinned OCR API is imported on demand. Worker, WASM and Portuguese
+ * traineddata are copied from installed packages into /ocr at build time and
+ * fetched only from this application's origin. Receipt pixels stay in-browser.
  */
 export async function recognizeReceiptImage(
   file: File,
@@ -245,6 +188,9 @@ export async function recognizeReceiptImage(
     if (signal?.aborted) throw abortError();
 
     worker = await tesseract.createWorker("por", undefined, {
+      workerPath: "/ocr/worker.min.js",
+      corePath: "/ocr/core",
+      langPath: "/ocr/lang",
       logger(message) {
         if (message.status === "recognizing text" && Number.isFinite(message.progress)) {
           onProgress?.(Math.max(0, Math.min(1, message.progress)));
