@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 
@@ -80,7 +81,7 @@ export async function createFlexibleSeriesWithTx(
   tx: Prisma.TransactionClient,
   userId: string,
   input: CreateFlexibleRecurringTransactionInput,
-  options: { sourceKey?: string | null } = {},
+  options: { sourceKey?: string | null; requestHash?: string } = {},
 ) {
   const account = await getOwnedActiveAccountOrThrow(
     tx,
@@ -146,6 +147,7 @@ export async function createFlexibleSeriesWithTx(
       endDay: lastOccurrence.day,
       occurrenceCount: occurrences.length,
       sourceKey: options.sourceKey ?? null,
+      requestHash: options.requestHash ?? null,
       userId,
     },
   });
@@ -189,23 +191,80 @@ export async function createFlexibleSeriesWithTx(
   return { series, firstOccurrence, occurrenceCount: occurrences.length };
 }
 
+function sha256(value: string) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function stableSerialize(value: unknown): string {
+  if (Array.isArray(value)) return "[" + value.map(stableSerialize).join(",") + "]";
+  if (value && typeof value === "object") {
+    return "{" + Object.entries(value as Record<string, unknown>)
+      .filter(([, nested]) => nested !== undefined)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, nested]) => JSON.stringify(key) + ":" + stableSerialize(nested))
+      .join(",") + "}";
+  }
+  return JSON.stringify(value);
+}
+
 export async function createFlexibleRecurringTransactions(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
-    const limit = await consumeTransactionMutationRateLimit(userId);
-    if (limit.limited) {
-      return rateLimitFailure(
-        "Muitas alterações financeiras em pouco tempo. Tente novamente em instantes",
-        limit.retryAfterSeconds,
-        "TRANSACTION_RATE_LIMITED",
-      );
-    }
     const input = createFlexibleRecurringTransactionSchema.parse(
       await parseJsonBody(request),
     );
-    const created = await prisma.$transaction((tx) =>
-      createFlexibleSeriesWithTx(tx, userId, input),
-    );
+    const key = request.headers.get("Idempotency-Key")?.trim();
+    if (!key || key.length > 128) {
+      return failure("Idempotency-Key obrigatória e deve ter até 128 caracteres", 400, "INVALID_IDEMPOTENCY_KEY");
+    }
+    const sourceKey = "recurring:" + sha256(key);
+    const requestHash = sha256(stableSerialize(input));
+    const replay = async () => {
+      const series = await prisma.transactionSeries.findFirst({
+        where: { userId, sourceKey },
+      });
+      if (!series) return null;
+      if (series.requestHash !== requestHash) {
+        throw new HttpError("Chave de idempotência já utilizada com outro payload", 409, "IDEMPOTENCY_PAYLOAD_CONFLICT");
+      }
+      const firstOccurrence = await prisma.transaction.findFirstOrThrow({
+        where: { userId, seriesId: series.id, seriesIndex: 1 },
+        include: recurringTransactionInclude,
+      });
+      return { series, firstOccurrence, occurrenceCount: series.occurrenceCount };
+    };
+    let created = await replay();
+    if (!created) {
+      const limit = await consumeTransactionMutationRateLimit(userId);
+      if (limit.limited) {
+        return rateLimitFailure(
+          "Muitas alterações financeiras em pouco tempo. Tente novamente em instantes",
+          limit.retryAfterSeconds,
+          "TRANSACTION_RATE_LIMITED",
+        );
+      }
+      try {
+        created = await prisma.$transaction(async (tx) => {
+          const existing = await tx.transactionSeries.findFirst({ where: { userId, sourceKey } });
+          if (existing) {
+            if (existing.requestHash !== requestHash) {
+              throw new HttpError("Chave de idempotência já utilizada com outro payload", 409, "IDEMPOTENCY_PAYLOAD_CONFLICT");
+            }
+            const firstOccurrence = await tx.transaction.findFirstOrThrow({
+              where: { userId, seriesId: existing.id, seriesIndex: 1 },
+              include: recurringTransactionInclude,
+            });
+            return { series: existing, firstOccurrence, occurrenceCount: existing.occurrenceCount };
+          }
+          return createFlexibleSeriesWithTx(tx, userId, input, { sourceKey, requestHash });
+        });
+      } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) throw error;
+        // The competing transaction won the unique (userId, sourceKey) race.
+        created = await replay();
+        if (!created) throw error;
+      }
+    }
 
     return success(
       {
