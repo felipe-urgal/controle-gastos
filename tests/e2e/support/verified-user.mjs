@@ -149,3 +149,20 @@ export async function isEmailVerified(email) {
     return Boolean(user?.emailVerifiedAt);
   });
 }
+
+// Fixtures exclusivas de E2E do acesso MCP: simulam expiração e desativação.
+export async function expireMcpTokens({ email }) {
+  return withPrisma(async (prisma) => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    await prisma.mcpAccessToken.updateMany({
+      where: { userId: user.id },
+      data: { expiresAt: new Date(Date.now() - 1000) },
+    });
+  });
+}
+
+export async function setUserActive({ email, isActive }) {
+  return withPrisma((prisma) =>
+    prisma.user.update({ where: { email }, data: { isActive } }),
+  );
+}

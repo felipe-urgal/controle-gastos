@@ -2,6 +2,7 @@ import { ZodError, z } from "zod";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { isHttpError } from "@/app/lib/http-error";
+import { logEvent } from "@/app/lib/observability";
 import {
   authenticateMcpBearerToken,
   type McpPrincipal,
@@ -205,12 +206,20 @@ async function handleAuthenticatedRequest(
       return jsonRpcError(id, -32602, "Tool MCP desconhecida ou inválida");
     }
 
+    const startedAt = Date.now();
+    const toolName = parsed.data.name;
     try {
       const output = await executeMcpTool(
         principal.userId,
         parsed.data.name,
         parsed.data.arguments,
       );
+
+      logEvent("info", "mcp_tool_call", {
+        tool: toolName,
+        result: "success",
+        durationMs: Date.now() - startedAt,
+      });
 
       return jsonRpcResult(id, {
         content: [
@@ -223,6 +232,12 @@ async function handleAuthenticatedRequest(
         isError: false,
       });
     } catch (error) {
+      logEvent("warn", "mcp_tool_call", {
+        tool: toolName,
+        result: error instanceof ZodError ? "invalid_arguments" : "error",
+        durationMs: Date.now() - startedAt,
+      });
+
       if (error instanceof ZodError) {
         return jsonRpcError(
           id,
@@ -267,6 +282,7 @@ export async function handleMcpRequest(request: Request) {
     rawBody = await parseJsonBody(request, { maxBytes: MCP_MAX_BODY_BYTES });
   } catch (error) {
     if (isHttpError(error) && error.status === 413) {
+      logEvent("warn", "mcp_body_rejected", { status: 413 });
       return jsonRpcError(null, -32600, "Requisição MCP excede o limite", 413);
     }
     return jsonRpcError(null, -32700, "JSON inválido", 400);
@@ -284,10 +300,14 @@ export async function handleMcpRequest(request: Request) {
   const principal = await authenticateMcpBearerToken(
     request.headers.get("authorization"),
   );
-  if (!principal) return unauthorized();
+  if (!principal) {
+    logEvent("warn", "mcp_auth_failed", { status: 401 });
+    return unauthorized();
+  }
 
   const retryAfter = await consumeMcpLimits(request, principal);
   if (retryAfter !== null) {
+    logEvent("warn", "mcp_rate_limited", { status: 429 });
     return rateLimited(parsedRequest.data.id ?? null, retryAfter);
   }
 

@@ -26,6 +26,7 @@ export default function McpAccessPanel({
   const [items, setItems] = useState<McpAccessTokenSummary[]>([]);
   const [totalActive, setTotalActive] = useState(0);
   const [filter, setFilter] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const [loadFailed, setLoadFailed] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
   const [name, setName] = useState('Meu cliente MCP');
   const [expiresInDays, setExpiresInDays] =
@@ -44,8 +45,10 @@ export default function McpAccessPanel({
       const response = await mcpService.listTokens();
       setItems(response.data.items);
       setTotalActive(response.data.totalActive);
+      setLoadFailed(false);
       setError('');
     } catch (requestError) {
+      setLoadFailed(true);
       setError(
         requestError instanceof Error
           ? requestError.message
@@ -281,9 +284,14 @@ export default function McpAccessPanel({
         )}
 
         {error && (
-          <p role="alert" className="text-sm leading-relaxed text-[var(--expense)]">
-            {error}
-          </p>
+          <div role="alert" className="space-y-2">
+            <p className="text-sm leading-relaxed text-[var(--expense)]">{error}</p>
+            {loadFailed && (
+              <Button type="button" size="sm" variant="outline" onClick={() => void loadTokens()}>
+                Tentar novamente
+              </Button>
+            )}
+          </div>
         )}
 
         <div>
