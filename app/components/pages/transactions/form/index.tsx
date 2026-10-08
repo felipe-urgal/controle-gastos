@@ -32,7 +32,6 @@ import {
   OfflineTransactionQueueStorageError,
   enqueueOfflineTransaction,
   readOfflineTransactionQueue,
-  removeOfflineTransactionQueueItem,
   syncOfflineTransactionQueueItem,
 } from '@/app/lib/pwa/offline-transaction-queue';
 import type { ReceiptOcrSuggestions } from '@/app/lib/receipts/receipt-ocr-parser';
