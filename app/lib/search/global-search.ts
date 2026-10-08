@@ -299,7 +299,7 @@ export async function getGlobalSearchForUser(
         type: 'IMPORT_RULE',
         title: item.name,
         subtitle: `${item.category.name} · ${item.descriptionPattern} · ${item.isActive ? 'Ativa' : 'Inativa'}`,
-        href: '/transacoes/importar/regras',
+        href: `/transacoes/importar/regras?ruleId=${encodeURIComponent(item.id)}`,
       })),
     ),
     group(
@@ -322,7 +322,7 @@ export async function getGlobalSearchForUser(
       'DEBT',
       debts.map((item) => ({
         id: item.id, type: 'DEBT', title: item.name,
-        subtitle: item.status,
+        subtitle: item.status === 'ACTIVE' ? 'Ativa' : item.status === 'PAID' ? 'Quitada' : 'Arquivada',
         href: `/dividas?debtId=${encodeURIComponent(item.id)}`,
       })),
     ),
