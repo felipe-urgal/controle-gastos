@@ -115,6 +115,61 @@ async function createFixture() {
 }
 
 describe("installment transaction series integration", () => {
+  it("replays the same key and body without duplicating a series", async () => {
+    const { owner, input } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const key = randomUUID();
+    const send = (data: typeof input) => createInstallmentTransactions(
+      new Request("http://localhost/api/transactions/installments", {
+        method: "POST",
+        headers: { "content-type": "application/json", "Idempotency-Key": key },
+        body: JSON.stringify(data),
+      }),
+    );
+    const first = await send(input);
+    const second = await send(input);
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    const firstBody = await first.json();
+    const secondBody = await second.json();
+    expect(secondBody.data.series.id).toBe(firstBody.data.series.id);
+    expect(await prisma.transactionSeries.count({ where: { userId: owner.id } })).toBe(1);
+    expect(await prisma.transaction.count({ where: { userId: owner.id } })).toBe(3);
+    const changed = await send({ ...input, transaction: { ...input.transaction, amount: input.transaction.amount + 100 } });
+    expect(changed.status).toBe(409);
+    expect((await changed.json()).error.code).toBe("IDEMPOTENCY_PAYLOAD_CONFLICT");
+    expect(await prisma.transactionSeries.count({ where: { userId: owner.id } })).toBe(1);
+  });
+
+  it("rejects missing Idempotency-Key before creating a series", async () => {
+    const { owner, input } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const response = await createInstallmentTransactions(new Request("http://localhost/api/transactions/installments", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    }));
+    expect(response.status).toBe(400);
+    expect(await prisma.transactionSeries.count({ where: { userId: owner.id } })).toBe(0);
+  });
+
+  it("handles concurrent identical submissions without creating two series", async () => {
+    const { owner, input } = await createFixture();
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const key = randomUUID();
+    const send = () => createInstallmentTransactions(new Request("http://localhost/api/transactions/installments", {
+      method: "POST",
+      headers: { "content-type": "application/json", "Idempotency-Key": key },
+      body: JSON.stringify(input),
+    }));
+    const results = await Promise.all([send(), send()]);
+    const responses = await Promise.all(results.map((result) => result.json()));
+    expect(results.map((result) => result.status)).toEqual([201, 201]);
+    expect(responses[0].data.series.id).toBe(responses[1].data.series.id);
+    expect(await prisma.transactionSeries.count({ where: { userId: owner.id } })).toBe(1);
+  });
+
+
   it("creates exact isolated installments without anticipating future balance", async () => {
     const { owner, otherUser, account, incomeCategory, input } = await createFixture();
     authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
@@ -122,7 +177,7 @@ describe("installment transaction series integration", () => {
     const response = await createInstallmentTransactions(
       new Request("http://localhost/api/transactions/installments", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify(input),
       })
     );
@@ -194,7 +249,7 @@ describe("installment transaction series integration", () => {
     const incomeCategoryUpdate = await transactionCrud.update(
       new Request(`http://localhost/api/transactions/${occurrences[1].id}`, {
         method: "PUT",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({ categoryId: incomeCategory.id }),
       }),
       { params: Promise.resolve({ id: occurrences[1].id }) }
@@ -204,7 +259,7 @@ describe("installment transaction series integration", () => {
     const cancelOne = await transactionCrud.update(
       new Request(`http://localhost/api/transactions/${occurrences[1].id}`, {
         method: "PUT",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({ status: "CANCELLED" }),
       }),
       { params: Promise.resolve({ id: occurrences[1].id }) }
@@ -239,7 +294,7 @@ describe("installment transaction series integration", () => {
     const response = await createInstallmentTransactions(
       new Request("http://localhost/api/transactions/installments", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({
           ...input,
           transaction: { ...input.transaction, tagIds: [tag.id] },
@@ -272,7 +327,7 @@ describe("installment transaction series integration", () => {
     const incomeResponse = await createInstallmentTransactions(
       new Request("http://localhost/api/transactions/installments", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({
           ...input,
           transaction: { ...input.transaction, categoryId: incomeCategory.id },
@@ -284,7 +339,7 @@ describe("installment transaction series integration", () => {
     const foreignAccountResponse = await createInstallmentTransactions(
       new Request("http://localhost/api/transactions/installments", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({
           ...input,
           transaction: { ...input.transaction, accountId: otherAccount.id },

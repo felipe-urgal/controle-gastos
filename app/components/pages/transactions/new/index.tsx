@@ -17,6 +17,8 @@ import {
 } from '@/app/lib/pwa/offline-transaction-draft';
 import {
   readOfflineTransactionQueue,
+  replaceReviewedOfflineTransactionQueueItem,
+  type OfflineTransactionQueuePayload,
   rekeyOfflineTransactionQueueItem,
   removeOfflineTransactionQueueItem,
   syncOfflineTransactionQueueItem,
@@ -67,6 +69,7 @@ export default function New({
   const [offlineQueue, setOfflineQueue] = useState<OfflineTransactionQueueItem[]>([]);
   const [queueSyncingId, setQueueSyncingId] = useState<string | null>(null);
   const [queueMessage, setQueueMessage] = useState<string | null>(null);
+  const [reviewingQueueItem, setReviewingQueueItem] = useState<OfflineTransactionQueueItem | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [now, setNow] = useState(0);
   const [loadedOfflineDraftId, setLoadedOfflineDraftId] = useState<string | null>(null);
@@ -249,9 +252,43 @@ export default function New({
     }
   }
 
+  function reviewQueuedTransaction(item: OfflineTransactionQueueItem) {
+    if (item.failureKind !== 'validation' && item.failureKind !== 'business_conflict') {
+      setQueueMessage('Resultado do envio incerto. Tente sincronizar primeiro com a chave original.');
+      return;
+    }
+    setReviewingQueueItem(item);
+    setInitialValues({
+      ...item.payload,
+      merchantId: null,
+      allocations: item.payload.allocations ?? [],
+      tagIds: item.payload.tagIds ?? [],
+    });
+    setPreferredCategoryType(item.payload.type);
+    setComposeMode('transaction');
+    setQueueMessage(null);
+    setFormRevision((current) => current + 1);
+  }
+
+  function saveReviewedQueueItem(payload: OfflineTransactionQueuePayload) {
+    if (!user?.id || !reviewingQueueItem) return;
+    try {
+      replaceReviewedOfflineTransactionQueueItem(user.id, reviewingQueueItem.id, payload);
+      setReviewingQueueItem(null);
+      setInitialValues(undefined);
+      setQueueMessage('Correção salva com nova chave. Confira e sincronize manualmente.');
+      refreshOfflineQueue();
+      setFormRevision((current) => current + 1);
+    } catch (error) {
+      setQueueMessage(error instanceof Error ? error.message : 'Não foi possível salvar a revisão.');
+      throw error;
+    }
+  }
+
   function discardQueuedTransaction(item: OfflineTransactionQueueItem) {
     if (!user?.id || queueSyncingId) return;
     removeOfflineTransactionQueueItem(user.id, item.id);
+    if (reviewingQueueItem?.id === item.id) setReviewingQueueItem(null);
     setQueueMessage(
       'Lançamento pendente descartado.',
     );
@@ -504,7 +541,14 @@ export default function New({
                     ) : (
                       <>
                         {(item.failureKind === 'validation' || item.failureKind === 'business_conflict') ? (
-                          <span className="text-xs text-[var(--text-muted)]">Este lançamento exige revisão antes de uma nova tentativa. Descarte-o somente após conferir os dados.</span>
+                          <button
+                            type="button"
+                            onClick={() => reviewQueuedTransaction(item)}
+                            disabled={Boolean(queueSyncingId)}
+                            className="min-h-9 rounded-full bg-[var(--orbit-primary)] px-3 text-xs font-bold text-white disabled:opacity-50"
+                          >
+                            Revisar
+                          </button>
                         ) : (
                         <button
                           type="button"
@@ -536,6 +580,15 @@ export default function New({
               {queueMessage}
             </p>
           )}
+        </section>
+      )}
+
+      {reviewingQueueItem && !isTransfer && (
+        <section role="alert" aria-label="Revisão de lançamento" className="mt-4 rounded-lg border border-[var(--warning)] p-4 text-sm">
+          <p className="font-bold">Revisar lançamento pendente</p>
+          <p className="mt-1">Motivo: {reviewingQueueItem.lastError || reviewingQueueItem.errorCode || 'Rejeição pelo servidor'}</p>
+          <p className="mt-1">Confira conta, categoria, tags e estabelecimento. Alterar os dados cria uma nova tentativa com outra chave; o lançamento não será enviado automaticamente.</p>
+          <button type="button" onClick={() => { setReviewingQueueItem(null); setInitialValues(undefined); setFormRevision((current) => current + 1); }} className="mt-3 rounded-full border border-[var(--border-strong)] px-3 py-2 font-semibold">Cancelar revisão</button>
         </section>
       )}
 
@@ -630,6 +683,8 @@ export default function New({
           onSuccess={loadedOfflineDraftId ? handleOfflineDraftSaved : undefined}
           offlineOwnerUserId={user?.id}
           offlineDraftId={loadedOfflineDraftId}
+          reviewingQueueItem={reviewingQueueItem}
+          onReviewedQueueItem={saveReviewedQueueItem}
           onOfflineQueueChanged={refreshOfflineQueue}
           onCancelOverride={
             loadedOfflineDraftId ? () => router.replace('/transacoes') : undefined

@@ -33,6 +33,8 @@ import {
   enqueueOfflineTransaction,
   readOfflineTransactionQueue,
   syncOfflineTransactionQueueItem,
+  type OfflineTransactionQueueItem,
+  type OfflineTransactionQueuePayload,
 } from '@/app/lib/pwa/offline-transaction-queue';
 import { getApplicableReceiptOcrSuggestions, type ReceiptOcrSuggestions } from '@/app/lib/receipts/receipt-ocr-parser';
 import { buildInstallmentOccurrences } from '@/app/lib/transactions/installments';
@@ -84,6 +86,8 @@ interface TransactionFormProps {
   offlineOwnerUserId?: string;
   offlineDraftId?: string | null;
   onOfflineQueueChanged?: () => void;
+  reviewingQueueItem?: OfflineTransactionQueueItem | null;
+  onReviewedQueueItem?: (payload: OfflineTransactionQueuePayload) => void;
 }
 
 type CreationMode = 'single' | 'recurring' | 'installment';
@@ -148,6 +152,8 @@ export default function TransactionForm({
   offlineOwnerUserId,
   offlineDraftId,
   onOfflineQueueChanged,
+  reviewingQueueItem,
+  onReviewedQueueItem,
 }: TransactionFormProps) {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>(() =>
@@ -626,6 +632,25 @@ export default function TransactionForm({
         description: formData.description || '',
       };
 
+      if (reviewingQueueItem) {
+        if (!onReviewedQueueItem) throw new Error('Revisão indisponível');
+        if (creationMode !== 'single') throw new Error('A revisão permite apenas lançamento simples.');
+        if (!accounts.some((account) => account.id === payload.accountId)) {
+          throw new Error('Conta não encontrada. Selecione uma conta válida.');
+        }
+        if (category.type !== reviewingQueueItem.payload.type) {
+          throw new Error('A categoria deve corresponder ao tipo do lançamento.');
+        }
+        if (formData.tagIds?.some((id) => !tags.some((tag) => tag.id === id && tag.isActive))) {
+          throw new Error('Existem tags inativas ou excluídas. Revise as tags.');
+        }
+        if (formData.merchantId && !merchants.some((merchant) => merchant.id === formData.merchantId)) {
+          throw new Error('Estabelecimento indisponível. Selecione outro.');
+        }
+        onReviewedQueueItem(payload);
+        return;
+      }
+
       let savedTransaction: TransactionDTO | null = null;
 
       if (!isEditing && creationMode === 'recurring') {
@@ -639,10 +664,22 @@ export default function TransactionForm({
             ? { mode: 'count' as const, occurrences: occurrenceCount }
             : { mode: 'endDate' as const, endDate: recurrenceEndDate };
 
-        const response = await transactionService.createFlexibleRecurring({
-          transaction: payload,
-          recurrence: { ...recurrenceRule, ...ending },
-        });
+        const requestBody = { transaction: payload, recurrence: { ...recurrenceRule, ...ending } };
+        const serializedPayload = 'recurring:' + JSON.stringify(requestBody);
+        const previous = createAttemptRef.current;
+        if (previous && previous.payload !== serializedPayload) {
+          throw new Error('Uma recorrência anterior tem resultado incerto. Reenvie os mesmos dados antes de alterar.');
+        }
+        const attempt = previous ?? { id: crypto.randomUUID(), key: crypto.randomUUID(), payload: serializedPayload };
+        createAttemptRef.current = attempt;
+        let response;
+        try {
+          response = await transactionService.createFlexibleRecurring(requestBody, attempt.key);
+        } catch (error) {
+          if (error instanceof ApiClientError && (error.status === 400 || error.status === 422)) createAttemptRef.current = null;
+          throw error;
+        }
+        createAttemptRef.current = null;
         savedTransaction = response.data.firstOccurrence;
       } else if (!isEditing && creationMode === 'installment') {
         if (category.type !== 'EXPENSE') {
@@ -653,13 +690,22 @@ export default function TransactionForm({
           throw new Error(installmentPreview.error || 'Parcelamento inválido');
         }
 
-        const response = await transactionService.createInstallments({
-          transaction: {
-            ...payload,
-            type: 'EXPENSE' as const,
-          },
-          installmentCount,
-        });
+        const requestBody = { transaction: { ...payload, type: 'EXPENSE' as const }, installmentCount };
+        const serializedPayload = 'installment:' + JSON.stringify(requestBody);
+        const previous = createAttemptRef.current;
+        if (previous && previous.payload !== serializedPayload) {
+          throw new Error('Um parcelamento anterior tem resultado incerto. Reenvie os mesmos dados antes de alterar.');
+        }
+        const attempt = previous ?? { id: crypto.randomUUID(), key: crypto.randomUUID(), payload: serializedPayload };
+        createAttemptRef.current = attempt;
+        let response;
+        try {
+          response = await transactionService.createInstallments(requestBody, attempt.key);
+        } catch (error) {
+          if (error instanceof ApiClientError && (error.status === 400 || error.status === 422)) createAttemptRef.current = null;
+          throw error;
+        }
+        createAttemptRef.current = null;
         savedTransaction = response.data.firstOccurrence;
       } else if (isEditing && transaction) {
         const response = await transactionService.update(transaction.id, payload);
@@ -817,6 +863,18 @@ export default function TransactionForm({
     }
     if (formData.amount > 1_000_000_000) {
       return 'O valor excede o limite permitido por transação';
+    }
+    if (reviewingQueueItem && !accounts.some((account) => account.id === formData.accountId)) {
+      return 'Conta removida ou indisponível. Escolha uma conta válida.';
+    }
+    if (reviewingQueueItem && !categories.some((category) => category.id === formData.categoryId && category.type === reviewingQueueItem.payload.type)) {
+      return 'Categoria removida ou incompatível. Escolha uma categoria válida.';
+    }
+    if (reviewingQueueItem && (formData.tagIds ?? []).some((id) => !tags.some((tag) => tag.id === id && tag.isActive))) {
+      return 'Revise as tags inativas ou removidas.';
+    }
+    if (reviewingQueueItem && formData.merchantId && !merchants.some((merchant) => merchant.id === formData.merchantId)) {
+      return 'Revise o estabelecimento indisponível.';
     }
     if (!formData.accountId) {
       return 'Selecione uma conta';
@@ -1647,7 +1705,7 @@ export default function TransactionForm({
                   iconPosition="right"
                   fullWidth
                 >
-                  {isEditing ? 'Salvar alterações' : createLabel}
+                  {reviewingQueueItem ? 'Confirmar nova tentativa' : isEditing ? 'Salvar alterações' : createLabel}
                 </Button>
               </div>
             </div>

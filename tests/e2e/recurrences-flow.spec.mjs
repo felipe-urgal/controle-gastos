@@ -361,6 +361,7 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
 
     const start = monthAt(1);
     const created = await owner.post('/api/transactions/recurring/flexible', {
+      headers: { 'Idempotency-Key': `ownership-series-${suffix}` },
       data: {
         transaction: {
           accountId: account.id,

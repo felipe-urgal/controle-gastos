@@ -1083,6 +1083,7 @@ model TransactionSeries {
   endDay          Int
   occurrenceCount Int
   sourceKey       String?  @map("source_key") @db.VarChar(96)
+  requestHash     String?  @map("request_hash") @db.Char(64)
   endedAt         DateTime? @map("ended_at")
 
   userId       String

@@ -304,6 +304,42 @@ export function updateOfflineTransactionQueueItem(
   return updated;
 }
 
+/**
+ * Explicit user-approved correction of a definitively rejected operation.
+ * Never mutate or rekey an uncertain network/server/auth operation.
+ */
+export function replaceReviewedOfflineTransactionQueueItem(
+  userId: string,
+  itemId: string,
+  payload: OfflineTransactionQueuePayload,
+) {
+  if (!isValidPayload(payload)) {
+    throw new Error("Revise os dados: o lançamento ainda é inválido.");
+  }
+  const items = readOfflineTransactionQueue(userId);
+  const current = items.find((item) => item.id === itemId);
+  if (!current) throw new Error("Lançamento pendente não encontrado");
+  if (current.failureKind !== "validation" && current.failureKind !== "business_conflict") {
+    throw new Error("Antes de editar um envio incerto, tente sincronizar novamente com a chave original.");
+  }
+  if (JSON.stringify(current.payload) === JSON.stringify(payload)) {
+    throw new Error("Altere os dados após revisar o motivo da falha.");
+  }
+  const updated: OfflineTransactionQueueItem = {
+    ...current,
+    payload,
+    idempotencyKey: randomId(),
+    status: "pending",
+    failureKind: undefined,
+    errorCode: undefined,
+    retryAfterAt: undefined,
+    lastError: undefined,
+    updatedAt: new Date().toISOString(),
+  };
+  writeQueue(userId, items.map((item) => item.id === itemId ? updated : item));
+  return updated;
+}
+
 export function removeOfflineTransactionQueueItem(
   userId: string,
   itemId: string,

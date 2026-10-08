@@ -59,7 +59,8 @@ export const transactionService = {
   },
 
   async createFlexibleRecurring(
-    data: CreateFlexibleRecurringTransactionInput
+    data: CreateFlexibleRecurringTransactionInput,
+    idempotencyKey: string,
   ): Promise<ApiResponse<CreateFlexibleRecurringTransactionResponse>> {
     return apiClient<
       ApiResponse<CreateFlexibleRecurringTransactionResponse>,
@@ -67,11 +68,13 @@ export const transactionService = {
     >("/api/transactions/recurring/flexible", {
       method: "POST",
       body: data,
+      headers: { "Idempotency-Key": idempotencyKey },
     });
   },
 
   async createInstallments(
-    data: CreateInstallmentTransactionInput
+    data: CreateInstallmentTransactionInput,
+    idempotencyKey: string,
   ): Promise<ApiResponse<CreateInstallmentTransactionResponse>> {
     return apiClient<
       ApiResponse<CreateInstallmentTransactionResponse>,
@@ -79,6 +82,7 @@ export const transactionService = {
     >("/api/transactions/installments", {
       method: "POST",
       body: data,
+      headers: { "Idempotency-Key": idempotencyKey },
     });
   },
 };

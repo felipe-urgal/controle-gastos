@@ -6,6 +6,7 @@ import {
   enqueueOfflineTransaction,
   readOfflineTransactionQueue,
   rekeyOfflineTransactionQueueItem,
+  replaceReviewedOfflineTransactionQueueItem,
   syncOfflineTransactionQueueItem,
 } from "@/app/lib/pwa/offline-transaction-queue";
 
@@ -357,6 +358,45 @@ describe("offline transaction queue", () => {
     expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
       status: "error", failureKind: kind, idempotencyKey: "original-key",
     });
+  });
+
+  it("rekeys an explicitly reviewed business conflict without sending automatically", async () => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "review", idempotencyKey: "original" });
+    await expect(syncOfflineTransactionQueueItem("user-a", "review", async () => {
+      throw Object.assign(new Error("Conflito"), { status: 409, code: "CREDIT_CARD_STATEMENT_ALREADY_PAID" });
+    })).rejects.toThrow("Conflito");
+    const revised = replaceReviewedOfflineTransactionQueueItem("user-a", "review", {
+      ...payload, description: "Compra revisada",
+    });
+    expect(revised).toMatchObject({ status: "pending", failureKind: undefined });
+    expect(revised.idempotencyKey).not.toBe("original");
+    expect(readOfflineTransactionQueue("user-a")[0].idempotencyKey).toBe(revised.idempotencyKey);
+  });
+
+  it("rejects editing an uncertain network operation and retains its original key", async () => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "uncertain", idempotencyKey: "original" });
+    await expect(syncOfflineTransactionQueueItem("user-a", "uncertain", async () => {
+      throw new TypeError("Failed to fetch");
+    })).rejects.toThrow();
+    expect(() => replaceReviewedOfflineTransactionQueueItem("user-a", "uncertain", {
+      ...payload, description: "Compra alterada",
+    })).toThrow("chave original");
+    expect(readOfflineTransactionQueue("user-a")[0].idempotencyKey).toBe("original");
+  });
+
+  it("requires changed and valid payload before issuing a fresh review key", async () => {
+    const { localStorage } = installLocalStorage();
+    const item = enqueueOfflineTransaction("user-a", payload, { id: "review", idempotencyKey: "original" });
+    localStorage.setItem(`${OFFLINE_TRANSACTION_QUEUE_PREFIX}user-a`, JSON.stringify([{
+      ...item, status: "error", failureKind: "business_conflict", lastError: "Revisar",
+    }]));
+    expect(() => replaceReviewedOfflineTransactionQueueItem("user-a", "review", payload)).toThrow("Altere os dados");
+    expect(() => replaceReviewedOfflineTransactionQueueItem("user-a", "review", {
+      ...payload, amount: -1,
+    })).toThrow("inválido");
+    expect(readOfflineTransactionQueue("user-a")[0].idempotencyKey).toBe("original");
   });
 
   it("drops malformed or foreign queue items instead of exposing them", () => {

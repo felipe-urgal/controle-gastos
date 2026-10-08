@@ -14,6 +14,8 @@ import MfaSecurityPanel from '@/app/components/pages/user/show/mfa-security-pane
 import Preferences from '@/app/components/pages/user/show/preferences';
 import { UserInfo } from '@/app/components/pages/user';
 import { useAuth } from '@/app/context';
+import { clearOfflineTransactionLocalState, readOfflineTransactionDraft } from '@/app/lib/pwa/offline-transaction-draft';
+import { readOfflineTransactionQueue } from '@/app/lib/pwa/offline-transaction-queue';
 import { useUser } from '@/app/hooks/users/user-show';
 
 type SettingsSection = 'account' | 'preferences' | 'security' | 'integrations' | 'export' | 'session' | 'risk';
@@ -76,6 +78,14 @@ export default function Show() {
       return;
     }
 
+    if (user?.id) {
+      const hasDraft = Boolean(readOfflineTransactionDraft(user.id));
+      const pendingCount = readOfflineTransactionQueue(user.id).length;
+      if ((hasDraft || pendingCount > 0) && !window.confirm(
+        'Existem rascunhos ou lançamentos aguardando sincronização. Excluir sua conta também apagará esses dados locais.\n\nCancelar: revisar ou sincronizar antes.\nOK: excluir e descartar.',
+      )) return;
+    }
+
     try {
       await handleDelete({
         currentPassword,
@@ -83,6 +93,7 @@ export default function Show() {
         recoveryCode: recovery || undefined,
       });
       resetDeleteStepUp();
+      clearOfflineTransactionLocalState();
       await logout();
     } catch (error) {
       setDeleteError(
