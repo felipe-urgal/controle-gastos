@@ -144,7 +144,6 @@ function isValidItem(value: unknown): value is OfflineTransactionQueueItem {
       item.status === "error") &&
     (item.failureKind === undefined ||
       item.failureKind === "auth" ||
-      item.failureKind === "conflict" || // v1 legacy items
       item.failureKind === "idempotency_conflict" ||
       item.failureKind === "business_conflict" ||
       item.failureKind === "validation" ||
@@ -392,7 +391,7 @@ export async function syncOfflineTransactionQueueItem<T>(
   if (item.retryAfterAt && Date.now() < Date.parse(item.retryAfterAt)) {
     throw new Error("Aguarde o prazo informado pelo servidor antes de tentar novamente.");
   }
-  if (item.failureKind === "validation" || item.failureKind === "business_conflict" || item.failureKind === "conflict") {
+  if (item.failureKind === "validation" || item.failureKind === "business_conflict") {
     throw new Error("Revise o lançamento antes de uma nova tentativa.");
   }
 
