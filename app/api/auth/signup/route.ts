@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
-import { sendEmailVerification } from "@/app/lib/auth/auth-email";
 import {
   AUTH_INPUT_LIMITS,
   asInputRecord,
   stringInput,
 } from "@/app/lib/auth/auth-input";
-import { signEmailVerificationToken } from "@/app/lib/auth/email-verification-token";
+import { sendSignupVerificationBestEffort } from "@/app/lib/auth/verification-delivery";
 import { hashPassword, validatePassword } from "@/app/lib/auth/password-policy";
 import { isHttpError } from "@/app/lib/http-error";
 import {
@@ -46,33 +45,6 @@ function acceptedResponse(requestId: string) {
     ),
     requestId,
   );
-}
-
-async function sendVerificationBestEffort(user: {
-  id: string;
-  name: string;
-  email: string;
-  authVersion: number;
-}) {
-  const token = signEmailVerificationToken({
-    userId: user.id,
-    email: user.email,
-    kind: "signup",
-    authVersion: user.authVersion,
-  });
-
-  try {
-    await sendEmailVerification({
-      to: user.email,
-      name: user.name,
-      token,
-    });
-  } catch (error) {
-    logEvent("error", "auth_signup_verification_delivery_failed", {
-      route: SIGNUP_ROUTE,
-      status: 202,
-    }, error);
-  }
 }
 
 export async function POST(request: Request) {
@@ -151,7 +123,10 @@ export async function POST(request: Request) {
         },
       });
 
-      await sendVerificationBestEffort(user);
+      await sendSignupVerificationBestEffort(user, {
+        route: SIGNUP_ROUTE,
+        requestId,
+      });
     } catch (error: unknown) {
       const isConflict =
         error !== null &&
@@ -174,7 +149,10 @@ export async function POST(request: Request) {
       });
 
       if (existing?.isActive && !existing.emailVerifiedAt) {
-        await sendVerificationBestEffort(existing);
+        await sendSignupVerificationBestEffort(existing, {
+          route: SIGNUP_ROUTE,
+          requestId,
+        });
       }
     }
 
