@@ -115,7 +115,7 @@ function effectiveStateClass(rule: ImportRuleModel) {
   return 'border-[var(--warning)]/40 bg-[var(--warning-subtle)] text-[var(--warning)]';
 }
 
-export default function ImportRuleManagementPage() {
+export default function ImportRuleManagementPage({ focusRuleId }: { focusRuleId?: string }) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
@@ -147,6 +147,21 @@ export default function ImportRuleManagementPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [ruleImpact, setRuleImpact] = useState<ImportRuleRelationship[]>([]);
   const [impactLoading, setImpactLoading] = useState(false);
+
+  useEffect(() => {
+    if (!focusRuleId) return;
+    let cancelled = false;
+    void importRuleService.getById(focusRuleId).then(({ data }) => {
+      if (cancelled) return;
+      setPendingDeleteId(null);
+      setEditingId(data.id);
+      setForm(importRuleToFormState(data));
+      setFormOpen(true);
+    }).catch(() => {
+      // Unknown or inaccessible rules leave the normal listing untouched.
+    });
+    return () => { cancelled = true; };
+  }, [focusRuleId]);
 
   const ruleQuery = useMemo(
     () => ({
