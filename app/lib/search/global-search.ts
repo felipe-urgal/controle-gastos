@@ -5,6 +5,7 @@ import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { Prisma } from '@prisma/client';
 
 import { prisma } from '@/app/lib/prisma';
+import { scoreGlobalSearchMatch } from '@/app/lib/search/global-search-ranking';
 import {
   GLOBAL_SEARCH_LIMIT_PER_GROUP,
   GLOBAL_SEARCH_TOTAL_LIMIT,
@@ -30,14 +31,7 @@ function group(
 
 const FUZZY_SIMILARITY_THRESHOLD = 0.35;
 
-function relevance(text: string, query: string) {
-  const candidate = text.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
-  const term = query.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
-  if (candidate === term) return 400;
-  if (candidate.startsWith(term)) return 300;
-  if (candidate.includes(term)) return 200;
-  return 0;
-}
+const relevance = scoreGlobalSearchMatch;
 
 async function fuzzyTransactionIds(
   userId: string,
