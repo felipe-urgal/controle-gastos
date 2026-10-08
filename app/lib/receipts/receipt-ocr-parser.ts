@@ -1,4 +1,5 @@
-import { TRANSACTION_DESCRIPTION_MAX_LENGTH } from "@/app/lib/transactions/transaction-field-contract";
+import { TRANSACTION_DESCRIPTION_MAX_LENGTH, TRANSACTION_DESCRIPTION_MIN_LENGTH, TRANSACTION_MAX_AMOUNT_CENTS } from "@/app/lib/transactions/transaction-field-contract";
+import { isValidTransactionDate } from "@/app/lib/transactions/transaction-schema";
 
 export interface ReceiptOcrDate {
   year: number;
@@ -19,14 +20,15 @@ export interface ReceiptOcrSuggestions {
   amount?: ReceiptOcrSuggestion<number>;
   date?: ReceiptOcrSuggestion<ReceiptOcrDate>;
   description?: ReceiptOcrSuggestion<string>;
+  inconsistentAmountEvidence?: string;
 }
 
 /** Only sufficiently supported values may be applied after explicit user confirmation. */
 export function getApplicableReceiptOcrSuggestions(suggestions: ReceiptOcrSuggestions) {
   return {
-    amountCents: suggestions.amount?.confidence !== 'low' ? suggestions.amount?.value : undefined,
-    date: suggestions.date?.confidence !== 'low' ? suggestions.date?.value : undefined,
-    description: suggestions.description?.confidence !== 'low' ? suggestions.description?.value : undefined,
+    amountCents: !suggestions.inconsistentAmountEvidence && suggestions.amount?.confidence !== 'low' && isValidOcrAmount(suggestions.amount?.value) ? suggestions.amount.value : undefined,
+    date: suggestions.date?.confidence !== 'low' && suggestions.date && isValidOcrDate(suggestions.date.value) ? suggestions.date.value : undefined,
+    description: suggestions.description?.confidence !== 'low' && suggestions.description && isValidOcrDescription(suggestions.description.value) ? suggestions.description.value : undefined,
   };
 }
 
@@ -44,6 +46,18 @@ function normalizeSpaces(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function isValidOcrAmount(cents: number | undefined): cents is number {
+  return cents !== undefined && Number.isSafeInteger(cents) && cents > 0 && cents <= TRANSACTION_MAX_AMOUNT_CENTS;
+}
+
+function isValidOcrDate(date: ReceiptOcrDate) {
+  return date.year >= 2000 && date.year <= 2100 && date.month >= 1 && date.month <= 12 && date.day >= 1 && date.day <= 31 && isValidTransactionDate(date.year, date.month, date.day);
+}
+
+function isValidOcrDescription(value: string) {
+  return value.trim().length >= TRANSACTION_DESCRIPTION_MIN_LENGTH && value.length <= TRANSACTION_DESCRIPTION_MAX_LENGTH;
+}
+
 function parseMoneyToken(token: string) {
   const normalized = token.replace(/R\$/gi, "").replace(/\s/g, "");
   const usesCommaDecimal = normalized.includes(",");
@@ -58,39 +72,27 @@ function parseMoneyToken(token: string) {
   return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
 }
 
-function isValidDate(year: number, month: number, day: number) {
-  if (year < 2000 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) {
-    return false;
-  }
-
-  const candidate = new Date(Date.UTC(year, month - 1, day));
-  return (
-    candidate.getUTCFullYear() === year &&
-    candidate.getUTCMonth() === month - 1 &&
-    candidate.getUTCDate() === day
-  );
-}
-
 function normalizeYear(year: number) {
   return year < 100 ? 2000 + year : year;
 }
 
 function extractDate(lines: string[]): ReceiptOcrSuggestions['date'] {
+  let inconsistentAmountEvidence: string | undefined;
   const candidates: Array<{ value: ReceiptOcrDate; evidence: string; contextual: boolean }> = [];
   for (const line of lines) {
     const contextual = /\b(data|emiss[aã]o|compra)\b/i.test(line);
     for (const match of line.matchAll(ISO_DATE_PATTERN)) {
       const [year, month, day] = match.slice(1).map(Number);
-      if (isValidDate(year, month, day)) candidates.push({ value: { year, month, day }, evidence: line, contextual });
+      if (isValidOcrDate({ year, month, day })) candidates.push({ value: { year, month, day }, evidence: line, contextual });
     }
     for (const match of line.matchAll(DATE_PATTERN)) {
       const day = Number(match[1]);
       const month = Number(match[2]);
       const year = normalizeYear(Number(match[3]));
-      if (isValidDate(year, month, day)) candidates.push({ value: { year, month, day }, evidence: line, contextual });
+      if (isValidOcrDate({ year, month, day })) candidates.push({ value: { year, month, day }, evidence: line, contextual });
     }
   }
-  if (!candidates.length) return undefined;
+  if (!candidates.length) return { inconsistentAmountEvidence };
   const selected = candidates.find((candidate) => candidate.contextual) ?? candidates[0];
   const differentDates = candidates.some((candidate) =>
     candidate.value.year !== selected.value.year ||
@@ -104,7 +106,7 @@ function extractDate(lines: string[]): ReceiptOcrSuggestions['date'] {
   };
 }
 
-function extractAmount(lines: string[]): ReceiptOcrSuggestions['amount'] {
+function extractAmount(lines: string[]): Pick<ReceiptOcrSuggestions, 'amount' | 'inconsistentAmountEvidence'> {
   const candidates: Array<{
     value: number;
     evidence: string;
@@ -122,9 +124,12 @@ function extractAmount(lines: string[]): ReceiptOcrSuggestions['amount'] {
 
     const matches = [...line.matchAll(MONEY_PATTERN)];
     // Multiple different monetary values on a total line are ambiguous.
-    const values = [...new Set(matches.map((match) => parseMoneyToken(match[0])).filter(
-      (value): value is number => value !== null,
-    ))];
+    const parsed = matches.map((match) => parseMoneyToken(match[0]));
+    if (parsed.some((value) => !isValidOcrAmount(value ?? undefined))) {
+      inconsistentAmountEvidence ??= line;
+      return;
+    }
+    const values = [...new Set(parsed.filter((value): value is number => value !== null))];
     if (values.length !== 1) return;
     candidates.push({ value: values[0], confidence, evidence: line, lineIndex });
   });
@@ -137,9 +142,12 @@ function extractAmount(lines: string[]): ReceiptOcrSuggestions['amount'] {
   // Distinct competing total labels are unsafe even if one has a stronger label.
   const conflicting = candidates.some((candidate) => candidate.value !== selected.value);
   return {
-    value: selected.value,
-    confidence: conflicting ? 'low' : selected.confidence,
-    evidence: selected.evidence,
+    amount: {
+      value: selected.value,
+      confidence: conflicting ? 'low' : selected.confidence,
+      evidence: selected.evidence,
+    },
+    inconsistentAmountEvidence,
   };
 }
 
@@ -179,7 +187,7 @@ export function parseReceiptOcrText(text: string): ReceiptOcrSuggestions {
   if (lines.length === 0) return {};
 
   return {
-    amount: extractAmount(lines),
+    ...extractAmount(lines),
     date: extractDate(lines),
     description: extractDescription(lines),
   };
