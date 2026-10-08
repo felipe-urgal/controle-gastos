@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 
+import { setIsolatedClientIp } from './support/client-ip.mjs';
 import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
@@ -11,7 +12,17 @@ async function signup(_request, prefix) {
   return { email, suffix };
 }
 
+// A evolução real (IPCA) depende de rede externa e não faz parte destes fluxos.
+async function skipRealEvolution(page) {
+  await page.route(/\/api\/net-worth\?.*includeRealEvolution=1/, (route) =>
+    route.continue({
+      url: route.request().url().replace(/&?includeRealEvolution=1/, ''),
+    }),
+  );
+}
+
 async function login(page, email) {
+  await setIsolatedClientIp(page, email);
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);
@@ -154,7 +165,10 @@ test('patrimônio explicita valuation atual, histórico contábil e multi-moeda'
   await page.goto('/patrimonio');
 
   await expect(page.getByRole('heading', { name: 'Patrimônio', exact: true })).toBeVisible();
-  await expect(page.getByText('base mista', { exact: true })).toBeVisible();
+  // A evolução real consulta o IPCA externo; no CI a primeira carga pode demorar.
+  await expect(page.getByText('base mista', { exact: true })).toBeVisible({
+    timeout: 60_000,
+  });
   await expect(page.getByText(/Composição não conciliada/)).toBeVisible();
   await expect(page.getByText('Investimento · posições a custo', { exact: true })).toBeVisible();
 
@@ -257,6 +271,7 @@ test('câmbio explicita taxa defasada, rejeita futura, deriva inversa e respeita
   await login(page, email);
   await seedNetWorth(page, suffix);
 
+  await skipRealEvolution(page);
   await page.setViewportSize({ width: 390, height: 800 });
   await page.goto('/patrimonio');
   await page.getByLabel('Consolidar patrimônio em').selectOption('BRL');
