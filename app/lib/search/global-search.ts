@@ -70,6 +70,10 @@ function emitSearchTelemetry(input: {
   else console.info(JSON.stringify(record));
 }
 
+// Prefiltering only by transactions.description/ILIKE would drop valid fuzzy
+// matches originating from merchant names, aliases or tags (including typos).
+// Keep all four fields in the candidate set until a measured, equivalent
+// indexed preselection strategy is available; see the real-query EXPLAIN test.
 export function buildGlobalSearchFuzzyQuery(userId: string, query: string, excludeIds: string[]): Prisma.Sql {
   return Prisma.sql`
       SELECT
