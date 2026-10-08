@@ -88,9 +88,9 @@ export default function GlobalSearchDialog({
       quickActions.filter((item) => {
         if (!normalizedQuery) return true;
         return (
-          item.title ||
-          item.subtitle ||
-          item.keywords
+          normalizeGlobalSearchMatch(item.title).includes(normalizedQuery) ||
+          normalizeGlobalSearchMatch(item.subtitle).includes(normalizedQuery) ||
+          normalizeGlobalSearchMatch(item.keywords).includes(normalizedQuery)
         );
       }),
     [normalizedQuery],
@@ -100,9 +100,9 @@ export default function GlobalSearchDialog({
       getAppNavigation().filter((item) => {
         if (!normalizedQuery) return true;
         return (
-          item.label ||
-          item.key ||
-          item.keywords?
+          normalizeGlobalSearchMatch(item.label).includes(normalizedQuery) ||
+          normalizeGlobalSearchMatch(item.key).includes(normalizedQuery) ||
+          normalizeGlobalSearchMatch(item.keywords ?? '').includes(normalizedQuery)
         );
       }),
     [normalizedQuery],
@@ -302,7 +302,7 @@ export default function GlobalSearchDialog({
                     !nextNormalizedQuery ||
                     normalizeGlobalSearchMatch(item.label).includes(nextNormalizedQuery) ||
                     normalizeGlobalSearchMatch(item.key).includes(nextNormalizedQuery) ||
-                    item.keywords?.toLocaleLowerCase('pt-BR').includes(nextNormalizedQuery),
+                    normalizeGlobalSearchMatch(item.keywords ?? '').includes(nextNormalizedQuery),
                 );
 
                 setQuery(nextQuery);
