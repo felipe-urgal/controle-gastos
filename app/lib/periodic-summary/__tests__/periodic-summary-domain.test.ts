@@ -4,7 +4,28 @@ import {
   buildWeeklyFinancialSummary,
   getCompletedWeeklySummaryPeriod,
   weeklyPeriodDates,
+  type PeriodicSummaryTransaction,
 } from '@/app/lib/periodic-summary/periodic-summary-domain';
+import { realizedCashFlow } from '@/app/lib/dashboard/realized-cash-flow';
+
+const period = {
+  start: { year: 2026, month: 9, day: 28 },
+  end: { year: 2026, month: 10, day: 4 },
+};
+
+const account = (type: PeriodicSummaryTransaction['account']['type']) => ({ type });
+const transaction = (
+  amount: number,
+  type: 'INCOME' | 'EXPENSE',
+  accountType: PeriodicSummaryTransaction['account']['type'],
+  category: PeriodicSummaryTransaction['category'] = null,
+): PeriodicSummaryTransaction => ({
+  amount,
+  type,
+  account: account(accountType),
+  category,
+  allocations: [],
+});
 
 describe('periodic summary domain', () => {
   it('uses the previous completed Monday-Sunday week in UTC logical dates', () => {
@@ -12,127 +33,54 @@ describe('periodic summary domain', () => {
       start: { year: 2026, month: 9, day: 21 },
       end: { year: 2026, month: 9, day: 27 },
     });
-
-    expect(getCompletedWeeklySummaryPeriod(new Date('2026-10-05T00:30:00Z'))).toEqual({
-      start: { year: 2026, month: 9, day: 28 },
-      end: { year: 2026, month: 10, day: 4 },
-    });
+    expect(getCompletedWeeklySummaryPeriod(new Date('2026-10-05T00:30:00Z'))).toEqual(period);
   });
 
-  it('enumerates exactly the seven logical dates even across month boundaries', () => {
-    const dates = weeklyPeriodDates({
-      start: { year: 2026, month: 9, day: 28 },
-      end: { year: 2026, month: 10, day: 4 },
-    });
-
+  it('enumerates exactly seven logical dates across a month boundary', () => {
+    const dates = weeklyPeriodDates(period);
     expect(dates).toHaveLength(7);
-    expect(dates[0]).toEqual({ year: 2026, month: 9, day: 28 });
-    expect(dates[6]).toEqual({ year: 2026, month: 10, day: 4 });
+    expect(dates[0]).toEqual(period.start);
+    expect(dates[6]).toEqual(period.end);
   });
 
-  it('builds deterministic totals, split categories and upcoming commitments', () => {
+  it('uses the canonical realized flow for cash, card purchase and card refund', () => {
+    const food = { id: 'food', name: 'Alimentação' };
     const summary = buildWeeklyFinancialSummary({
-      period: {
-        start: { year: 2026, month: 9, day: 28 },
-        end: { year: 2026, month: 10, day: 4 },
-      },
+      period,
       currency: 'BRL',
       transactions: [
+        transaction(100_000, 'INCOME', 'CREDIT_DEBIT'),
+        transaction(20_000, 'EXPENSE', 'CREDIT_DEBIT', food),
+        transaction(30_000, 'EXPENSE', 'CREDIT_CARD', food),
+        transaction(7_000, 'INCOME', 'CREDIT_CARD', food),
         {
-          amount: 100_000,
-          type: 'INCOME',
-          category: { id: 'salary', name: 'Salário' },
-          allocations: [],
-        },
-        {
-          amount: 30_000,
-          type: 'EXPENSE',
-          category: { id: 'food', name: 'Alimentação' },
-          allocations: [],
-        },
-        {
-          amount: 20_000,
-          type: 'EXPENSE',
-          category: null,
+          ...transaction(5_000, 'EXPENSE', 'CREDIT_DEBIT'),
           allocations: [
-            { amount: 15_000, category: { id: 'home', name: 'Casa' } },
-            { amount: 5_000, category: { id: 'health', name: 'Saúde' } },
+            { amount: 4_000, category: { id: 'home', name: 'Casa' } },
+            { amount: 1_000, category: { id: 'health', name: 'Saúde' } },
           ],
         },
+        transaction(1_000, 'EXPENSE', 'CREDIT_DEBIT'),
       ],
-      forecast: {
-        asOf: { year: 2026, month: 10, day: 5 },
-        upcoming: [
-          {
-            id: 'pending',
-            amount: 8_000,
-            type: 'EXPENSE',
-            kind: 'NORMAL',
-            description: 'Internet',
-            year: 2026,
-            month: 10,
-            day: 8,
-          },
-          {
-            id: 'later',
-            amount: 9_000,
-            type: 'EXPENSE',
-            kind: 'NORMAL',
-            description: 'Depois',
-            year: 2026,
-            month: 10,
-            day: 20,
-          },
-        ],
-        cardCommitments: {
-          upcoming: [
-            {
-              cardId: 'card',
-              cardName: 'Cartão',
-              amount: 12_000,
-              closingDate: { year: 2026, month: 10, day: 2 },
-              dueDate: { year: 2026, month: 10, day: 10 },
-            },
-          ],
-        },
-        safeToSpend: {
-          realizedBalance: 80_000,
-          pendingExpenses: 8_000,
-          cardCommitments: 12_000,
-          transferNet: 0,
-          safeToSpend: 60_000,
-        },
-      },
-      insights: {
-        period: { year: 2026, month: 10 },
-        currency: 'BRL',
-        items: [],
-        limit: 5,
-      },
-      subscriptions: {
-        confirmed: [],
-        possible: [],
-        priceChanges: [],
-        totals: [],
-        windowMonths: 6,
-      },
     });
 
-    expect(summary.totals).toEqual({
-      income: 100_000,
-      expense: 50_000,
-      balance: 50_000,
-    });
+    expect(summary.totals).toEqual({ income: 100_000, expense: 49_000, balance: 51_000 });
     expect(summary.topCategories).toEqual([
-      { categoryId: 'food', categoryName: 'Alimentação', amount: 30_000 },
-      { categoryId: 'home', categoryName: 'Casa', amount: 15_000 },
-      { categoryId: 'health', categoryName: 'Saúde', amount: 5_000 },
+      { categoryId: 'food', categoryName: 'Alimentação', amount: 43_000 },
+      { categoryId: 'home', categoryName: 'Casa', amount: 4_000 },
+      { categoryId: 'health', categoryName: 'Saúde', amount: 1_000 },
+      { categoryId: '__uncategorized__', categoryName: 'Sem categoria', amount: 1_000 },
     ]);
-    expect(summary.upcomingCommitments).toMatchObject({
-      count: 2,
-      amount: 20_000,
-      through: { year: 2026, month: 10, day: 11 },
-    });
-    expect(summary.safeToSpend?.safeToSpend).toBe(60_000);
+    expect(Object.keys(summary).sort()).toEqual(
+      ['frequency', 'currency', 'period', 'totals', 'topCategories'].sort(),
+    );
+    expect(realizedCashFlow({ amount: 7_000, type: 'INCOME', accountType: 'CREDIT_CARD' }))
+      .toEqual({ income: 0, expense: -7_000 });
+  });
+
+  it('never mutates the input transactions', () => {
+    const input = [transaction(2_000, 'EXPENSE', 'CREDIT_CARD')];
+    buildWeeklyFinancialSummary({ period, currency: 'USD', transactions: input });
+    expect(input[0]?.amount).toBe(2_000);
   });
 });

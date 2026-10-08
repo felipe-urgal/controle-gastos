@@ -1,7 +1,5 @@
 import { Prisma } from '@prisma/client';
 
-import { getFinancialInsightsFromContext } from '@/app/lib/insights/financial-insights';
-import { getMonthlyDashboardForUser } from '@/app/lib/dashboard/monthly-dashboard';
 import { logEvent } from '@/app/lib/observability';
 import {
   buildWeeklyFinancialSummary,
@@ -9,8 +7,6 @@ import {
   weeklyPeriodDates,
 } from '@/app/lib/periodic-summary/periodic-summary-domain';
 import { prisma } from '@/app/lib/prisma';
-import { getForecastForUser, logicalDateFromUtcInstant } from '@/app/lib/forecast/forecast';
-import { getSubscriptionsForUser } from '@/app/lib/subscriptions/subscriptions';
 import {
   isSupportedCurrency,
   SUPPORTED_CURRENCIES,
@@ -22,7 +18,10 @@ import type {
   PeriodicFinancialSummaryState,
 } from '@/app/types/periodic-financial-summary';
 
-export const PERIODIC_SUMMARY_CRON_BATCH_SIZE = 5;
+// Um job diário de 60 s não pode prometer cobertura para volume ilimitado.
+// O cron prioriza a quota diária do backlog, com limites de tempo e segurança.
+export const PERIODIC_SUMMARY_CRON_MAX_USERS = 200;
+export const PERIODIC_SUMMARY_CRON_TIME_BUDGET_MS = 48_000;
 
 function periodWhere(period: ReturnType<typeof getCompletedWeeklySummaryPeriod>) {
   return {
@@ -37,10 +36,19 @@ function mapSummary(row: {
   generatedAt: Date;
   content: Prisma.JsonValue;
 }): PeriodicFinancialSummary {
+  // Os registros legados podem conter Forecast/Insights stale: não expor esses
+  // campos no contrato de leitura, sem regravar snapshots históricos.
+  const stored = row.content as unknown as PeriodicFinancialSummaryContent;
   return {
     id: row.id,
     generatedAt: row.generatedAt.toISOString(),
-    content: row.content as unknown as PeriodicFinancialSummaryContent,
+    content: {
+      frequency: stored.frequency,
+      currency: stored.currency,
+      period: stored.period,
+      totals: stored.totals,
+      topCategories: stored.topCategories,
+    },
   };
 }
 
@@ -50,83 +58,43 @@ async function buildContentForUser(
   now: Date,
 ) {
   const period = getCompletedWeeklySummaryPeriod(now);
-  const dates = weeklyPeriodDates(period);
-  const asOf = logicalDateFromUtcInstant(now);
-
-  const [transactions, forecast, dashboard, subscriptions] = await Promise.all([
-    prisma.transaction.findMany({
-      where: {
-        userId,
-        kind: 'NORMAL',
-        status: 'COMPLETED',
-        account: { is: { userId, currency } },
-        OR: dates.map((date) => ({
-          year: date.year,
-          month: date.month,
-          day: date.day,
-        })),
-      },
-      select: {
-        amount: true,
-        type: true,
-        category: { select: { id: true, name: true } },
-        allocations: {
-          select: {
-            amount: true,
-            category: { select: { id: true, name: true } },
-          },
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      userId,
+      kind: 'NORMAL',
+      status: 'COMPLETED',
+      account: { is: { userId, currency } },
+      OR: weeklyPeriodDates(period),
+    },
+    select: {
+      amount: true,
+      type: true,
+      account: { select: { type: true } },
+      category: { select: { id: true, name: true } },
+      allocations: {
+        select: {
+          amount: true,
+          category: { select: { id: true, name: true } },
         },
       },
-    }),
-    getForecastForUser(userId, { currency, days: 30 }, now),
-    getMonthlyDashboardForUser(
-      userId,
-      { year: asOf.year, month: asOf.month },
-      currency,
-      now,
-    ),
-    getSubscriptionsForUser(userId),
-  ]);
-
-  const insights = await getFinancialInsightsFromContext(
-    userId,
-    { year: asOf.year, month: asOf.month },
-    currency,
-    dashboard,
-    forecast,
-  );
-
-  return buildWeeklyFinancialSummary({
-    period,
-    currency,
-    transactions,
-    forecast,
-    insights,
-    subscriptions,
+    },
   });
+  return buildWeeklyFinancialSummary({ period, currency, transactions });
 }
 
-async function findSummary(
-  userId: string,
-  currency: SupportedCurrency,
-  now: Date,
-) {
-  const period = getCompletedWeeklySummaryPeriod(now);
+async function findSummary(userId: string, currency: SupportedCurrency, now: Date) {
   return prisma.periodicFinancialSummary.findFirst({
     where: {
       userId,
       frequency: 'WEEKLY',
       currency,
-      ...periodWhere(period),
+      ...periodWhere(getCompletedWeeklySummaryPeriod(now)),
     },
-    select: {
-      id: true,
-      generatedAt: true,
-      content: true,
-    },
+    select: { id: true, generatedAt: true, content: true },
   });
 }
 
+/** Materialização idempotente: snapshot histórico imutável, inclusive após correções. */
 export async function materializeWeeklySummaryForUser(
   userId: string,
   currency: SupportedCurrency,
@@ -152,18 +120,11 @@ export async function materializeWeeklySummaryForUser(
         periodEndDay: period.end.day,
         content: content as unknown as Prisma.InputJsonValue,
       },
-      select: {
-        id: true,
-        generatedAt: true,
-        content: true,
-      },
+      select: { id: true, generatedAt: true, content: true },
     });
     return mapSummary(created);
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
-    ) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       const replay = await findSummary(userId, currency, now);
       if (replay) return mapSummary(replay);
     }
@@ -184,10 +145,7 @@ export async function getPeriodicSummaryStateForUser(
     },
   });
 
-  if (!preference) {
-    return { enabled: false, frequency: 'WEEKLY', summary: null };
-  }
-
+  if (!preference) return { enabled: false, frequency: 'WEEKLY', summary: null };
   if (!preference.periodicSummaryEnabled) {
     return {
       enabled: false,
@@ -196,99 +154,169 @@ export async function getPeriodicSummaryStateForUser(
     };
   }
 
-  return {
-    enabled: true,
-    frequency: preference.periodicSummaryFrequency,
-    summary: await materializeWeeklySummaryForUser(userId, currency, now),
-  };
+  // GET faz fallback lazy somente quando o cron ainda não criou o período.
+  const existing = await findSummary(userId, currency, now);
+  if (existing) {
+    return {
+      enabled: true,
+      frequency: preference.periodicSummaryFrequency,
+      summary: mapSummary(existing),
+    };
+  }
+
+  const startedAt = performance.now();
+  try {
+    const summary = await materializeWeeklySummaryForUser(userId, currency, now);
+    logEvent('info', 'periodic_summary.on_demand', {
+      currency,
+      durationMs: Math.round(performance.now() - startedAt),
+      result: 'success',
+    });
+    return { enabled: true, frequency: preference.periodicSummaryFrequency, summary };
+  } catch (error) {
+    logEvent('error', 'periodic_summary.on_demand', {
+      currency,
+      durationMs: Math.round(performance.now() - startedAt),
+      result: 'failed',
+    }, error);
+    throw error;
+  }
 }
 
 async function currenciesForUser(userId: string) {
   const rows = await prisma.account.findMany({
-    where: { userId },
+    where: { userId, isActive: true },
     distinct: ['currency'],
     select: { currency: true },
   });
-
-  const available = new Set(
-    rows
-      .map((row) => row.currency)
-      .filter(isSupportedCurrency),
-  );
-
+  const available = new Set(rows.map((row) => row.currency).filter(isSupportedCurrency));
   return SUPPORTED_CURRENCIES.filter((currency) => available.has(currency));
 }
 
-async function cronUsers() {
+function eligibleCronUsersWhere(weekStart: Date) {
+  return {
+    isActive: true,
+    periodicSummaryEnabled: true,
+    periodicSummaryFrequency: 'WEEKLY' as const,
+    OR: [
+      { periodicSummaryLastProcessedAt: null },
+      { periodicSummaryLastProcessedAt: { lt: weekStart } },
+    ],
+  };
+}
+
+async function cronUsers(weekStart: Date, take: number) {
   const neverProcessed = await prisma.user.findMany({
     where: {
-      isActive: true,
-      periodicSummaryEnabled: true,
-      periodicSummaryFrequency: 'WEEKLY',
+      ...eligibleCronUsersWhere(weekStart),
       periodicSummaryLastProcessedAt: null,
     },
     select: { id: true },
-    orderBy: { createdAt: 'asc' },
-    take: PERIODIC_SUMMARY_CRON_BATCH_SIZE,
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    take,
   });
+  if (neverProcessed.length >= take) return neverProcessed;
 
-  if (neverProcessed.length >= PERIODIC_SUMMARY_CRON_BATCH_SIZE) {
-    return neverProcessed;
-  }
-
-  const remaining = PERIODIC_SUMMARY_CRON_BATCH_SIZE - neverProcessed.length;
   const alreadyProcessed = await prisma.user.findMany({
     where: {
-      isActive: true,
-      periodicSummaryEnabled: true,
-      periodicSummaryFrequency: 'WEEKLY',
-      periodicSummaryLastProcessedAt: { not: null },
-      id: { notIn: neverProcessed.map((user) => user.id) },
+      ...eligibleCronUsersWhere(weekStart),
+      periodicSummaryLastProcessedAt: { not: null, lt: weekStart },
     },
     select: { id: true },
-    orderBy: { periodicSummaryLastProcessedAt: 'asc' },
-    take: remaining,
+    orderBy: [
+      { periodicSummaryLastProcessedAt: 'asc' },
+      { createdAt: 'asc' },
+      { id: 'asc' },
+    ],
+    take: take - neverProcessed.length,
   });
-
   return [...neverProcessed, ...alreadyProcessed];
 }
 
 export async function runPeriodicSummaryCron(now: Date = new Date()) {
-  const users = await cronUsers();
+  const startedAt = performance.now();
+  const period = getCompletedWeeklySummaryPeriod(now);
+  const weekStart = new Date(Date.UTC(
+    period.end.year, period.end.month - 1, period.end.day + 1,
+  ));
+  const daysRemaining = 7 - ((now.getUTCDay() + 6) % 7);
+  const [backlog, oldestProcessed] = await Promise.all([
+    prisma.user.count({ where: eligibleCronUsersWhere(weekStart) }),
+    prisma.user.findFirst({
+      where: {
+        ...eligibleCronUsersWhere(weekStart),
+        periodicSummaryLastProcessedAt: { not: null, lt: weekStart },
+      },
+      select: { periodicSummaryLastProcessedAt: true },
+      orderBy: { periodicSummaryLastProcessedAt: 'asc' },
+    }),
+  ]);
+  const batchLimit = Math.min(
+    PERIODIC_SUMMARY_CRON_MAX_USERS,
+    Math.ceil(backlog / daysRemaining),
+  );
+  const users = batchLimit > 0 ? await cronUsers(weekStart, batchLimit) : [];
   let processed = 0;
   let failed = 0;
   let summaries = 0;
+  let markerFailures = 0;
+  let deadlineReached = false;
 
   for (const user of users) {
+    if (performance.now() - startedAt >= PERIODIC_SUMMARY_CRON_TIME_BUDGET_MS) {
+      deadlineReached = true;
+      break;
+    }
+    const userStartedAt = performance.now();
     try {
       const currencies = await currenciesForUser(user.id);
+      // Falha parcial por moeda = falha do usuário inteiro; não avançar o marker.
       for (const currency of currencies) {
         await materializeWeeklySummaryForUser(user.id, currency, now);
         summaries += 1;
       }
       processed += 1;
-    } catch (error) {
-      failed += 1;
-      logEvent('error', 'periodic_summary.user_failed', {}, error);
-    }
-
-    try {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { periodicSummaryLastProcessedAt: now },
-        select: { id: true },
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { periodicSummaryLastProcessedAt: now },
+          select: { id: true },
+        });
+      } catch (error) {
+        markerFailures += 1;
+        logEvent('error', 'periodic_summary.rotation_marker_failed', {}, error);
+      }
+      logEvent('info', 'periodic_summary.user', {
+        result: 'success',
+        durationMs: Math.round(performance.now() - userStartedAt),
+        currencies: currencies.length,
       });
     } catch (error) {
-      logEvent('error', 'periodic_summary.rotation_marker_failed', {}, error);
+      failed += 1;
+      logEvent('error', 'periodic_summary.user_failed', {
+        durationMs: Math.round(performance.now() - userStartedAt),
+      }, error);
     }
   }
 
-  return {
+  const backlogRemaining = Math.max(0, backlog - processed + markerFailures);
+  const metrics = {
     frequency: 'WEEKLY' as const,
-    batchLimit: PERIODIC_SUMMARY_CRON_BATCH_SIZE,
+    batchLimit,
+    maxUsers: PERIODIC_SUMMARY_CRON_MAX_USERS,
+    daysRemaining,
     selectedUsers: users.length,
     processedUsers: processed,
     failedUsers: failed,
     summaries,
+    markerFailures,
+    backlog,
+    backlogRemaining,
+    oldestLastProcessedAt: oldestProcessed?.periodicSummaryLastProcessedAt?.toISOString() ?? null,
+    coverageAtRisk: backlogRemaining > PERIODIC_SUMMARY_CRON_MAX_USERS * Math.max(0, daysRemaining - 1),
+    deadlineReached,
+    durationMs: Math.round(performance.now() - startedAt),
   };
+  logEvent('info', 'periodic_summary.cron', metrics);
+  return metrics;
 }
