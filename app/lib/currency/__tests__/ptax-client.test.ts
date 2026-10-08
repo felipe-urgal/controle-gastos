@@ -143,3 +143,54 @@ describe('BCB PTAX client', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('BCB PTAX client — erros tipados', () => {
+  const input = {
+    from: 'USD' as const,
+    to: 'BRL' as const,
+    referenceDate: { year: 2026, month: 9, day: 28 },
+  };
+
+  it('5xx vira UPSTREAM_UNAVAILABLE (503) após no máximo 2 tentativas', async () => {
+    const fetchMock = vi.fn(async () => new Response('x', { status: 503 }));
+    await expect(
+      fetchPtaxExchangeRate(input, fetchMock as unknown as typeof fetch),
+    ).rejects.toMatchObject({ kind: 'UPSTREAM_UNAVAILABLE', status: 503 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('429 do BCB não é reenviado e expõe Retry-After', async () => {
+    const fetchMock = vi.fn(
+      async () => new Response('x', { status: 429, headers: { 'retry-after': '30' } }),
+    );
+    await expect(
+      fetchPtaxExchangeRate(input, fetchMock as unknown as typeof fetch),
+    ).rejects.toMatchObject({
+      kind: 'UPSTREAM_RATE_LIMIT',
+      status: 429,
+      retryAfterSeconds: 30,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('payload inválido vira 502 e timeout vira 504', async () => {
+    const invalid = vi.fn(async () => Response.json({ nope: true }));
+    await expect(
+      fetchPtaxExchangeRate(input, invalid as unknown as typeof fetch),
+    ).rejects.toMatchObject({ kind: 'INVALID_UPSTREAM_PAYLOAD', status: 502 });
+
+    const timeout = vi.fn(async () => {
+      throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+    });
+    await expect(
+      fetchPtaxExchangeRate(input, timeout as unknown as typeof fetch),
+    ).rejects.toMatchObject({ kind: 'UPSTREAM_TIMEOUT', status: 504 });
+  });
+
+  it('sem cotação no período vira NO_QUOTE_IN_LOOKBACK (404)', async () => {
+    const empty = vi.fn(async () => Response.json({ value: [] }));
+    await expect(
+      fetchPtaxExchangeRate(input, empty as unknown as typeof fetch),
+    ).rejects.toMatchObject({ kind: 'NO_QUOTE_IN_LOOKBACK', status: 404 });
+  });
+});

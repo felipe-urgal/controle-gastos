@@ -1,20 +1,31 @@
 import { ZodError } from 'zod';
 
 import { parseJsonBody } from '@/app/lib/api/request-json';
-import { failure, success } from '@/app/lib/api-response';
+import { failure, rateLimitFailure, success } from '@/app/lib/api-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
-import { assertExchangeRate } from '@/app/lib/currency/exchange-rate-domain';
+import {
+  assertExchangeRate,
+  exchangeRateProvenance,
+} from '@/app/lib/currency/exchange-rate-domain';
+import {
+  compareLogicalDates,
+  logicalDateFromUtcInstant,
+  parseIsoLogicalDate,
+  type LogicalDate,
+} from '@/app/lib/date/logical-date';
+import { consumePtaxFetchRateLimit } from '@/app/lib/security/application-rate-limit';
 import { prisma } from '@/app/lib/prisma';
 import {
   manualExchangeRateInputSchema,
   ptaxExchangeRateInputSchema,
   type ManualExchangeRateInput,
 } from '@/app/lib/currency/exchange-rate-schema';
-import { fetchPtaxExchangeRate } from '@/app/lib/currency/ptax-client';
+import { fetchPtaxExchangeRate, PtaxError } from '@/app/lib/currency/ptax-client';
 import type {
   ExchangeRateModel,
   ExchangeRateQuoteSide,
+  ExchangeRateSource,
 } from '@/app/types/exchange-rate';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
@@ -38,6 +49,11 @@ function toModel(rate: {
 }): ExchangeRateModel {
   return {
     id: rate.id,
+    provenance: exchangeRateProvenance({
+      source: rate.source,
+      from: rate.fromCurrency as ExchangeRateModel['from'],
+      to: rate.toCurrency as ExchangeRateModel['to'],
+    }),
     from: rate.fromCurrency as ExchangeRateModel['from'],
     to: rate.toCurrency as ExchangeRateModel['to'],
     numerator: rate.numerator,
@@ -54,7 +70,17 @@ function toModel(rate: {
   };
 }
 
+/** Taxa factual não pode ter referência posterior à data lógica (UTC) de hoje. */
+function assertNotFuture(referenceDate: LogicalDate, now = new Date()) {
+  if (
+    compareLogicalDates(referenceDate, logicalDateFromUtcInstant(now)) > 0
+  ) {
+    throw new Error('A data de referência da taxa não pode ser futura');
+  }
+}
+
 function assertInput(input: ManualExchangeRateInput) {
+  assertNotFuture(input.referenceDate);
   assertExchangeRate({
     ...input,
     source: 'MANUAL',
@@ -62,11 +88,7 @@ function assertInput(input: ManualExchangeRateInput) {
   });
 }
 
-function onOrBeforeReferenceDate(referenceDate: {
-  year: number;
-  month: number;
-  day: number;
-}) {
+function onOrBeforeReferenceDate(referenceDate: LogicalDate) {
   return {
     OR: [
       { referenceYear: { lt: referenceDate.year } },
@@ -90,6 +112,10 @@ function parseListQuery(request: Request) {
   const limit = Number(params.get('limit') ?? String(DEFAULT_PAGE_SIZE));
   const fromRaw = params.get('from');
   const toRaw = params.get('to');
+  const sourceRaw = params.get('source');
+  const quoteSideRaw = params.get('quoteSide');
+  const dateFromRaw = params.get('dateFrom');
+  const dateToRaw = params.get('dateTo');
 
   if (
     !Number.isInteger(page) ||
@@ -113,7 +139,54 @@ function parseListQuery(request: Request) {
   if (fromRaw && !from) throw new Error('Moeda de origem inválida');
   if (toRaw && !to) throw new Error('Moeda de destino inválida');
 
-  return { page, limit, from, to };
+  if (sourceRaw && sourceRaw !== 'MANUAL' && sourceRaw !== 'BCB_PTAX') {
+    throw new Error('Origem inválida');
+  }
+  if (
+    quoteSideRaw &&
+    quoteSideRaw !== 'GENERIC' &&
+    quoteSideRaw !== 'BUY' &&
+    quoteSideRaw !== 'SELL'
+  ) {
+    throw new Error('Lado da cotação inválido');
+  }
+
+  const dateFrom = dateFromRaw ? parseIsoLogicalDate(dateFromRaw) : null;
+  const dateTo = dateToRaw ? parseIsoLogicalDate(dateToRaw) : null;
+  if (dateFromRaw && !dateFrom) throw new Error('Data inicial inválida');
+  if (dateToRaw && !dateTo) throw new Error('Data final inválida');
+  if (dateFrom && dateTo && compareLogicalDates(dateFrom, dateTo) > 0) {
+    throw new Error('Período inválido');
+  }
+
+  return {
+    page,
+    limit,
+    from,
+    to,
+    source: (sourceRaw as ExchangeRateSource | null) || null,
+    quoteSide: (quoteSideRaw as ExchangeRateQuoteSide | null) || null,
+    dateFrom,
+    dateTo,
+  };
+}
+
+function onOrAfterReferenceDate(referenceDate: LogicalDate) {
+  return {
+    OR: [
+      { referenceYear: { gt: referenceDate.year } },
+      {
+        referenceYear: referenceDate.year,
+        OR: [
+          { referenceMonth: { gt: referenceDate.month } },
+          {
+            referenceMonth: referenceDate.month,
+            referenceDay: { gte: referenceDate.day },
+          },
+        ],
+      },
+    ],
+  };
 }
 
 export async function listExchangeRatesForUser(
@@ -123,6 +196,10 @@ export async function listExchangeRatesForUser(
     limit?: number;
     from?: SupportedCurrency | null;
     to?: SupportedCurrency | null;
+    source?: ExchangeRateSource | null;
+    quoteSide?: ExchangeRateQuoteSide | null;
+    dateFrom?: LogicalDate | null;
+    dateTo?: LogicalDate | null;
   } = {},
 ) {
   const page = options.page ?? 1;
@@ -131,6 +208,20 @@ export async function listExchangeRatesForUser(
     userId,
     ...(options.from ? { fromCurrency: options.from } : {}),
     ...(options.to ? { toCurrency: options.to } : {}),
+    ...(options.source ? { source: options.source } : {}),
+    ...(options.quoteSide ? { quoteSide: options.quoteSide } : {}),
+    ...(options.dateFrom || options.dateTo
+      ? {
+          AND: [
+            ...(options.dateFrom
+              ? [onOrAfterReferenceDate(options.dateFrom)]
+              : []),
+            ...(options.dateTo
+              ? [onOrBeforeReferenceDate(options.dateTo)]
+              : []),
+          ],
+        }
+      : {}),
   };
 
   const [items, total] = await Promise.all([
@@ -160,38 +251,46 @@ export async function listExchangeRatesForUser(
   };
 }
 
-export async function listExchangeRatesForPairsOnOrBefore(
+/**
+ * Leitura mínima para o Patrimônio: por par (direto e inverso) busca somente as
+ * linhas mais recentes elegíveis (<= asOf). Uma MANUAL e uma PTAX do lado
+ * pedido cobrem a data mais recente, então `take: 2` basta (no máximo
+ * 2 × pares queries, apoiadas pelo índice do par).
+ */
+export async function findRatesForConsolidation(
   userId: string,
   pairs: Array<{ from: SupportedCurrency; to: SupportedCurrency }>,
-  referenceDate: { year: number; month: number; day: number },
+  asOf: LogicalDate,
   quoteSide: Exclude<ExchangeRateQuoteSide, 'GENERIC'> = 'SELL',
 ) {
-  if (pairs.length === 0) return [];
+  const directions = pairs.flatMap((pair) => [
+    { from: pair.from, to: pair.to },
+    { from: pair.to, to: pair.from },
+  ]);
 
-  const items = await prisma.exchangeRate.findMany({
-    where: {
-      userId,
-      quoteSide: { in: ['GENERIC', quoteSide] },
-      AND: [
-        {
-          OR: pairs.map((pair) => ({
-            fromCurrency: pair.from,
-            toCurrency: pair.to,
-          })),
+  const results = await Promise.all(
+    directions.map((direction) =>
+      prisma.exchangeRate.findMany({
+        where: {
+          userId,
+          fromCurrency: direction.from,
+          toCurrency: direction.to,
+          quoteSide: { in: ['GENERIC', quoteSide] },
+          ...onOrBeforeReferenceDate(asOf),
         },
-        onOrBeforeReferenceDate(referenceDate),
-      ],
-    },
-    orderBy: [
-      { referenceYear: 'desc' },
-      { referenceMonth: 'desc' },
-      { referenceDay: 'desc' },
-      { source: 'asc' },
-      { id: 'asc' },
-    ],
-  });
+        orderBy: [
+          { referenceYear: 'desc' },
+          { referenceMonth: 'desc' },
+          { referenceDay: 'desc' },
+          { source: 'asc' },
+          { id: 'asc' },
+        ],
+        take: 2,
+      }),
+    ),
+  );
 
-  return items.map(toModel);
+  return results.flat().map(toModel);
 }
 
 export async function getExchangeRates(
@@ -269,7 +368,16 @@ export async function upsertExchangeRate(request: Request) {
 export async function importPtaxExchangeRate(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
+    const limit = await consumePtaxFetchRateLimit(userId);
+    if (limit.limited) {
+      return rateLimitFailure(
+        'Muitas consultas de PTAX em pouco tempo. Tente novamente mais tarde',
+        limit.retryAfterSeconds,
+        'PTAX_RATE_LIMITED',
+      );
+    }
     const input = ptaxExchangeRateInputSchema.parse(await parseJsonBody(request));
+    assertNotFuture(input.referenceDate);
     const rate = await fetchPtaxExchangeRate(input);
 
     const saved = await prisma.exchangeRate.upsert({
@@ -311,7 +419,14 @@ export async function importPtaxExchangeRate(request: Request) {
     if (isUnauthorizedError(error)) {
       return failure('Não autenticado', 401);
     }
-    if (error instanceof Error) {
+    if (error instanceof PtaxError) {
+      const response = failure(error.message, error.status, error.kind);
+      if (error.retryAfterSeconds) {
+        response.headers.set('Retry-After', String(error.retryAfterSeconds));
+      }
+      return response;
+    }
+    if (error instanceof Error && /futura|diferentes|inválid/.test(error.message)) {
       return failure(error.message, 400);
     }
     return failure('Erro ao consultar cotação PTAX', 500);

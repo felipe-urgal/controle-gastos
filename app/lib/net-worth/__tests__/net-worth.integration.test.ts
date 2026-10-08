@@ -1018,4 +1018,207 @@ describe("net worth integration", () => {
     expect(afterRevaluation.totals.BRL).toBe(60_000);
   });
 
+
+  async function seedBrlAndUsd(fixture: Awaited<ReturnType<typeof createFixture>>) {
+    await prisma.transaction.createMany({
+      data: [
+        {
+          amount: 100_000,
+          year: 2028,
+          month: 2,
+          day: 1,
+          type: "INCOME",
+          description: "BRL",
+          status: "COMPLETED",
+          accountId: fixture.checking.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+        {
+          amount: 10_000,
+          year: 2028,
+          month: 2,
+          day: 1,
+          type: "INCOME",
+          description: "USD",
+          status: "COMPLETED",
+          accountId: fixture.usd.id,
+          categoryId: fixture.income.id,
+          userId: fixture.owner.id,
+        },
+      ],
+    });
+  }
+
+  it("marks an arbitrarily old rate as stale instead of a fresh complete consolidation", async () => {
+    const fixture = await createFixture();
+    await seedBrlAndUsd(fixture);
+    await prisma.exchangeRate.create({
+      data: {
+        userId: fixture.owner.id,
+        fromCurrency: "USD",
+        toCurrency: "BRL",
+        numerator: 5,
+        denominator: 1,
+        source: "MANUAL",
+        referenceYear: 2027,
+        referenceMonth: 1,
+        referenceDay: 10,
+      },
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2028,
+      month: 2,
+      months: 1,
+      baseCurrency: "BRL",
+    });
+
+    expect(data.consolidation).toMatchObject({
+      complete: true,
+      stale: true,
+      total: 150_000,
+    });
+    expect(data.consolidation?.convertedItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resolution: expect.objectContaining({
+            freshness: "STALE",
+            ageDays: expect.any(Number),
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it("derives the inverse rate without persisting a second row", async () => {
+    const fixture = await createFixture();
+    await seedBrlAndUsd(fixture);
+    await prisma.exchangeRate.create({
+      data: {
+        userId: fixture.owner.id,
+        fromCurrency: "USD",
+        toCurrency: "BRL",
+        numerator: 5,
+        denominator: 1,
+        source: "MANUAL",
+        referenceYear: 2028,
+        referenceMonth: 2,
+        referenceDay: 27,
+      },
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2028,
+      month: 2,
+      months: 1,
+      baseCurrency: "USD",
+    });
+
+    expect(data.consolidation).toMatchObject({
+      complete: true,
+      stale: false,
+      total: 30_000,
+    });
+    expect(data.consolidation?.convertedItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          original: { amount: 100_000, currency: "BRL" },
+          converted: { amount: 20_000, currency: "USD" },
+          resolution: expect.objectContaining({ derivedFromInverse: true }),
+        }),
+      ]),
+    );
+    expect(
+      await prisma.exchangeRate.count({ where: { userId: fixture.owner.id } }),
+    ).toBe(1);
+  });
+
+  it("flags manual override when a PTAX exists on the same date", async () => {
+    const fixture = await createFixture();
+    await seedBrlAndUsd(fixture);
+    await prisma.exchangeRate.createMany({
+      data: [
+        {
+          userId: fixture.owner.id,
+          fromCurrency: "USD",
+          toCurrency: "BRL",
+          numerator: 6,
+          denominator: 1,
+          source: "MANUAL",
+          quoteSide: "GENERIC",
+          referenceYear: 2028,
+          referenceMonth: 2,
+          referenceDay: 27,
+        },
+        {
+          userId: fixture.owner.id,
+          fromCurrency: "USD",
+          toCurrency: "BRL",
+          numerator: 5,
+          denominator: 1,
+          source: "BCB_PTAX",
+          quoteSide: "SELL",
+          referenceYear: 2028,
+          referenceMonth: 2,
+          referenceDay: 27,
+        },
+      ],
+    });
+
+    const data = await getNetWorthForUser(fixture.owner.id, {
+      year: 2028,
+      month: 2,
+      months: 1,
+      baseCurrency: "BRL",
+    });
+
+    expect(data.consolidation?.total).toBe(160_000);
+    expect(data.consolidation?.convertedItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resolution: expect.objectContaining({
+            overridesPtax: true,
+            provenance: "MANUAL",
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it("reads only the needed rate rows (query budget) with a large FX history", async () => {
+    const fixture = await createFixture();
+    await seedBrlAndUsd(fixture);
+    await prisma.exchangeRate.createMany({
+      data: Array.from({ length: 200 }, (_, index) => ({
+        userId: fixture.owner.id,
+        fromCurrency: "USD",
+        toCurrency: "BRL",
+        numerator: 500 + index,
+        denominator: 100,
+        source: "BCB_PTAX" as const,
+        quoteSide: "SELL" as const,
+        referenceYear: 2027,
+        referenceMonth: 1 + Math.floor(index / 28) % 12,
+        referenceDay: (index % 28) + 1,
+      })),
+    });
+    const spy = vi.spyOn(prisma.exchangeRate, "findMany");
+    try {
+      const data = await getNetWorthForUser(fixture.owner.id, {
+        year: 2028,
+        month: 2,
+        months: 1,
+        baseCurrency: "BRL",
+      });
+      expect(data.consolidation?.complete).toBe(true);
+      // 1 par (USD→BRL) = direção direta + inversa, cada uma com take: 2.
+      expect(spy).toHaveBeenCalledTimes(2);
+      for (const call of spy.mock.calls) {
+        expect(call[0]?.take).toBe(2);
+      }
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });

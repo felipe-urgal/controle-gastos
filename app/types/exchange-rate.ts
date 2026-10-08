@@ -24,10 +24,25 @@ export type CurrencyAmount = {
   currency: SupportedCurrency;
 };
 
+export type ExchangeRateFreshness = 'CURRENT' | 'STALE';
+
+export type ExchangeRateProvenance = 'MANUAL' | 'PTAX_DIRECT' | 'PTAX_CROSS';
+
+export type ExchangeRateResolution = {
+  rateId?: string;
+  provenance: ExchangeRateProvenance;
+  ageDays: number;
+  freshness: ExchangeRateFreshness;
+  derivedFromInverse: boolean;
+  /** MANUAL em uso enquanto existe PTAX para o mesmo par/data. */
+  overridesPtax: boolean;
+};
+
 export type ConvertedCurrencyAmount = {
   original: CurrencyAmount;
   converted: CurrencyAmount;
   rate: ExchangeRate | null;
+  resolution?: ExchangeRateResolution | null;
 };
 
 export type ConsolidationMissingRate = {
@@ -38,6 +53,8 @@ export type ConsolidationMissingRate = {
 export type CurrencyConsolidationResult = {
   baseCurrency: SupportedCurrency;
   complete: boolean;
+  /** true quando alguma taxa usada está defasada (total é estimativa). */
+  stale: boolean;
   total: number | null;
   convertedItems: ConvertedCurrencyAmount[];
   missingRates: ConsolidationMissingRate[];
@@ -46,6 +63,8 @@ export type CurrencyConsolidationResult = {
 
 export type ExchangeRateModel = ExchangeRate & {
   id: string;
+  /** PTAX direta contra BRL ou taxa cruzada derivada de duas PTAX. */
+  provenance: ExchangeRateProvenance;
   createdAt: string;
   updatedAt: string;
 };

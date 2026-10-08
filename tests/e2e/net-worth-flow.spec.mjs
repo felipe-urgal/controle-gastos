@@ -1,14 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+import { createVerifiedUser } from './support/verified-user.mjs';
+
 const password = 'Playwright123!';
 
-async function signup(request, prefix) {
+async function signup(_request, prefix) {
   const suffix = `${Date.now()}-${test.info().project.name}-${prefix}`;
   const email = `qa-${prefix}-${suffix}@example.test`;
-  const response = await request.post('/api/auth/signup', {
-    data: { name: `QA ${prefix}`, email, password },
-  });
-  expect(response.ok()).toBeTruthy();
+  await createVerifiedUser({ name: `QA ${prefix}`, email, password });
   return { email, suffix };
 }
 
@@ -25,7 +24,10 @@ async function seedNetWorth(page, suffix) {
     const api = async (url, body) => {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': crypto.randomUUID(),
+        },
         body: JSON.stringify(body),
       });
       const json = await response.json();
@@ -41,6 +43,8 @@ async function seedNetWorth(page, suffix) {
       currency: 'BRL',
       color: '#64748B',
       icon: 'wallet',
+      description: null,
+      isActive: true,
     });
     const usd = await api('/api/accounts', {
       name: `Conta USD ${suffix}`.slice(0, 50),
@@ -48,6 +52,8 @@ async function seedNetWorth(page, suffix) {
       currency: 'USD',
       color: '#64748B',
       icon: 'wallet',
+      description: null,
+      isActive: true,
     });
     const investment = await api('/api/accounts', {
       name: `Investimento BRL ${suffix}`.slice(0, 50),
@@ -55,6 +61,8 @@ async function seedNetWorth(page, suffix) {
       currency: 'BRL',
       color: '#64748B',
       icon: 'chart-line',
+      description: null,
+      isActive: true,
     });
     const income = await api('/api/categories', {
       name: `Receita NW ${suffix}`.slice(0, 50),
@@ -184,6 +192,7 @@ test('patrimônio explicita valuation atual, histórico contábil e multi-moeda'
   await expect(deleteDialog).toBeHidden();
   await expect(page.getByText(/Faltam taxas/)).toBeVisible();
 
+  await page.getByRole('button', { name: 'BRL', exact: true }).click();
   const debtLink = page.locator(`a[href="/dividas#debt-${seeded.debt.id}"]`);
   await expect(debtLink).toBeVisible();
 
@@ -231,4 +240,67 @@ test('falha da evolução real não apaga patrimônio nominal', async ({ page, r
   await expect(
     page.locator('article').filter({ hasText: 'Patrimônio líquido em BRL' }).first(),
   ).toBeVisible();
+});
+
+function isoUtcDaysFromToday(offsetDays) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + offsetDays);
+  return date.toISOString().slice(0, 10);
+}
+
+test('câmbio explicita taxa defasada, rejeita futura, deriva inversa e respeita showValues', async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(120_000);
+  const { email, suffix } = await signup(request, 'net-worth-fx');
+  await login(page, email);
+  await seedNetWorth(page, suffix);
+
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto('/patrimonio');
+  await page.getByLabel('Consolidar patrimônio em').selectOption('BRL');
+  await expect(page.getByText(/Faltam taxas/)).toBeVisible();
+
+  // Taxa futura é rejeitada sem persistir.
+  await page.getByLabel('Valor da taxa manual').fill('5,00');
+  await page.getByLabel('Data de referência da taxa').fill(isoUtcDaysFromToday(5));
+  await page.getByRole('button', { name: 'Salvar manual', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: /futura/ })).toBeVisible();
+  await expect(page.getByText(/Faltam taxas/)).toBeVisible();
+
+  // Taxa antiga é aceita, porém marcada como defasada/estimativa.
+  await page.getByLabel('Data de referência da taxa').fill(isoUtcDaysFromToday(-30));
+  await page.getByRole('button', { name: 'Salvar manual', exact: true }).click();
+  await expect(page.getByText('Estimativa com taxa defasada', { exact: true })).toBeVisible();
+  await expect(page.getByText(/30 dias atrás · defasada/)).toBeVisible();
+
+  // Consolidar em USD reaproveita a inversa da taxa USD→BRL cadastrada.
+  await page.getByLabel('Consolidar patrimônio em').selectOption('USD');
+  await expect(page.getByText(/inversa da taxa cadastrada/)).toBeVisible();
+  await page.getByLabel('Consolidar patrimônio em').selectOption('BRL');
+
+  for (const width of [320, 360, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  }
+
+  // showValues=false não revela taxa nem valores convertidos.
+  const hidden = await page.evaluate(async () => {
+    const response = await fetch('/api/user', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ showValues: false }),
+    });
+    return response.ok;
+  });
+  expect(hidden).toBe(true);
+  await page.reload();
+  await page.getByLabel('Consolidar patrimônio em').selectOption('BRL');
+  const consolidation = page.locator('article').filter({ hasText: 'Consolidação opcional' }).first();
+  await expect(consolidation).toContainText('Taxa ••••');
+  await expect(consolidation).not.toContainText('5,00');
 });

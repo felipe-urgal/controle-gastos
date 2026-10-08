@@ -1,13 +1,19 @@
 import { z } from "zod";
 
-import { failure, success } from "@/app/lib/api-response";
+import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
+import { convertCurrencyAmount } from "@/app/lib/currency/exchange-rate-domain";
 import {
-  convertCurrencyAmount,
-  latestRateOnOrBefore,
-} from "@/app/lib/currency/exchange-rate-domain";
+  addToFiscalPtaxIndex,
+  buildFiscalPtaxIndex,
+  findPtaxOnOrBefore,
+  type FiscalPtaxIndex,
+} from "@/app/lib/currency/fiscal-ptax-resolver";
+import { compareLogicalDates } from "@/app/lib/date/logical-date";
 import { fetchPtaxExchangeRate } from "@/app/lib/currency/ptax-client";
+import { exchangeRateProvenance } from "@/app/lib/currency/exchange-rate-domain";
+import { consumePtaxFiscalRefreshRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
   calculateInvestmentGrossCents,
   formatInvestmentQuantity,
@@ -23,7 +29,7 @@ import type { SupportedCurrency } from "@/app/types/financial-summary";
 
 const START_YEAR = 2024;
 const FOREIGN_TAX_RATE_BPS = 1_500;
-const MAX_PTAX_LOOKBACK_DAYS = 7;
+const PTAX_REFRESH_CONCURRENCY = 4;
 
 const querySchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100),
@@ -82,14 +88,6 @@ function dateString(date: LogicalDate) {
   ].join("-");
 }
 
-function dateValue(date: LogicalDate) {
-  return Date.UTC(date.year, date.month - 1, date.day);
-}
-
-function daysBetween(left: LogicalDate, right: LogicalDate) {
-  return Math.floor((dateValue(right) - dateValue(left)) / 86_400_000);
-}
-
 function toRateModel(rate: {
   id: string;
   fromCurrency: string;
@@ -106,6 +104,11 @@ function toRateModel(rate: {
 }): ExchangeRateModel {
   return {
     id: rate.id,
+    provenance: exchangeRateProvenance({
+      source: rate.source,
+      from: rate.fromCurrency as SupportedCurrency,
+      to: rate.toCurrency as SupportedCurrency,
+    }),
     from: rate.fromCurrency as SupportedCurrency,
     to: rate.toCurrency as SupportedCurrency,
     numerator: rate.numerator,
@@ -123,26 +126,18 @@ function toRateModel(rate: {
 }
 
 function findFiscalRate(args: {
-  rates: readonly ExchangeRateModel[];
+  rates: FiscalPtaxIndex;
   currency: SupportedCurrency;
   date: LogicalDate;
   quoteSide: QuoteSide;
 }) {
-  if (args.currency === "BRL") return null;
-
-  const rate = latestRateOnOrBefore({
-    rates: args.rates,
-    from: args.currency,
-    to: "BRL",
-    referenceDate: args.date,
+  const resolution = findPtaxOnOrBefore({
+    index: args.rates,
+    currency: args.currency,
+    date: args.date,
     quoteSide: args.quoteSide,
   });
-
-  if (!rate) return undefined;
-  if (daysBetween(rate.referenceDate, args.date) > MAX_PTAX_LOOKBACK_DAYS) {
-    return undefined;
-  }
-  return rate;
+  return resolution ? resolution.rate : undefined;
 }
 
 function convertToBrl(args: {
@@ -150,7 +145,7 @@ function convertToBrl(args: {
   currency: SupportedCurrency;
   date: LogicalDate;
   quoteSide: QuoteSide;
-  rates: readonly ExchangeRateModel[];
+  rates: FiscalPtaxIndex;
 }) {
   if (args.currency === "BRL") {
     return {
@@ -199,7 +194,7 @@ function compareDate(
   left: LogicalDate & { createdAt: Date; id: string },
   right: LogicalDate & { createdAt: Date; id: string },
 ) {
-  const logical = dateValue(left) - dateValue(right);
+  const logical = compareLogicalDates(left, right);
   if (logical !== 0) return logical;
   const created = left.createdAt.getTime() - right.createdAt.getTime();
   return created !== 0 ? created : left.id.localeCompare(right.id);
@@ -226,7 +221,7 @@ function ruleSources() {
 }
 
 async function loadForeignTaxInputs(userId: string, year: number) {
-  const [events, adjustments, incomes, foreignTaxesPaid, rates] = await Promise.all([
+  const [events, adjustments, incomes, foreignTaxesPaid] = await Promise.all([
     prisma.investmentFiscalEvent.findMany({
       where: {
         userId,
@@ -318,23 +313,37 @@ async function loadForeignTaxInputs(userId: string, year: number) {
         { id: "asc" },
       ],
     }),
-    prisma.exchangeRate.findMany({
-      where: { userId },
-      orderBy: [
-        { referenceYear: "asc" },
-        { referenceMonth: "asc" },
-        { referenceDay: "asc" },
-        { createdAt: "asc" },
-      ],
-    }),
   ]);
+
+  const currencies = [
+    ...new Set([
+      ...events.map((event) => event.asset.currency),
+      ...incomes.map((income) => income.asset.currency),
+      ...foreignTaxesPaid.map((taxPaid) => taxPaid.currency),
+    ]),
+  ].filter((currency) => currency !== "BRL");
+
+  // Somente PTAX direta contra BRL até o exercício; MANUAL nunca é fiscal.
+  const rates =
+    currencies.length === 0
+      ? []
+      : await prisma.exchangeRate.findMany({
+          where: {
+            userId,
+            source: "BCB_PTAX",
+            toCurrency: "BRL",
+            fromCurrency: { in: currencies },
+            quoteSide: { in: ["BUY", "SELL"] },
+            referenceYear: { gte: START_YEAR - 1, lte: year },
+          },
+        });
 
   return {
     events: events as ForeignEvent[],
     adjustments: adjustments as ForeignAdjustment[],
     incomes,
     foreignTaxesPaid,
-    rates: rates.map(toRateModel),
+    rates: buildFiscalPtaxIndex(rates.map(toRateModel)),
   };
 }
 
@@ -1045,7 +1054,8 @@ export async function refreshForeignInvestmentPtaxForUser(
     });
   }
 
-  const rates = [...initialRates];
+  // Índice só de PTAX: manual nunca conta como reutilizada e não é alterada.
+  const rates = initialRates;
   let reused = 0;
   let fetched = 0;
   const failed: Array<{
@@ -1055,12 +1065,18 @@ export async function refreshForeignInvestmentPtaxForUser(
     message: string;
   }> = [];
 
+  const pending: Array<
+    { currency: SupportedCurrency; date: LogicalDate; quoteSide: QuoteSide }
+  > = [];
   for (const requirement of requirements.values()) {
     if (findFiscalRate({ rates, ...requirement })) {
       reused += 1;
-      continue;
+    } else {
+      pending.push(requirement);
     }
+  }
 
+  async function refreshRequirement(requirement: (typeof pending)[number]) {
     try {
       const rate = await fetchPtaxExchangeRate({
         from: requirement.currency,
@@ -1099,7 +1115,7 @@ export async function refreshForeignInvestmentPtaxForUser(
           referenceDay: rate.referenceDate.day,
         },
       });
-      rates.push(toRateModel(saved));
+      addToFiscalPtaxIndex(rates, toRateModel(saved));
       fetched += 1;
     } catch (error) {
       failed.push({
@@ -1113,6 +1129,19 @@ export async function refreshForeignInvestmentPtaxForUser(
       });
     }
   }
+
+  // Concorrência limitada: falha parcial não interrompe os demais.
+  const queue = [...pending];
+  await Promise.all(
+    Array.from(
+      { length: Math.min(PTAX_REFRESH_CONCURRENCY, queue.length) },
+      async () => {
+        for (let next = queue.shift(); next; next = queue.shift()) {
+          await refreshRequirement(next);
+        }
+      },
+    ),
+  );
 
   return {
     year,
@@ -1145,6 +1174,14 @@ export async function getForeignInvestmentAnnualTaxReport(request: Request) {
 export async function refreshForeignInvestmentPtax(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
+    const limit = await consumePtaxFiscalRefreshRateLimit(userId);
+    if (limit.limited) {
+      return rateLimitFailure(
+        "Muitas atualizações de PTAX em pouco tempo. Tente novamente mais tarde",
+        limit.retryAfterSeconds,
+        "PTAX_RATE_LIMITED",
+      );
+    }
     const input = refreshSchema.parse(await request.json());
     return success(
       await refreshForeignInvestmentPtaxForUser(userId, input.year),

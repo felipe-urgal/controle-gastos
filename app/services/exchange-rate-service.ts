@@ -19,6 +19,8 @@ export const exchangeRateService = {
     limit?: number;
     from?: ExchangeRateModel['from'];
     to?: ExchangeRateModel['to'];
+    source?: ExchangeRateModel['source'];
+    quoteSide?: ExchangeRateModel['quoteSide'];
   } = {}): Promise<ApiResponse<ExchangeRateListData>> {
     return apiClient<ApiResponse<ExchangeRateListData>>('/api/exchange-rates', {
       method: 'GET',
@@ -27,6 +29,8 @@ export const exchangeRateService = {
         limit: args.limit ?? 10,
         ...(args.from ? { from: args.from } : {}),
         ...(args.to ? { to: args.to } : {}),
+        ...(args.source ? { source: args.source } : {}),
+        ...(args.quoteSide ? { quoteSide: args.quoteSide } : {}),
       },
     });
   },

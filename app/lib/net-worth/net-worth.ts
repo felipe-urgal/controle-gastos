@@ -4,9 +4,9 @@ import { parseQuery } from "@/app/lib/api/query";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import {
   consolidateCurrencyAmounts,
-  latestRateOnOrBefore,
 } from "@/app/lib/currency/exchange-rate-domain";
-import { listExchangeRatesForPairsOnOrBefore } from "@/app/lib/currency/exchange-rates";
+import { findRatesForConsolidation } from "@/app/lib/currency/exchange-rates";
+import { resolvePatrimonyRate } from "@/app/lib/currency/patrimony-rate-resolver";
 import {
   getLastDayOfMonth,
   logicalDateFromUtcInstant,
@@ -517,20 +517,23 @@ export async function getNetWorthForUser(
         to: baseCurrency,
       }));
 
-    const storedRates = await listExchangeRatesForPairsOnOrBefore(
+    const storedRates = await findRatesForConsolidation(
       userId,
       pairs,
       asOf,
       "SELL",
     );
     const selectedRates = pairs.flatMap((pair) => {
-      const rate = latestRateOnOrBefore({
+      const resolved = resolvePatrimonyRate({
         rates: storedRates,
         from: pair.from,
         to: pair.to,
-        referenceDate: asOf,
+        asOf,
+        quoteSide: "SELL",
       });
-      return rate ? [rate] : [];
+      return resolved
+        ? [{ ...resolved.rate, resolution: resolved.resolution }]
+        : [];
     });
 
     consolidation = {

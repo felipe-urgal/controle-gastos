@@ -34,6 +34,18 @@ export const APPLICATION_RATE_LIMIT_POLICIES = {
     windowMs: FIFTEEN_MINUTES_MS,
     blockMs: FIFTEEN_MINUTES_MS,
   },
+  ptaxFetch: {
+    action: "exchange-rate-ptax-user",
+    maxAttempts: 30,
+    windowMs: FIFTEEN_MINUTES_MS,
+    blockMs: FIFTEEN_MINUTES_MS,
+  },
+  ptaxFiscalRefresh: {
+    action: "exchange-rate-ptax-fiscal-refresh-user",
+    maxAttempts: 10,
+    windowMs: FIFTEEN_MINUTES_MS,
+    blockMs: FIFTEEN_MINUTES_MS,
+  },
   transactionMutation: {
     action: "transaction-mutation-user",
     maxAttempts: 120,
@@ -83,6 +95,20 @@ export function consumeTransactionImportConfirmRateLimit(userId: string) {
 export function consumeTransactionMutationRateLimit(userId: string) {
   return consumeAuthenticatedRateLimit(
     APPLICATION_RATE_LIMIT_POLICIES.transactionMutation,
+    userId,
+  );
+}
+
+export function consumePtaxFetchRateLimit(userId: string) {
+  return consumeAuthenticatedRateLimit(
+    APPLICATION_RATE_LIMIT_POLICIES.ptaxFetch,
+    userId,
+  );
+}
+
+export function consumePtaxFiscalRefreshRateLimit(userId: string) {
+  return consumeAuthenticatedRateLimit(
+    APPLICATION_RATE_LIMIT_POLICIES.ptaxFiscalRefresh,
     userId,
   );
 }

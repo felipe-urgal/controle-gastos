@@ -4,6 +4,8 @@ import type {
   CurrencyAmount,
   CurrencyConsolidationResult,
   ExchangeRate,
+  ExchangeRateProvenance,
+  ExchangeRateResolution,
 } from '@/app/types/exchange-rate';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
@@ -18,8 +20,15 @@ function assertSafePositiveInteger(value: number, label: string) {
   }
 }
 
-function logicalDateKey(date: { year: number; month: number; day: number }) {
-  return date.year * 10_000 + date.month * 100 + date.day;
+export function exchangeRateProvenance(rate: {
+  source: ExchangeRate['source'];
+  from: SupportedCurrency;
+  to: SupportedCurrency;
+}): ExchangeRateProvenance {
+  if (rate.source === 'MANUAL') return 'MANUAL';
+  return rate.from === 'BRL' || rate.to === 'BRL'
+    ? 'PTAX_DIRECT'
+    : 'PTAX_CROSS';
 }
 
 export function assertExchangeRate(rate: ExchangeRate) {
@@ -108,10 +117,29 @@ export function convertCurrencyAmount(
   };
 }
 
+export function checkedSumCents(values: readonly number[]) {
+  let sum = BigInt(0);
+  for (const value of values) {
+    if (!Number.isSafeInteger(value)) {
+      throw new Error('Valor monetário deve ser um inteiro seguro');
+    }
+    sum += BigInt(value);
+  }
+  if (
+    sum > BigInt(Number.MAX_SAFE_INTEGER) ||
+    sum < BigInt(Number.MIN_SAFE_INTEGER)
+  ) {
+    throw new Error('Total consolidado excede o intervalo suportado');
+  }
+  return Number(sum);
+}
+
 export function consolidateCurrencyAmounts(args: {
   items: readonly CurrencyAmount[];
   baseCurrency: SupportedCurrency;
-  rates: readonly ExchangeRate[];
+  rates: readonly (ExchangeRate & {
+    resolution?: ExchangeRateResolution | null;
+  })[];
 }): CurrencyConsolidationResult {
   const ratesByPair = new Map(
     args.rates.map((rate) => {
@@ -143,51 +171,25 @@ export function consolidateCurrencyAmounts(args: {
       continue;
     }
 
-    convertedItems.push(converted);
+    convertedItems.push({
+      ...converted,
+      resolution: rate?.resolution ?? null,
+    });
   }
 
   const complete = missingRates.length === 0;
   const total = complete
-    ? convertedItems.reduce(
-        (sum, item) => sum + item.converted.amount,
-        0,
-      )
+    ? checkedSumCents(convertedItems.map((item) => item.converted.amount))
     : null;
 
   return {
     baseCurrency: args.baseCurrency,
     complete,
+    stale: convertedItems.some(
+      (item) => item.resolution?.freshness === 'STALE',
+    ),
     total,
     convertedItems,
     missingRates,
   };
-}
-
-export function latestRateOnOrBefore(args: {
-  rates: readonly ExchangeRate[];
-  from: SupportedCurrency;
-  to: SupportedCurrency;
-  referenceDate: { year: number; month: number; day: number };
-  quoteSide?: 'BUY' | 'SELL';
-}) {
-  const targetKey = logicalDateKey(args.referenceDate);
-  const quoteSide = args.quoteSide ?? 'SELL';
-
-  return [...args.rates]
-    .filter(
-      (rate) =>
-        rate.from === args.from &&
-        rate.to === args.to &&
-        (rate.quoteSide === 'GENERIC' || rate.quoteSide === quoteSide) &&
-        logicalDateKey(rate.referenceDate) <= targetKey,
-    )
-    .sort((left, right) => {
-      const dateDifference =
-        logicalDateKey(right.referenceDate) -
-        logicalDateKey(left.referenceDate);
-      if (dateDifference !== 0) return dateDifference;
-
-      const sourcePriority = { MANUAL: 1, BCB_PTAX: 0 } as const;
-      return sourcePriority[right.source] - sourcePriority[left.source];
-    })[0] ?? null;
 }
