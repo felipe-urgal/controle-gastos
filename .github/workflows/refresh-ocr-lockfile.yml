@@ -1,0 +1,41 @@
+name: Refresh OCR lockfile
+
+on:
+  push:
+    branches:
+      - fix/811-ocr-same-origin
+    paths:
+      - .github/workflows/refresh-ocr-lockfile.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.repository == 'felipe-urgal/controle-gastos'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
+      - name: Resolve exact dependency graph
+        run: pnpm install --lockfile-only --ignore-scripts
+      - name: Commit resolved lockfile
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "Lockfile already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "build(ocr): synchronize pinned pnpm lockfile"
+          git push origin HEAD:fix/811-ocr-same-origin
