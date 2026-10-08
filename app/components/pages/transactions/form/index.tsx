@@ -34,7 +34,7 @@ import {
   readOfflineTransactionQueue,
   syncOfflineTransactionQueueItem,
 } from '@/app/lib/pwa/offline-transaction-queue';
-import type { ReceiptOcrSuggestions } from '@/app/lib/receipts/receipt-ocr-parser';
+import { getApplicableReceiptOcrSuggestions, type ReceiptOcrSuggestions } from '@/app/lib/receipts/receipt-ocr-parser';
 import { buildInstallmentOccurrences } from '@/app/lib/transactions/installments';
 import { buildCorrectionAutomationSuggestions } from '@/app/lib/transactions/transaction-learning';
 import {
@@ -550,21 +550,22 @@ export default function TransactionForm({
   function handleReceiptOcrSuggestions(suggestions: ReceiptOcrSuggestions) {
     if (isEditing) return;
 
-    if (suggestions.description !== undefined) {
-      handleDescriptionChange(suggestions.description);
+    const applicable = getApplicableReceiptOcrSuggestions(suggestions);
+    if (applicable.description !== undefined) {
+      handleDescriptionChange(applicable.description);
     }
 
     setFormData((previous) => ({
       ...previous,
-      amount: suggestions.amountCents ?? previous.amount,
-      ...(suggestions.description === undefined
+      amount: applicable.amountCents ?? previous.amount,
+      ...(applicable.description === undefined
         ? {}
-        : { description: suggestions.description }),
-      ...(!initialDate && suggestions.date
+        : { description: applicable.description }),
+      ...(!initialDate && applicable.date
         ? {
-            year: suggestions.date.year,
-            month: suggestions.date.month,
-            day: suggestions.date.day,
+            year: applicable.date.year,
+            month: applicable.date.month,
+            day: applicable.date.day,
           }
         : {}),
     }));
