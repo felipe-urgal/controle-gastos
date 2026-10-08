@@ -86,7 +86,8 @@ export default function GlobalSearchDialog({
         if (!normalizedQuery) return true;
         return (
           item.label.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
-          item.key.toLocaleLowerCase('pt-BR').includes(normalizedQuery)
+          item.key.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
+          item.keywords?.toLocaleLowerCase('pt-BR').includes(normalizedQuery)
         );
       }),
     [normalizedQuery],
@@ -247,7 +248,8 @@ export default function GlobalSearchDialog({
                       .includes(nextNormalizedQuery) ||
                     item.key
                       .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery),
+                      .includes(nextNormalizedQuery) ||
+                    item.keywords?.toLocaleLowerCase('pt-BR').includes(nextNormalizedQuery),
                 );
 
                 setQuery(nextQuery);
