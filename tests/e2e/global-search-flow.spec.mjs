@@ -240,3 +240,66 @@ test('busca global: mouse, Home/End, Escape e touch preservam foco', async ({ br
     await context.close();
   }
 });
+
+
+test('busca global: preferência showValues=false e Enter respeita match exato', async ({ page }) => {
+  test.setTimeout(120_000);
+  const suffix = Date.now().toString(36);
+  const marker = `BuscaPriv${suffix}`;
+  const email = `qa-search-private-${suffix}@example.test`;
+  await createVerifiedUser({ name: 'QA Busca Privada', email, password });
+  await login(page, email);
+  const fixture = await seedSearchFixture(page, marker);
+
+  const setup = await page.evaluate(async () => {
+    const update = await fetch('/api/user', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ showValues: false }),
+    });
+    const account = await fetch('/api/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Conta', type: 'CREDIT_DEBIT', currency: 'BRL' }),
+    });
+    return {
+      updateStatus: update.status,
+      updateBody: await update.json(),
+      accountStatus: account.status,
+      accountBody: await account.json(),
+    };
+  });
+  expect(setup.updateStatus).toBe(200);
+  expect(setup.updateBody.data?.showValues).toBe(false);
+  expect(setup.accountStatus).toBe(201);
+  const exactAccountId = setup.accountBody.data.id;
+
+  const response = await page.evaluate(async (query) => {
+    const request = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+    return { status: request.status, payload: await request.json() };
+  }, marker);
+  expect(response.status).toBe(200);
+  expect(JSON.stringify(response.payload)).not.toContain('987654');
+  expect(response.payload.data.groups.flatMap((group) => group.items)
+    .some((item) => item.id === fixture.transactionId)).toBe(true);
+  for (const item of response.payload.data.groups.flatMap((group) => group.items)) {
+    expect(item).not.toHaveProperty('amount');
+  }
+
+  await page.keyboard.press('Control+K');
+  const dialog = page.getByRole('dialog', { name: 'Busca global' });
+  const input = dialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
+  await input.fill(marker);
+  await expect(dialog.getByText(`${marker} Mercado`, { exact: true })).toBeVisible();
+  const attributesAndText = await dialog.evaluate((element) => [
+    element.textContent ?? '',
+    ...Array.from(element.querySelectorAll('*')).flatMap((node) =>
+      Array.from(node.attributes).map((attribute) => attribute.value)),
+  ].join(' '));
+  expect(attributesAndText).not.toContain('987654');
+
+  await input.fill('Conta');
+  await expect(dialog.getByText('Conta', { exact: true })).toBeVisible();
+  await input.press('Enter');
+  await expect(page).toHaveURL(new RegExp(`/contas/show/${exactAccountId}$`));
+});
