@@ -397,7 +397,6 @@ describe('global search integration', () => {
       data: Array.from({ length: 52 }, (_, index) => ({
         userId: owner.id,
         name: `A${String(index).padStart(3, '0')} ${marker}`,
-        normalizedName: `a${String(index).padStart(3, '0')} ${marker.toLowerCase()}`,
       })),
     });
     const exact = await prisma.merchant.create({
