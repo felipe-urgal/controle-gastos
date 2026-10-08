@@ -138,7 +138,10 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
     }
 
     const title = isSlow ? 'Resultado antigo' : 'Resultado atual';
-    await route.fulfill({
+    // Ao digitar outra query, o navegador pode cancelar a requisição anterior.
+    if (route.isInterceptResolutionHandled()) return;
+    try {
+      await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
@@ -164,7 +167,13 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
           totalLimit: 20,
         },
       }),
-    });
+      });
+    } catch (error) {
+      // A rota antiga pode ter sido cancelada enquanto a resposta era atrasada.
+      if (!/Route is already handled|Target page, context or browser has been closed/.test(String(error))) {
+        throw error;
+      }
+    }
   });
 
   await page.keyboard.press('Control+K');
