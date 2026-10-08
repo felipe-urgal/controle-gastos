@@ -182,7 +182,7 @@ describe("offline transaction queue", () => {
       id: "queue-conflict",
       idempotencyKey: "attempt-conflict",
     });
-    const conflict = Object.assign(new Error("Conflito"), { status: 409 });
+    const conflict = Object.assign(new Error("Conflito"), { status: 409, code: "IDEMPOTENCY_PAYLOAD_CONFLICT" });
 
     await expect(
       syncOfflineTransactionQueueItem(
@@ -196,7 +196,8 @@ describe("offline transaction queue", () => {
 
     expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
       status: "error",
-      failureKind: "conflict",
+      failureKind: "idempotency_conflict",
+      errorCode: "IDEMPOTENCY_PAYLOAD_CONFLICT",
       idempotencyKey: "attempt-conflict",
     });
 
@@ -210,6 +211,28 @@ describe("offline transaction queue", () => {
       failureKind: undefined,
       lastError: undefined,
     });
+  });
+
+  it.each([
+    [409, "CREDIT_CARD_STATEMENT_ALREADY_PAID", "business_conflict"],
+    [400, "VALIDATION_ERROR", "validation"],
+    [429, "RATE_LIMITED", "rate_limit"],
+    [503, "SERVICE_UNAVAILABLE", "server"],
+    [409, "IDEMPOTENCY_PAYLOAD_CONFLICT", "idempotency_conflict"],
+  ] as const)("classifies HTTP %i / %s as %s", async (status, code, kind) => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "item", idempotencyKey: "stable-key" });
+    const error = Object.assign(new Error("Falha"), { status, code, retryAfterSeconds: 60 });
+    await expect(syncOfflineTransactionQueueItem("user-a", "item", async () => { throw error; })).rejects.toThrow("Falha");
+    const item = readOfflineTransactionQueue("user-a")[0];
+    expect(item).toMatchObject({ failureKind: kind, errorCode: code, idempotencyKey: "stable-key" });
+    if (kind === "rate_limit") {
+      expect(Date.parse(item.retryAfterAt!)).toBeGreaterThan(Date.now());
+      await expect(syncOfflineTransactionQueueItem("user-a", "item", async () => ({}))).rejects.toThrow("Aguarde");
+    }
+    if (kind === "business_conflict") {
+      expect(() => rekeyOfflineTransactionQueueItem("user-a", "item")).toThrow("Somente conflito");
+    }
   });
 
   it("drops malformed or foreign queue items instead of exposing them", () => {
