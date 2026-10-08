@@ -56,6 +56,16 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
     { name: `${unique} Regra`, title: `${unique} Regra`, path: '/transacoes/importar/regras', key: 'ruleId', id: entities.rule.id },
   ];
 
+  // A identidade da Tag é a mesma com e sem o prefixo visual #.
+  await page.keyboard.press('Control+K');
+  const tagDialog = page.getByRole('dialog', { name: 'Busca global' });
+  const tagInput = tagDialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
+  await tagInput.fill(unique);
+  await expect(tagDialog.getByText(`#${unique}`, { exact: true })).toBeVisible();
+  await tagInput.fill(`#${unique}`);
+  await expect(tagDialog.getByText(`#${unique}`, { exact: true })).toBeVisible();
+  await tagInput.press('Escape');
+
   for (const item of destinations) {
     await page.goto('/dashboard');
     await page.keyboard.press('Control+K');
