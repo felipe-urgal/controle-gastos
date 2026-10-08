@@ -33,6 +33,24 @@ const FUZZY_SIMILARITY_THRESHOLD = 0.35;
 
 const relevance = scoreGlobalSearchMatch;
 
+function rankNamedResults<T extends { id: string; name: string; isActive: boolean }>(
+  items: T[],
+  query: string,
+  secondaryText: (item: T) => string | null = () => null,
+): T[] {
+  return items
+    .map((item) => ({
+      item,
+      score: Math.max(relevance(item.name, query), relevance(secondaryText(item) ?? '', query) - 25),
+    }))
+    .sort((a, b) => b.score - a.score
+      || Number(b.item.isActive) - Number(a.item.isActive)
+      || a.item.name.localeCompare(b.item.name, 'pt-BR')
+      || a.item.id.localeCompare(b.item.id))
+    .slice(0, GLOBAL_SEARCH_LIMIT_PER_GROUP)
+    .map(({ item }) => item);
+}
+
 async function fuzzyTransactionIds(
   userId: string,
   query: string,
@@ -135,12 +153,13 @@ export async function getGlobalSearchForUser(
       select: {
         id: true,
         name: true,
+        description: true,
         type: true,
         currency: true,
         isActive: true,
       },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP * 10,
     }),
     prisma.category.findMany({
       where: {
@@ -150,11 +169,12 @@ export async function getGlobalSearchForUser(
       select: {
         id: true,
         name: true,
+        description: true,
         type: true,
         isActive: true,
       },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP * 10,
     }),
     prisma.transactionImportRule.findMany({
       where: {
@@ -172,7 +192,7 @@ export async function getGlobalSearchForUser(
         category: { select: { name: true } },
       },
       orderBy: [{ priority: 'asc' }, { name: 'asc' }, { id: 'asc' }],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP * 10,
     }),
   ]);
 
@@ -261,7 +281,7 @@ export async function getGlobalSearchForUser(
     ),
     group(
       'ACCOUNT',
-      accounts.map((item) => ({
+      rankNamedResults(accounts, query, (item) => item.description).map((item) => ({
         id: item.id,
         type: 'ACCOUNT',
         title: item.name,
@@ -271,7 +291,7 @@ export async function getGlobalSearchForUser(
     ),
     group(
       'CATEGORY',
-      categories.map((item) => ({
+      rankNamedResults(categories, query, (item) => item.description).map((item) => ({
         id: item.id,
         type: 'CATEGORY',
         title: item.name,
@@ -281,7 +301,7 @@ export async function getGlobalSearchForUser(
     ),
     group(
       'IMPORT_RULE',
-      importRules.map((item) => ({
+      rankNamedResults(importRules, query, (item) => item.descriptionPattern).map((item) => ({
         id: item.id,
         type: 'IMPORT_RULE',
         title: item.name,
