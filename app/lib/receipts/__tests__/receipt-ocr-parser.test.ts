@@ -68,7 +68,7 @@ describe('OCR receipt amount: conservative extraction', () => {
 
 describe('OCR description respects Transaction contract', () => {
   it('caps a long merchant suggestion at the canonical 100-character limit', () => {
-    const merchant = 'MERCADO ' + 'A'.repeat(92);
+    const merchant = 'MERCADO ' + 'A'.repeat(112);
     const suggestions = parseReceiptOcrText(merchant + '\nTOTAL A PAGAR 12,00');
     expect(suggestions.description?.value).toHaveLength(100);
     expect(suggestions.description?.value).toBe(merchant.slice(0, 100));
