@@ -143,7 +143,7 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
   const rankDialog = page.getByRole('dialog', { name: 'Busca global' });
   const rankInput = rankDialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
   await rankInput.fill(rankingTerm);
-  await expect(rankDialog.getByText(rankingTerm, { exact: true })).toBeVisible();
+  await expect(rankDialog.locator('[aria-labelledby="global-search-group-MERCHANT"]').getByRole('button', { name: `${rankingTerm} Ativo`, exact: true })).toBeVisible();
   await rankInput.press('Enter');
   await expect(page).toHaveURL((url) =>
     url.pathname === '/estabelecimentos' && url.searchParams.get('merchantId') === exactMerchantId,
