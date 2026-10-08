@@ -282,9 +282,10 @@ test('recorrências: transferências repetidas não viram candidatos', async ({ 
   const email = `qa-recurrence-transfer-${suffix}@example.test`;
 
   await createVerifiedUser({ name: 'QA Recorrências Transfer', email, password });
-  await request.post('/api/auth/login', {
+  const login = await request.post('/api/auth/login', {
     data: { email, password },
   });
+  expect(login.ok(), `login: ${login.status()}`).toBeTruthy();
 
   const source = await create(request, '/api/accounts', {
     name: `Origem Transfer ${suffix}`,

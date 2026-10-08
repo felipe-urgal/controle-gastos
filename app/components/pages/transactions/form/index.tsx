@@ -807,6 +807,7 @@ export default function TransactionForm({
                   queuedPayload,
                   idempotencyKey,
                 ),
+              { discardOnValidation: true },
             );
             savedTransaction = result.data;
             createAttemptRef.current = null;

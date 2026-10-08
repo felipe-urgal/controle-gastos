@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   OFFLINE_TRANSACTION_QUEUE_PREFIX,
+  OfflineTransactionQueueStorageError,
   type OfflineTransactionQueuePayload,
   enqueueOfflineTransaction,
   readOfflineTransactionQueue,
@@ -292,10 +293,6 @@ describe("offline transaction queue", () => {
     const error = Object.assign(new Error("Falha"), { status, code, retryAfterSeconds: 60 });
     await expect(syncOfflineTransactionQueueItem("user-a", "item", async () => { throw error; })).rejects.toThrow("Falha");
     const item = readOfflineTransactionQueue("user-a")[0];
-    if (kind === "validation") {
-      expect(item).toBeUndefined();
-      return;
-    }
     expect(item).toMatchObject({ failureKind: kind, idempotencyKey: "stable-key" });
     if (code === undefined) {
       expect(item.errorCode).toBeUndefined();
@@ -341,9 +338,20 @@ describe("offline transaction queue", () => {
       });
       await expect(syncOfflineTransactionQueueItem("user-a", `attempt-${n}`, async () => {
         throw Object.assign(new Error("Categoria inválida"), { status: 422, code: "INVALID_CATEGORY" });
-      })).rejects.toThrow("Categoria inválida");
+      }, { discardOnValidation: true })).rejects.toThrow("Categoria inválida");
       expect(readOfflineTransactionQueue("user-a")).toEqual([]);
     }
+  });
+
+  it("keeps an offline-captured item for review when sync hits a validation error", async () => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "captured", idempotencyKey: "captured-key" });
+    await expect(syncOfflineTransactionQueueItem("user-a", "captured", async () => {
+      throw Object.assign(new Error("Conta inativa"), { status: 400, code: "INACTIVE_ACCOUNT" });
+    })).rejects.toThrow("Conta inativa");
+    expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
+      id: "captured", status: "error", failureKind: "validation", idempotencyKey: "captured-key",
+    });
   });
 
   it.each([
@@ -419,5 +427,58 @@ describe("offline transaction queue", () => {
     );
 
     expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+  });
+
+  it("accepts merchantId and rejects payloads the transaction contract would refuse", () => {
+    installLocalStorage();
+    const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+    const valid = { ...payload, merchantId: uuid(900) };
+    expect(() => enqueueOfflineTransaction("user-a", valid)).not.toThrow();
+
+    const invalid: OfflineTransactionQueuePayload[] = [
+      { ...payload, tagIds: Array.from({ length: 11 }, (_, n) => uuid(n + 1)) },
+      { ...payload, tagIds: [uuid(1), uuid(1)] },
+      { ...payload, allocations: [{ categoryId: payload.categoryId, amount: 1 }] },
+      {
+        ...payload,
+        allocations: Array.from({ length: 21 }, (_, n) => ({ categoryId: uuid(n + 1), amount: 1 })),
+      },
+    ];
+    for (const item of invalid) {
+      expect(() => enqueueOfflineTransaction("user-a", item)).toThrow();
+    }
+  });
+
+  it("drops items with an unknown queue version without touching valid ones", () => {
+    const { values } = installLocalStorage();
+    const valid = enqueueOfflineTransaction("user-a", payload);
+    const key = `${OFFLINE_TRANSACTION_QUEUE_PREFIX}user-a`;
+    const stored = JSON.parse(values.get(key)!);
+    values.set(key, JSON.stringify([...stored, { ...stored[0], id: "v2", version: 2 }]));
+
+    expect(readOfflineTransactionQueue("user-a").map((item) => item.id)).toEqual([valid.id]);
+  });
+
+  it("surfaces unavailable storage instead of pretending the item was queued", () => {
+    const { localStorage } = installLocalStorage();
+    localStorage.setItem = () => {
+      throw new DOMException("quota", "QuotaExceededError");
+    };
+
+    expect(() => enqueueOfflineTransaction("user-a", payload)).toThrow(
+      OfflineTransactionQueueStorageError,
+    );
+  });
+
+  it("keeps the logical date chosen by the user untouched (no UTC reinterpretation)", () => {
+    installLocalStorage();
+    const edge = { ...payload, year: 2026, month: 12, day: 31 };
+    const item = enqueueOfflineTransaction("user-a", edge);
+    expect(readOfflineTransactionQueue("user-a")[0].payload).toMatchObject({
+      year: 2026,
+      month: 12,
+      day: 31,
+    });
+    expect(item.payload.day).toBe(31);
   });
 });

@@ -4,9 +4,11 @@ import { PrismaClient } from '@prisma/client';
 import { expect, test } from '@playwright/test';
 import { Pool } from 'pg';
 
+import { setIsolatedClientIp } from './support/client-ip.mjs';
+
 const password = 'Playwright123!';
 
-async function createVerifiedUser(email) {
+async function createVerifiedUser(email, extra = {}) {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     max: 1,
@@ -20,6 +22,7 @@ async function createVerifiedUser(email) {
         email,
         password: await bcrypt.hash(password, 12),
         emailVerifiedAt: new Date(),
+        ...extra,
       },
     });
   } finally {
@@ -29,6 +32,7 @@ async function createVerifiedUser(email) {
 }
 
 async function login(page, email) {
+  await setIsolatedClientIp(page, email);
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);
@@ -99,7 +103,7 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
   ).toBeVisible();
   await expect(
     page.getByText(
-      'Por segurança, dados financeiros e respostas da API não são armazenados para uso offline.',
+      'Páginas financeiras e respostas da API não são armazenadas para uso offline.',
       { exact: false },
     ),
   ).toBeVisible();
@@ -111,7 +115,7 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
   ).toBeVisible();
   await expect(
     page.getByText(
-      'Por segurança, dados financeiros e respostas da API não são armazenados para uso offline.',
+      'Páginas financeiras e respostas da API não são armazenadas para uso offline.',
       { exact: false },
     ),
   ).toBeVisible();
@@ -370,7 +374,8 @@ test('rascunho offline valida limites antes de salvar e preserva rascunho legado
   test.setTimeout(90_000);
 
   const email = `pwa-limits-${Date.now()}-${test.info().retry}@example.test`;
-  await createVerifiedUser(email);
+  // showValues=false aproveita este login: o IP de CI tem limite de 30 logins por janela.
+  await createVerifiedUser(email, { showValues: false });
   await login(page, email);
   expect(await waitForServiceWorker(page)).toBe(true);
 
@@ -471,6 +476,13 @@ test('rascunho offline valida limites antes de salvar e preserva rascunho legado
   await expect(notice).toContainText('precisa de revisão');
   await expect(notice).toContainText('não pode exceder 100');
   expect(JSON.parse(await readDraft())).toEqual(legacy);
+
+  // showValues=false: o aviso e o badge global não expõem o valor do rascunho.
+  await expect(notice).toContainText('••••');
+  await expect(notice).not.toContainText('50,00');
+  const badge = page.getByTestId('offline-pending-badge').first();
+  await expect(badge).toHaveAttribute('aria-label', /1 lançamento local aguardando envio/);
+  await expect(badge).not.toContainText('50,00');
 
   // Continuar o rascunho carrega os dados sem truncar; editar não altera o rascunho salvo.
   await notice.getByRole('button', { name: 'Continuar rascunho', exact: true }).click();

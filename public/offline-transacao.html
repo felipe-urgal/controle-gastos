@@ -90,8 +90,13 @@
         <span class="eyebrow">Modo offline</span>
         <h1>Salvar rascunho de transação</h1>
         <p>
-          Este rascunho fica somente neste dispositivo. Ele não altera saldo,
-          não cria transação e não será enviado automaticamente.
+          Este rascunho fica somente neste dispositivo, sem criptografia, e é
+          removido ao sair da conta. Ele não altera saldo, não cria transação e
+          não será enviado automaticamente.
+        </p>
+        <p id="single-draft-note">
+          Apenas 1 rascunho offline é mantido: salvar novamente substitui o
+          rascunho atual.
         </p>
 
         <div class="notice">
@@ -150,7 +155,17 @@
       (() => {
         const OWNER_KEY = "controle-gastos:offline-draft-owner:v1";
         const DRAFT_PREFIX = "controle-gastos:offline-transaction-draft:v1:";
-        const owner = localStorage.getItem(OWNER_KEY);
+        let storageBlocked = false;
+        function readItem(k) {
+          try { return localStorage.getItem(k); } catch { storageBlocked = true; return null; }
+        }
+        function writeItem(k, v) {
+          try { localStorage.setItem(k, v); return true; } catch { return false; }
+        }
+        function removeItem(k) {
+          try { localStorage.removeItem(k); return true; } catch { return false; }
+        }
+        const owner = readItem(OWNER_KEY);
         const form = document.getElementById("draft-form");
         const status = document.getElementById("status");
         const saveButton = document.getElementById("save");
@@ -166,6 +181,14 @@
           String(today.getDate()).padStart(2, "0"),
         ].join("-");
         dateInput.value = localToday;
+
+        if (storageBlocked) {
+          saveButton.disabled = true;
+          status.className = "danger";
+          status.textContent =
+            "O armazenamento local está bloqueado neste navegador. Não é possível salvar rascunhos offline; nada foi salvo.";
+          return;
+        }
 
         if (!owner) {
           saveButton.disabled = true;
@@ -266,7 +289,7 @@
         }
 
         function loadExisting() {
-          const raw = localStorage.getItem(key);
+          const raw = readItem(key);
           if (!raw) return;
 
           try {
@@ -289,9 +312,15 @@
               status.textContent = "Rascunho offline existente carregado.";
             }
           } catch {
-            localStorage.removeItem(key);
+            // Rascunho ilegível: mantido no armazenamento, nunca apagado em silêncio.
+            status.className = "danger";
+            status.textContent =
+              "O rascunho existente não pôde ser lido. Ele será substituído se você salvar um novo.";
           }
         }
+
+        let pendingReplace = false;
+        form.addEventListener("input", () => { pendingReplace = false; });
 
         form.addEventListener("submit", (event) => {
           event.preventDefault();
@@ -309,9 +338,24 @@
           const type = form.querySelector('input[name="type"]:checked').value;
 
           const [year, month, day] = dateValue.split("-").map(Number);
-          const existingRaw = localStorage.getItem(key);
+          const existingRaw = readItem(key);
           let existing = null;
           try { existing = existingRaw ? JSON.parse(existingRaw) : null; } catch {}
+
+          const differs = existing && (
+            existing.amount !== amount ||
+            existing.description !== description ||
+            existing.type !== type ||
+            existing.year !== year || existing.month !== month || existing.day !== day
+          );
+          if (differs && !pendingReplace) {
+            pendingReplace = true;
+            status.className = "danger";
+            status.textContent =
+              "Já existe um rascunho salvo com conteúdo diferente. Salvar agora o substituirá; toque em Salvar rascunho novamente para confirmar.";
+            return;
+          }
+          pendingReplace = false;
 
           const now = new Date().toISOString();
           const draft = {
@@ -328,19 +372,26 @@
             updatedAt: now,
           };
 
-          localStorage.setItem(key, JSON.stringify(draft));
+          if (!writeItem(key, JSON.stringify(draft))) {
+            status.className = "danger";
+            status.textContent =
+              "Não foi possível salvar: o armazenamento local está bloqueado ou cheio. O rascunho NÃO foi salvo.";
+            return;
+          }
           status.className = "";
           status.textContent =
             "Rascunho salvo. Ao reconectar, abra Nova transação para revisar e confirmar o envio.";
         });
 
         discardButton.addEventListener("click", () => {
-          localStorage.removeItem(key);
+          const removed = removeItem(key);
           form.reset();
           dateInput.value = localToday;
           Object.keys(fields).forEach((name) => setFieldError(name, null));
-          status.className = "";
-          status.textContent = "Rascunho descartado deste dispositivo.";
+          status.className = removed ? "" : "danger";
+          status.textContent = removed
+            ? "Rascunho descartado deste dispositivo."
+            : "Não foi possível acessar o armazenamento local para descartar o rascunho.";
         });
 
         loadExisting();
