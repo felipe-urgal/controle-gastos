@@ -15,6 +15,7 @@ import {
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
 import { globalSearchService } from '@/app/services/global-search-service';
+import { ApiClientError } from '@/app/services/api-client';
 import type {
   GlobalSearchData,
   GlobalSearchResultType,
@@ -158,11 +159,14 @@ export default function GlobalSearchDialog({
           if (controller.signal.aborted) return;
           setData(null);
           setActiveIndex(-1);
-          setError(
-            requestError instanceof Error
-              ? requestError.message
-              : 'Não foi possível realizar a busca',
-          );
+          if (requestError instanceof ApiClientError && requestError.status === 429) {
+            const seconds = requestError.retryAfterSeconds ?? 30;
+            setError(`Busca de dados temporariamente limitada. Tente novamente em ${seconds} segundos. Ações e páginas continuam disponíveis.`);
+          } else if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            setError('Você está offline. Ações e páginas locais continuam disponíveis.');
+          } else {
+            setError('Não foi possível buscar seus dados. Ações e páginas locais continuam disponíveis.');
+          }
         })
         .finally(() => {
           if (!controller.signal.aborted) setLoading(false);
