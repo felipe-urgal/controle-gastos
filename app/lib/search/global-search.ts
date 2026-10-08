@@ -117,7 +117,7 @@ export async function getGlobalSearchForUser(
   const contains = { contains: query, mode: 'insensitive' as const };
 
   const [exactTransactions, accounts, categories, importRules] = await Promise.all([
-    Promise.all([
+    Promise.all(([
       { description: { equals: query, mode: 'insensitive' as const } },
       { description: { startsWith: query, mode: 'insensitive' as const } },
       { description: contains },
@@ -126,7 +126,7 @@ export async function getGlobalSearchForUser(
         { merchant: { is: { userId, aliases: { some: { userId, pattern: contains } } } } },
         { tagLinks: { some: { userId, tag: { name: { contains: query.replace(/^#/, ''), mode: 'insensitive' } } } } },
       ] },
-    ].map((match) => prisma.transaction.findMany({
+    ] as Prisma.TransactionWhereInput[]).map((match) => prisma.transaction.findMany({
       where: { userId, ...match },
       select: {
         id: true,
