@@ -178,7 +178,7 @@ export async function getGlobalSearchForUser(
       },
       orderBy: [{ priority: 'asc' }, { name: 'asc' }, { id: 'asc' }],
       take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
-    }),,
+    }),
     prisma.merchant.findMany({
       where: { userId, name: contains },
       select: { id: true, name: true, isActive: true },
