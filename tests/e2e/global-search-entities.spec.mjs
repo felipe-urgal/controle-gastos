@@ -44,8 +44,34 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
       descriptionPattern: marker, accountId: account.id, categoryId: category.id,
       minAmountCents: null, maxAmountCents: null,
     });
-    return { merchant, tag, template, debt, goal, rule };
+    const alias = await create('/api/merchant-aliases', {
+      merchantId: merchant.id, pattern: `${marker} Trip`, operator: 'CONTAINS',
+    });
+    const now = new Date();
+    const transaction = await create('/api/transactions', {
+      accountId: account.id, categoryId: category.id,
+      merchantId: merchant.id, tagIds: [tag.id],
+      amount: 987654, description: 'Corrida aplicativo',
+      year: now.getFullYear(), month: now.getMonth() + 1,
+      day: Math.min(now.getDate(), 28), type: 'EXPENSE', status: 'COMPLETED',
+    });
+    return { merchant, tag, template, debt, goal, rule, alias, transaction };
   }, unique);
+
+  for (const [term, matchReason] of [
+    [`${unique} Loja`, `${unique} Loja`],
+    [`${unique} Trip`, `Alias: ${unique} Trip`],
+    [`#${unique}`, `#${unique}`],
+  ]) {
+    await page.keyboard.press('Control+K');
+    const dialog = page.getByRole('dialog', { name: 'Busca global' });
+    const input = dialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
+    await input.fill(term);
+    const transactionResult = dialog.getByRole('button', { name: /Corrida aplicativo/ });
+    await expect(transactionResult).toBeVisible();
+    await expect(transactionResult).toContainText(matchReason);
+    await input.press('Escape');
+  }
 
   const destinations = [
     { name: `${unique} Loja`, title: `${unique} Loja`, path: '/estabelecimentos', key: 'merchantId', id: entities.merchant.id },
