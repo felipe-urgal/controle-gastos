@@ -65,6 +65,15 @@ const quickActions = [
   },
 ] as const;
 
+// Render textual highlights as React nodes; never interpret server text as HTML.
+function highlightSearchText(value: string, query: string) {
+  const needle = query.trim().toLocaleLowerCase('pt-BR');
+  if (!needle) return value;
+  const start = value.toLocaleLowerCase('pt-BR').indexOf(needle);
+  if (start < 0) return value;
+  return <>{value.slice(0, start)}<mark className="rounded-sm bg-[var(--primary-subtle)] text-inherit">{value.slice(start, start + needle.length)}</mark>{value.slice(start + needle.length)}</>;
+}
+
 export default function GlobalSearchDialog({
   onClose,
 }: {
@@ -492,11 +501,11 @@ export default function GlobalSearchDialog({
                           </span>
                           <span className="min-w-0 flex-1">
                             <strong className="block truncate text-sm text-[var(--foreground)]">
-                              {result.title}
+                              {highlightSearchText(result.title, query)}
                             </strong>
                             {result.subtitle && (
                               <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
-                                {result.subtitle}
+                                {highlightSearchText(result.subtitle, query)}
                               </span>
                             )}
                           </span>
