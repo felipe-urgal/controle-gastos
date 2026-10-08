@@ -244,7 +244,7 @@ describe("offline transaction queue", () => {
       id: "queue-conflict",
       idempotencyKey: "attempt-conflict",
     });
-    const conflict = Object.assign(new Error("Conflito"), { status: 409 });
+    const conflict = Object.assign(new Error("Conflito"), { status: 409, code: "IDEMPOTENCY_PAYLOAD_CONFLICT" });
 
     await expect(
       syncOfflineTransactionQueueItem(
@@ -258,7 +258,8 @@ describe("offline transaction queue", () => {
 
     expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
       status: "error",
-      failureKind: "conflict",
+      failureKind: "idempotency_conflict",
+      errorCode: "IDEMPOTENCY_PAYLOAD_CONFLICT",
       idempotencyKey: "attempt-conflict",
     });
 
@@ -271,6 +272,90 @@ describe("offline transaction queue", () => {
       status: "pending",
       failureKind: undefined,
       lastError: undefined,
+    });
+  });
+
+  it.each([
+    [409, "CREDIT_CARD_STATEMENT_ALREADY_PAID", "business_conflict"],
+    [409, "OTHER_DOMAIN_CONFLICT", "business_conflict"],
+    [409, undefined, "business_conflict"],
+    [403, "FORBIDDEN", "auth"],
+    [422, "INVALID_CATEGORY", "validation"],
+    [400, "VALIDATION_ERROR", "validation"],
+    [429, "RATE_LIMITED", "rate_limit"],
+    [503, "SERVICE_UNAVAILABLE", "server"],
+    [409, "IDEMPOTENCY_PAYLOAD_CONFLICT", "idempotency_conflict"],
+  ] as const)("classifies HTTP %i / %s as %s", async (status, code, kind) => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "item", idempotencyKey: "stable-key" });
+    const error = Object.assign(new Error("Falha"), { status, code, retryAfterSeconds: 60 });
+    await expect(syncOfflineTransactionQueueItem("user-a", "item", async () => { throw error; })).rejects.toThrow("Falha");
+    const item = readOfflineTransactionQueue("user-a")[0];
+    if (kind === "validation") {
+      expect(item).toBeUndefined();
+      return;
+    }
+    expect(item).toMatchObject({ failureKind: kind, idempotencyKey: "stable-key" });
+    if (code === undefined) {
+      expect(item.errorCode).toBeUndefined();
+    } else {
+      expect(item.errorCode).toBe(code);
+    }
+    if (kind === "rate_limit") {
+      expect(Date.parse(item.retryAfterAt!)).toBeGreaterThan(Date.now());
+      await expect(syncOfflineTransactionQueueItem("user-a", "item", async () => ({}))).rejects.toThrow("Aguarde");
+    }
+    if (kind === "business_conflict") {
+      expect(() => rekeyOfflineTransactionQueueItem("user-a", "item")).toThrow("Somente conflito");
+    }
+  });
+
+  it("keeps 429 key stable across the Retry-After deadline", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-10-08T12:00:00.000Z"));
+      installLocalStorage();
+      enqueueOfflineTransaction("user-a", payload, { id: "rate", idempotencyKey: "original-key" });
+      const limited = Object.assign(new Error("Aguarde"), { status: 429, code: "RATE_LIMITED", retryAfterSeconds: 30 });
+      await expect(syncOfflineTransactionQueueItem("user-a", "rate", async () => { throw limited; })).rejects.toThrow("Aguarde");
+      const queued = readOfflineTransactionQueue("user-a")[0];
+      expect(queued.retryAfterAt).toBe("2026-10-08T12:00:30.000Z");
+      const send = vi.fn(async (_payload: OfflineTransactionQueuePayload, key: string) => ({ key }));
+      await expect(syncOfflineTransactionQueueItem("user-a", "rate", send)).rejects.toThrow("Aguarde");
+      expect(send).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(30_000);
+      const result = await syncOfflineTransactionQueueItem("user-a", "rate", send);
+      expect(result.result.key).toBe("original-key");
+      expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not accumulate validation failures after form corrections", async () => {
+    installLocalStorage();
+    for (let n = 0; n < 3; n++) {
+      enqueueOfflineTransaction("user-a", { ...payload, description: `Correção ${n}` }, {
+        id: `attempt-${n}`, idempotencyKey: `key-${n}`,
+      });
+      await expect(syncOfflineTransactionQueueItem("user-a", `attempt-${n}`, async () => {
+        throw Object.assign(new Error("Categoria inválida"), { status: 422, code: "INVALID_CATEGORY" });
+      })).rejects.toThrow("Categoria inválida");
+      expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+    }
+  });
+
+  it.each([
+    ["network", new TypeError("Resposta perdida")],
+    ["server", Object.assign(new Error("Falha interna"), { status: 503 })],
+    ["auth", Object.assign(new Error("Sessão expirada"), { status: 401 })],
+    ["business_conflict", Object.assign(new Error("Conflito financeiro"), { status: 409, code: "CREDIT_CARD_STATEMENT_ALREADY_PAID" })],
+  ])("preserves original key after %s error", async (kind, error) => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "attempt", idempotencyKey: "original-key" });
+    await expect(syncOfflineTransactionQueueItem("user-a", "attempt", async () => { throw error; })).rejects.toThrow();
+    expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
+      status: "error", failureKind: kind, idempotencyKey: "original-key",
     });
   });
 

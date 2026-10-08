@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 
 import { prisma } from '@/app/lib/prisma';
 import { consumeGlobalSearchRateLimit } from '@/app/lib/search/global-search-rate-limit';
+import { searchNamedEntityGroups } from '@/app/lib/search/global-search-entities';
 import { scoreGlobalSearchMatch } from '@/app/lib/search/global-search-ranking';
 import {
   GLOBAL_SEARCH_LIMIT_PER_GROUP,
@@ -139,7 +140,7 @@ export async function getGlobalSearchForUser(
 ): Promise<GlobalSearchData> {
   const contains = { contains: query, mode: 'insensitive' as const };
 
-  const [exactTransactions, accounts, categories, importRules] = await Promise.all([
+  const [exactTransactions, accounts, categories, importRules, catalogGroups] = await Promise.all([
     Promise.all(([
       { description: { equals: query, mode: 'insensitive' as const } },
       { description: { startsWith: query, mode: 'insensitive' as const } },
@@ -220,6 +221,7 @@ export async function getGlobalSearchForUser(
       orderBy: [{ priority: 'asc' }, { name: 'asc' }, { id: 'asc' }],
       take: GLOBAL_SEARCH_LIMIT_PER_GROUP * 10,
     }),
+    searchNamedEntityGroups(userId, query),
   ]);
 
   const rankedExactTransactions = exactTransactions
@@ -338,9 +340,10 @@ export async function getGlobalSearchForUser(
         type: 'IMPORT_RULE',
         title: item.name,
         subtitle: `${item.category.name} · ${item.descriptionPattern} · ${item.isActive ? 'Ativa' : 'Inativa'}`,
-        href: '/transacoes/importar/regras',
+        href: `/transacoes/importar/regras?ruleId=${encodeURIComponent(item.id)}`,
       })),
     ),
+    ...catalogGroups,
   ].filter((item) => item.items.length > 0);
 
   const total = groups.reduce((sum, current) => sum + current.items.length, 0);

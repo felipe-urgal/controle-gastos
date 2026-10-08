@@ -26,6 +26,11 @@ const groupLabels: Record<GlobalSearchResultType, string> = {
   ACCOUNT: 'Contas',
   CATEGORY: 'Categorias',
   IMPORT_RULE: 'Regras de importação',
+  MERCHANT: 'Estabelecimentos',
+  TAG: 'Tags',
+  DEBT: 'Dívidas',
+  TEMPLATE: 'Modelos',
+  GOAL: 'Metas',
 };
 
 const resultIcons = {
@@ -33,6 +38,11 @@ const resultIcons = {
   ACCOUNT: FaWallet,
   CATEGORY: FaTags,
   IMPORT_RULE: FaMagic,
+  MERCHANT: FaWallet,
+  TAG: FaTags,
+  DEBT: FaMoneyBillWave,
+  TEMPLATE: FaMagic,
+  GOAL: FaWallet,
 } satisfies Record<GlobalSearchResultType, typeof FaSearch>;
 
 const quickActions = [
@@ -90,7 +100,8 @@ export default function GlobalSearchDialog({
         if (!normalizedQuery) return true;
         return (
           item.label.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
-          item.key.toLocaleLowerCase('pt-BR').includes(normalizedQuery)
+          item.key.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
+          item.keywords?.toLocaleLowerCase('pt-BR').includes(normalizedQuery)
         );
       }),
     [normalizedQuery],
@@ -289,7 +300,8 @@ export default function GlobalSearchDialog({
                       .includes(nextNormalizedQuery) ||
                     item.key
                       .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery),
+                      .includes(nextNormalizedQuery) ||
+                    item.keywords?.toLocaleLowerCase('pt-BR').includes(nextNormalizedQuery),
                 );
 
                 setQuery(nextQuery);

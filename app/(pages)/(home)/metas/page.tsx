@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: "Acompanhe seus objetivos financeiros",
 };
 
-export default function GoalsPage() {
-  return <GoalsCenter />;
+export default async function GoalsPage({ searchParams }: { searchParams: Promise<{ goalId?: string | string[] }> }) {
+  const { goalId } = await searchParams;
+  return <GoalsCenter focusGoalId={Array.isArray(goalId) ? goalId[0] : goalId} />;
 }

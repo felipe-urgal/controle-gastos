@@ -1,84 +1,67 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseReceiptOcrText } from '@/app/lib/receipts/receipt-ocr-parser';
+import {
+  getApplicableReceiptOcrSuggestions,
+  parseReceiptOcrText,
+} from '@/app/lib/receipts/receipt-ocr-parser';
 
-describe('parseReceiptOcrText', () => {
-  it('extracts Brazilian total, date and merchant from a typical receipt', () => {
-    const result = parseReceiptOcrText(`
-MERCADO BOM PRECO LTDA
-CNPJ 12.345.678/0001-90
-01/10/2026 12:42
-ARROZ 1 UN 28,90
-FEIJAO 1 UN 9,50
-TOTAL A PAGAR R$ 38,40
-`);
-
-    expect(result).toEqual({
-      amountCents: 3840,
-      date: { year: 2026, month: 10, day: 1 },
-      description: 'MERCADO BOM PRECO LTDA',
-    });
+describe('OCR receipt amount: conservative extraction', () => {
+  it.each([
+    ['TOTAL A PAGAR', 'TOTAL A PAGAR R$ 38,40', 3840, 'high'],
+    ['VALOR TOTAL', 'VALOR TOTAL R$ 1.234,56', 123456, 'high'],
+    ['TOTAL GERAL', 'TOTAL GERAL R$ 40,00', 4000, 'high'],
+    ['TOTAL', 'TOTAL R$ 50,00', 5000, 'medium'],
+  ] as const)('recognizes %s with evidence', (_label, line, cents, confidence) => {
+    const result = parseReceiptOcrText('MERCADO BOM PRECO\n' + line);
+    expect(result.amount).toEqual({ value: cents, confidence, evidence: line });
+    expect(getApplicableReceiptOcrSuggestions(result).amountCents).toBe(cents);
   });
 
-  it('prefers the total over subtotal, discount and payment values', () => {
-    const result = parseReceiptOcrText(`
-PADARIA CENTRAL
-SUBTOTAL 52,00
-DESCONTO 2,00
-TOTAL R$ 50,00
-DINHEIRO R$ 100,00
-TROCO R$ 50,00
-`);
-
-    expect(result.amountCents).toBe(5000);
+  it.each([
+    ['cash received exceeds purchase', 'SUBTOTAL 42,00\nTOTAL R$ 37,50\nPAGAMENTO DINHEIRO R$ 100,00\nTROCO R$ 62,50', 3750],
+    ['card plus total', 'VALOR TOTAL R$ 90,20\nCARTAO DE CREDITO R$ 90,20', 9020],
+    ['PIX plus total', 'TOTAL A PAGAR R$ 12,80\nPAGAMENTO PIX R$ 12,80', 1280],
+    ['change', 'TOTAL R$ 22,00\nDINHEIRO 50,00\nTROCO 28,00', 2200],
+    ['discount', 'SUBTOTAL 100,00\nDESCONTO R$ 20,00\nTOTAL GERAL R$ 80,00', 8000],
+    ['installments', 'VALOR TOTAL 120,00\n3 PARCELAS DE 40,00\nPAGAMENTO CARTAO 120,00', 12000],
+  ] as const)('uses the purchase total with %s', (_name, receipt, cents) => {
+    const result = parseReceiptOcrText('LOJA TESTE\n' + receipt);
+    expect(result.amount?.value).toBe(cents);
+    expect(result.amount?.confidence).not.toBe('low');
   });
 
-  it('uses the largest monetary value when the receipt has no total label', () => {
-    const result = parseReceiptOcrText(`
-LOJA TESTE
-CAFE 8,50
-ALMOCO 31,90
-AGUA 5,00
-`);
-
-    expect(result.amountCents).toBe(3190);
+  it.each([
+    ['items without total', 'ARROZ 28,90\nFEIJAO 9,50\nAGUA 5,00'],
+    ['cash without total', 'PAGAMENTO DINHEIRO R$ 100,00\nTROCO 20,00'],
+    ['PIX without total', 'PAGAMENTO PIX R$ 52,00'],
+    ['card without total', 'CARTAO DE CREDITO R$ 52,00'],
+    ['payment received', 'VALOR PAGO R$ 52,00'],
+    ['cash tendered', 'VALOR ENTREGUE R$ 100,00'],
+    ['fees and discounts', 'TAXA R$ 5,00\nDESCONTO R$ 10,00'],
+    ['installments without total', '3 PARCELAS R$ 40,00'],
+    ['multiple values on total row', 'TOTAL R$ 10,00 R$ 20,00'],
+    ['mixed total/payment row', 'TOTAL 50,00 PAGAMENTO PIX 50,00'],
+    ['only CNPJ and date', 'CNPJ 12.345.678/0001-90\n01.10.2026'],
+  ] as const)('does not apply any amount: %s', (_name, receipt) => {
+    const result = parseReceiptOcrText('LOJA TESTE\n' + receipt);
+    expect(result.amount).toBeUndefined();
+    expect(getApplicableReceiptOcrSuggestions(result).amountCents).toBeUndefined();
   });
 
-  it('parses thousand separators and two-digit years', () => {
-    const result = parseReceiptOcrText(`
-ELETRONICOS BRASIL
-DATA 30-09-26
-VALOR TOTAL R$ 1.234,56
-`);
-
-    expect(result.amountCents).toBe(123456);
-    expect(result.date).toEqual({ year: 2026, month: 9, day: 30 });
+  it('marks conflicting total labels low confidence and does not apply', () => {
+    const result = parseReceiptOcrText('TOTAL A PAGAR 30,00\nVALOR TOTAL 40,00');
+    expect(result.amount?.confidence).toBe('low');
+    expect(getApplicableReceiptOcrSuggestions(result).amountCents).toBeUndefined();
   });
 
-  it('ignores invalid dates and metadata when choosing the merchant', () => {
-    const result = parseReceiptOcrText(`
-CNPJ 00.000.000/0001-00
-NFC-e DOCUMENTO AUXILIAR
-LOJA DO BAIRRO
-31/02/2026
-TOTAL 15,75
-`);
-
-    expect(result.description).toBe('LOJA DO BAIRRO');
-    expect(result.date).toBeUndefined();
+  it('retains date and description even if amount cannot be identified', () => {
+    const result = parseReceiptOcrText('MERCADO BOM PRECO LTDA\nDATA 01/10/2026\nCAFE 8,50\nAGUA 5,00');
+    expect(result.amount).toBeUndefined();
+    expect(result.date?.value).toEqual({ year: 2026, month: 10, day: 1 });
+    expect(result.description?.value).toBe('MERCADO BOM PRECO LTDA');
   });
 
-  it('does not mistake CNPJ or dotted dates for monetary values', () => {
-    const result = parseReceiptOcrText(`
-LOJA TESTE
-CNPJ 12.345.678/0001-90
-01.10.2026
-`);
-
-    expect(result.amountCents).toBeUndefined();
-  });
-
-  it('returns no suggestions for empty OCR text', () => {
-    expect(parseReceiptOcrText('  \n \n')).toEqual({});
+  it('handles empty OCR output', () => {
+    expect(parseReceiptOcrText(' \n \n')).toEqual({});
   });
 });
