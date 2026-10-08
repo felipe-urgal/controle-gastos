@@ -315,7 +315,7 @@ describe("offline transaction queue", () => {
       await expect(syncOfflineTransactionQueueItem("user-a", "rate", async () => { throw limited; })).rejects.toThrow("Aguarde");
       const queued = readOfflineTransactionQueue("user-a")[0];
       expect(queued.retryAfterAt).toBe("2026-10-08T12:00:30.000Z");
-      const send = vi.fn(async (_payload: typeof payload, key: string) => ({ key }));
+      const send = vi.fn(async (_payload: OfflineTransactionQueuePayload, key: string) => ({ key }));
       await expect(syncOfflineTransactionQueueItem("user-a", "rate", send)).rejects.toThrow("Aguarde");
       expect(send).not.toHaveBeenCalled();
       vi.advanceTimersByTime(30_000);
