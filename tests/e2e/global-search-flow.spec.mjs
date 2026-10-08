@@ -139,7 +139,6 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
 
     const title = isSlow ? 'Resultado antigo' : 'Resultado atual';
     // Ao digitar outra query, o navegador pode cancelar a requisição anterior.
-    if (route.isInterceptResolutionHandled()) return;
     try {
       await route.fulfill({
         status: 200,
