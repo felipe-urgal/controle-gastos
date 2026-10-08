@@ -1,18 +1,16 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
 async function signup(request, prefix) {
   const suffix = `${Date.now()}-${test.info().project.name}-${prefix}`;
   const email = `qa-${prefix}-${suffix}@example.test`;
-  const response = await request.post('/api/auth/signup', {
-    data: {
+  await createVerifiedUser({
       name: `QA ${prefix}`,
       email,
       password,
-    },
-  });
-  expect(response.ok()).toBeTruthy();
+    });
   return { email, suffix };
 }
 
@@ -28,7 +26,7 @@ test('dívidas e metas são protegidas antes do client-side guard', async ({ pag
   for (const route of ['/dividas', '/metas']) {
     await page.context().clearCookies();
     await page.goto(route);
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
   }
 });
 

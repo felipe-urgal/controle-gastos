@@ -35,6 +35,10 @@ on:
       - "tests/e2e/user-show-values-cross-module.spec.mjs"
       - "tests/e2e/user-delete-account.spec.mjs"
       - "tests/e2e/mfa-flow.spec.mjs"
+      - "tests/e2e/auth-lifecycle.spec.mjs"
+      - "app/api/auth/**"
+      - "app/lib/auth/**"
+      - "app/(pages)/(auth)/**"
       - "tests/e2e/support/**"
       - "app/components/pages/account/**"
       - "app/components/pages/user/**"
@@ -242,6 +246,7 @@ jobs:
           tests/e2e/user-show-values-cross-module.spec.mjs
           tests/e2e/user-delete-account.spec.mjs
           tests/e2e/mfa-flow.spec.mjs
+          tests/e2e/auth-lifecycle.spec.mjs
           --project=${{ matrix.browser }}
 
       - name: Run full E2E

@@ -160,7 +160,7 @@ async function seedPayrollFixture(email, { showValues = true } = {}) {
 
 test('folha: rota protegida redireciona sem sessão', async ({ page }) => {
   await page.goto('/rendimentos-trabalho');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
 });
 
 test('folha: resolve adiantamento ambíguo manualmente e desbloqueia anual', async ({

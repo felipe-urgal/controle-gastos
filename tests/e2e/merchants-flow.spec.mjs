@@ -81,7 +81,7 @@ test('estabelecimentos: acesso direto sem sessão redireciona para login', async
   page,
 }) => {
   await page.goto('/estabelecimentos');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
 });
 
 test('estabelecimentos: CRUD de alias, conflito, move e mobile sem overflow', async ({

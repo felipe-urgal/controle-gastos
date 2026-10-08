@@ -1,5 +1,6 @@
 import { mkdir } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -24,7 +25,7 @@ async function noOverflow(page) {
   expect(size[0]).toBeLessThanOrEqual(size[1]);
 }
 
-test('QA #284 final', async ({ page, request }) => {
+test('QA #284 final', async ({ page }) => {
   test.setTimeout(120_000);
   const suffix = `${Date.now()}-${test.info().project.name}`;
   const email = `qa284-${suffix}@example.test`;
@@ -33,7 +34,7 @@ test('QA #284 final', async ({ page, request }) => {
   const description = `Transferência ${suffix}`;
   const pendingDescription = `Transferência pendente ${suffix}`;
 
-  expect((await request.post('/api/auth/signup', { data: { name: 'QA 284', email, password } })).ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA 284', email, password });
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);

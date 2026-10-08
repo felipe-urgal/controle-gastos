@@ -206,7 +206,7 @@ test('comparar: acesso direto sem sessão redireciona para login', async ({
   page,
 }) => {
   await page.goto('/comparar');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
 });
 
 test('comparar: desktop mantém comparação legível sem overflow', async ({

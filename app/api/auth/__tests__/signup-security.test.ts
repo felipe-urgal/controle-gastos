@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("bcryptjs", () => ({
   default: {
     hash: mocks.bcryptHash,
+    truncates: () => false,
   },
 }));
 
@@ -56,7 +57,7 @@ function signupRequest() {
     body: JSON.stringify({
       name: "Novo Usuário",
       email: "novo@example.com",
-      password: "Senha123",
+      password: "Senha-123456",
     }),
   });
 }
@@ -192,7 +193,7 @@ describe("POST /api/auth/signup security policy", () => {
       status: 500,
     });
     expect(JSON.stringify(entry)).not.toContain("novo@example.com");
-    expect(JSON.stringify(entry)).not.toContain("Senha123");
+    expect(JSON.stringify(entry)).not.toContain("Senha-123456");
     expect(JSON.stringify(entry)).not.toContain("database exploded");
   });
 });

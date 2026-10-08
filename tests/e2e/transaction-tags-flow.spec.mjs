@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -12,12 +13,11 @@ async function login(page, email) {
 
 test('tags: acesso direto sem sessão redireciona para login', async ({ page }) => {
   await page.goto('/tags');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
 });
 
 test('tags: criar, renomear, relatar, filtrar e preservar lifecycle', async ({
   page,
-  request,
 }) => {
   test.setTimeout(90_000);
 
@@ -27,10 +27,7 @@ test('tags: criar, renomear, relatar, filtrar e preservar lifecycle', async ({
   const renamedTagName = `viagem-${suffix}`;
   const description = `Viagem E2E ${suffix}`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: { name: 'QA Tags', email, password },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Tags', email, password });
 
   await login(page, email);
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -187,7 +184,6 @@ test('tags: criar, renomear, relatar, filtrar e preservar lifecycle', async ({
 
 test('tags: sucesso da mutação não vira falha quando o refresh posterior falha', async ({
   page,
-  request,
 }) => {
   test.setTimeout(60_000);
 
@@ -195,10 +191,7 @@ test('tags: sucesso da mutação não vira falha quando o refresh posterior falh
   const email = `qa-tags-refresh-${suffix}@example.test`;
   const tagName = `refresh-${suffix}`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: { name: 'QA Tags Refresh', email, password },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Tags Refresh', email, password });
 
   await login(page, email);
   await page.goto('/tags');

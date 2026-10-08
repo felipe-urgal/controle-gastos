@@ -1,11 +1,14 @@
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
+export const SESSION_EXPIRED_EVENT = "auth:session-expired";
+
 export class ApiClientError extends Error {
   constructor(
     message: string,
     public readonly status: number,
     public readonly code?: string,
     public readonly retryAfterSeconds?: number,
+    public readonly fieldErrors?: Record<string, string>,
   ) {
     super(message);
     this.name = "ApiClientError";
@@ -61,6 +64,7 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
     if (!response.ok) {
       let errorMessage = `Erro ${response.status}: ${response.statusText}`;
       let errorCode: string | undefined;
+      let fieldErrors: Record<string, string> | undefined;
       const rawRetryAfter = response.headers.get("Retry-After");
       const retryAfterSeconds =
         rawRetryAfter && /^\d+$/.test(rawRetryAfter)
@@ -73,12 +77,27 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
         const errorData = (await response.json()) as {
           error?: { message?: string; code?: string };
           message?: string;
+          code?: string;
+          fieldErrors?: Record<string, string>;
         };
         errorMessage =
           errorData?.error?.message || errorData?.message || errorMessage;
-        errorCode = errorData?.error?.code;
+        errorCode = errorData?.error?.code ?? errorData?.code;
+        fieldErrors = errorData?.fieldErrors;
       } catch {
         // Keep the HTTP fallback when the response body is not JSON.
+      }
+
+      // Só leituras disparam o logout global: escritas (ex.: fila offline) tratam
+      // o 401 por conta própria para preservar o item e oferecer novo login.
+      if (
+        response.status === 401 &&
+        method === "GET" &&
+        !errorCode &&
+        !endpoint.startsWith("/api/auth/") &&
+        typeof window !== "undefined"
+      ) {
+        window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
       }
 
       throw new ApiClientError(
@@ -86,6 +105,7 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
         response.status,
         errorCode,
         retryAfterSeconds,
+        fieldErrors,
       );
     }
 

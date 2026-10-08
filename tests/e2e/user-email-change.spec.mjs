@@ -119,7 +119,7 @@ test('troca de e-mail aguarda confirmação e exige novo login', async ({ page }
 
   await page.goto(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
 
-  await expect(page).toHaveURL(/\/login\?verification=email-changed$/);
+  await expect(page).toHaveURL(/\/login(\?verification=email-changed)?$/);
   await expect(
     page.getByRole('status').filter({
       hasText: 'E-mail alterado com sucesso. Entre novamente com o novo endereço.',

@@ -149,7 +149,7 @@ async function seedNetWorth(page, suffix) {
 
 test('patrimônio é protegido no acesso direto sem sessão', async ({ page }) => {
   await page.goto('/patrimonio');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
 });
 
 test('patrimônio explicita valuation atual, histórico contábil e multi-moeda', async ({

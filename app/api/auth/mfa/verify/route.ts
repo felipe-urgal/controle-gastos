@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
-import { shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
+import { setAuthCookie } from "@/app/lib/auth/auth-cookie";
 import { signAuthToken } from "@/app/lib/auth/auth-token";
 import { isHttpError } from "@/app/lib/http-error";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
@@ -143,14 +143,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       { status: 200 }
     );
 
-    response.cookies.set("token", authToken, {
-      httpOnly: true,
-      secure: shouldUseSecureAuthCookie(request),
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-      priority: "high",
-    });
+    setAuthCookie(response, request, authToken);
 
     logEvent("info", "auth_mfa_login_succeeded", {
       requestId,

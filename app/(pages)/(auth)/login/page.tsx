@@ -17,13 +17,23 @@ import {
 import { useAuth } from '@/app/context';
 import AuthShell from '@/app/components/layout/auth-shell';
 import { Button, Input } from '@/app/components/ui';
+import { getEmailError } from '@/app/lib/auth/credential-rules';
+import { resolvePostLoginPath } from '@/app/lib/auth/protected-routes';
+import { ApiClientError } from '@/app/services/api-client';
+import { authService } from '@/app/services/auth-service';
 
 type MfaMode = 'totp' | 'recovery';
 
 type MfaStep = {
   challenge: string;
-  expiresInSeconds: number;
+  expiresAt: number;
 };
+
+function formatCountdown(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
 
 export default function LoginPage() {
   const { login, verifyMfa, isAuthenticated, isLoading } = useAuth();
@@ -38,10 +48,13 @@ export default function LoginPage() {
   const [mfaStep, setMfaStep] = useState<MfaStep | null>(null);
   const [mfaMode, setMfaMode] = useState<MfaMode>('totp');
   const [mfaValue, setMfaValue] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+  const [verificationInvalid, setVerificationInvalid] = useState(false);
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/dashboard');
+      router.replace(resolvePostLoginPath(window.location.search));
       return;
     }
 
@@ -49,6 +62,14 @@ export default function LoginPage() {
     const storedNotice = window.sessionStorage.getItem('auth-notice');
     const reason = params.get('reason') ?? storedNotice;
     const verification = params.get('verification');
+    if (verification === 'invalid') {
+      const invalidTimer = window.setTimeout(() => setVerificationInvalid(true), 0);
+      params.delete('verification');
+      const query = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+      return () => window.clearTimeout(invalidTimer);
+    }
+
     const nextNotice =
       reason === 'password-changed'
         ? 'Senha alterada com sucesso. Entre novamente.'
@@ -61,6 +82,10 @@ export default function LoginPage() {
     if (!nextNotice) return;
 
     window.sessionStorage.removeItem('auth-notice');
+    params.delete('verification');
+    params.delete('reason');
+    const remaining = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${remaining ? `?${remaining}` : ''}`);
 
     const noticeTimer = window.setTimeout(() => {
       setNotice(nextNotice);
@@ -69,7 +94,19 @@ export default function LoginPage() {
     return () => window.clearTimeout(noticeTimer);
   }, [isAuthenticated, router]);
 
+  useEffect(() => {
+    if (!mfaStep) return;
+
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [mfaStep]);
+
   if (isLoading || isAuthenticated) return null;
+
+  const mfaSecondsLeft = mfaStep
+    ? Math.max(0, Math.ceil((mfaStep.expiresAt - now) / 1000))
+    : null;
+  const mfaExpired = mfaSecondsLeft === 0;
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
@@ -89,32 +126,28 @@ export default function LoginPage() {
     try {
       const result = await login({ email: form.email, password: form.password });
       if (result.mfaRequired) {
+        setNow(Date.now());
         setMfaStep({
           challenge: result.challenge,
-          expiresInSeconds: result.expiresInSeconds,
+          expiresAt: Date.now() + result.expiresInSeconds * 1000,
         });
         setForm((previous) => ({ ...previous, password: '' }));
         setMfaMode('totp');
         setMfaValue('');
       }
     } catch (caught: unknown) {
-      const message = caught instanceof Error ? caught.message : 'Erro ao fazer login';
-
-      if (message.includes(',')) {
-        const fieldErrors = { email: '', password: '' };
-
-        message
-          .split(',')
-          .map((item) => item.trim())
-          .filter(Boolean)
-          .forEach((item) => {
-            if (item.toLowerCase().includes('e-mail')) fieldErrors.email = item;
-            if (item.toLowerCase().includes('senha')) fieldErrors.password = item;
-          });
-
-        setErrors(fieldErrors);
+      if (caught instanceof ApiClientError && caught.fieldErrors) {
+        setErrors({
+          email: caught.fieldErrors.email ?? '',
+          password: caught.fieldErrors.password ?? '',
+        });
+      } else if (caught instanceof ApiClientError && caught.status === 429) {
+        const wait = caught.retryAfterSeconds
+          ? ` Tente novamente em cerca de ${Math.max(1, Math.ceil(caught.retryAfterSeconds / 60))} min.`
+          : '';
+        setError(`Muitas tentativas.${wait}`);
       } else {
-        setError(message);
+        setError(caught instanceof Error ? caught.message : 'Erro ao fazer login');
       }
     } finally {
       setIsSubmitting(false);
@@ -124,6 +157,11 @@ export default function LoginPage() {
   const handleMfaSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!mfaStep) return;
+
+    if (mfaExpired) {
+      setError('O tempo para confirmar expirou. Volte e entre novamente.');
+      return;
+    }
 
     if (!mfaValue.trim()) {
       setError(
@@ -162,8 +200,28 @@ export default function LoginPage() {
     setError('');
   };
 
+  const handleResendVerification = async () => {
+    const emailError = getEmailError(form.email);
+    if (emailError) {
+      setErrors((previous) => ({ ...previous, email: emailError }));
+      return;
+    }
+
+    setResendState('sending');
+    try {
+      await authService.resendVerification(form.email);
+      setResendState('sent');
+    } catch (caught) {
+      setResendState('idle');
+      setError(
+        caught instanceof ApiClientError && caught.status === 429
+          ? 'Muitas solicitações de reenvio. Tente novamente mais tarde.'
+          : 'Não foi possível solicitar o reenvio. Tente novamente.',
+      );
+    }
+  };
+
   const useRecoveryMode = mfaMode === 'recovery';
-  const expiryMinutes = Math.max(1, Math.ceil((mfaStep?.expiresInSeconds ?? 300) / 60));
 
   return (
     <AuthShell
@@ -171,7 +229,7 @@ export default function LoginPage() {
       title={mfaStep ? 'Confirme que é você' : 'Entrar na sua conta'}
       description={
         mfaStep
-          ? `Use seu aplicativo autenticador ou um código de recuperação. O challenge expira em até ${expiryMinutes} min.`
+          ? `Use seu aplicativo autenticador ou um código de recuperação. Você tem ${formatCountdown(mfaSecondsLeft ?? 0)} para confirmar.`
           : 'Continue de onde parou e acesse seu dashboard, contas, transações e calendário financeiro.'
       }
       footer={
@@ -197,8 +255,37 @@ export default function LoginPage() {
         </div>
       )}
 
+      {verificationInvalid && !mfaStep && (
+        <div role="alert" className="mb-5 rounded-[var(--radius-md)] border border-[var(--danger)]/45 bg-[var(--danger-subtle)] p-4 text-sm leading-relaxed text-[var(--expense)]">
+          <p>Link inválido ou expirado.</p>
+          {resendState === 'sent' ? (
+            <p className="mt-2 text-[var(--foreground)]">
+              Se houver um cadastro pendente para este e-mail, enviaremos um novo link.
+            </p>
+          ) : (
+            <p className="mt-2">
+              Informe seu e-mail abaixo e{' '}
+              <button
+                type="button"
+                onClick={() => void handleResendVerification()}
+                disabled={resendState === 'sending'}
+                className="font-semibold underline underline-offset-2 disabled:opacity-60"
+              >
+                {resendState === 'sending' ? 'Enviando...' : 'reenvie a verificação'}
+              </button>
+              .
+            </p>
+          )}
+        </div>
+      )}
+
       {mfaStep ? (
         <form onSubmit={handleMfaSubmit} className="space-y-5" noValidate>
+          {mfaExpired && (
+            <div role="alert" className="rounded-[var(--radius-md)] border border-[var(--danger)]/45 bg-[var(--danger-subtle)] p-4 text-sm leading-relaxed text-[var(--expense)]">
+              O tempo para confirmar expirou. Volte e entre novamente com sua senha.
+            </div>
+          )}
           <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
             <div className="flex items-start gap-3">
               <span className="mt-0.5 text-[var(--primary)]" aria-hidden="true">
@@ -244,6 +331,7 @@ export default function LoginPage() {
             icon={<FaSignInAlt />}
             iconPosition="right"
             isLoading={isSubmitting}
+            disabled={mfaExpired}
             loadingText="Validando..."
           >
             Confirmar e entrar

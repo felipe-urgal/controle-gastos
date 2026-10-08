@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   FaCheck,
+  FaCheckCircle,
   FaEnvelope,
   FaEye,
   FaEyeSlash,
@@ -16,6 +17,10 @@ import {
 import { useAuth } from '@/app/context';
 import AuthShell from '@/app/components/layout/auth-shell';
 import { Button, Input } from '@/app/components/ui';
+import { getEmailError, getNameError } from '@/app/lib/auth/credential-rules';
+import { resolvePostLoginPath } from '@/app/lib/auth/protected-routes';
+import { authService } from '@/app/services/auth-service';
+import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENT_LABEL, getPasswordRuleError } from '@/app/lib/auth/password-rules';
 
 export default function RegisterPage() {
   const { signup, isAuthenticated } = useAuth();
@@ -35,20 +40,19 @@ export default function RegisterPage() {
     confirmPassword: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) router.replace('/contas');
+    if (isAuthenticated) router.replace(resolvePostLoginPath(window.location.search));
   }, [isAuthenticated, router]);
 
   if (isAuthenticated) return null;
 
-  const requirements = {
-    length: form.password.length >= 6,
-    uppercase: /[A-Z]/.test(form.password),
-    number: /[0-9]/.test(form.password),
-  };
+  const passwordRuleError = getPasswordRuleError(form.password);
+  const requirementMet = form.password.length >= PASSWORD_MIN_LENGTH && !passwordRuleError;
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
@@ -64,33 +68,23 @@ export default function RegisterPage() {
     const errors = { name: '', email: '', password: '', confirmPassword: '' };
     let valid = true;
 
-    if (!form.name.trim()) {
-      errors.name = 'Nome é obrigatório';
-      valid = false;
-    } else if (form.name.trim().length < 3) {
-      errors.name = 'Nome deve ter pelo menos 3 caracteres';
+    const nameError = getNameError(form.name);
+    if (nameError) {
+      errors.name = nameError;
       valid = false;
     }
 
-    if (!form.email) {
-      errors.email = 'E-mail é obrigatório';
-      valid = false;
-    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
-      errors.email = 'E-mail inválido';
+    const emailError = getEmailError(form.email);
+    if (emailError) {
+      errors.email = emailError;
       valid = false;
     }
 
     if (!form.password) {
       errors.password = 'Senha é obrigatória';
       valid = false;
-    } else if (!requirements.length) {
-      errors.password = 'Senha deve ter pelo menos 6 caracteres';
-      valid = false;
-    } else if (!requirements.uppercase) {
-      errors.password = 'Senha deve conter pelo menos uma letra maiúscula';
-      valid = false;
-    } else if (!requirements.number) {
-      errors.password = 'Senha deve conter pelo menos um número';
+    } else if (passwordRuleError) {
+      errors.password = passwordRuleError;
       valid = false;
     }
 
@@ -115,12 +109,74 @@ export default function RegisterPage() {
 
     try {
       await signup({ name: form.name, email: form.email, password: form.password });
+      setSubmittedEmail(form.email.trim().toLowerCase());
+      setForm({ name: '', email: '', password: '', confirmPassword: '' });
+      setIsSubmitting(false);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : 'Erro ao criar conta';
       setErrorsList(message.split(';').map((item) => item.trim()).filter(Boolean));
       setIsSubmitting(false);
     }
   };
+
+  const handleResend = async () => {
+    if (!submittedEmail) return;
+    setResendState('sending');
+    try {
+      await authService.resendVerification(submittedEmail);
+      setResendState('sent');
+    } catch {
+      setResendState('error');
+    }
+  };
+
+  if (submittedEmail) {
+    return (
+      <AuthShell
+        eyebrow="Cadastro"
+        title="Confira seu e-mail"
+        description="Para entrar, confirme seu e-mail usando o link que enviarmos. Sem essa confirmação o login não funcionará."
+        backHref="/login"
+        backLabel="Ir para o login"
+      >
+        <div role="status" className="mb-5 flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--primary)]/40 bg-[var(--primary-subtle)] p-4 text-sm leading-relaxed text-[var(--foreground)]">
+          <FaCheckCircle className="mt-0.5 shrink-0 text-[var(--primary)]" aria-hidden="true" />
+          <span>
+            Se for possível concluir o cadastro, enviaremos um link de verificação para{' '}
+            <strong className="break-all">{submittedEmail}</strong>. O link vale por 24 horas.
+          </span>
+        </div>
+
+        {resendState === 'sent' && (
+          <p role="status" className="mb-4 text-sm text-[var(--text-muted)]">
+            Se houver um cadastro pendente, enviaremos um novo link.
+          </p>
+        )}
+        {resendState === 'error' && (
+          <p role="alert" className="mb-4 text-sm text-[var(--expense)]">
+            Não foi possível solicitar o reenvio agora. Tente novamente mais tarde.
+          </p>
+        )}
+
+        <div className="grid gap-3">
+          <Button as="a" href="/login" fullWidth size="lg">
+            Ir para o login
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            fullWidth
+            size="lg"
+            onClick={() => void handleResend()}
+            isLoading={resendState === 'sending'}
+            loadingText="Enviando..."
+          >
+            Reenviar verificação
+          </Button>
+        </div>
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell
@@ -205,23 +261,12 @@ export default function RegisterPage() {
             required
           />
 
-          <ul className="mt-3 grid gap-2 text-sm text-[var(--text-muted)] sm:grid-cols-3" aria-label="Requisitos da senha">
-            {[
-              ['length', '6+ caracteres'],
-              ['uppercase', '1 maiúscula'],
-              ['number', '1 número'],
-            ].map(([key, label]) => {
-              const met = requirements[key as keyof typeof requirements];
-              return (
-                <li key={key} className={`flex items-center gap-2 ${met ? 'text-[var(--income)]' : ''}`}>
-                  <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${met ? 'border-[var(--income)] bg-[var(--primary-subtle)]' : 'border-[var(--border-strong)]'}`}>
-                    {met && <FaCheck className="h-2.5 w-2.5" aria-hidden="true" />}
-                  </span>
-                  {label}
-                </li>
-              );
-            })}
-          </ul>
+          <p className={`mt-3 flex items-center gap-2 text-sm ${requirementMet ? 'text-[var(--income)]' : 'text-[var(--text-muted)]'}`}>
+            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${requirementMet ? 'border-[var(--income)] bg-[var(--primary-subtle)]' : 'border-[var(--border-strong)]'}`}>
+              {requirementMet && <FaCheck className="h-2.5 w-2.5" aria-hidden="true" />}
+            </span>
+            {PASSWORD_REQUIREMENT_LABEL}
+          </p>
         </div>
 
         <Input

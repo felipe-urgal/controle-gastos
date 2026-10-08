@@ -123,6 +123,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         );
       }
 
+      await tx.passwordResetToken.deleteMany({
+        where: { userId: resetToken.userId },
+      });
+
       await tx.user.update({
         where: { id: resetToken.userId },
         data: {

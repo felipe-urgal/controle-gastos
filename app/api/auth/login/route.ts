@@ -4,22 +4,26 @@ import { isHttpError } from "@/app/lib/http-error";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/prisma";
 import { signAuthToken } from "@/app/lib/auth/auth-token";
-import { shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
 import {
-  clearRateLimit,
-  consumeRateLimit,
-  getRequestIp,
-} from "@/app/lib/security/rate-limit";
+  clearAuthCookies,
+  setAuthCookie,
+  shouldUseSecureAuthCookie,
+} from "@/app/lib/auth/auth-cookie";
+import { getRequestIp } from "@/app/lib/security/rate-limit";
+import {
+  clearLoginRateLimit,
+  consumeLoginRateLimit,
+} from "@/app/lib/security/login-rate-limit";
 import {
   AUTH_INPUT_LIMITS,
   asInputRecord,
   stringInput,
 } from "@/app/lib/auth/auth-input";
 import { createMfaLoginChallenge } from "@/app/lib/security/mfa-login";
+import { isValidEmail, normalizeEmail } from "@/app/lib/auth/credential-rules";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
 const FAKE_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOeQO8J1p0Cz6l5Qn8jY5h5E6E6E6E6E6";
-const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
 function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
   const response = NextResponse.json(
@@ -43,32 +47,29 @@ export async function POST(request: Request): Promise<NextResponse> {
     const payload = asInputRecord(body);
     const emailRaw = stringInput(payload, "email");
     const password = stringInput(payload, "password");
-    const emailNormalized = emailRaw?.trim().toLowerCase();
-    const errors: string[] = [];
+    const emailNormalized = emailRaw === undefined ? undefined : normalizeEmail(emailRaw);
+    const fieldErrors: { email?: string; password?: string } = {};
 
-    if (!emailNormalized) errors.push("E-mail é obrigatório!");
-    if (!password) errors.push("Senha é obrigatória!");
+    if (!emailNormalized) fieldErrors.email = "E-mail é obrigatório!";
+    else if (emailNormalized.length > AUTH_INPUT_LIMITS.email)
+      fieldErrors.email = "E-mail é muito longo!";
+    else if (!isValidEmail(emailNormalized))
+      fieldErrors.email = "E-mail inválido!";
 
-    if (emailNormalized && emailNormalized.length > AUTH_INPUT_LIMITS.email) {
-      errors.push("E-mail é muito longo!");
-    } else if (
-      emailNormalized &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalized)
-    ) {
-      errors.push("E-mail inválido!");
-    }
+    // Login não aplica a política de criação: senhas antigas continuam válidas.
+    if (!password) fieldErrors.password = "Senha é obrigatória!";
+    else if (password.length > AUTH_INPUT_LIMITS.password)
+      fieldErrors.password = "Senha não pode exceder 100 caracteres!";
 
-    if (password && password.length < 6) {
-      errors.push("Senha deve ter pelo menos 6 caracteres!");
-    }
-    if (password && password.length > AUTH_INPUT_LIMITS.password) {
-      errors.push("Senha não pode exceder 100 caracteres!");
-    }
-
-    if (errors.length > 0) {
+    if (fieldErrors.email || fieldErrors.password) {
       return withRequestId(
         NextResponse.json(
-          { success: false, message: errors },
+          {
+            success: false,
+            code: "INVALID_LOGIN_INPUT",
+            message: Object.values(fieldErrors).join(" "),
+            fieldErrors,
+          },
           { status: 400 }
         ),
         requestId
@@ -76,25 +77,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const ip = getRequestIp(request);
-    const principalIdentifier = emailNormalized!;
-    const [ipLimit, principalLimit] = await Promise.all([
-      consumeRateLimit({
-        action: "login-ip",
-        identifier: ip,
-        maxAttempts: 30,
-        windowMs: FIFTEEN_MINUTES,
-        blockMs: FIFTEEN_MINUTES,
-      }),
-      consumeRateLimit({
-        action: "login-principal",
-        identifier: principalIdentifier,
-        maxAttempts: 5,
-        windowMs: FIFTEEN_MINUTES,
-        blockMs: FIFTEEN_MINUTES,
-      }),
-    ]);
-
-    const activeLimit = ipLimit.limited ? ipLimit : principalLimit;
+    const rateLimitSubject = { ip, email: emailNormalized! };
+    const activeLimit = await consumeLoginRateLimit(rateLimitSubject);
     if (activeLimit.limited) {
       logEvent("warn", "auth_login_rate_limited", {
         requestId,
@@ -131,9 +115,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (user.totpEnabled) {
       const mfa = await createMfaLoginChallenge(user.id);
-      await Promise.allSettled([
-        clearRateLimit("login-principal", principalIdentifier),
-      ]);
+      await clearLoginRateLimit(rateLimitSubject);
 
       const response = NextResponse.json(
         {
@@ -145,7 +127,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         },
         { status: 200 }
       );
-      response.cookies.delete("token");
+      clearAuthCookies(response, shouldUseSecureAuthCookie(request));
 
       logEvent("info", "auth_login_mfa_required", {
         requestId,
@@ -159,7 +141,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const token = signAuthToken(user.id, user.authVersion);
 
     await Promise.allSettled([
-      clearRateLimit("login-principal", principalIdentifier),
+      clearLoginRateLimit(rateLimitSubject),
       prisma.user.update({
         where: { id: user.id },
         data: { lastLogin: new Date() },
@@ -185,14 +167,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       { status: 200 }
     );
 
-    response.cookies.set("token", token, {
-      httpOnly: true,
-      secure: shouldUseSecureAuthCookie(request),
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-      priority: "high",
-    });
+    setAuthCookie(response, request, token);
 
     logEvent("info", "auth_login_succeeded", {
       requestId,

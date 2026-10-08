@@ -142,5 +142,5 @@ test('perfil exige nova autenticação em 401', async ({ page }) => {
   });
 
   await page.goto('/usuario');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
 });

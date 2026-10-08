@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
+import {
+  clearAuthCookies,
+  shouldUseSecureAuthCookie,
+} from "@/app/lib/auth/auth-cookie";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const response = NextResponse.json(
@@ -10,14 +13,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     { status: 200 }
   );
 
-  response.cookies.set("token", "", {
-    httpOnly: true,
-    secure: shouldUseSecureAuthCookie(request),
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-    priority: "high",
-  });
+  clearAuthCookies(response, shouldUseSecureAuthCookie(request));
 
   return response;
 };

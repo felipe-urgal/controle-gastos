@@ -14,15 +14,25 @@ import {
 
 import AuthShell from '@/app/components/layout/auth-shell';
 import { Button, Input } from '@/app/components/ui';
+import { ApiClientError } from '@/app/services/api-client';
+import { authService } from '@/app/services/auth-service';
+import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENT_LABEL, getPasswordRuleError } from '@/app/lib/auth/password-rules';
 
-export default function ResetPasswordClient({ token }: { token?: string }) {
+export default function ResetPasswordClient({ token: initialToken }: { token?: string }) {
   const router = useRouter();
+  // O token fica só em memória: removemos o segredo da URL (histórico, cópia de
+  // endereço). Um refresh perde o token e exige solicitar novo link.
+  const [token] = useState(initialToken);
   const [form, setForm] = useState({ novaSenha: '', confirmarSenha: '' });
   const [errors, setErrors] = useState({ novaSenha: '', confirmarSenha: '' });
   const [showPassword, setShowPassword] = useState({ novaSenha: false, confirmarSenha: false });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [redirectTimer, setRedirectTimer] = useState(5);
+
+  useEffect(() => {
+    if (initialToken) window.history.replaceState(null, '', '/reset-password');
+  }, [initialToken]);
 
   useEffect(() => {
     if (status !== 'success') return;
@@ -36,11 +46,8 @@ export default function ResetPasswordClient({ token }: { token?: string }) {
     return () => window.clearTimeout(timer);
   }, [status, redirectTimer, router]);
 
-  const requirements = {
-    length: form.novaSenha.length >= 6,
-    uppercase: /[A-Z]/.test(form.novaSenha),
-    number: /[0-9]/.test(form.novaSenha),
-  };
+  const passwordRuleError = getPasswordRuleError(form.novaSenha);
+  const requirementMet = form.novaSenha.length >= PASSWORD_MIN_LENGTH && !passwordRuleError;
 
   const validateForm = () => {
     const nextErrors = { novaSenha: '', confirmarSenha: '' };
@@ -49,14 +56,8 @@ export default function ResetPasswordClient({ token }: { token?: string }) {
     if (!form.novaSenha) {
       nextErrors.novaSenha = 'Nova senha é obrigatória';
       valid = false;
-    } else if (!requirements.length) {
-      nextErrors.novaSenha = 'Mínimo 6 caracteres';
-      valid = false;
-    } else if (!requirements.uppercase) {
-      nextErrors.novaSenha = 'Deve conter uma letra maiúscula';
-      valid = false;
-    } else if (!requirements.number) {
-      nextErrors.novaSenha = 'Deve conter um número';
+    } else if (passwordRuleError) {
+      nextErrors.novaSenha = passwordRuleError;
       valid = false;
     }
 
@@ -97,24 +98,17 @@ export default function ResetPasswordClient({ token }: { token?: string }) {
     setMessage('');
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, novaSenha: form.novaSenha }),
-      });
-      const data = await response.json();
-
-      if (response.ok) {
-        setStatus('success');
-        setMessage('Senha redefinida com sucesso!');
-        setForm({ novaSenha: '', confirmarSenha: '' });
-      } else {
-        setStatus('error');
-        setMessage(data.message || 'Erro ao redefinir senha.');
-      }
-    } catch {
+      await authService.resetPassword({ token, novaSenha: form.novaSenha });
+      setStatus('success');
+      setMessage('Senha redefinida com sucesso!');
+      setForm({ novaSenha: '', confirmarSenha: '' });
+    } catch (caught) {
       setStatus('error');
-      setMessage('Erro inesperado. Tente novamente.');
+      setMessage(
+        caught instanceof ApiClientError
+          ? caught.message
+          : 'Erro inesperado. Tente novamente.',
+      );
     }
   };
 
@@ -212,23 +206,12 @@ export default function ResetPasswordClient({ token }: { token?: string }) {
               required
             />
 
-            <ul className="mt-3 grid gap-2 text-sm text-[var(--text-muted)] sm:grid-cols-3" aria-label="Requisitos da nova senha">
-              {[
-                ['length', '6+ caracteres'],
-                ['uppercase', '1 maiúscula'],
-                ['number', '1 número'],
-              ].map(([key, label]) => {
-                const met = requirements[key as keyof typeof requirements];
-                return (
-                  <li key={key} className={`flex items-center gap-2 ${met ? 'text-[var(--income)]' : ''}`}>
-                    <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${met ? 'border-[var(--income)] bg-[var(--primary-subtle)]' : 'border-[var(--border-strong)]'}`}>
-                      {met && <FaCheck className="h-2.5 w-2.5" aria-hidden="true" />}
-                    </span>
-                    {label}
-                  </li>
-                );
-              })}
-            </ul>
+            <p className={`mt-3 flex items-center gap-2 text-sm ${requirementMet ? 'text-[var(--income)]' : 'text-[var(--text-muted)]'}`}>
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${requirementMet ? 'border-[var(--income)] bg-[var(--primary-subtle)]' : 'border-[var(--border-strong)]'}`}>
+                {requirementMet && <FaCheck className="h-2.5 w-2.5" aria-hidden="true" />}
+              </span>
+              {PASSWORD_REQUIREMENT_LABEL}
+            </p>
           </div>
 
           <Input

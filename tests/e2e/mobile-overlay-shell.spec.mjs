@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -64,21 +65,18 @@ async function expectControlIsTopmost(control) {
   expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
 }
 
-test('overlays mobile mantêm ações acessíveis sem competição com a navegação inferior', async ({ page, request }) => {
+test('overlays mobile mantêm ações acessíveis sem competição com a navegação inferior', async ({ page }) => {
   test.setTimeout(60_000);
 
   const suffix = `${Date.now()}-${test.info().retry}`;
   const email = `playwright-mobile-overlay-${suffix}@example.test`;
   const accountName = `Conta overlay ${suffix}`;
 
-  const signupResponse = await request.post('/api/auth/signup', {
-    data: {
+  await createVerifiedUser({
       name: 'Playwright Mobile Overlay',
       email,
       password,
-    },
-  });
-  expect(signupResponse.ok()).toBeTruthy();
+    });
 
   await login(page, email);
   await seedAccount(page, accountName);

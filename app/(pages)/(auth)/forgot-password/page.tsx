@@ -8,6 +8,8 @@ import { FaCheckCircle, FaClock, FaEnvelope, FaShieldAlt } from 'react-icons/fa'
 import { useAuth } from '@/app/context';
 import AuthShell from '@/app/components/layout/auth-shell';
 import { Button, Input } from '@/app/components/ui';
+import { getEmailError } from '@/app/lib/auth/credential-rules';
+import { resolvePostLoginPath } from '@/app/lib/auth/protected-routes';
 
 export default function ForgotPasswordPage() {
   const { forgotPassword, isAuthenticated } = useAuth();
@@ -19,11 +21,17 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({ email: '' });
   const [resendTimer, setResendTimer] = useState(0);
-  const [attempts, setAttempts] = useState(0);
+  const [retryTimer, setRetryTimer] = useState(0);
 
   useEffect(() => {
-    if (isAuthenticated) router.replace('/contas');
+    if (isAuthenticated) router.replace(resolvePostLoginPath(window.location.search));
   }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    if (retryTimer <= 0) return;
+    const timer = window.setTimeout(() => setRetryTimer((previous) => previous - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [retryTimer]);
 
   useEffect(() => {
     if (resendTimer <= 0) return;
@@ -34,13 +42,7 @@ export default function ForgotPasswordPage() {
   if (isAuthenticated) return null;
 
   const validateForm = () => {
-    const nextErrors = { email: '' };
-
-    if (!form.email.trim()) {
-      nextErrors.email = 'E-mail é obrigatório';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      nextErrors.email = 'E-mail inválido';
-    }
+    const nextErrors = { email: getEmailError(form.email) ?? '' };
 
     setErrors(nextErrors);
     return !nextErrors.email;
@@ -50,19 +52,15 @@ export default function ForgotPasswordPage() {
     const result = await forgotPassword(form.email);
     setMessage(result.message);
     setSuccess(result.success);
-    setAttempts((previous) => previous + 1);
     if (result.success) setResendTimer(60);
+    if (result.retryAfterSeconds) setRetryTimer(result.retryAfterSeconds);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!validateForm()) return;
 
-    if (attempts >= 3) {
-      setSuccess(false);
-      setMessage('Muitas tentativas. Aguarde alguns minutos.');
-      return;
-    }
+    if (retryTimer > 0) return;
 
     setIsLoading(true);
     setMessage('');
@@ -73,7 +71,6 @@ export default function ForgotPasswordPage() {
     } catch {
       setSuccess(false);
       setMessage('Erro inesperado ao tentar recuperar senha. Tente novamente.');
-      setAttempts((previous) => previous + 1);
     } finally {
       setIsLoading(false);
     }
@@ -90,13 +87,7 @@ export default function ForgotPasswordPage() {
   };
 
   const handleResend = async () => {
-    if (resendTimer > 0 || isLoading) return;
-
-    if (attempts >= 3) {
-      setSuccess(false);
-      setMessage('Muitas tentativas. Aguarde alguns minutos.');
-      return;
-    }
+    if (resendTimer > 0 || retryTimer > 0 || isLoading) return;
 
     setIsLoading(true);
     setMessage('');
@@ -106,7 +97,6 @@ export default function ForgotPasswordPage() {
     } catch {
       setSuccess(false);
       setMessage('Erro ao reenviar. Tente novamente.');
-      setAttempts((previous) => previous + 1);
     } finally {
       setIsLoading(false);
     }
@@ -174,16 +164,16 @@ export default function ForgotPasswordPage() {
             type="submit"
             fullWidth
             size="lg"
-            disabled={attempts >= 3}
+            disabled={retryTimer > 0}
             isLoading={isLoading}
             loadingText="Enviando..."
           >
             Enviar link de recuperação
           </Button>
 
-          {attempts > 0 && (
+          {retryTimer > 0 && (
             <p className="text-center text-sm text-[var(--text-muted)]" aria-live="polite">
-              {attempts >= 3 ? 'Limite local de tentativas atingido.' : `Tentativa ${attempts} de 3 nesta tela.`}
+              Você poderá tentar novamente em {retryTimer >= 60 ? `${Math.ceil(retryTimer / 60)} min` : `${retryTimer} s`}.
             </p>
           )}
         </form>
@@ -202,10 +192,10 @@ export default function ForgotPasswordPage() {
               <button
                 type="button"
                 onClick={() => void handleResend()}
-                disabled={isLoading || attempts >= 3}
+                disabled={isLoading || retryTimer > 0}
                 className="min-h-11 rounded-[var(--radius-md)] px-3 font-semibold text-[var(--primary)] hover:bg-[var(--surface-hover)] hover:text-[var(--primary-hover)] disabled:opacity-50"
               >
-                {attempts >= 3 ? 'Limite de tentativas atingido' : isLoading ? 'Enviando...' : 'Reenviar e-mail'}
+                {isLoading ? 'Enviando...' : 'Reenviar e-mail'}
               </button>
             )}
           </div>

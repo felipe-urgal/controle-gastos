@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { failure, success } from "@/app/lib/api-response";
+import { clearAuthCookies, shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { asInputRecord, stringInput } from "@/app/lib/auth/auth-input";
@@ -35,7 +36,7 @@ export async function PATCH(request: Request) {
     { ...payload, reauthRequired: true },
     { status: response.status, headers: response.headers },
   );
-  reauthResponse.cookies.delete("token");
+  clearAuthCookies(reauthResponse, shouldUseSecureAuthCookie(request));
   return reauthResponse;
 }
 
@@ -67,7 +68,7 @@ export async function DELETE(request: Request) {
     await deleteUser(userId);
 
     const response = success(null, "Conta excluída com sucesso");
-    response.cookies.delete("token");
+    clearAuthCookies(response, shouldUseSecureAuthCookie(request));
     return response;
   } catch (error) {
     if (isUnauthorizedError(error)) {

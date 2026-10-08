@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -105,7 +106,7 @@ async function seedImportRuleScenario(
   );
 }
 
-test('preview aplica sugestão, override manual prevalece e confirmação persiste a categoria escolhida', async ({ page, request }) => {
+test('preview aplica sugestão, override manual prevalece e confirmação persiste a categoria escolhida', async ({ page }) => {
   test.setTimeout(75_000);
 
   const suffix = `${Date.now()}-${test.info().retry}`;
@@ -117,14 +118,11 @@ test('preview aplica sugestão, override manual prevalece e confirmação persis
   const description = `Mercado importado E2E ${suffix}`;
   const fileName = `import-rules-${suffix}.csv`;
 
-  const signupResponse = await request.post('/api/auth/signup', {
-    data: {
+  await createVerifiedUser({
       name: 'Playwright Import Rules E2E',
       email,
       password,
-    },
-  });
-  expect(signupResponse.ok()).toBeTruthy();
+    });
 
   await login(page, email);
 
@@ -223,7 +221,7 @@ test('preview aplica sugestão, override manual prevalece e confirmação persis
 });
 
 
-test('correção manual aprende categoria e estabelecimento apenas quando solicitado', async ({ page, request }) => {
+test('correção manual aprende categoria e estabelecimento apenas quando solicitado', async ({ page }) => {
   test.setTimeout(90_000);
 
   const suffix = `${Date.now()}-learning-${test.info().retry}`;
@@ -235,14 +233,11 @@ test('correção manual aprende categoria e estabelecimento apenas quando solici
   const firstFile = `learning-first-${suffix}.csv`;
   const secondFile = `learning-second-${suffix}.csv`;
 
-  const signupResponse = await request.post('/api/auth/signup', {
-    data: {
+  await createVerifiedUser({
       name: 'Playwright Import Learning E2E',
       email,
       password,
-    },
-  });
-  expect(signupResponse.ok()).toBeTruthy();
+    });
 
   await login(page, email);
 
@@ -357,20 +352,17 @@ test('correção manual aprende categoria e estabelecimento apenas quando solici
 });
 
 
-test('detalhe mobile mantém foco, Escape e largura segura em 320/360/390', async ({ page, request }) => {
+test('detalhe mobile mantém foco, Escape e largura segura em 320/360/390', async ({ page }) => {
   test.setTimeout(90_000);
 
   const suffix = `${Date.now()}-mobile-${test.info().retry}`;
   const email = `playwright-import-mobile-${suffix}@example.test`;
   const description = `Compra mobile ${suffix}`;
-  const signupResponse = await request.post('/api/auth/signup', {
-    data: {
+  await createVerifiedUser({
       name: 'Playwright Import Mobile E2E',
       email,
       password,
-    },
-  });
-  expect(signupResponse.ok()).toBeTruthy();
+    });
   await login(page, email);
 
   const accountId = await page.evaluate(async (label) => {

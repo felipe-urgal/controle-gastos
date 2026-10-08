@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -146,16 +147,13 @@ async function prepareRecurringForm(page, scenario, relations, description) {
   return { frequency, mobile };
 }
 
-test('QA #289 final — cinco frequências via Quick Compose e runtime flexível', async ({ page, request }) => {
+test('QA #289 final — cinco frequências via Quick Compose e runtime flexível', async ({ page }) => {
   test.setTimeout(180_000);
 
   const suffix = `${Date.now()}-${test.info().project.name}`;
   const email = `qa289-${suffix}@example.test`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: { name: 'QA 289', email, password },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA 289', email, password });
 
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);

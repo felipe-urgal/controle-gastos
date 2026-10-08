@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { clearAuthCookies, shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
 import { verifyEmailVerificationToken } from "@/app/lib/auth/email-verification-token";
 import { getRequestId, logEvent } from "@/app/lib/observability";
 import { prisma } from "@/app/lib/prisma";
@@ -106,7 +107,7 @@ export async function GET(request: Request) {
     });
     const response = redirect(request, successState);
     if (successState === "email-changed") {
-      response.cookies.delete("token");
+      clearAuthCookies(response, shouldUseSecureAuthCookie(request));
     }
     return response;
   } catch (error) {

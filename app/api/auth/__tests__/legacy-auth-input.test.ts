@@ -27,6 +27,7 @@ vi.mock("bcryptjs", () => ({
   default: {
     compare: mocks.bcryptCompare,
     hash: mocks.bcryptHash,
+    truncates: () => false,
   },
 }));
 
@@ -129,7 +130,7 @@ describe("legacy auth input boundaries", () => {
     const emailResponse = await login(
       jsonRequest("/api/auth/login", {
         email: `${"x".repeat(250)}@example.com`,
-        password: "Senha123",
+        password: "Senha-123456",
       }),
     );
 
@@ -144,7 +145,7 @@ describe("legacy auth input boundaries", () => {
       jsonRequest("/api/auth/signup", {
         name: 123,
         email: "user@example.com",
-        password: "Senha123",
+        password: "Senha-123456",
       }),
     );
 
@@ -156,7 +157,7 @@ describe("legacy auth input boundaries", () => {
       jsonRequest("/api/auth/signup", {
         name: "x".repeat(101),
         email: `${"x".repeat(250)}@example.com`,
-        password: "Senha123",
+        password: "Senha-123456",
       }),
     );
 
@@ -185,7 +186,7 @@ describe("legacy auth input boundaries", () => {
     const response = await resetPassword(
       jsonRequest("/api/auth/reset-password", {
         token: 123,
-        novaSenha: ["Senha123"],
+        novaSenha: ["Senha-123456"],
       }),
     );
 
@@ -197,7 +198,7 @@ describe("legacy auth input boundaries", () => {
     const tokenResponse = await resetPassword(
       jsonRequest("/api/auth/reset-password", {
         token: "x".repeat(65),
-        novaSenha: "Senha123",
+        novaSenha: "Senha-123456",
       }),
     );
     const passwordResponse = await resetPassword(
@@ -225,7 +226,7 @@ describe("legacy auth input boundaries", () => {
     const response = await resetPassword(
       jsonRequest("/api/auth/reset-password", {
         token: "a".repeat(64),
-        novaSenha: "Senha123",
+        novaSenha: "Senha-123456",
       }),
     );
 

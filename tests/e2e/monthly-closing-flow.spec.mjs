@@ -88,7 +88,7 @@ test('fechamento: acesso direto sem sessão redireciona para login', async ({
   page,
 }) => {
   await page.goto('/fechamento');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login(\?next=[^#]*)?$/);
 });
 
 test('fechamento: troca de filtros nunca exibe dados antigos sob a nova seleção', async ({

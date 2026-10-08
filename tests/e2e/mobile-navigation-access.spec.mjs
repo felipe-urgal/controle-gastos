@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -12,21 +13,17 @@ async function login(page, email) {
 
 test('mobile expõe todas as áreas pelo menu Mais sem sobrecarregar a bottom nav', async ({
   page,
-  request,
 }) => {
   test.setTimeout(60_000);
 
   const suffix = String(Date.now()) + '-' + String(test.info().retry);
   const email = 'mobile-navigation-' + suffix + '@example.test';
 
-  const signup = await request.post('/api/auth/signup', {
-    data: {
+  await createVerifiedUser({
       name: 'QA Navegação Mobile',
       email,
       password,
-    },
-  });
-  expect(signup.ok()).toBeTruthy();
+    });
 
   await page.setViewportSize({ width: 390, height: 760 });
   await login(page, email);
@@ -101,19 +98,15 @@ test('mobile expõe todas as áreas pelo menu Mais sem sobrecarregar a bottom na
 
 test('busca global encontra módulos e ações sem remover a busca de dados', async ({
   page,
-  request,
 }) => {
   const suffix = String(Date.now()) + '-' + String(test.info().retry);
   const email = 'mobile-launcher-' + suffix + '@example.test';
 
-  const signup = await request.post('/api/auth/signup', {
-    data: {
+  await createVerifiedUser({
       name: 'QA Launcher Mobile',
       email,
       password,
-    },
-  });
-  expect(signup.ok()).toBeTruthy();
+    });
 
   await page.setViewportSize({ width: 390, height: 760 });
   await login(page, email);

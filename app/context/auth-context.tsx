@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useReducer } from 'r
 import { useRouter } from 'next/navigation';
 
 import { readOfflineTransactionQueue } from '@/app/lib/pwa/offline-transaction-queue';
+import { ApiClientError, SESSION_EXPIRED_EVENT } from '@/app/services/api-client';
+import { resolvePostLoginPath, sanitizeNextPath } from '@/app/lib/auth/protected-routes';
 import { authService, type UpdateUserRequest } from '@/app/services/auth-service';
 import type { User } from '@/app/types/user';
 import { mfaService, type VerifyMfaLoginRequest } from '@/app/services/mfa-service';
@@ -46,6 +48,12 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   }
 }
 
+export type ForgotPasswordResult = {
+  success: boolean;
+  message: string;
+  retryAfterSeconds?: number;
+};
+
 export interface LoginData {
   email: string;
   password: string;
@@ -68,7 +76,7 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   requireReauthentication: (reason?: 'password-changed') => void;
 
-  forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
+  forgotPassword: (email: string) => Promise<ForgotPasswordResult>;
 
   updateUser: (data: UpdateUserRequest) => Promise<{ reauthRequired: boolean }>;
 }
@@ -101,6 +109,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      if (state.status !== 'authenticated') return;
+      // Sessão revogada/expirada: não descarta rascunhos offline do usuário.
+      dispatch({ type: 'LOGOUT' });
+      const current = sanitizeNextPath(`${window.location.pathname}${window.location.search}`);
+      router.replace(current ? `/login?next=${encodeURIComponent(current)}` : '/login');
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, [router, state.status]);
+
   const login = useCallback(async (data: LoginData): Promise<LoginResult> => {
     try {
       const response = await authService.login(data);
@@ -124,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setOfflineDraftOwner(response.user.id);
       dispatch({ type: 'SET_USER', payload: response.user });
-      router.replace('/dashboard');
+      router.replace(resolvePostLoginPath(window.location.search));
       return { mfaRequired: false };
     } catch (err) {
       dispatch({ type: 'LOGOUT' });
@@ -137,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await mfaService.verifyLogin(data);
       setOfflineDraftOwner(response.user.id);
       dispatch({ type: 'SET_USER', payload: response.user });
-      router.replace('/dashboard');
+      router.replace(resolvePostLoginPath(window.location.search));
     } catch (err) {
       dispatch({ type: 'LOGOUT' });
       throw err;
@@ -188,18 +209,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router, state.user?.id]);
 
+  // Não alterna o status para 'loading': o ClientLayout desmontaria a página e
+  // o estado "Confira seu e-mail" seria perdido.
   const signup = useCallback(async (data: SignupData) => {
-    dispatch({ type: 'LOADING' });
-
-    try {
-      await authService.signup(data);
-      dispatch({ type: 'LOGOUT' });
-      router.replace('/login');
-    } catch (err) {
-      dispatch({ type: 'LOGOUT' });
-      throw err;
-    }
-  }, [router]);
+    await authService.signup(data);
+  }, []);
 
   const updateUser = useCallback(async (data: UpdateUserRequest) => {
     if (!state.user?.id) {
@@ -217,30 +231,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { reauthRequired: false };
   }, [requireReauthentication, state.user]);
 
-  const forgotPassword = async (email: string) => {
+  const forgotPassword = useCallback(async (email: string): Promise<ForgotPasswordResult> => {
     try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      return {
-        success: response.ok,
-        message: data.message || 'Se o e-mail existir, enviaremos instruções.',
-      };
+      const response = await authService.forgotPassword(email);
+      return { success: true, message: response.message };
     } catch (error) {
-      console.error(error);
-      return {
-        success: false,
-        message: 'Erro ao tentar recuperar senha.',
-      };
+      if (error instanceof ApiClientError) {
+        return {
+          success: false,
+          message: error.message,
+          retryAfterSeconds: error.retryAfterSeconds,
+        };
+      }
+      return { success: false, message: 'Erro ao tentar recuperar senha.' };
     }
-  };
+  }, []);
 
   return (
     <AuthContext.Provider

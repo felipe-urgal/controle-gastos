@@ -1,3 +1,4 @@
+import { normalizeEmail } from "@/app/lib/auth/credential-rules";
 import bcrypt from "bcryptjs";
 
 import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
@@ -92,7 +93,7 @@ const baseUserCrud = baseCrudHandler({
     delete updateData.cancelPendingEmail;
 
     if (data.email) {
-      const formattedEmail = data.email.trim().toLowerCase();
+      const formattedEmail = normalizeEmail(data.email);
       delete updateData.email;
 
       if (formattedEmail !== existing.email) {

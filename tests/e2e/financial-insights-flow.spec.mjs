@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -53,21 +54,17 @@ const insightsPayload = {
 
 test('insights do dashboard: desktop, contexto, mobile e valores ocultos', async ({
   page,
-  request,
 }) => {
   test.setTimeout(75_000);
 
   const suffix = `${Date.now()}-${test.info().project.name}`;
   const email = `qa-financial-insights-${suffix}@example.test`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: {
+  await createVerifiedUser({
       name: 'QA Financial Insights',
       email,
       password,
-    },
-  });
-  expect(signup.ok()).toBeTruthy();
+    });
 
   await login(page, email);
 
