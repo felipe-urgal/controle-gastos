@@ -35,7 +35,7 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
       create('/api/transaction-templates', { name: `${marker} Modelo`, type: 'EXPENSE', description: '', amount: null }),
       create('/api/debts', { name: `${marker} Dívida`, currency: 'BRL', balance: 987654 }),
       create('/api/goals', { name: `${marker} Meta`, targetAmount: 987654, currency: 'BRL' }),
-      create('/api/accounts', { name: `${marker} Conta`, type: 'CREDIT_DEBIT', currency: 'BRL', isActive: true }),
+      create('/api/accounts', { name: `${marker} Conta`, type: 'CREDIT_DEBIT', currency: 'BRL', description: null, isActive: true }),
       create('/api/categories', { name: `${marker} Categoria`, type: 'EXPENSE', color: '#EF4444', icon: 'tag', position: 0 }),
     ]);
     const rule = await create('/api/import-rules', {
