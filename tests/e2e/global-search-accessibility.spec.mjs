@@ -3,7 +3,7 @@ import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
-test('busca global: teclado, trap, Escape e viewport mobile', async ({ page, request }) => {
+test('busca global: teclado, trap, Escape e viewport mobile', async ({ page }) => {
   test.setTimeout(90_000);
   const email = `qa-search-a11y-${Date.now()}@example.test`;
   await createVerifiedUser({ name: 'QA Busca Acessível', email, password });
@@ -61,7 +61,7 @@ test('busca global: teclado, trap, Escape e viewport mobile', async ({ page, req
   }
 });
 
-test('busca global: erro e rate limit preservam navegação local e retry', async ({ page, request }) => {
+test('busca global: erro e rate limit preservam navegação local e retry', async ({ page }) => {
   test.setTimeout(90_000);
   const email = `qa-search-errors-${Date.now()}@example.test`;
   await createVerifiedUser({ name: 'QA Busca Erros', email, password });
