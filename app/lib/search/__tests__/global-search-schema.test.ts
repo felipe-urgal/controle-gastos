@@ -5,6 +5,7 @@ import {
   GLOBAL_SEARCH_MIN_QUERY_LENGTH,
   GLOBAL_SEARCH_TOTAL_LIMIT,
   globalSearchQuerySchema,
+  normalizeGlobalSearchQuery,
 } from '@/app/lib/search/global-search-schema';
 
 describe('globalSearchQuerySchema', () => {
@@ -12,6 +13,12 @@ describe('globalSearchQuerySchema', () => {
     expect(globalSearchQuerySchema.parse({ q: '  Café & Mercado  ' })).toEqual({
       q: 'Café & Mercado',
     });
+  });
+
+  it('aplica NFKC e reduz espaços sem alterar a apresentação original', () => {
+    expect(normalizeGlobalSearchQuery('  Café   Mercado  ')).toBe('Café Mercado');
+    expect(normalizeGlobalSearchQuery('  Ｃａｆｅ\u0301  ')).toBe('Café');
+    expect(globalSearchQuerySchema.parse({ q: '  Café  Mercado  ' }).q).toBe('Café Mercado');
   });
 
   it('rejeita termo curto', () => {
