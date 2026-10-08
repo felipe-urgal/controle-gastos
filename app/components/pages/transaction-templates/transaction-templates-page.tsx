@@ -97,8 +97,10 @@ function sortTemplates(items: TransactionTemplateDTO[]) {
 
 export default function TransactionTemplatesPage({
   sourceTransactionId,
+  focusTemplateId,
 }: {
   sourceTransactionId?: string;
+  focusTemplateId?: string;
 }) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
@@ -230,6 +232,23 @@ export default function TransactionTemplatesPage({
       active = false;
     };
   }, [sourceTransactionId]);
+
+  useEffect(() => {
+    if (!focusTemplateId || sourceTransactionId) return;
+    let cancelled = false;
+    void transactionTemplateService.getById(focusTemplateId).then(({ data }) => {
+      if (cancelled) return;
+      setEditing(data);
+      setForm(inputFromTemplate(data));
+      setSourceNotices([]);
+      setSourceBlocked(false);
+      setSourceError('');
+      setActionError('');
+    }).catch(() => {
+      // Fall back to normal page for absent/inaccessible models.
+    });
+    return () => { cancelled = true; };
+  }, [focusTemplateId, sourceTransactionId]);
 
   const compatibleCategories = useMemo(
     () => categories.filter((category) => category.type === form.type),

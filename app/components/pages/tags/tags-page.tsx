@@ -39,7 +39,7 @@ function sortTags(tags: TagDTO[]) {
   );
 }
 
-export default function TagsPage() {
+export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
 
@@ -132,6 +132,21 @@ export default function TagsPage() {
       active = false;
     };
   }, [page, search]);
+
+  useEffect(() => {
+    if (!focusTagId) return;
+    let cancelled = false;
+    void tagService.getById(focusTagId).then(({ data }) => {
+      if (cancelled) return;
+      setPage(1);
+      setSearchDraft(data.name);
+      setSearch(data.name);
+      setEditing({ id: data.id, name: data.name });
+    }).catch(() => {
+      // Do not reveal whether inaccessible IDs exist.
+    });
+    return () => { cancelled = true; };
+  }, [focusTagId]);
 
   function replaceTag(updated: TagDTO) {
     setTags((current) =>

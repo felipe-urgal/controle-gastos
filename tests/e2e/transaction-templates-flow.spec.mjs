@@ -5,6 +5,14 @@ import { createVerifiedUser } from './support/verified-user.mjs';
 const password = 'Playwright123!';
 
 async function login(page, email) {
+  // O runner executa muitos logins no mesmo IP. Isolar somente este fixture
+  // evita atingir o limite por IP sem alterar a proteção da aplicação.
+  const ipSuffix = [...email].reduce((value, char) => (value * 31 + char.charCodeAt(0)) % 250, 1) + 1;
+  await page.route('**/api/auth/login', (route) =>
+    route.continue({
+      headers: { ...route.request().headers(), 'x-forwarded-for': `198.51.100.${ipSuffix}` },
+    }),
+  );
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);

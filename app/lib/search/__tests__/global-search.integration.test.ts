@@ -102,6 +102,32 @@ describe('global search integration', () => {
     expect(JSON.stringify(result)).not.toContain('98765');
   });
 
+  it('isola estabelecimentos, tags, modelos, dívidas e metas com estados e sem valores', async () => {
+    const [owner, foreign] = await Promise.all([createUser('new-groups-owner'), createUser('new-groups-foreign')]);
+    const marker = `EntidadeBusca${randomUUID().slice(0, 8)}`;
+    const entities = await Promise.all([
+      prisma.merchant.create({ data: { userId: owner.id, name: `${marker} Estabelecimento`, isActive: false } }),
+      prisma.tag.create({ data: { userId: owner.id, name: marker.slice(0, 30), normalizedName: marker.slice(0, 30).toLowerCase(), isActive: false } }),
+      prisma.transactionTemplate.create({ data: { userId: owner.id, name: `${marker} Modelo`, type: 'EXPENSE' } }),
+      prisma.debt.create({ data: { userId: owner.id, name: `${marker} Dívida`, balance: 987654, status: 'PAID' } }),
+      prisma.financialGoal.create({ data: { userId: owner.id, name: `${marker} Meta`, targetAmount: 987654, status: 'COMPLETED' } }),
+    ]);
+    const foreignEntity = await prisma.debt.create({
+      data: { userId: foreign.id, name: `${marker} externa`, balance: 987654 },
+    });
+    const result = await getGlobalSearchForUser(owner.id, marker);
+    const all = result.groups.flatMap((group) => group.items);
+    expect(all.map((item) => item.id)).toEqual(expect.arrayContaining(entities.map((item) => item.id)));
+    expect(all.some((item) => item.id === foreignEntity.id)).toBe(false);
+    expect(result.groups.map((group) => group.type)).toEqual(expect.arrayContaining(['MERCHANT', 'TAG', 'TEMPLATE', 'DEBT', 'GOAL']));
+    expect(all.find((item) => item.id === entities[0].id)?.subtitle).toBe('Inativo');
+    expect(all.find((item) => item.id === entities[1].id)?.subtitle).toBe('Arquivada');
+    expect(all.find((item) => item.id === entities[3].id)?.subtitle).toBe('Quitada');
+    expect(all.find((item) => item.id === entities[4].id)?.subtitle).toBe('Concluída');
+    expect(JSON.stringify(result)).not.toContain('987654');
+    expect(result.total).toBeLessThanOrEqual(result.totalLimit);
+  });
+
   it('searches only owned resources across all supported groups', async () => {
     const marker = `Café ${randomUUID().slice(0, 8)}`;
     const [owner, other] = await Promise.all([

@@ -74,7 +74,7 @@ function adjustmentKindLabel(kind: DebtAdjustmentKind) {
   return 'Ajuste manual';
 }
 
-export default function DebtsCenter() {
+export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const [items, setItems] = useState<Debt[]>([]);
@@ -149,6 +149,30 @@ export default function DebtsCenter() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!focusDebtId) return;
+    let cancelled = false;
+    void debtService.getById(focusDebtId).then(({ data }) => {
+      if (cancelled) return;
+      setEditing(data);
+      setForm({
+        name: data.name,
+        currency: data.currency,
+        balance: moneyInput(data.balance),
+        installmentAmount: moneyInput(data.installmentAmount),
+        dueDate: data.dueDate ?? '',
+        remainingInstallments: data.remainingInstallments?.toString() ?? '',
+        institution: data.institution ?? '',
+        description: data.description ?? '',
+      });
+      setFormError('');
+      setFormOpen(true);
+    }).catch(() => {
+      // Unauthorized and missing IDs resolve to the regular page.
+    });
+    return () => { cancelled = true; };
+  }, [focusDebtId]);
 
   const filtered = useMemo(
     () => filter === 'ALL' ? items : items.filter((item) => item.status === filter),

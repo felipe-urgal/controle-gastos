@@ -22,7 +22,7 @@ describe('globalSearchQuerySchema', () => {
   it('mantém limites explícitos e coerentes', () => {
     expect(GLOBAL_SEARCH_MIN_QUERY_LENGTH).toBe(2);
     expect(GLOBAL_SEARCH_LIMIT_PER_GROUP).toBe(5);
-    expect(GLOBAL_SEARCH_TOTAL_LIMIT).toBe(20);
-    expect(GLOBAL_SEARCH_LIMIT_PER_GROUP * 4).toBe(GLOBAL_SEARCH_TOTAL_LIMIT);
+    expect(GLOBAL_SEARCH_TOTAL_LIMIT).toBe(45);
+    expect(GLOBAL_SEARCH_LIMIT_PER_GROUP * 9).toBe(GLOBAL_SEARCH_TOTAL_LIMIT);
   });
 });

@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: "Acompanhe dívidas, financiamentos e saldo devedor manualmente",
 };
 
-export default function DebtsPage() {
-  return <DebtsCenter />;
+export default async function DebtsPage({ searchParams }: { searchParams: Promise<{ debtId?: string | string[] }> }) {
+  const { debtId } = await searchParams;
+  return <DebtsCenter focusDebtId={Array.isArray(debtId) ? debtId[0] : debtId} />;
 }

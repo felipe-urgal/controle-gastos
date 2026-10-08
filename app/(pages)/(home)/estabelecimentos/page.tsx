@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: "Organize os estabelecimentos associados às suas transações",
 };
 
-export default function MerchantsRoute() {
-  return <MerchantsPage />;
+export default async function MerchantsRoute({ searchParams }: { searchParams: Promise<{ merchantId?: string | string[] }> }) {
+  const { merchantId } = await searchParams;
+  return <MerchantsPage focusMerchantId={Array.isArray(merchantId) ? merchantId[0] : merchantId} />;
 }

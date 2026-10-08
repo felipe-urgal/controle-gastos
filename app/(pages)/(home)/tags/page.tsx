@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   description: 'Organize transações por contextos livres sem alterar categorias.',
 };
 
-export default function Page() {
-  return <TagsPage />;
+export default async function Page({ searchParams }: { searchParams: Promise<{ tagId?: string | string[] }> }) {
+  const { tagId } = await searchParams;
+  return <TagsPage focusTagId={Array.isArray(tagId) ? tagId[0] : tagId} />;
 }
