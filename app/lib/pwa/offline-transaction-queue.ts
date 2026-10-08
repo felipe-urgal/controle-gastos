@@ -2,6 +2,7 @@ import type {
   TransactionStatus,
   TransactionType,
 } from "@/app/types/transaction";
+import { createTransactionSchema } from "@/app/lib/transactions/transaction-schema";
 
 export const OFFLINE_TRANSACTION_QUEUE_PREFIX =
   "controle-gastos:offline-transaction-queue:v1:";
@@ -35,6 +36,7 @@ export type OfflineTransactionQueuePayload = {
   status: TransactionStatus;
   allocations?: Array<{ categoryId: string; amount: number }>;
   tagIds?: string[];
+  merchantId?: string | null;
 };
 
 export type OfflineTransactionQueueItem = {
@@ -73,54 +75,10 @@ function queueKey(userId: string) {
   return `${OFFLINE_TRANSACTION_QUEUE_PREFIX}${userId}`;
 }
 
-function isValidCalendarDate(year: number, month: number, day: number) {
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() + 1 === month &&
-    date.getUTCDate() === day
-  );
-}
-
 function isValidPayload(
   value: unknown,
 ): value is OfflineTransactionQueuePayload {
-  if (!value || typeof value !== "object") return false;
-  const payload = value as Partial<OfflineTransactionQueuePayload>;
-
-  return (
-    Number.isInteger(payload.amount) &&
-    (payload.amount ?? 0) > 0 &&
-    (payload.amount ?? 0) <= 1_000_000_000 &&
-    (payload.type === "INCOME" || payload.type === "EXPENSE") &&
-    typeof payload.description === "string" &&
-    payload.description.trim().length >= 2 &&
-    payload.description.trim().length <= 100 &&
-    typeof payload.accountId === "string" &&
-    payload.accountId.length > 0 &&
-    typeof payload.categoryId === "string" &&
-    payload.categoryId.length > 0 &&
-    typeof payload.year === "number" &&
-    typeof payload.month === "number" &&
-    typeof payload.day === "number" &&
-    isValidCalendarDate(payload.year, payload.month, payload.day) &&
-    (payload.status === "COMPLETED" ||
-      payload.status === "PENDING" ||
-      payload.status === "CANCELLED") &&
-    (payload.allocations === undefined ||
-      (Array.isArray(payload.allocations) &&
-        payload.allocations.every(
-          (allocation) =>
-            allocation &&
-            typeof allocation.categoryId === "string" &&
-            allocation.categoryId.length > 0 &&
-            Number.isInteger(allocation.amount) &&
-            allocation.amount > 0,
-        ))) &&
-    (payload.tagIds === undefined ||
-      (Array.isArray(payload.tagIds) &&
-        payload.tagIds.every((tagId) => typeof tagId === "string")))
-  );
+  return createTransactionSchema.safeParse(value).success;
 }
 
 function isValidItem(value: unknown): value is OfflineTransactionQueueItem {
@@ -251,6 +209,9 @@ export function enqueueOfflineTransaction(
   payload: OfflineTransactionQueuePayload,
   options?: { id?: string; idempotencyKey?: string; sourceDraftId?: string },
 ) {
+  if (!isValidPayload(payload)) {
+    throw new Error("Revise os dados: o lançamento ainda é inválido.");
+  }
   const items = readOfflineTransactionQueue(userId);
   if (items.filter((item) => item.status !== "synced").length >= MAX_OFFLINE_TRANSACTION_QUEUE_ITEMS) {
     throw new Error(

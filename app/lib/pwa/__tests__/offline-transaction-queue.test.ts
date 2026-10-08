@@ -420,4 +420,24 @@ describe("offline transaction queue", () => {
 
     expect(readOfflineTransactionQueue("user-a")).toEqual([]);
   });
+
+  it("accepts merchantId and rejects payloads the transaction contract would refuse", () => {
+    installLocalStorage();
+    const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+    const valid = { ...payload, merchantId: uuid(900) };
+    expect(() => enqueueOfflineTransaction("user-a", valid)).not.toThrow();
+
+    const invalid: OfflineTransactionQueuePayload[] = [
+      { ...payload, tagIds: Array.from({ length: 11 }, (_, n) => uuid(n + 1)) },
+      { ...payload, tagIds: [uuid(1), uuid(1)] },
+      { ...payload, allocations: [{ categoryId: payload.categoryId, amount: 1 }] },
+      {
+        ...payload,
+        allocations: Array.from({ length: 21 }, (_, n) => ({ categoryId: uuid(n + 1), amount: 1 })),
+      },
+    ];
+    for (const item of invalid) {
+      expect(() => enqueueOfflineTransaction("user-a", item)).toThrow();
+    }
+  });
 });
