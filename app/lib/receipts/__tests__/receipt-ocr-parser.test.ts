@@ -36,6 +36,7 @@ describe('OCR receipt amount: conservative extraction', () => {
     ['PIX without total', 'PAGAMENTO PIX R$ 52,00'],
     ['card without total', 'CARTAO DE CREDITO R$ 52,00'],
     ['payment received', 'VALOR PAGO R$ 52,00'],
+    ['cash tendered', 'VALOR ENTREGUE R$ 100,00'],
     ['fees and discounts', 'TAXA R$ 5,00\nDESCONTO R$ 10,00'],
     ['installments without total', '3 PARCELAS R$ 40,00'],
     ['multiple values on total row', 'TOTAL R$ 10,00 R$ 20,00'],
