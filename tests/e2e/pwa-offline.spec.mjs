@@ -4,6 +4,8 @@ import { PrismaClient } from '@prisma/client';
 import { expect, test } from '@playwright/test';
 import { Pool } from 'pg';
 
+import { setIsolatedClientIp } from './support/client-ip.mjs';
+
 const password = 'Playwright123!';
 
 async function createVerifiedUser(email, extra = {}) {
@@ -30,6 +32,7 @@ async function createVerifiedUser(email, extra = {}) {
 }
 
 async function login(page, email) {
+  await setIsolatedClientIp(page, email);
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);

@@ -4,6 +4,8 @@ import { PrismaClient } from '@prisma/client';
 import { expect, test } from '@playwright/test';
 import { Pool } from 'pg';
 
+import { setIsolatedClientIp } from './support/client-ip.mjs';
+
 const password = 'Playwright123!';
 
 // Um único login para toda a suíte: o IP de CI tem limite de 30 logins por janela.
@@ -110,6 +112,7 @@ test.beforeAll(async ({ browser }) => {
   // page.route não é confiável com service worker ativo; o SW não participa destes cenários.
   ctx = await browser.newContext({ serviceWorkers: 'block' });
   page = await ctx.newPage();
+  await setIsolatedClientIp(page, suffix);
   const email = `pwa-queue-${suffix}@example.test`;
   await createUser(email);
   await page.goto('/login');
