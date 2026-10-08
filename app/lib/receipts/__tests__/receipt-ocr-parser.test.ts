@@ -65,3 +65,59 @@ describe('OCR receipt amount: conservative extraction', () => {
     expect(parseReceiptOcrText(' \n \n')).toEqual({});
   });
 });
+
+describe('OCR description respects Transaction contract', () => {
+  it('caps a long merchant suggestion at the canonical 100-character limit', () => {
+    const merchant = 'MERCADO ' + 'A'.repeat(112);
+    const suggestions = parseReceiptOcrText(merchant + '\nTOTAL A PAGAR 12,00');
+    expect(suggestions.description?.value).toHaveLength(100);
+    expect(suggestions.description?.value).toBe(merchant.slice(0, 100));
+    expect(suggestions.description?.evidence).toBe(merchant);
+    expect(getApplicableReceiptOcrSuggestions(suggestions).description).toBe(merchant.slice(0, 100));
+  });
+});
+
+describe('OCR respects canonical Transaction limits', () => {
+  it.each([
+    ['minimum valid cent', 'TOTAL 0,01', 1],
+    ['canonical maximum', 'VALOR TOTAL R$ 10.000.000,00', 1000000000],
+  ] as const)('accepts %s', (_label, line, value) => {
+    const result = parseReceiptOcrText(line);
+    expect(result.amount?.value).toBe(value);
+    expect(result.inconsistentAmountEvidence).toBeUndefined();
+    expect(getApplicableReceiptOcrSuggestions(result).amountCents).toBe(value);
+  });
+
+  it.each([
+    ['zero', 'TOTAL A PAGAR 0,00'],
+    ['negative', 'TOTAL GERAL -1,00'],
+    ['above maximum', 'VALOR TOTAL R$ 10.000.000,01'],
+  ] as const)('rejects %s with a review warning', (_label, line) => {
+    const result = parseReceiptOcrText(line);
+    expect(result.inconsistentAmountEvidence).toBe(line);
+    expect(getApplicableReceiptOcrSuggestions(result).amountCents).toBeUndefined();
+  });
+
+  it('never applies a valid total when another labeled total violates the limit', () => {
+    const result = parseReceiptOcrText('VALOR TOTAL 12,00\nTOTAL GERAL 10.000.000,01');
+    expect(result.inconsistentAmountEvidence).toBe('TOTAL GERAL 10.000.000,01');
+    expect(getApplicableReceiptOcrSuggestions(result).amountCents).toBeUndefined();
+  });
+
+  it('uses canonical calendar validation and year boundaries', () => {
+    expect(parseReceiptOcrText('DATA 29/02/2024').date?.value).toEqual({ year: 2024, month: 2, day: 29 });
+    expect(parseReceiptOcrText('DATA 29/02/2025').date).toBeUndefined();
+    expect(parseReceiptOcrText('DATA 01/01/1999').date).toBeUndefined();
+    expect(parseReceiptOcrText('DATA 31/12/2101').date).toBeUndefined();
+    expect(getApplicableReceiptOcrSuggestions({
+      date: { value: { year: 2026, month: 2, day: 30 }, confidence: 'high', evidence: 'DATA 30/02/2026' },
+    }).date).toBeUndefined();
+  });
+
+  it('blocks manually supplied suggestions beyond the canonical domain', () => {
+    expect(getApplicableReceiptOcrSuggestions({
+      amount: { value: 1000000001, confidence: 'high', evidence: 'TOTAL 10.000.000,01' },
+      description: { value: 'A'.repeat(101), confidence: 'high', evidence: 'A'.repeat(101) },
+    })).toEqual({ amountCents: undefined, date: undefined, description: undefined });
+  });
+});
