@@ -105,23 +105,17 @@ export async function getGlobalSearchForUser(
   const contains = { contains: query, mode: 'insensitive' as const };
 
   const [exactTransactions, accounts, categories, importRules] = await Promise.all([
-    prisma.transaction.findMany({
-      where: {
-        userId,
-        OR: [
-          { description: contains },
-          { merchant: { is: { userId, name: contains } } },
-          {
-            merchant: {
-              is: {
-                userId,
-                aliases: { some: { userId, pattern: contains } },
-              },
-            },
-          },
-          { tagLinks: { some: { userId, tag: { name: contains } } } },
-        ],
-      },
+    Promise.all([
+      { description: { equals: query, mode: 'insensitive' as const } },
+      { description: { startsWith: query, mode: 'insensitive' as const } },
+      { description: contains },
+      { OR: [
+        { merchant: { is: { userId, name: contains } } },
+        { merchant: { is: { userId, aliases: { some: { userId, pattern: contains } } } } },
+        { tagLinks: { some: { userId, tag: { name: { contains: query.replace(/^#/, ''), mode: 'insensitive' } } } } },
+      ] },
+    ].map((match) => prisma.transaction.findMany({
+      where: { userId, ...match },
       select: {
         id: true,
         description: true,
@@ -134,14 +128,11 @@ export async function getGlobalSearchForUser(
         tagLinks: { where: { userId }, select: { tag: { select: { name: true } } } },
       },
       orderBy: [
-        { year: 'desc' },
-        { month: 'desc' },
-        { day: 'desc' },
-        { createdAt: 'desc' },
-        { id: 'desc' },
+        { year: 'desc' }, { month: 'desc' }, { day: 'desc' },
+        { createdAt: 'desc' }, { id: 'desc' },
       ],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP * 10,
-    }),
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+    }))).then((batches) => [...new Map(batches.flat().map((item) => [item.id, item])).values()]),
     prisma.account.findMany({
       where: {
         userId,
