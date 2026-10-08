@@ -416,8 +416,14 @@ export default function New({
                       {item.status === 'error'
                         ? item.failureKind === 'auth'
                           ? 'Sessão expirada'
-                          : item.failureKind === 'conflict'
-                            ? 'Conflito'
+                          : item.failureKind === 'idempotency_conflict'
+                            ? 'Conflito de idempotência'
+                            : item.failureKind === 'business_conflict'
+                              ? 'Conflito de negócio'
+                              : item.failureKind === 'validation'
+                                ? 'Precisa de revisão'
+                                : item.failureKind === 'rate_limit'
+                                  ? 'Limite de requisições'
                             : 'Erro'
                         : item.status === 'synced'
                           ? 'Sincronizado'
@@ -461,7 +467,7 @@ export default function New({
                           Descartar
                         </button>
                       </>
-                    ) : item.failureKind === 'conflict' ? (
+                    ) : item.failureKind === 'idempotency_conflict' && item.errorCode === 'IDEMPOTENCY_PAYLOAD_CONFLICT' ? (
                       <>
                         <button
                           type="button"
@@ -482,14 +488,18 @@ export default function New({
                       </>
                     ) : (
                       <>
+                        {(item.failureKind === 'validation' || item.failureKind === 'business_conflict' || item.failureKind === 'conflict') ? (
+                          <span className="text-xs text-[var(--text-muted)]">Revise o lançamento antes de reenviar.</span>
+                        ) : (
                         <button
                           type="button"
                           onClick={() => void syncQueuedTransaction(item)}
-                          disabled={!isOnline || Boolean(queueSyncingId)}
+                          disabled={!isOnline || Boolean(queueSyncingId) || Boolean(item.retryAfterAt && Date.now() < Date.parse(item.retryAfterAt))}
                           className="min-h-9 rounded-full bg-[var(--orbit-primary)] px-3 text-xs font-bold text-white disabled:opacity-50"
                         >
                           {queueSyncingId === item.id ? 'Sincronizando...' : 'Sincronizar'}
                         </button>
+                        )
                         <button
                           type="button"
                           onClick={() => discardQueuedTransaction(item)}
