@@ -255,7 +255,7 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
     .getByRole('button', { name: 'Sincronizar', exact: true })
     .click();
 
-  await expect(queuePanel).toContainText('Sincronizado');
+  await expect(queuePanel).toHaveCount(0);
   await expect(
     page.getByRole('status', { name: 'Rascunho offline' }),
   ).toHaveCount(0);
@@ -266,11 +266,6 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
     ),
   owner);
   expect(draftAfterRetry).toBeNull();
-
-  await queuePanel
-    .getByRole('button', { name: 'Limpar', exact: true })
-    .click();
-  await expect(queuePanel).toHaveCount(0);
 
   await page.goto('/transacoes');
   await expect(
