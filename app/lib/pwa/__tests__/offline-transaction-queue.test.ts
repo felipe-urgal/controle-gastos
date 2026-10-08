@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   OFFLINE_TRANSACTION_QUEUE_PREFIX,
+  OfflineTransactionQueueStorageError,
   type OfflineTransactionQueuePayload,
   enqueueOfflineTransaction,
   readOfflineTransactionQueue,
@@ -439,5 +440,38 @@ describe("offline transaction queue", () => {
     for (const item of invalid) {
       expect(() => enqueueOfflineTransaction("user-a", item)).toThrow();
     }
+  });
+
+  it("drops items with an unknown queue version without touching valid ones", () => {
+    const { values } = installLocalStorage();
+    const valid = enqueueOfflineTransaction("user-a", payload);
+    const key = `${OFFLINE_TRANSACTION_QUEUE_PREFIX}user-a`;
+    const stored = JSON.parse(values.get(key)!);
+    values.set(key, JSON.stringify([...stored, { ...stored[0], id: "v2", version: 2 }]));
+
+    expect(readOfflineTransactionQueue("user-a").map((item) => item.id)).toEqual([valid.id]);
+  });
+
+  it("surfaces unavailable storage instead of pretending the item was queued", () => {
+    const { localStorage } = installLocalStorage();
+    localStorage.setItem = () => {
+      throw new DOMException("quota", "QuotaExceededError");
+    };
+
+    expect(() => enqueueOfflineTransaction("user-a", payload)).toThrow(
+      OfflineTransactionQueueStorageError,
+    );
+  });
+
+  it("keeps the logical date chosen by the user untouched (no UTC reinterpretation)", () => {
+    installLocalStorage();
+    const edge = { ...payload, year: 2026, month: 12, day: 31 };
+    const item = enqueueOfflineTransaction("user-a", edge);
+    expect(readOfflineTransactionQueue("user-a")[0].payload).toMatchObject({
+      year: 2026,
+      month: 12,
+      day: 31,
+    });
+    expect(item.payload.day).toBe(31);
   });
 });

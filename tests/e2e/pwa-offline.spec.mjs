@@ -6,7 +6,7 @@ import { Pool } from 'pg';
 
 const password = 'Playwright123!';
 
-async function createVerifiedUser(email) {
+async function createVerifiedUser(email, extra = {}) {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     max: 1,
@@ -20,6 +20,7 @@ async function createVerifiedUser(email) {
         email,
         password: await bcrypt.hash(password, 12),
         emailVerifiedAt: new Date(),
+        ...extra,
       },
     });
   } finally {
@@ -99,7 +100,7 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
   ).toBeVisible();
   await expect(
     page.getByText(
-      'Por segurança, dados financeiros e respostas da API não são armazenados para uso offline.',
+      'Páginas financeiras e respostas da API não são armazenadas para uso offline.',
       { exact: false },
     ),
   ).toBeVisible();
@@ -111,7 +112,7 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
   ).toBeVisible();
   await expect(
     page.getByText(
-      'Por segurança, dados financeiros e respostas da API não são armazenados para uso offline.',
+      'Páginas financeiras e respostas da API não são armazenadas para uso offline.',
       { exact: false },
     ),
   ).toBeVisible();
@@ -494,4 +495,41 @@ test('rascunho offline valida limites antes de salvar e preserva rascunho legado
   await expect(formDate).toHaveValue('2026-09-30');
   await expect(incomeButton).toHaveAttribute('aria-pressed', 'true');
   expect(JSON.parse(await readDraft())).toEqual(legacy);
+});
+
+test('showValues=false mascara valores do rascunho e exibe badge sem valores', async ({ page }) => {
+  const email = `pwa-hidden-${Date.now()}-${test.info().retry}@example.test`;
+  await createVerifiedUser(email, { showValues: false });
+  await login(page, email);
+
+  await page.evaluate(() => {
+    const owner = localStorage.getItem('controle-gastos:offline-draft-owner:v1');
+    const now = new Date().toISOString();
+    localStorage.setItem(
+      `controle-gastos:offline-transaction-draft:v1:${owner}`,
+      JSON.stringify({
+        version: 1,
+        id: crypto.randomUUID(),
+        ownerUserId: owner,
+        type: 'EXPENSE',
+        amount: 123456,
+        description: 'Segredo oculto',
+        year: 2026,
+        month: 10,
+        day: 8,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
+  });
+
+  await page.goto('/transacoes/nova');
+  const notice = page.getByLabel('Rascunho offline');
+  await expect(notice).toContainText('Segredo oculto');
+  await expect(notice).not.toContainText('1.234,56');
+  await expect(notice).toContainText('••••');
+
+  const badge = page.getByTestId('offline-pending-badge').first();
+  await expect(badge).toHaveAttribute('aria-label', /1 lançamento local aguardando envio/);
+  await expect(badge).not.toContainText('1.234,56');
 });

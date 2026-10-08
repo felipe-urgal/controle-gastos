@@ -9,6 +9,7 @@ on:
       - "tests/e2e/global-search-entities.spec.mjs"
       - "tests/e2e/global-search-flow.spec.mjs"
       - "tests/e2e/pwa-offline.spec.mjs"
+      - "tests/e2e/pwa-offline-static.spec.mjs"
       - "tests/e2e/accounts-flow.spec.mjs"
       - "tests/e2e/categories-flow.spec.mjs"
       - "tests/e2e/monthly-planning-flow.spec.mjs"
@@ -114,6 +115,19 @@ on:
       - "prisma/migrations/**"
       - "app/components/pwa/**"
       - "app/lib/pwa/**"
+      - "app/components/pages/transactions/new/**"
+      - "app/components/pages/transactions/form/**"
+      - "app/components/layout/app-sidebar/**"
+      - "app/components/layout/mobile-topbar/**"
+      - "app/services/transaction-service.ts"
+      - "app/api/transactions/route.ts"
+      - "app/api/transactions/recurring/**"
+      - "app/api/transactions/installments/**"
+      - "app/lib/idempotency.ts"
+      - "app/lib/transfers/client-idempotency.ts"
+      - "app/lib/transactions/transaction-crud.ts"
+      - "app/lib/transactions/transaction-schema.ts"
+      - "app/context/auth-context.tsx"
       - "public/sw.js"
       - "public/offline.html"
       - "public/offline-transacao.html"
@@ -198,6 +212,7 @@ jobs:
           tests/e2e/global-search-entities.spec.mjs
           tests/e2e/global-search-flow.spec.mjs
           tests/e2e/pwa-offline.spec.mjs
+          tests/e2e/pwa-offline-static.spec.mjs
           tests/e2e/accounts-flow.spec.mjs
           tests/e2e/categories-flow.spec.mjs
           tests/e2e/monthly-planning-flow.spec.mjs

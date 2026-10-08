@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { FaMoon, FaPlus, FaSearch, FaSignOutAlt, FaSun, FaWallet } from 'react-icons/fa';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
+import OfflinePendingBadge from '@/app/components/pwa/offline-pending-badge';
 import { useAuth, useTheme } from '@/app/context';
 
 export default function MobileTopbar({
@@ -78,6 +79,8 @@ export default function MobileTopbar({
             Controle de Gastos
           </span>
         </Link>
+
+        <OfflinePendingBadge />
 
         {transactionsListActive && (
           <div className="flex items-center gap-1 sm:hidden">

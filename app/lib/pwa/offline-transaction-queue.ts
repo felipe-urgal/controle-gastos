@@ -7,6 +7,7 @@ import { createTransactionSchema } from "@/app/lib/transactions/transaction-sche
 export const OFFLINE_TRANSACTION_QUEUE_PREFIX =
   "controle-gastos:offline-transaction-queue:v1:";
 export const MAX_OFFLINE_TRANSACTION_QUEUE_ITEMS = 25;
+export const OFFLINE_QUEUE_CHANGED_EVENT = "controle-gastos:offline-queue-changed";
 
 export type OfflineTransactionQueueStatus =
   | "pending"
@@ -125,6 +126,13 @@ function writeQueue(userId: string, items: OfflineTransactionQueueItem[]) {
     storage.setItem(queueKey(userId), JSON.stringify(items));
   } catch {
     throw new OfflineTransactionQueueStorageError();
+  }
+  notifyQueueChanged();
+}
+
+function notifyQueueChanged() {
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    window.dispatchEvent(new Event(OFFLINE_QUEUE_CHANGED_EVENT));
   }
 }
 
@@ -320,6 +328,7 @@ export function clearOfflineTransactionQueue(userId: string) {
   } catch {
     // Cleanup is best-effort when storage becomes unavailable.
   }
+  notifyQueueChanged();
 }
 
 export function classifyQueueFailure(error: unknown): OfflineTransactionQueueFailureKind {

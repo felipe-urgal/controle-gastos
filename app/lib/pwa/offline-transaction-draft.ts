@@ -1,4 +1,7 @@
-import { clearOfflineTransactionQueue } from "@/app/lib/pwa/offline-transaction-queue";
+import {
+  OFFLINE_QUEUE_CHANGED_EVENT,
+  clearOfflineTransactionQueue,
+} from "@/app/lib/pwa/offline-transaction-queue";
 import {
   TRANSACTION_DESCRIPTION_MAX_LENGTH,
   TRANSACTION_DESCRIPTION_MIN_LENGTH,
@@ -136,6 +139,7 @@ export function readOfflineTransactionDraft(userId: string) {
 export function clearOfflineTransactionDraft(userId: string) {
   if (!hasStorage()) return;
   window.localStorage.removeItem(draftKey(userId));
+  window.dispatchEvent?.(new Event(OFFLINE_QUEUE_CHANGED_EVENT));
 }
 
 export function clearOfflineTransactionLocalState() {

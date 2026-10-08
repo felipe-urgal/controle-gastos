@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fa';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
+import OfflinePendingBadge from '@/app/components/pwa/offline-pending-badge';
 import { useAuth, useTheme } from '@/app/context';
 
 export default function AppSidebar({
@@ -134,6 +135,8 @@ export default function AppSidebar({
           )}
           <span className={collapsed ? 'sr-only' : undefined}>{resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}</span>
         </button>
+
+        <OfflinePendingBadge className="!w-full" />
 
         <div
           className={`flex items-center rounded-[var(--radius-lg)] border p-2 transition-colors ${
