@@ -664,10 +664,22 @@ export default function TransactionForm({
             ? { mode: 'count' as const, occurrences: occurrenceCount }
             : { mode: 'endDate' as const, endDate: recurrenceEndDate };
 
-        const response = await transactionService.createFlexibleRecurring({
-          transaction: payload,
-          recurrence: { ...recurrenceRule, ...ending },
-        });
+        const requestBody = { transaction: payload, recurrence: { ...recurrenceRule, ...ending } };
+        const serializedPayload = 'recurring:' + JSON.stringify(requestBody);
+        const previous = createAttemptRef.current;
+        if (previous && previous.payload !== serializedPayload) {
+          throw new Error('Uma recorrência anterior tem resultado incerto. Reenvie os mesmos dados antes de alterar.');
+        }
+        const attempt = previous ?? { id: crypto.randomUUID(), key: crypto.randomUUID(), payload: serializedPayload };
+        createAttemptRef.current = attempt;
+        let response;
+        try {
+          response = await transactionService.createFlexibleRecurring(requestBody, attempt.key);
+        } catch (error) {
+          if (error instanceof ApiClientError && (error.status === 400 || error.status === 422)) createAttemptRef.current = null;
+          throw error;
+        }
+        createAttemptRef.current = null;
         savedTransaction = response.data.firstOccurrence;
       } else if (!isEditing && creationMode === 'installment') {
         if (category.type !== 'EXPENSE') {
@@ -678,13 +690,22 @@ export default function TransactionForm({
           throw new Error(installmentPreview.error || 'Parcelamento inválido');
         }
 
-        const response = await transactionService.createInstallments({
-          transaction: {
-            ...payload,
-            type: 'EXPENSE' as const,
-          },
-          installmentCount,
-        });
+        const requestBody = { transaction: { ...payload, type: 'EXPENSE' as const }, installmentCount };
+        const serializedPayload = 'installment:' + JSON.stringify(requestBody);
+        const previous = createAttemptRef.current;
+        if (previous && previous.payload !== serializedPayload) {
+          throw new Error('Um parcelamento anterior tem resultado incerto. Reenvie os mesmos dados antes de alterar.');
+        }
+        const attempt = previous ?? { id: crypto.randomUUID(), key: crypto.randomUUID(), payload: serializedPayload };
+        createAttemptRef.current = attempt;
+        let response;
+        try {
+          response = await transactionService.createInstallments(requestBody, attempt.key);
+        } catch (error) {
+          if (error instanceof ApiClientError && (error.status === 400 || error.status === 422)) createAttemptRef.current = null;
+          throw error;
+        }
+        createAttemptRef.current = null;
         savedTransaction = response.data.firstOccurrence;
       } else if (isEditing && transaction) {
         const response = await transactionService.update(transaction.id, payload);
