@@ -89,7 +89,7 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
   await tagInput.fill(unique);
   await expect(tagDialog.locator('[aria-labelledby="global-search-group-TAG"]').getByText(`#${unique}`, { exact: true })).toBeVisible();
   await tagInput.fill(`#${unique}`);
-  await expect(tagDialog.getByText(`#${unique}`, { exact: true })).toBeVisible();
+  await expect(tagDialog.locator('[aria-labelledby="global-search-group-TAG"]').getByText(`#${unique}`, { exact: true })).toBeVisible();
   await tagInput.press('Escape');
 
   for (const item of destinations) {
