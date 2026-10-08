@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const SHELL_CACHE = `controle-gastos-shell-${CACHE_VERSION}`;
 const STATIC_CACHE = `controle-gastos-static-${CACHE_VERSION}`;
 const CACHE_PREFIX = "controle-gastos-";
