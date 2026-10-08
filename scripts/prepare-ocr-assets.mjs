@@ -16,10 +16,15 @@ const worker = packageRoot("tesseract.js");
 copy(join(worker, "dist", "worker.min.js"), join(dest, "worker.min.js"));
 
 const core = packageRoot("tesseract.js-core");
-for (const name of readdirSync(core).filter((item) => /^tesseract-core.*\\.wasm(\\.js)?$/.test(item))) {
+for (const name of readdirSync(core).filter((item) => /^tesseract-core.*\.wasm(\.js)?$/.test(item))) {
   copy(join(core, name), join(dest, "core", name));
 }
-if (!existsSync(join(dest, "core", "tesseract-core.wasm.js"))) {
+const coreVariants = ["tesseract-core.wasm", "tesseract-core-simd.wasm", "tesseract-core-lstm.wasm", "tesseract-core-simd-lstm.wasm"];
+for (const variant of coreVariants) {
+  if (!existsSync(join(dest, "core", `${variant}.js`)) || !existsSync(join(dest, "core", variant))) {
+    throw new Error(`Missing Tesseract core variant: ${variant}`);
+  }
+}\nif (!existsSync(join(dest, "core", "tesseract-core.wasm.js"))) {
   throw new Error("Tesseract WASM core not found");
 }
 
