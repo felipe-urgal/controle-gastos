@@ -273,6 +273,8 @@ test('busca global: preferência showValues=false e Enter respeita match exato',
   expect(setup.updateBody.data?.showValues).toBe(false);
   expect(setup.accountStatus).toBe(201);
   const exactAccountId = setup.accountBody.data.id;
+  // Recarrega a sessão para o contexto de autenticação aplicar showValues=false.
+  await page.reload();
 
   const response = await page.evaluate(async (query) => {
     const request = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
