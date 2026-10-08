@@ -95,7 +95,7 @@ export async function getGlobalSearchForUser(
 ): Promise<GlobalSearchData> {
   const contains = { contains: query, mode: 'insensitive' as const };
 
-  const [exactTransactions, accounts, categories, importRules] = await Promise.all([
+  const [exactTransactions, accounts, categories, importRules, merchants, tags, debts] = await Promise.all([
     prisma.transaction.findMany({
       where: {
         userId,
@@ -177,6 +177,24 @@ export async function getGlobalSearchForUser(
         category: { select: { name: true } },
       },
       orderBy: [{ priority: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+    }),,
+    prisma.merchant.findMany({
+      where: { userId, name: contains },
+      select: { id: true, name: true, isActive: true },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+    }),
+    prisma.tag.findMany({
+      where: { userId, name: { contains: query.replace(/^#/, ''), mode: 'insensitive' } },
+      select: { id: true, name: true, isActive: true },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+    }),
+    prisma.debt.findMany({
+      where: { userId, OR: [{ name: contains }, { institution: contains }] },
+      select: { id: true, name: true, status: true },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
       take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
     }),
   ]);
@@ -266,6 +284,30 @@ export async function getGlobalSearchForUser(
         title: item.name,
         subtitle: `${item.category.name} · ${item.descriptionPattern} · ${item.isActive ? 'Ativa' : 'Inativa'}`,
         href: '/transacoes/importar/regras',
+      })),
+    ),
+    group(
+      'MERCHANT',
+      merchants.map((item) => ({
+        id: item.id, type: 'MERCHANT', title: item.name,
+        subtitle: item.isActive ? 'Ativo' : 'Inativo',
+        href: `/estabelecimentos?merchantId=${encodeURIComponent(item.id)}`,
+      })),
+    ),
+    group(
+      'TAG',
+      tags.map((item) => ({
+        id: item.id, type: 'TAG', title: `#${item.name}`,
+        subtitle: item.isActive ? 'Ativa' : 'Arquivada',
+        href: `/tags?tagId=${encodeURIComponent(item.id)}`,
+      })),
+    ),
+    group(
+      'DEBT',
+      debts.map((item) => ({
+        id: item.id, type: 'DEBT', title: item.name,
+        subtitle: item.status,
+        href: `/dividas?debtId=${encodeURIComponent(item.id)}`,
       })),
     ),
   ].filter((item) => item.items.length > 0);
