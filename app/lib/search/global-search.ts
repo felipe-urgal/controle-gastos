@@ -128,9 +128,10 @@ export async function getGlobalSearchForUser(
         year: true,
         month: true,
         day: true,
+        merchant: { select: { name: true, aliases: { where: { userId }, select: { pattern: true } } } },
         account: { select: { name: true } },
         category: { select: { name: true } },
-        tagLinks: { select: { tag: { select: { name: true } } }, take: 3 },
+        tagLinks: { where: { userId }, select: { tag: { select: { name: true } } } },
       },
       orderBy: [
         { year: 'desc' },
@@ -191,7 +192,15 @@ export async function getGlobalSearchForUser(
   ]);
 
   const rankedExactTransactions = exactTransactions
-    .map((item) => ({ item, score: relevance(item.description, query) }))
+    .map((item) => ({
+      item,
+      score: Math.max(
+        relevance(item.description, query),
+        relevance(item.merchant?.name ?? '', query) - 25,
+        ...((item.merchant?.aliases ?? []).map((alias) => relevance(alias.pattern, query) - 50)),
+        ...item.tagLinks.map((link) => relevance(link.tag.name, query.replace(/^#/, '')) - 75),
+      ),
+    }))
     .sort((a, b) => b.score - a.score)
     .slice(0, GLOBAL_SEARCH_LIMIT_PER_GROUP)
     .map(({ item }) => item);
@@ -219,6 +228,7 @@ export async function getGlobalSearchForUser(
             year: true,
             month: true,
             day: true,
+            merchant: { select: { name: true, aliases: { where: { userId }, select: { pattern: true } } } },
             account: { select: { name: true } },
             category: { select: { name: true } },
             tagLinks: { select: { tag: { select: { name: true } } }, take: 3 },
@@ -238,20 +248,31 @@ export async function getGlobalSearchForUser(
   const groups: GlobalSearchGroup[] = [
     group(
       'TRANSACTION',
-      transactions.map((item) => ({
+      transactions.map((item) => {
+        const merchantMatch = item.merchant?.name && relevance(item.merchant.name, query) > 0;
+        const aliasMatch = item.merchant?.aliases.find((alias) => relevance(alias.pattern, query) > 0);
+        const tagMatch = item.tagLinks.find((link) => relevance(link.tag.name, query.replace(/^#/, '')) > 0);
+        const matchedField = relevance(item.description, query) > 0 ? 'description' : merchantMatch ? 'merchant' : aliasMatch ? 'alias' : tagMatch ? 'tag' : 'fuzzy';
+        const matchedText = matchedField === 'description' ? item.description : merchantMatch ? item.merchant?.name : aliasMatch?.pattern ?? tagMatch?.tag.name ?? null;
+        return ({
         id: item.id,
         type: 'TRANSACTION',
+        matchedField,
+        matchedText,
+        matchKind: matchedField === 'fuzzy' ? 'fuzzy' : relevance(matchedText ?? '', query.replace(/^#/, '')) === 400 ? 'exact' : relevance(matchedText ?? '', query.replace(/^#/, '')) === 300 ? 'prefix' : 'contains',
         title: item.description,
         subtitle: [
           `${String(item.day).padStart(2, '0')}/${String(item.month).padStart(2, '0')}/${item.year}`,
           item.account.name,
           item.category?.name ?? null,
+          merchantMatch || aliasMatch ? item.merchant?.name : null,
+          aliasMatch ? `Alias: ${aliasMatch.pattern}` : null,
           ...item.tagLinks.map((link) => `#${link.tag.name}`),
         ]
           .filter(Boolean)
           .join(' · '),
         href: `/transacoes/show/${item.id}`,
-      })),
+      }); }),
     ),
     group(
       'ACCOUNT',
