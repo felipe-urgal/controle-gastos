@@ -295,7 +295,12 @@ describe("offline transaction queue", () => {
       expect(item).toBeUndefined();
       return;
     }
-    expect(item).toMatchObject({ failureKind: kind, errorCode: code, idempotencyKey: "stable-key" });
+    expect(item).toMatchObject({ failureKind: kind, idempotencyKey: "stable-key" });
+    if (code === undefined) {
+      expect(item.errorCode).toBeUndefined();
+    } else {
+      expect(item.errorCode).toBe(code);
+    }
     if (kind === "rate_limit") {
       expect(Date.parse(item.retryAfterAt!)).toBeGreaterThan(Date.now());
       await expect(syncOfflineTransactionQueueItem("user-a", "item", async () => ({}))).rejects.toThrow("Aguarde");
