@@ -199,6 +199,12 @@ export default function ReceiptOcrScanner({
             </button>
           </div>
 
+          {result.suggestions.inconsistentAmountEvidence ? (
+            <p role="alert" className="mt-3 rounded-[9px] border border-[var(--danger)] bg-[var(--danger-subtle)] p-2.5 text-sm text-[var(--expense)]">
+              Leitura de valor inconsistente com os limites da transação. O valor não será aplicado. Confira: {result.suggestions.inconsistentAmountEvidence}
+            </p>
+          ) : null}
+
           {hasSuggestions ? (
             <dl className="mt-3 grid gap-2 text-sm">
               {result.suggestions.amount ? (
