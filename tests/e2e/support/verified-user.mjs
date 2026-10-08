@@ -97,3 +97,55 @@ export async function seedPrivacyFinancialFixture({ email, amount = 12345 }) {
     };
   });
 }
+
+// ---------------------------------------------------------------------------
+// Fixtures exclusivas de E2E para o ciclo de autenticação. Não existe bypass em
+// produção: o provedor de e-mail não é interceptável, então o teste assina o
+// mesmo token de verificação com JWT_SECRET e grava um token de reset conhecido.
+// ---------------------------------------------------------------------------
+
+export async function createVerificationLink({ email }) {
+  const { default: jwt } = await import('jsonwebtoken');
+  const user = await withPrisma((prisma) =>
+    prisma.user.findUniqueOrThrow({ where: { email } }),
+  );
+  const token = jwt.sign(
+    {
+      sub: user.id,
+      purpose: 'email-verification',
+      email: user.email,
+      kind: 'signup',
+      authVersion: user.authVersion,
+    },
+    process.env.JWT_SECRET,
+    {
+      algorithm: 'HS256',
+      expiresIn: 24 * 60 * 60,
+      issuer: 'controle-gastos-auth',
+      audience: 'controle-gastos-email-verification',
+    },
+  );
+  return `/api/auth/verify-email?token=${encodeURIComponent(token)}`;
+}
+
+export async function setKnownPasswordResetToken({ email, rawToken }) {
+  const { createHash } = await import('node:crypto');
+  const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+  return withPrisma(async (prisma) => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    await prisma.passwordResetToken.upsert({
+      where: { userId: user.id },
+      create: { token: tokenHash, userId: user.id, expiresAt },
+      update: { token: tokenHash, expiresAt },
+    });
+  });
+}
+
+export async function isEmailVerified(email) {
+  return withPrisma(async (prisma) => {
+    const user = await prisma.user.findUnique({ where: { email } });
+    return Boolean(user?.emailVerifiedAt);
+  });
+}

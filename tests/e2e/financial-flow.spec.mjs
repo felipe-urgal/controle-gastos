@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -634,7 +635,7 @@ async function assertCalendarTodayLabelInName(page) {
   expect(accessibleName?.startsWith(`${accessibleTodayPrefix}.`)).toBeTruthy();
 }
 
-test('login, fluxo financeiro, sessão inválida e logout', async ({ page, request }) => {
+test('login, fluxo financeiro, sessão inválida e logout', async ({ page }) => {
   test.setTimeout(90_000);
 
   const suffix = `${Date.now()}-${test.info().retry}`;
@@ -643,14 +644,11 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page, reque
   const categoryName = `Categoria E2E reflow ${suffix}`;
   const transactionDescription = `Compra E2E reflow 320px ${suffix}`;
 
-  const signupResponse = await request.post('/api/auth/signup', {
-    data: {
+  await createVerifiedUser({
       name: 'Playwright E2E',
       email,
       password,
-    },
-  });
-  expect(signupResponse.ok()).toBeTruthy();
+    });
 
   await login(page, email);
 

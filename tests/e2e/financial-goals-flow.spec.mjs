@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -12,7 +13,6 @@ async function login(page, email) {
 
 test('metas: criar, contribuir e concluir sem criar transação financeira', async ({
   page,
-  request,
 }) => {
   test.setTimeout(90_000);
 
@@ -20,14 +20,11 @@ test('metas: criar, contribuir e concluir sem criar transação financeira', asy
   const email = `qa-goal-${suffix}@example.test`;
   const goalName = `Reserva E2E ${suffix}`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: {
+  await createVerifiedUser({
       name: 'QA Metas',
       email,
       password,
-    },
-  });
-  expect(signup.ok()).toBeTruthy();
+    });
 
   await login(page, email);
   await page.setViewportSize({ width: 1280, height: 800 });

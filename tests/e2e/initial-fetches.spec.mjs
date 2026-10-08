@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -33,14 +34,11 @@ async function createAuthenticatedSession(context, projectName) {
   const unique = `${projectName}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const email = `initial-fetches-${unique}@example.test`;
 
-  const signup = await context.request.post('/api/auth/signup', {
-    data: {
+  await createVerifiedUser({
       name: 'Initial Fetches E2E',
       email,
       password,
-    },
-  });
-  expect(signup.ok()).toBe(true);
+    });
 
   const login = await context.request.post('/api/auth/login', {
     data: { email, password },
