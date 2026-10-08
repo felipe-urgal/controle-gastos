@@ -42,6 +42,7 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
       name: `${marker} Regra`, isActive: true, priority: 0,
       transactionType: 'EXPENSE', descriptionOperator: 'CONTAINS',
       descriptionPattern: marker, accountId: account.id, categoryId: category.id,
+      minAmountCents: null, maxAmountCents: null,
     });
     return { merchant, tag, template, debt, goal, rule };
   }, unique);
