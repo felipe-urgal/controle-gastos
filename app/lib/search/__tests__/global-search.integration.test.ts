@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 
 import { getGlobalSearchForUser } from '@/app/lib/search/global-search';
+import { createTransferForUser } from '@/app/lib/transfers/create-transfer';
+import { payCreditCardStatementForUser } from '@/app/lib/cards/pay-credit-card-statement';
 import { GLOBAL_SEARCH_LIMIT_PER_GROUP } from '@/app/lib/search/global-search-schema';
 import { prisma } from '@/app/lib/prisma';
 
@@ -31,6 +33,75 @@ async function createUser(label: string) {
 }
 
 describe('global search integration', () => {
+  it('identifica pernas de transferência e status sem apresentar valores', async () => {
+    const owner = await createUser('special-transactions');
+    const marker = `EspecialBusca${randomUUID().slice(0, 8)}`;
+    const [source, destination, category] = await Promise.all([
+      prisma.account.create({ data: { userId: owner.id, name: 'Origem especial', type: 'CREDIT_DEBIT' } }),
+      prisma.account.create({ data: { userId: owner.id, name: 'Destino especial', type: 'CREDIT_DEBIT' } }),
+      prisma.category.create({ data: { userId: owner.id, name: 'Categoria especial', type: 'EXPENSE' } }),
+    ]);
+    await createTransferForUser(owner.id, {
+      sourceAccountId: source.id,
+      destinationAccountId: destination.id,
+      amountCents: 987654,
+      year: 2026, month: 9, day: 12,
+      description: `${marker} transferência`,
+      status: 'COMPLETED',
+    }, randomUUID());
+    await prisma.transaction.createMany({
+      data: [
+        {
+          userId: owner.id, accountId: source.id, categoryId: category.id,
+          description: `${marker} pendente`, amount: 987654,
+          year: 2026, month: 9, day: 13, type: 'EXPENSE', status: 'PENDING',
+        },
+        {
+          userId: owner.id, accountId: source.id, categoryId: category.id,
+          description: `${marker} cancelada`, amount: 987654,
+          year: 2026, month: 9, day: 14, type: 'EXPENSE', status: 'CANCELLED',
+        },
+      ],
+    });
+    const result = await getGlobalSearchForUser(owner.id, marker);
+    const transactions = result.groups.find((group) => group.type === 'TRANSACTION')?.items ?? [];
+    expect(transactions).toHaveLength(4);
+    expect(transactions.map((item) => item.subtitle)).toEqual(expect.arrayContaining([
+      expect.stringContaining('Transferência · Origem'),
+      expect.stringContaining('Transferência · Destino'),
+      expect.stringContaining('Pendente'),
+      expect.stringContaining('Cancelada'),
+    ]));
+    expect(JSON.stringify(result)).not.toContain('987654');
+  });
+
+  it('identifica pagamento de fatura sem exibir o montante', async () => {
+    const owner = await createUser('card-payment-search');
+    const suffix = randomUUID().slice(0, 8);
+    const [card, source, category] = await Promise.all([
+      prisma.account.create({ data: {
+        userId: owner.id, name: `Cartão Busca ${suffix}`, type: 'CREDIT_CARD',
+        currency: 'BRL', creditLimit: 100_000, statementClosingDay: 5, statementDueDay: 12,
+      } }),
+      prisma.account.create({ data: { userId: owner.id, name: 'Pagadora busca', type: 'CREDIT_DEBIT', currency: 'BRL' } }),
+      prisma.category.create({ data: { userId: owner.id, name: 'Categoria fatura', type: 'EXPENSE' } }),
+    ]);
+    await prisma.transaction.create({ data: {
+      userId: owner.id, accountId: card.id, categoryId: category.id,
+      amount: 98765, year: 2026, month: 9, day: 4,
+      type: 'EXPENSE', status: 'COMPLETED', description: 'Compra da fatura busca',
+    } });
+    await payCreditCardStatementForUser(owner.id, card.id, {
+      sourceAccountId: source.id,
+      statementClosingDate: '2026-09-05',
+      paymentDate: '2026-09-05',
+    }, randomUUID());
+    const result = await getGlobalSearchForUser(owner.id, `Pagamento fatura ${card.name}`);
+    const transactions = result.groups.find((group) => group.type === 'TRANSACTION')?.items ?? [];
+    expect(transactions.some((item) => item.subtitle?.includes('Pagamento de fatura'))).toBe(true);
+    expect(JSON.stringify(result)).not.toContain('98765');
+  });
+
   it('searches only owned resources across all supported groups', async () => {
     const marker = `Café ${randomUUID().slice(0, 8)}`;
     const [owner, other] = await Promise.all([
