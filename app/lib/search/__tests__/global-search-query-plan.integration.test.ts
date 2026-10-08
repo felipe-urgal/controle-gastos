@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
+import { Prisma } from '@prisma/client';
 import { prisma } from "@/app/lib/prisma";
+import { buildGlobalSearchFuzzyQuery } from '@/app/lib/search/global-search';
 
 const createdUserIds: string[] = [];
 
@@ -75,6 +77,36 @@ describe("global search query plan", () => {
 
     await prisma.$executeRawUnsafe('ANALYZE "transactions"');
 
+
+    const sampleUser = users[0]!;
+    const merchant = await prisma.merchant.create({
+      data: {
+        userId: sampleUser.id,
+        name: `Nubank Mobilidade ${suffix.slice(0, 6)}`,
+        aliases: {
+          create: {
+            pattern: 'Uber Trip',
+            normalizedPattern: 'uber trip',
+            operator: 'CONTAINS',
+            userId: sampleUser.id,
+          },
+        },
+      },
+    });
+    const tag = await prisma.tag.create({
+      data: { userId: sampleUser.id, name: 'transporte', normalizedName: 'transporte' },
+    });
+    const sampleIds = (await prisma.transaction.findMany({
+      where: { userId: sampleUser.id }, select: { id: true }, take: 12,
+    })).map((item) => item.id);
+    await prisma.transaction.updateMany({
+      where: { userId: sampleUser.id, id: { in: sampleIds } },
+      data: { merchantId: merchant.id },
+    });
+    await prisma.transactionTag.createMany({
+      data: sampleIds.map((id) => ({ userId: sampleUser.id, transactionId: id, tagId: tag.id })),
+    });
+
     const targetUserId = users[0]!.id;
     const defaultRows = await prisma.$queryRawUnsafe<Array<Record<string, string>>>(
       `EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
@@ -125,6 +157,35 @@ describe("global search query plan", () => {
 
     expect(trigramPlan).toContain("transactions_description_trgm_idx");
 
+    // This composes exactly the query used by fuzzyTransactionIds, including
+    // correlated alias/tag subqueries, not an approximate ILIKE surrogate.
+    const fuzzyCases = [
+      { group: 'description', text: 'Mercado Central' },
+      { group: 'merchant', text: 'Nubank Mobilidade' },
+      { group: 'alias', text: 'Uber Trip' },
+      { group: 'tag', text: 'transporte' },
+      { group: 'combined', text: 'Mercado' },
+    ];
+    const fuzzyMetrics = [];
+    for (const testCase of fuzzyCases) {
+      const rows = await prisma.$queryRaw<Array<{ 'QUERY PLAN': string }>>(
+        Prisma.sql`EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) ${buildGlobalSearchFuzzyQuery(targetUserId, testCase.text, [])}`,
+      );
+      const plan = rows.map((row) => row['QUERY PLAN']).join('\n');
+      expect(plan.length).toBeGreaterThan(0);
+      fuzzyMetrics.push({
+        field: testCase.group,
+        executionMs: executionTimeMs(plan),
+        correlatedSubplans: (plan.match(/SubPlan/g) ?? []).length,
+      });
+    }
+    console.info(JSON.stringify({
+      event: 'global_search_real_fuzzy_plan',
+      rows: 20_000, multiUser: true,
+      metrics: fuzzyMetrics,
+    }));
+
+
     console.info(
       JSON.stringify({
         event: "global_search_query_plan_measurement",
@@ -135,5 +196,5 @@ describe("global search query plan", () => {
         trigramIndexBytes: Number(sizeRows[0]?.bytes ?? 0),
       }),
     );
-  }, 30_000);
+  }, 180_000);
 });
