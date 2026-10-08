@@ -165,7 +165,8 @@ describe('periodic financial summary service', () => {
     mocks.user.count.mockResolvedValue(7);
     mocks.user.findMany
       .mockResolvedValueOnce([{ id: 'user-retry' }])
-      .mockResolvedValueOnce([{ id: 'user-retry' }]);
+      .mockResolvedValueOnce([{ id: 'user-retry' }])
+      .mockResolvedValueOnce([]);
     mocks.account.findMany
       .mockRejectedValueOnce(new Error('transient failure'))
       .mockResolvedValueOnce([{ currency: 'BRL' }]);

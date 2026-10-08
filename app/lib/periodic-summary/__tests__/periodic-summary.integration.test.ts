@@ -22,7 +22,7 @@ afterAll(async () => {
 describe('periodic summary persistence integration', () => {
   it('enables, materializes, replays, keeps currencies separate and hides on opt-out', async () => {
     const owner = await fixtures.user({ periodicSummaryEnabled: true });
-    const [cash, card, usd, inactiveEur, category] = await Promise.all([
+    const [cash, card, usd, inactiveEur, category, incomeCategory] = await Promise.all([
       fixtures.account(owner.id, { currency: 'BRL' }),
       fixtures.account(owner.id, {
         type: 'CREDIT_CARD',
@@ -34,13 +34,14 @@ describe('periodic summary persistence integration', () => {
       fixtures.account(owner.id, { currency: 'USD' }),
       fixtures.account(owner.id, { currency: 'EUR', isActive: false }),
       fixtures.category(owner.id, { type: 'EXPENSE' }),
+      fixtures.category(owner.id, { type: 'INCOME' }),
     ]);
 
     const t = (accountId: string, amount: number, type: 'INCOME' | 'EXPENSE' = 'EXPENSE') =>
       fixtures.transaction({
         userId: owner.id,
         accountId,
-        categoryId: type === 'EXPENSE' ? category.id : undefined,
+        categoryId: type === 'EXPENSE' ? category.id : incomeCategory.id,
         overrides: { year: 2026, month: 9, day: 30, amount, type },
       });
 
