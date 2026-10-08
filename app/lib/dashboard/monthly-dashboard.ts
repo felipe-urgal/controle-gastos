@@ -27,6 +27,7 @@ import {
   withRequestId,
 } from '@/app/lib/observability';
 import { dashboardPeriodSchema } from '@/app/lib/dashboard/dashboard-schema';
+import { realizedCashFlow } from '@/app/lib/dashboard/realized-cash-flow';
 import type {
   DashboardComparisonMetric,
   DashboardPeriod,
@@ -353,9 +354,10 @@ export async function getMonthlyDashboardForUser(
     })),
     ...cardCreditPeriodRows.flatMap((row) => {
       const amount = row._sum.amount ?? 0;
+      const credit = realizedCashFlow({ amount, type: 'INCOME', accountType: 'CREDIT_CARD' });
       return [
-        { year: row.year, month: row.month, type: 'INCOME' as const, _sum: { amount: -amount } },
-        { year: row.year, month: row.month, type: 'EXPENSE' as const, _sum: { amount: -amount } },
+        { year: row.year, month: row.month, type: 'INCOME' as const, _sum: { amount: credit.income - amount } },
+        { year: row.year, month: row.month, type: 'EXPENSE' as const, _sum: { amount: credit.expense } },
       ];
     }),
   ];

@@ -40,10 +40,8 @@ export function PeriodicSummaryCard({
     );
   }
 
-  if (!state?.enabled) return null;
-
-  const summary = state.summary?.content;
-  if (!summary) return null;
+  if (!state?.enabled || !state.summary) return null;
+  const { content: summary, generatedAt } = state.summary;
 
   return (
     <section className="ds-panel p-4 sm:p-5" aria-labelledby="periodic-summary-title">
@@ -60,6 +58,9 @@ export function PeriodicSummaryCard({
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               {dateLabel(summary.period.start)}–{dateLabel(summary.period.end)} · {summary.currency}
             </p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Snapshot gerado em {new Date(generatedAt).toLocaleString('pt-BR', { timeZone: 'UTC', dateStyle: 'short', timeStyle: 'short' })} UTC
+            </p>
           </div>
         </div>
         <strong className={`text-xl font-black ${summary.totals.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
@@ -67,56 +68,29 @@ export function PeriodicSummaryCard({
         </strong>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
           <span className="block text-[var(--text-muted)]">Entradas</span>
           <strong className="mt-1 block text-[var(--income)]">{money(summary.totals.income, showValues, summary.currency)}</strong>
         </div>
         <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
-          <span className="block text-[var(--text-muted)]">Saídas</span>
+          <span className="block text-[var(--text-muted)]">Saídas líquidas</span>
           <strong className="mt-1 block text-[var(--expense)]">{money(summary.totals.expense, showValues, summary.currency)}</strong>
-        </div>
-        <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
-          <span className="block text-[var(--text-muted)]">Próx. 7 dias</span>
-          <strong className="mt-1 block text-[var(--foreground)]">{summary.upcomingCommitments.count}</strong>
         </div>
       </div>
 
-      {(summary.topCategories.length > 0 || summary.insights.length > 0) && (
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {summary.topCategories.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-[var(--text-muted)]">Principais categorias</p>
-              <div className="mt-2 space-y-1.5">
-                {summary.topCategories.slice(0, 3).map((item) => (
-                  <div key={item.categoryId} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="truncate text-[var(--foreground)]">{item.categoryName}</span>
-                    <strong className="shrink-0">{money(item.amount, showValues, summary.currency)}</strong>
-                  </div>
-                ))}
+      {summary.topCategories.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold text-[var(--text-muted)]">Principais categorias (inclusive sem categoria)</p>
+          <div className="mt-2 space-y-1.5">
+            {summary.topCategories.slice(0, 3).map((item) => (
+              <div key={item.categoryId} className="flex items-center justify-between gap-3 text-sm">
+                <span className="truncate text-[var(--foreground)]">{item.categoryName}</span>
+                <strong className="shrink-0">{money(item.amount, showValues, summary.currency)}</strong>
               </div>
-            </div>
-          )}
-          {summary.insights.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-[var(--text-muted)]">Destaques</p>
-              <div className="mt-2 space-y-1.5">
-                {summary.insights.slice(0, 2).map((item) => (
-                  <p key={item.id} className="text-sm leading-relaxed text-[var(--foreground)]">
-                    {item.message}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
-      )}
-
-      {summary.safeToSpend && (
-        <p className="mt-4 border-t border-[var(--border)] pt-3 text-xs text-[var(--text-muted)]">
-          Disponível para gastar no momento do resumo: <strong className="text-[var(--foreground)]">{money(summary.safeToSpend.safeToSpend, showValues, summary.currency)}</strong>.
-          {summary.subscriptions.priceChanges.length > 0 ? ` ${summary.subscriptions.priceChanges.length} assinatura(s) com variação de preço.` : ''}
-        </p>
       )}
     </section>
   );
