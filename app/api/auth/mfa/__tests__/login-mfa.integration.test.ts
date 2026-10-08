@@ -61,7 +61,8 @@ afterAll(async () => {
 function registerLoginRateLimits(ip: string, email: string, userId?: string) {
   rateLimitKeys.push(
     { action: "login-ip", identifier: ip },
-    { action: "login-principal", identifier: `${ip}:${email}` }
+    { action: "login-pair", identifier: `${ip}|${email}` },
+    { action: "login-principal", identifier: email }
   );
 
   if (userId) {

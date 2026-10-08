@@ -5,11 +5,11 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/prisma";
 import { signAuthToken } from "@/app/lib/auth/auth-token";
 import { shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
+import { getRequestIp } from "@/app/lib/security/rate-limit";
 import {
-  clearRateLimit,
-  consumeRateLimit,
-  getRequestIp,
-} from "@/app/lib/security/rate-limit";
+  clearLoginRateLimit,
+  consumeLoginRateLimit,
+} from "@/app/lib/security/login-rate-limit";
 import {
   AUTH_INPUT_LIMITS,
   asInputRecord,
@@ -19,7 +19,6 @@ import { createMfaLoginChallenge } from "@/app/lib/security/mfa-login";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 
 const FAKE_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOeQO8J1p0Cz6l5Qn8jY5h5E6E6E6E6E6";
-const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
 function rateLimitedResponse(retryAfterSeconds: number, requestId: string) {
   const response = NextResponse.json(
@@ -76,25 +75,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const ip = getRequestIp(request);
-    const principalIdentifier = emailNormalized!;
-    const [ipLimit, principalLimit] = await Promise.all([
-      consumeRateLimit({
-        action: "login-ip",
-        identifier: ip,
-        maxAttempts: 30,
-        windowMs: FIFTEEN_MINUTES,
-        blockMs: FIFTEEN_MINUTES,
-      }),
-      consumeRateLimit({
-        action: "login-principal",
-        identifier: principalIdentifier,
-        maxAttempts: 5,
-        windowMs: FIFTEEN_MINUTES,
-        blockMs: FIFTEEN_MINUTES,
-      }),
-    ]);
-
-    const activeLimit = ipLimit.limited ? ipLimit : principalLimit;
+    const rateLimitSubject = { ip, email: emailNormalized! };
+    const activeLimit = await consumeLoginRateLimit(rateLimitSubject);
     if (activeLimit.limited) {
       logEvent("warn", "auth_login_rate_limited", {
         requestId,
@@ -131,9 +113,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (user.totpEnabled) {
       const mfa = await createMfaLoginChallenge(user.id);
-      await Promise.allSettled([
-        clearRateLimit("login-principal", principalIdentifier),
-      ]);
+      await clearLoginRateLimit(rateLimitSubject);
 
       const response = NextResponse.json(
         {
@@ -159,7 +139,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const token = signAuthToken(user.id, user.authVersion);
 
     await Promise.allSettled([
-      clearRateLimit("login-principal", principalIdentifier),
+      clearLoginRateLimit(rateLimitSubject),
       prisma.user.update({
         where: { id: user.id },
         data: { lastLogin: new Date() },
