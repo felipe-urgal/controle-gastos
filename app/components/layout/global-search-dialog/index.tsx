@@ -15,6 +15,7 @@ import {
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
 import { globalSearchService } from '@/app/services/global-search-service';
+import { ApiClientError } from '@/app/services/api-client';
 import type {
   GlobalSearchData,
   GlobalSearchResultType,
@@ -61,10 +62,13 @@ export default function GlobalSearchDialog({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const navigatingRef = useRef(false);
+  const dialogRef = useRef<HTMLElement>(null);
   const [query, setQuery] = useState('');
   const [data, setData] = useState<GlobalSearchData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [retryVersion, setRetryVersion] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
@@ -102,14 +106,20 @@ export default function GlobalSearchDialog({
       ...filteredQuickActions.map((item) => ({
         resultKey: 'action-' + item.id,
         href: item.href,
+        label: item.title,
+        group: 'Ações rápidas',
       })),
       ...filteredNavigation.map((item) => ({
         resultKey: 'navigation-' + item.key,
         href: item.href,
+        label: item.label,
+        group: 'Ir para',
       })),
       ...serverResults.map((item) => ({
         resultKey: 'server-' + item.type + '-' + item.id,
         href: item.href,
+        label: item.title,
+        group: groupLabels[item.type],
       })),
     ],
     [filteredNavigation, filteredQuickActions, serverResults],
@@ -123,7 +133,9 @@ export default function GlobalSearchDialog({
 
     return () => {
       cancelAnimationFrame(frame);
-      restoreFocusRef.current?.focus();
+      if (!navigatingRef.current && restoreFocusRef.current?.isConnected) {
+        restoreFocusRef.current.focus();
+      }
       restoreFocusRef.current = null;
     };
   }, []);
@@ -141,25 +153,20 @@ export default function GlobalSearchDialog({
         .search(trimmed, controller.signal)
         .then((response) => {
           setData(response.data);
-          const localCount = filteredQuickActions.length + filteredNavigation.length;
-          const normalizeTitle = (value: string) => value.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
-          const localExact = [...filteredQuickActions.map((item) => item.title), ...filteredNavigation.map((item) => item.label)]
-            .some((title) => normalizeTitle(title) === normalizeTitle(trimmed));
-          const exactServerIndex = response.data.groups.flatMap((group) => group.items)
-            .findIndex((item) => item.matchKind === 'exact' || normalizeTitle(item.title) === normalizeTitle(trimmed));
-          setActiveIndex(localExact || exactServerIndex < 0
-            ? (localCount + response.data.total > 0 ? 0 : -1)
-            : localCount + exactServerIndex);
+          setActiveIndex(hasLocalResults || response.data.total > 0 ? 0 : -1);
         })
         .catch((requestError) => {
           if (controller.signal.aborted) return;
           setData(null);
           setActiveIndex(-1);
-          setError(
-            requestError instanceof Error
-              ? requestError.message
-              : 'Não foi possível realizar a busca',
-          );
+          if (requestError instanceof ApiClientError && requestError.status === 429) {
+            const seconds = requestError.retryAfterSeconds ?? 30;
+            setError(`Busca de dados temporariamente limitada. Tente novamente em ${seconds} segundos. Ações e páginas continuam disponíveis.`);
+          } else if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            setError('Você está offline. Ações e páginas locais continuam disponíveis.');
+          } else {
+            setError('Não foi possível buscar seus dados. Ações e páginas locais continuam disponíveis.');
+          }
         })
         .finally(() => {
           if (!controller.signal.aborted) setLoading(false);
@@ -170,9 +177,16 @@ export default function GlobalSearchDialog({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [hasLocalResults, query, filteredQuickActions, filteredNavigation]);
+  }, [hasLocalResults, query, retryVersion, filteredQuickActions, filteredNavigation]);
+
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    const item = document.getElementById(`global-search-result-${activeIndex}`);
+    item?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex]);
 
   function activate(result: { href: string }) {
+    navigatingRef.current = true;
     onClose();
     router.push(result.href);
   }
@@ -215,6 +229,26 @@ export default function GlobalSearchDialog({
       }}
     >
       <section
+        ref={dialogRef}
+        onKeyDownCapture={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            onClose();
+          }
+          if (event.key !== 'Tab') return;
+          const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? []);
+          if (!focusable.length) return;
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="global-search-title"
@@ -266,10 +300,6 @@ export default function GlobalSearchDialog({
               }}
               onKeyDown={onKeyDown}
               aria-label="Buscar em páginas, transações, contas, categorias e regras"
-              aria-controls="global-search-results"
-              aria-activedescendant={
-                activeIndex >= 0 ? `global-search-result-${activeIndex}` : undefined
-              }
               placeholder="Buscar páginas, ações, transações e mais"
               className="w-full bg-transparent text-base text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)] sm:text-lg"
               autoComplete="off"
@@ -285,10 +315,15 @@ export default function GlobalSearchDialog({
           </button>
         </header>
 
+        <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+          {activeIndex >= 0 && flatResults[activeIndex]
+            ? `${flatResults[activeIndex].group}: ${flatResults[activeIndex].label}. ${activeIndex + 1} de ${flatResults.length} resultados`
+            : 'Nenhum resultado selecionado'}
+        </p>
+
         <div
           id="global-search-results"
           className="max-h-[min(68vh,560px)] overflow-y-auto p-3 sm:p-4"
-          role="listbox"
           aria-label="Resultados da busca global"
         >
           <div className="space-y-4">
@@ -313,8 +348,6 @@ export default function GlobalSearchDialog({
                         key={result.id}
                         id={'global-search-result-' + index}
                         type="button"
-                        role="option"
-                        aria-selected={active}
                         onMouseEnter={() => setActiveIndex(index)}
                         onClick={() => activate(result)}
                         className={
@@ -363,8 +396,6 @@ export default function GlobalSearchDialog({
                         key={result.key}
                         id={'global-search-result-' + index}
                         type="button"
-                        role="option"
-                        aria-selected={active}
                         onMouseEnter={() => setActiveIndex(index)}
                         onClick={() => activate(result)}
                         className={
@@ -404,6 +435,7 @@ export default function GlobalSearchDialog({
                 className="rounded-[12px] bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
               >
                 {error}
+                <button type="button" className="ml-3 underline" onClick={() => setRetryVersion((version) => version + 1)}>Tentar novamente</button>
               </p>
             )}
 
@@ -433,8 +465,6 @@ export default function GlobalSearchDialog({
                           key={result.type + '-' + result.id}
                           id={'global-search-result-' + index}
                           type="button"
-                          role="option"
-                          aria-selected={active}
                           onMouseEnter={() => setActiveIndex(index)}
                           onClick={() => activate(result)}
                           className={

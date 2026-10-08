@@ -27,7 +27,10 @@
     "prod:check": "node scripts/prod-check.mjs",
     "prod:migrate": "pnpm db:migrate",
     "prod:smoke": "node scripts/prod-smoke.mjs",
-    "prod:verify": "pnpm prod:smoke"
+    "prod:verify": "pnpm prod:smoke",
+    "predev": "node scripts/prepare-ocr-assets.mjs",
+    "prebuild": "node scripts/prepare-ocr-assets.mjs",
+    "preanalyze": "node scripts/prepare-ocr-assets.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
@@ -47,7 +50,10 @@
     "react-dom": "^19.3.0",
     "react-icons": "^5.7.0",
     "resend": "^6.32.0",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "@tesseract.js-data/por": "1.0.0",
+    "tesseract.js": "7.0.0",
+    "tesseract.js-core": "7.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
