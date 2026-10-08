@@ -68,6 +68,7 @@ export default function New({
   const [queueSyncingId, setQueueSyncingId] = useState<string | null>(null);
   const [queueMessage, setQueueMessage] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
+  const [now, setNow] = useState(0);
   const [loadedOfflineDraftId, setLoadedOfflineDraftId] = useState<string | null>(null);
   const [formRevision, setFormRevision] = useState(0);
   const isDuplicating = Boolean(duplicateId);
@@ -206,6 +207,11 @@ export default function New({
       window.removeEventListener('online', updateOnlineState);
       window.removeEventListener('offline', updateOnlineState);
     };
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
   }, []);
 
   async function syncQueuedTransaction(item: OfflineTransactionQueueItem) {
@@ -423,14 +429,23 @@ export default function New({
                               : item.failureKind === 'validation'
                                 ? 'Precisa de revisão'
                                 : item.failureKind === 'rate_limit'
-                                  ? 'Limite de requisições'
-                            : 'Erro'
+                                  ? 'Aguarde para tentar novamente'
+                                  : item.failureKind === 'network'
+                                    ? 'Falha de conexão'
+                                    : item.failureKind === 'server'
+                                      ? 'Falha do servidor'
+                                      : 'Erro'
                         : item.status === 'synced'
                           ? 'Sincronizado'
                           : item.status === 'sending'
                             ? 'Enviando'
                             : 'Pendente'}
                     </p>
+                    {item.retryAfterAt && now < Date.parse(item.retryAfterAt) && (
+                      <p className="mt-1 text-xs text-[var(--text-muted)]">
+                        Nova tentativa disponível após {new Date(item.retryAfterAt).toLocaleTimeString('pt-BR')}.
+                      </p>
+                    )}
                     {item.lastError && (
                       <p className="mt-1 text-xs text-[var(--expense)]">
                         {item.lastError}
@@ -489,12 +504,12 @@ export default function New({
                     ) : (
                       <>
                         {(item.failureKind === 'validation' || item.failureKind === 'business_conflict' || item.failureKind === 'conflict') ? (
-                          <span className="text-xs text-[var(--text-muted)]">Revise o lançamento antes de reenviar.</span>
+                          <span className="text-xs text-[var(--text-muted)]">Este lançamento exige revisão antes de uma nova tentativa. Descarte-o somente após conferir os dados.</span>
                         ) : (
                         <button
                           type="button"
                           onClick={() => void syncQueuedTransaction(item)}
-                          disabled={!isOnline || Boolean(queueSyncingId) || Boolean(item.retryAfterAt && Date.now() < Date.parse(item.retryAfterAt))}
+                          disabled={!isOnline || Boolean(queueSyncingId) || Boolean(item.retryAfterAt && now < Date.parse(item.retryAfterAt))}
                           className="min-h-9 rounded-full bg-[var(--orbit-primary)] px-3 text-xs font-bold text-white disabled:opacity-50"
                         >
                           {queueSyncingId === item.id ? 'Sincronizando...' : 'Sincronizar'}
