@@ -105,7 +105,7 @@ test('busca global: erro e rate limit preservam navegação local e retry', asyn
   const input = dialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
   await input.fill('trans');
   await expect(dialog.getByText(/Tente novamente em 13 segundos/)).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Transações' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: /^Transações Abrir funcionalidade$/ })).toBeVisible();
   await dialog.getByRole('button', { name: 'Tentar novamente' }).click();
   await expect(dialog.getByText(/Tente novamente em 13 segundos/)).toHaveCount(0);
   expect(calls).toBeGreaterThanOrEqual(2);
