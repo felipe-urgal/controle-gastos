@@ -327,7 +327,7 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
     await dialog.dismiss();
   });
   await page.getByRole('button', { name: 'Sair da conta', exact: true }).first().click();
-  await expect(page).toHaveURL(/\\/dashboard$/);
+  await expect(page.getByRole('button', { name: 'Sair da conta', exact: true }).first()).toBeVisible();
   expect(await page.evaluate((userId) => Boolean(localStorage.getItem(
     `controle-gastos:offline-transaction-queue:v1:${userId}`,
   )), owner)).toBe(true);
