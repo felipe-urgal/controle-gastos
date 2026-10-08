@@ -28,22 +28,11 @@ export function getApplicableReceiptOcrSuggestions(suggestions: ReceiptOcrSugges
   };
 }
 
-const TOTAL_HINTS = [
-  /\btotal\s+a\s+pagar\b/i,
-  /\bvalor\s+total\b/i,
-  /\btotal\s+geral\b/i,
-  /\btotal\b/i,
-  /\bvalor\s+pago\b/i,
-  /\bpagamento\b/i,
-];
-
-const AMOUNT_PENALTIES = [
-  /\bsubtotal\b/i,
-  /\bdesconto\b/i,
-  /\btroco\b/i,
-  /\btaxa\b/i,
-  /\bacr[eé]scimo\b/i,
-];
+// Only purchase totals count. Payment methods, cash received, change and
+// adjustments must never become the transaction amount.
+const STRONG_TOTAL = /\b(?:total\s+a\s+pagar|valor\s+total|total\s+geral)\b/i;
+const PLAIN_TOTAL = /\btotal\b/i;
+const NON_PURCHASE = /\b(?:sub\s*total|desconto|troco|taxa|acr[eé]scimo|juros|entregue|recebido|dinheiro|cart[aã]o|cr[eé]dito|d[eé]bito|pix|pagamento|valor\s+pago|pago|parcela(?:s|mento)?|parcelado|limite|saldo|produto)\b/i;
 
 const MONEY_PATTERN = /(?:R\$\s*)?-?\d+(?:\.\d{3})*,\d{2}/gi;
 const DATE_PATTERN = /\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})\b/g;
@@ -114,40 +103,40 @@ function extractDate(lines: string[]): ReceiptOcrSuggestions['date'] {
 }
 
 function extractAmount(lines: string[]): ReceiptOcrSuggestions['amount'] {
-  const candidates: Array<{ value: number; score: number; evidence: string; strength: 'high' | 'medium' | 'low' }> = [];
+  const candidates: Array<{
+    value: number;
+    evidence: string;
+    confidence: 'high' | 'medium';
+    lineIndex: number;
+  }> = [];
+
   lines.forEach((line, lineIndex) => {
-    MONEY_PATTERN.lastIndex = 0;
+    // Ignore ambiguous mixed payment/total lines and all non-purchase amounts.
+    if (NON_PURCHASE.test(line)) return;
+    const confidence = STRONG_TOTAL.test(line)
+      ? 'high'
+      : PLAIN_TOTAL.test(line) ? 'medium' : undefined;
+    if (!confidence) return;
+
     const matches = [...line.matchAll(MONEY_PATTERN)];
-    if (matches.length === 0) return;
-    let score = lineIndex / Math.max(lines.length, 1);
-    let strength: 'high' | 'medium' | 'low' = 'low';
-    TOTAL_HINTS.forEach((hint, index) => {
-      if (hint.test(line) && strength === 'low') {
-        score += 120 - index * 12;
-        strength = index <= 2 ? 'high' : index === 3 ? 'medium' : 'low';
-      }
-    });
-    AMOUNT_PENALTIES.forEach((penalty) => {
-      if (penalty.test(line)) {
-        score -= 80;
-        strength = 'low';
-      }
-    });
-    matches.forEach((match, matchIndex) => {
-      const value = parseMoneyToken(match[0]);
-      if (!value) return;
-      candidates.push({ value, score: score + matchIndex / 100, evidence: line, strength });
-    });
+    // Multiple different monetary values on a total line are ambiguous.
+    const values = [...new Set(matches.map((match) => parseMoneyToken(match[0])).filter(
+      (value): value is number => value !== null,
+    ))];
+    if (values.length !== 1) return;
+    candidates.push({ value: values[0], confidence, evidence: line, lineIndex });
   });
+
   if (!candidates.length) return undefined;
-  const hinted = candidates.filter((candidate) => candidate.score >= 20 && candidate.strength !== 'low');
-  const selected = hinted.length
-    ? hinted.sort((a, b) => b.score - a.score || b.value - a.value)[0]
-    : candidates.sort((a, b) => b.value - a.value)[0];
-  const conflicting = hinted.some((candidate) => candidate !== selected && candidate.value !== selected.value && candidate.score >= selected.score - 1);
+  const ranked = candidates.sort((a, b) =>
+    (a.confidence === b.confidence ? b.lineIndex - a.lineIndex : a.confidence === 'high' ? -1 : 1),
+  );
+  const selected = ranked[0];
+  // Distinct competing total labels are unsafe even if one has a stronger label.
+  const conflicting = candidates.some((candidate) => candidate.value !== selected.value);
   return {
     value: selected.value,
-    confidence: conflicting ? 'low' : selected.strength,
+    confidence: conflicting ? 'low' : selected.confidence,
     evidence: selected.evidence,
   };
 }
