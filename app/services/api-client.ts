@@ -88,8 +88,11 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
         // Keep the HTTP fallback when the response body is not JSON.
       }
 
+      // Só leituras disparam o logout global: escritas (ex.: fila offline) tratam
+      // o 401 por conta própria para preservar o item e oferecer novo login.
       if (
         response.status === 401 &&
+        method === "GET" &&
         !errorCode &&
         !endpoint.startsWith("/api/auth/") &&
         typeof window !== "undefined"
