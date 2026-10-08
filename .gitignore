@@ -51,3 +51,6 @@ env.production
 *.tsbuildinfo
 next-env.d.ts
 .neon
+
+# Generated, same-origin OCR worker/WASM/language assets
+/public/ocr/
