@@ -2,6 +2,7 @@ export const RECEIPT_OCR_MAX_FILE_BYTES = 6 * 1024 * 1024;
 export const RECEIPT_OCR_MAX_DIMENSION = 2200;
 
 type TesseractApi = typeof import("tesseract.js");
+type TesseractWorker = Awaited<ReturnType<TesseractApi["createWorker"]>>;
 
 let tesseractLoader: Promise<TesseractApi> | null = null;
 
