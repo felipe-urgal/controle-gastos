@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   OFFLINE_TRANSACTION_QUEUE_PREFIX,
+  type OfflineTransactionQueuePayload,
   enqueueOfflineTransaction,
   readOfflineTransactionQueue,
   rekeyOfflineTransactionQueueItem,
@@ -100,10 +101,90 @@ describe("offline transaction queue", () => {
     );
 
     expect(calls).toEqual(["attempt-1", "attempt-1"]);
-    expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
-      status: "synced",
-      idempotencyKey: "attempt-1",
+    expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+  });
+
+  it("accepts two identical purchases as independent attempts", async () => {
+    installLocalStorage();
+    const first = enqueueOfflineTransaction("user-a", payload, {
+      id: "purchase-1",
+      idempotencyKey: "key-1",
     });
+    const second = enqueueOfflineTransaction("user-a", payload, {
+      id: "purchase-2",
+      idempotencyKey: "key-2",
+    });
+    expect(readOfflineTransactionQueue("user-a")).toHaveLength(2);
+    const created = new Map<string, string>();
+    const send = async (_: OfflineTransactionQueuePayload, key: string) => {
+      if (!created.has(key)) created.set(key, `transaction-${created.size + 1}`);
+      return { id: created.get(key) };
+    };
+    const firstResult = await syncOfflineTransactionQueueItem("user-a", first.id, send);
+    const secondResult = await syncOfflineTransactionQueueItem("user-a", second.id, send);
+    expect(firstResult.result.id).not.toBe(secondResult.result.id);
+    expect(created.size).toBe(2);
+    expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+  });
+
+  it("replays the same key without a second server-side creation after response loss", async () => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "attempt", idempotencyKey: "stable-key" });
+    const created = new Map<string, string>();
+    let requests = 0;
+    const simulateServer = async (_: OfflineTransactionQueuePayload, key: string) => {
+      requests++;
+      if (!created.has(key)) created.set(key, `transaction-${created.size + 1}`);
+      if (requests === 1) throw new TypeError("Resposta perdida após criação");
+      return { id: created.get(key) };
+    };
+    await expect(syncOfflineTransactionQueueItem("user-a", "attempt", simulateServer)).rejects.toThrow("Resposta perdida");
+    expect(readOfflineTransactionQueue("user-a")[0].idempotencyKey).toBe("stable-key");
+    const retried = await syncOfflineTransactionQueueItem("user-a", "attempt", simulateServer);
+    expect(retried.result.id).toBe("transaction-1");
+    expect(requests).toBe(2);
+    expect(created.size).toBe(1);
+    expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+  });
+
+  it("migrates legacy synced entries without consuming queue capacity", () => {
+    const { localStorage } = installLocalStorage();
+    const key = `${OFFLINE_TRANSACTION_QUEUE_PREFIX}user-a`;
+    const now = new Date().toISOString();
+    localStorage.setItem(key, JSON.stringify(Array.from({ length: 25 }, (_, n) => ({
+      version: 1, id: `old-${n}`, ownerUserId: "user-a",
+      idempotencyKey: `old-key-${n}`, payload, status: "synced",
+      createdAt: now, updatedAt: now,
+    }))));
+    expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+    expect(enqueueOfflineTransaction("user-a", payload, {
+      id: "new-purchase", idempotencyKey: "new-key",
+    }).status).toBe("pending");
+    expect(readOfflineTransactionQueue("user-a")).toHaveLength(1);
+  });
+
+  it("keeps the original key if cleanup fails after server confirmation", async () => {
+    const { localStorage } = installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "crash", idempotencyKey: "same-key" });
+    const originalSetItem = localStorage.setItem;
+    let failCleanup = true;
+    localStorage.setItem = (key, value) => {
+      if (failCleanup && JSON.parse(value).length === 0) {
+        failCleanup = false;
+        throw new Error("disk unavailable");
+      }
+      originalSetItem(key, value);
+    };
+    const created = new Map<string, string>();
+    const send = async (_: OfflineTransactionQueuePayload, key: string) => {
+      if (!created.has(key)) created.set(key, `created-${created.size + 1}`);
+      return created.get(key);
+    };
+    await expect(syncOfflineTransactionQueueItem("user-a", "crash", send)).rejects.toThrow();
+    expect(readOfflineTransactionQueue("user-a")[0].idempotencyKey).toBe("same-key");
+    await syncOfflineTransactionQueueItem("user-a", "crash", send);
+    expect(created.size).toBe(1);
+    expect(readOfflineTransactionQueue("user-a")).toEqual([]);
   });
 
   it("recovers an interrupted sending item as pending after reload", () => {

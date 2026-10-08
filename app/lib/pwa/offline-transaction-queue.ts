@@ -203,6 +203,12 @@ export function readOfflineTransactionQueue(userId: string) {
       return [];
     }
 
+    // Sucessos de versões anteriores não fazem parte da fila ativa.
+    if (candidate.status === "synced") {
+      changed = true;
+      return [];
+    }
+
     if (candidate.status === "sending") {
       changed = true;
       return [{
@@ -234,7 +240,7 @@ export function enqueueOfflineTransaction(
   options?: { id?: string; idempotencyKey?: string; sourceDraftId?: string },
 ) {
   const items = readOfflineTransactionQueue(userId);
-  if (items.length >= MAX_OFFLINE_TRANSACTION_QUEUE_ITEMS) {
+  if (items.filter((item) => item.status !== "synced").length >= MAX_OFFLINE_TRANSACTION_QUEUE_ITEMS) {
     throw new Error(
       "Fila offline cheia. Sincronize ou descarte lançamentos pendentes antes de continuar.",
     );
@@ -370,11 +376,10 @@ export async function syncOfflineTransactionQueueItem<T>(
 
   try {
     const result = await send(item.payload, item.idempotencyKey);
-    const synced = updateOfflineTransactionQueueItem(userId, item.id, {
-      status: "synced",
-      failureKind: undefined,
-      lastError: undefined,
-    });
+    // O backend já reservou a chave; não reter sucessos na fila ativa.
+    // Se o cleanup falhar, a mesma chave continua protegendo o retry.
+    const synced = { ...item, status: "synced" as const };
+    removeOfflineTransactionQueueItem(userId, item.id);
     return { item: synced, result };
   } catch (error) {
     const message =
