@@ -107,6 +107,7 @@ function extractDate(lines: string[]): ReceiptOcrSuggestions['date'] {
 }
 
 function extractAmount(lines: string[]): Pick<ReceiptOcrSuggestions, 'amount' | 'inconsistentAmountEvidence'> {
+  let inconsistentAmountEvidence: string | undefined;
   const candidates: Array<{
     value: number;
     evidence: string;
@@ -134,7 +135,7 @@ function extractAmount(lines: string[]): Pick<ReceiptOcrSuggestions, 'amount' | 
     candidates.push({ value: values[0], confidence, evidence: line, lineIndex });
   });
 
-  if (!candidates.length) return undefined;
+  if (!candidates.length) return { inconsistentAmountEvidence };
   const ranked = candidates.sort((a, b) =>
     (a.confidence === b.confidence ? b.lineIndex - a.lineIndex : a.confidence === 'high' ? -1 : 1),
   );
