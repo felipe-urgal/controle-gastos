@@ -107,7 +107,7 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
   // Itens inativos continuam localizáveis sem perder o contexto.
   const archived = await page.evaluate(async (id) => {
     const response = await fetch(`/api/merchants/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: false }),
     });
     return { status: response.status, body: await response.json() };
