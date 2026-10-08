@@ -16,6 +16,7 @@ import {
 import { useAuth } from '@/app/context';
 import AuthShell from '@/app/components/layout/auth-shell';
 import { Button, Input } from '@/app/components/ui';
+import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENT_LABEL, getPasswordRuleError } from '@/app/lib/auth/password-rules';
 
 export default function RegisterPage() {
   const { signup, isAuthenticated } = useAuth();
@@ -44,11 +45,8 @@ export default function RegisterPage() {
 
   if (isAuthenticated) return null;
 
-  const requirements = {
-    length: form.password.length >= 6,
-    uppercase: /[A-Z]/.test(form.password),
-    number: /[0-9]/.test(form.password),
-  };
+  const passwordRuleError = getPasswordRuleError(form.password);
+  const requirementMet = form.password.length >= PASSWORD_MIN_LENGTH && !passwordRuleError;
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
@@ -83,14 +81,8 @@ export default function RegisterPage() {
     if (!form.password) {
       errors.password = 'Senha é obrigatória';
       valid = false;
-    } else if (!requirements.length) {
-      errors.password = 'Senha deve ter pelo menos 6 caracteres';
-      valid = false;
-    } else if (!requirements.uppercase) {
-      errors.password = 'Senha deve conter pelo menos uma letra maiúscula';
-      valid = false;
-    } else if (!requirements.number) {
-      errors.password = 'Senha deve conter pelo menos um número';
+    } else if (passwordRuleError) {
+      errors.password = passwordRuleError;
       valid = false;
     }
 
@@ -205,23 +197,12 @@ export default function RegisterPage() {
             required
           />
 
-          <ul className="mt-3 grid gap-2 text-sm text-[var(--text-muted)] sm:grid-cols-3" aria-label="Requisitos da senha">
-            {[
-              ['length', '6+ caracteres'],
-              ['uppercase', '1 maiúscula'],
-              ['number', '1 número'],
-            ].map(([key, label]) => {
-              const met = requirements[key as keyof typeof requirements];
-              return (
-                <li key={key} className={`flex items-center gap-2 ${met ? 'text-[var(--income)]' : ''}`}>
-                  <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${met ? 'border-[var(--income)] bg-[var(--primary-subtle)]' : 'border-[var(--border-strong)]'}`}>
-                    {met && <FaCheck className="h-2.5 w-2.5" aria-hidden="true" />}
-                  </span>
-                  {label}
-                </li>
-              );
-            })}
-          </ul>
+          <p className={`mt-3 flex items-center gap-2 text-sm ${requirementMet ? 'text-[var(--income)]' : 'text-[var(--text-muted)]'}`}>
+            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${requirementMet ? 'border-[var(--income)] bg-[var(--primary-subtle)]' : 'border-[var(--border-strong)]'}`}>
+              {requirementMet && <FaCheck className="h-2.5 w-2.5" aria-hidden="true" />}
+            </span>
+            {PASSWORD_REQUIREMENT_LABEL}
+          </p>
         </div>
 
         <Input

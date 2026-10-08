@@ -8,6 +8,7 @@ import { FormActions, FormContainer } from '@/app/components/forms';
 import { Button, Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import type { UpdateUserRequest } from '@/app/services/auth-service';
+import { PASSWORD_REQUIREMENT_LABEL, getPasswordRuleError } from '@/app/lib/auth/password-rules';
 
 interface UserFormProps {
   user: {
@@ -23,6 +24,7 @@ type UserFieldErrors = {
   name: string;
   email: string;
   currentPassword: string;
+  newPassword: string;
   confirmPassword: string;
 };
 
@@ -30,6 +32,7 @@ const emptyFieldErrors: UserFieldErrors = {
   name: '',
   email: '',
   currentPassword: '',
+  newPassword: '',
   confirmPassword: '',
 };
 
@@ -75,6 +78,12 @@ export default function UserForm({ user }: UserFormProps) {
         ...previous,
         currentPassword: 'Informe a senha atual para alterar e-mail ou senha',
       }));
+      return;
+    }
+
+    const newPasswordError = newPassword ? getPasswordRuleError(newPassword) : null;
+    if (newPasswordError) {
+      setFieldErrors((previous) => ({ ...previous, newPassword: newPasswordError }));
       return;
     }
 
@@ -313,11 +322,13 @@ export default function UserForm({ user }: UserFormProps) {
                 }));
               }
             }}
+            error={fieldErrors.newPassword}
             autoComplete="new-password"
             enterKeyHint="next"
             autoCapitalize="none"
             spellCheck={false}
             disabled={isSubmitting}
+            placeholder={PASSWORD_REQUIREMENT_LABEL}
           />
 
           <Input

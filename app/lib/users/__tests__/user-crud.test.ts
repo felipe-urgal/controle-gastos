@@ -50,6 +50,7 @@ vi.mock("bcryptjs", () => ({
   default: {
     compare: mocks.bcryptCompare,
     hash: mocks.bcryptHash,
+    truncates: () => false,
   },
 }));
 
@@ -118,7 +119,7 @@ describe("userCrud", () => {
     const response = await userCrud.update(
       new Request("http://localhost/api/user", {
         method: "PATCH",
-        body: JSON.stringify({ newPassword: "NovaSenha123" }),
+        body: JSON.stringify({ newPassword: "NovaSenha-123456" }),
       }),
     );
 
@@ -149,7 +150,7 @@ describe("userCrud", () => {
       method: "PATCH",
       body: JSON.stringify({
         currentPassword: "senha-errada",
-        newPassword: "NovaSenha123",
+        newPassword: "NovaSenha-123456",
       }),
     });
     const response = await userCrud.update(request);
@@ -176,7 +177,7 @@ describe("userCrud", () => {
         method: "PATCH",
         body: JSON.stringify({
           currentPassword: "senha-atual",
-          newPassword: "NovaSenha123",
+          newPassword: "NovaSenha-123456",
         }),
       }),
     );

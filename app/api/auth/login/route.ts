@@ -57,9 +57,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       errors.push("E-mail inválido!");
     }
 
-    if (password && password.length < 6) {
-      errors.push("Senha deve ter pelo menos 6 caracteres!");
-    }
     if (password && password.length > AUTH_INPUT_LIMITS.password) {
       errors.push("Senha não pode exceder 100 caracteres!");
     }

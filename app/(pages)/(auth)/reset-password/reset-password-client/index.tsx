@@ -14,6 +14,7 @@ import {
 
 import AuthShell from '@/app/components/layout/auth-shell';
 import { Button, Input } from '@/app/components/ui';
+import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENT_LABEL, getPasswordRuleError } from '@/app/lib/auth/password-rules';
 
 export default function ResetPasswordClient({ token }: { token?: string }) {
   const router = useRouter();
@@ -36,11 +37,8 @@ export default function ResetPasswordClient({ token }: { token?: string }) {
     return () => window.clearTimeout(timer);
   }, [status, redirectTimer, router]);
 
-  const requirements = {
-    length: form.novaSenha.length >= 6,
-    uppercase: /[A-Z]/.test(form.novaSenha),
-    number: /[0-9]/.test(form.novaSenha),
-  };
+  const passwordRuleError = getPasswordRuleError(form.novaSenha);
+  const requirementMet = form.novaSenha.length >= PASSWORD_MIN_LENGTH && !passwordRuleError;
 
   const validateForm = () => {
     const nextErrors = { novaSenha: '', confirmarSenha: '' };
@@ -49,14 +47,8 @@ export default function ResetPasswordClient({ token }: { token?: string }) {
     if (!form.novaSenha) {
       nextErrors.novaSenha = 'Nova senha é obrigatória';
       valid = false;
-    } else if (!requirements.length) {
-      nextErrors.novaSenha = 'Mínimo 6 caracteres';
-      valid = false;
-    } else if (!requirements.uppercase) {
-      nextErrors.novaSenha = 'Deve conter uma letra maiúscula';
-      valid = false;
-    } else if (!requirements.number) {
-      nextErrors.novaSenha = 'Deve conter um número';
+    } else if (passwordRuleError) {
+      nextErrors.novaSenha = passwordRuleError;
       valid = false;
     }
 
@@ -212,23 +204,12 @@ export default function ResetPasswordClient({ token }: { token?: string }) {
               required
             />
 
-            <ul className="mt-3 grid gap-2 text-sm text-[var(--text-muted)] sm:grid-cols-3" aria-label="Requisitos da nova senha">
-              {[
-                ['length', '6+ caracteres'],
-                ['uppercase', '1 maiúscula'],
-                ['number', '1 número'],
-              ].map(([key, label]) => {
-                const met = requirements[key as keyof typeof requirements];
-                return (
-                  <li key={key} className={`flex items-center gap-2 ${met ? 'text-[var(--income)]' : ''}`}>
-                    <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${met ? 'border-[var(--income)] bg-[var(--primary-subtle)]' : 'border-[var(--border-strong)]'}`}>
-                      {met && <FaCheck className="h-2.5 w-2.5" aria-hidden="true" />}
-                    </span>
-                    {label}
-                  </li>
-                );
-              })}
-            </ul>
+            <p className={`mt-3 flex items-center gap-2 text-sm ${requirementMet ? 'text-[var(--income)]' : 'text-[var(--text-muted)]'}`}>
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${requirementMet ? 'border-[var(--income)] bg-[var(--primary-subtle)]' : 'border-[var(--border-strong)]'}`}>
+                {requirementMet && <FaCheck className="h-2.5 w-2.5" aria-hidden="true" />}
+              </span>
+              {PASSWORD_REQUIREMENT_LABEL}
+            </p>
           </div>
 
           <Input
