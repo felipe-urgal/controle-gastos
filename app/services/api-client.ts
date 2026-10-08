@@ -65,7 +65,9 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
       const retryAfterSeconds =
         rawRetryAfter && /^\d+$/.test(rawRetryAfter)
           ? Number(rawRetryAfter)
-          : undefined;
+          : rawRetryAfter && !Number.isNaN(Date.parse(rawRetryAfter))
+            ? Math.max(0, Math.ceil((Date.parse(rawRetryAfter) - Date.now()) / 1000))
+            : undefined;
 
       try {
         const errorData = (await response.json()) as {
