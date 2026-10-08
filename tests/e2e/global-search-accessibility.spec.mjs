@@ -1,14 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
 test('busca global: teclado, trap, Escape e viewport mobile', async ({ page, request }) => {
   test.setTimeout(90_000);
   const email = `qa-search-a11y-${Date.now()}@example.test`;
-  const signup = await request.post('/api/auth/signup', {
-    data: { name: 'QA Busca Acessível', email, password },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Busca Acessível', email, password });
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);
@@ -66,10 +64,7 @@ test('busca global: teclado, trap, Escape e viewport mobile', async ({ page, req
 test('busca global: erro e rate limit preservam navegação local e retry', async ({ page, request }) => {
   test.setTimeout(90_000);
   const email = `qa-search-errors-${Date.now()}@example.test`;
-  const signup = await request.post('/api/auth/signup', {
-    data: { name: 'QA Busca Erros', email, password },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Busca Erros', email, password });
   await page.goto('/login');
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(password);
