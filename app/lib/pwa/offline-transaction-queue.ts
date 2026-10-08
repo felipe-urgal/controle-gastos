@@ -415,8 +415,13 @@ export async function syncOfflineTransactionQueueItem<T>(
     const message =
       error instanceof Error ? error.message : "Falha ao sincronizar lançamento";
     const failureKind = classifyQueueFailure(error);
-    // Validation and domain conflicts are deterministic: preserve them for review,
-    // never silently rekey or treat them as transient network failures.
+    // A 400/422 validation rejection guarantees no creation. The form keeps
+    // the error visible; do not turn each correction into a queued operation.
+    if (failureKind === "validation") {
+      removeOfflineTransactionQueueItem(userId, item.id);
+      throw error;
+    }
+    // Business conflicts require review; uncertain outcomes keep their key.
     updateOfflineTransactionQueueItem(userId, item.id, {
       status: "error",
       failureKind,
