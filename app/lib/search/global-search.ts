@@ -31,15 +31,8 @@ function group(
 
 const FUZZY_SIMILARITY_THRESHOLD = 0.35;
 
-async function fuzzyTransactionIds(
-  userId: string,
-  query: string,
-  excludeIds: string[],
-) {
-  if (query.length < 3) return [];
-
-  const rows = await prisma.$queryRaw<Array<{ id: string; score: number }>>(
-    Prisma.sql`
+export function buildGlobalSearchFuzzyQuery(userId: string, query: string, excludeIds: string[]): Prisma.Sql {
+  return Prisma.sql`
       SELECT
         t.id,
         GREATEST(
@@ -84,7 +77,18 @@ async function fuzzyTransactionIds(
         ) >= ${FUZZY_SIMILARITY_THRESHOLD}
       ORDER BY score DESC, t.year DESC, t.month DESC, t.day DESC, t."created_at" DESC, t.id DESC
       LIMIT ${GLOBAL_SEARCH_LIMIT_PER_GROUP}
-    `,
+  `;
+}
+
+async function fuzzyTransactionIds(
+  userId: string,
+  query: string,
+  excludeIds: string[],
+) {
+  if (query.length < 3) return [];
+
+  const rows = await prisma.$queryRaw<Array<{ id: string; score: number }>>(
+    buildGlobalSearchFuzzyQuery(userId, query, excludeIds),
   );
 
   return rows.map((row) => row.id);
