@@ -115,6 +115,18 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   await input.press('Enter');
   await expect(page).toHaveURL(new RegExp(`/transacoes/show/${fixture.transactionId}$`));
 
+  // Verifica que a regra abre seu contexto específico, não a listagem genérica.
+  await page.goto('/dashboard');
+  await page.keyboard.press('Control+K');
+  const ruleDialog = page.getByRole('dialog', { name: 'Busca global', exact: true });
+  const ruleInput = ruleDialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
+  await ruleInput.fill(`${marker} Regra`);
+  await expect(ruleDialog.getByText(`${marker} Regra`, { exact: true })).toBeVisible();
+  await ruleDialog.getByText(`${marker} Regra`, { exact: true }).click();
+  await expect(page).toHaveURL((url) =>
+    url.pathname === '/transacoes/importar/regras' && url.searchParams.get('ruleId') === fixture.ruleId,
+  );
+
   await page.goto('/dashboard');
   await page.setViewportSize({ width: 390, height: 760 });
   await page.getByRole('button', { name: 'Abrir busca global', exact: true }).click();
