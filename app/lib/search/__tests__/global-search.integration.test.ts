@@ -260,6 +260,21 @@ describe('global search integration', () => {
       },
     });
 
+    for (const [query, expectedField, expectedText] of [
+      ['Nubank Mobilidade', 'merchant', 'Nubank Mobilidade'],
+      ['Uber Trip', 'alias', 'Uber Trip'],
+      ['transporte', 'tag', 'transporte'],
+      ['#transporte', 'tag', 'transporte'],
+    ] as const) {
+      const search = await getGlobalSearchForUser(owner.id, query);
+      const match = search.groups.flatMap((group) => group.items)
+        .find((item) => item.id === transaction.id);
+      expect(match?.matchedField).toBe(expectedField);
+      expect(match?.matchedText).toBe(expectedText);
+      expect(match?.subtitle).toContain(expectedField === 'alias' ? 'Alias: Uber Trip' : expectedField === 'merchant' ? 'Nubank Mobilidade' : '#transporte');
+      expect(JSON.stringify(search)).not.toContain('2590');
+    }
+
     for (const query of ['nubnak', 'ubr trip', 'trasnporte']) {
       const result = await getGlobalSearchForUser(owner.id, query);
       const transactionGroup = result.groups.find(
