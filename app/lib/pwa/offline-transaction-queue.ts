@@ -370,11 +370,10 @@ export async function syncOfflineTransactionQueueItem<T>(
 
   try {
     const result = await send(item.payload, item.idempotencyKey);
-    const synced = updateOfflineTransactionQueueItem(userId, item.id, {
-      status: "synced",
-      failureKind: undefined,
-      lastError: undefined,
-    });
+    // O backend já reservou a chave; não reter sucessos na fila ativa.
+    // Se o cleanup falhar, a mesma chave continua protegendo o retry.
+    const synced = { ...item, status: "synced" as const };
+    removeOfflineTransactionQueueItem(userId, item.id);
     return { item: synced, result };
   } catch (error) {
     const message =
