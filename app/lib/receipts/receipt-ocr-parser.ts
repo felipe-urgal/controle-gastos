@@ -1,3 +1,5 @@
+import { TRANSACTION_DESCRIPTION_MAX_LENGTH } from "@/app/lib/transactions/transaction-field-contract";
+
 export interface ReceiptOcrDate {
   year: number;
   month: number;
@@ -162,7 +164,7 @@ function extractDescription(lines: string[]): ReceiptOcrSuggestions['description
   if (index === -1) return undefined;
   const evidence = lines[index];
   return {
-    value: normalizeSpaces(evidence).slice(0, 255),
+    value: normalizeSpaces(evidence).slice(0, TRANSACTION_DESCRIPTION_MAX_LENGTH),
     confidence: index < 3 ? 'medium' : 'low',
     evidence,
   };
