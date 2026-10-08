@@ -6,6 +6,7 @@ import { FaCamera, FaCheck, FaTimes } from 'react-icons/fa';
 import {
   parseReceiptOcrText,
   type ReceiptOcrSuggestions,
+  getApplicableReceiptOcrSuggestions,
 } from '@/app/lib/receipts/receipt-ocr-parser';
 import { recognizeReceiptImage } from '@/app/lib/receipts/receipt-ocr-browser';
 
@@ -27,7 +28,7 @@ function formatSuggestedAmount(amountCents: number) {
   }).format(amountCents / 100);
 }
 
-function formatSuggestedDate(date: NonNullable<ReceiptOcrSuggestions['date']>) {
+function formatSuggestedDate(date: NonNullable<ReceiptOcrSuggestions['date']>['value']) {
   return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(
     new Date(Date.UTC(date.year, date.month - 1, date.day)),
   );
@@ -98,11 +99,9 @@ export default function ReceiptOcrScanner({
     }
   }
 
-  const hasSuggestions = Boolean(
-    result?.suggestions.amountCents ||
-      result?.suggestions.date ||
-      result?.suggestions.description,
-  );
+  const applicable = result ? getApplicableReceiptOcrSuggestions(result.suggestions) : {};
+  const hasSuggestions = Boolean(applicable.amountCents || applicable.date || applicable.description);
+  const confidenceLabel = { high: 'Alta', medium: 'Média', low: 'Baixa — somente revisão' } as const;
 
   return (
     <div className={className}>
@@ -202,11 +201,13 @@ export default function ReceiptOcrScanner({
 
           {hasSuggestions ? (
             <dl className="mt-3 grid gap-2 text-sm">
-              {result.suggestions.amountCents ? (
+              {result.suggestions.amount ? (
                 <div className="flex justify-between gap-4 rounded-[9px] bg-[var(--surface-raised)] px-3 py-2">
                   <dt className="text-[var(--text-muted)]">Valor</dt>
                   <dd className="font-semibold text-[var(--foreground)]">
-                    {formatSuggestedAmount(result.suggestions.amountCents)}
+                    {formatSuggestedAmount(result.suggestions.amount.value)}
+                    <span className="block text-xs font-normal text-[var(--text-muted)]">Confiança: {confidenceLabel[result.suggestions.amount.confidence]}</span>
+                    <span className="block max-w-64 break-words text-xs font-normal text-[var(--text-muted)]">Trecho: {result.suggestions.amount.evidence}</span>
                   </dd>
                 </div>
               ) : null}
@@ -214,7 +215,9 @@ export default function ReceiptOcrScanner({
                 <div className="flex justify-between gap-4 rounded-[9px] bg-[var(--surface-raised)] px-3 py-2">
                   <dt className="text-[var(--text-muted)]">Data</dt>
                   <dd className="font-semibold text-[var(--foreground)]">
-                    {formatSuggestedDate(result.suggestions.date)}
+                    {formatSuggestedDate(result.suggestions.date.value)}
+                    <span className="block text-xs font-normal text-[var(--text-muted)]">Confiança: {confidenceLabel[result.suggestions.date.confidence]}</span>
+                    <span className="block max-w-64 break-words text-xs font-normal text-[var(--text-muted)]">Trecho: {result.suggestions.date.evidence}</span>
                   </dd>
                 </div>
               ) : null}
@@ -222,16 +225,22 @@ export default function ReceiptOcrScanner({
                 <div className="flex justify-between gap-4 rounded-[9px] bg-[var(--surface-raised)] px-3 py-2">
                   <dt className="text-[var(--text-muted)]">Descrição</dt>
                   <dd className="max-w-[65%] text-right font-semibold text-[var(--foreground)]">
-                    {result.suggestions.description}
+                    {result.suggestions.description.value}
+                    <span className="block text-xs font-normal text-[var(--text-muted)]">Confiança: {confidenceLabel[result.suggestions.description.confidence]}</span>
+                    <span className="block max-w-64 break-words text-xs font-normal text-[var(--text-muted)]">Trecho: {result.suggestions.description.evidence}</span>
                   </dd>
                 </div>
               ) : null}
             </dl>
           ) : (
             <p className="mt-3 text-sm text-[var(--text-muted)]">
-              Não encontrei valor, data ou estabelecimento com confiança suficiente.
+              Não foi possível identificar sugestões neste recibo.
             </p>
           )}
+
+          {!hasSuggestions && (result.suggestions.amount || result.suggestions.date || result.suggestions.description) ? (
+            <p className="mt-3 text-sm text-[var(--text-muted)]">As leituras têm confiança baixa e não serão aplicadas. Confira o texto reconhecido.</p>
+          ) : null}
 
           <details className="mt-3">
             <summary className="cursor-pointer text-xs font-semibold text-[var(--text-muted)]">
@@ -264,7 +273,7 @@ export default function ReceiptOcrScanner({
               className="inline-flex min-h-10 items-center gap-2 rounded-[9px] bg-[var(--orbit-primary)] px-3.5 text-sm font-semibold text-[var(--orbit-on-primary)] hover:bg-[var(--orbit-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FaCheck aria-hidden="true" />
-              Aplicar sugestões
+              Aplicar sugestões confiáveis
             </button>
           </div>
         </div>
