@@ -5,6 +5,8 @@ import {
   TRANSACTION_DESCRIPTION_MAX_LENGTH,
   TRANSACTION_DESCRIPTION_MIN_LENGTH,
   TRANSACTION_MAX_AMOUNT_CENTS,
+  TRANSACTION_MAX_YEAR,
+  TRANSACTION_MIN_YEAR,
 } from "@/app/lib/transactions/transaction-field-contract";
 
 export function isValidTransactionDate(
@@ -52,7 +54,7 @@ const transactionBaseSchema = z.object({
     .min(TRANSACTION_DESCRIPTION_MIN_LENGTH, `Descrição deve ter pelo menos ${TRANSACTION_DESCRIPTION_MIN_LENGTH} caracteres`)
     .max(TRANSACTION_DESCRIPTION_MAX_LENGTH, `Descrição não pode exceder ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres`),
 
-  year: z.number().int().min(2000).max(2100),
+  year: z.number().int().min(TRANSACTION_MIN_YEAR).max(TRANSACTION_MAX_YEAR),
   month: z.number().int().min(1).max(12),
   day: z.number().int().min(1).max(31),
 

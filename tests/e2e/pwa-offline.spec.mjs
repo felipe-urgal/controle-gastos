@@ -67,6 +67,7 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
   await page.goto('/login');
   expect(await waitForServiceWorker(page)).toBe(true);
 
+  const cacheNames = await page.evaluate(() => caches.keys());
   const cacheState = await page.evaluate(async () => {
     const urls = [];
     for (const cacheName of await caches.keys()) {
@@ -79,6 +80,12 @@ test('instala shell offline sem persistir páginas ou APIs financeiras', async (
 
   expect(cacheState).toContain('/offline.html');
   expect(cacheState).toContain('/offline-transacao.html');
+  expect(cacheNames).toEqual(
+    expect.arrayContaining([
+      'controle-gastos-shell-v3',
+    ]),
+  );
+  expect(cacheNames.some((name) => name.endsWith('-v2'))).toBe(false);
   expect(cacheState).toContain('/manifest.json');
   expect(cacheState.some((url) => url.startsWith('/api/'))).toBe(false);
   expect(cacheState).not.toContain('/login');
@@ -354,4 +361,137 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
     draft: null,
     queue: null,
   });
+});
+
+test('rascunho offline valida limites antes de salvar e preserva rascunho legado', async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(90_000);
+
+  const email = `pwa-limits-${Date.now()}-${test.info().retry}@example.test`;
+  await createVerifiedUser(email);
+  await login(page, email);
+  expect(await waitForServiceWorker(page)).toBe(true);
+
+  const owner = await page.evaluate(() =>
+    localStorage.getItem('controle-gastos:offline-draft-owner:v1'),
+  );
+  expect(owner).toBeTruthy();
+  const draftKey = `controle-gastos:offline-transaction-draft:v1:${owner}`;
+  const readDraft = () => page.evaluate((key) => localStorage.getItem(key), draftKey);
+
+  await context.setOffline(true);
+  await page.goto('/transacoes/nova', { waitUntil: 'domcontentloaded' });
+  await expect(
+    page.getByRole('heading', { name: 'Salvar rascunho de transação' }),
+  ).toBeVisible();
+
+  const save = page.getByRole('button', { name: 'Salvar rascunho', exact: true });
+  const status = page.getByRole('status');
+  const amountField = page.getByLabel('Valor', { exact: true });
+  const descriptionField = page.getByLabel('Descrição', { exact: true });
+  const dateField = page.getByLabel('Data', { exact: true });
+  const amountError = page.locator('#amount-error');
+  const dateError = page.locator('#date-error');
+  const descriptionError = page.locator('#description-error');
+
+  // Dois campos inválidos: cada erro fica no seu campo e a data válida não é marcada.
+  await descriptionField.fill('x'.repeat(101));
+  await amountField.fill('10000000,01');
+  await save.click();
+  await expect(status).toContainText('Corrija os campos indicados');
+  await expect(amountError).toContainText('excede o limite');
+  await expect(descriptionError).toContainText('não pode exceder 100');
+  await expect(amountField).toHaveAttribute('aria-invalid', 'true');
+  await expect(amountField).toHaveAttribute('aria-describedby', 'amount-error');
+  await expect(descriptionField).toHaveAttribute('aria-invalid', 'true');
+  await expect(descriptionField).toHaveAttribute('aria-describedby', 'description-error');
+  await expect(dateField).not.toHaveAttribute('aria-invalid', /.*/);
+  await expect(dateField).not.toHaveAttribute('aria-describedby', /.*/);
+  await expect(dateError).toBeEmpty();
+  await expect(amountField).toBeFocused();
+  expect(await readDraft()).toBeNull();
+
+  // Digitar revalida o campo: a mensagem acompanha o estado real, sem sumir às cegas.
+  await descriptionField.fill('x');
+  await expect(descriptionError).toContainText('pelo menos 2');
+  await descriptionField.fill('x'.repeat(100));
+  await expect(descriptionError).toBeEmpty();
+  await expect(descriptionField).not.toHaveAttribute('aria-invalid', /.*/);
+  await amountField.fill('10000000,02');
+  await expect(amountError).toContainText('excede o limite');
+  await expect(amountField).toHaveAttribute('aria-invalid', 'true');
+
+  await amountField.fill('0');
+  await save.click();
+  await expect(amountError).toContainText('maior que zero');
+  await expect(descriptionError).toBeEmpty();
+  expect(await readDraft()).toBeNull();
+
+  // Valor exatamente no teto e descrição com 100 caracteres são aceitos.
+  await amountField.fill('10000000,00');
+  await save.click();
+  await expect(status).toContainText('Rascunho salvo');
+  await expect(amountError).toBeEmpty();
+  await expect(amountField).not.toHaveAttribute('aria-invalid', /.*/);
+  expect(JSON.parse(await readDraft())).toMatchObject({ amount: 1_000_000_000 });
+
+  // Rascunho legado (255 caracteres): é mantido e sinalizado, não apagado.
+  const legacy = {
+    version: 1,
+    id: 'legacy-1',
+    ownerUserId: owner,
+    type: 'INCOME',
+    amount: 5_000,
+    description: 'y'.repeat(255),
+    year: 2026,
+    month: 9,
+    day: 30,
+    createdAt: '2026-09-30T12:00:00.000Z',
+    updatedAt: '2026-09-30T12:00:00.000Z',
+  };
+  await page.evaluate(
+    ({ key, value }) => localStorage.setItem(key, JSON.stringify(value)),
+    { key: draftKey, value: legacy },
+  );
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(status).toContainText('precisa de revisão');
+  await expect(descriptionError).toContainText('não pode exceder 100');
+  await expect(descriptionField).toHaveAttribute('aria-invalid', 'true');
+  await expect(amountField).not.toHaveAttribute('aria-invalid', /.*/);
+  await expect(dateField).not.toHaveAttribute('aria-invalid', /.*/);
+  await expect(descriptionField).toHaveValue(legacy.description);
+  expect(JSON.parse(await readDraft())).toEqual(legacy);
+
+  await context.setOffline(false);
+  await page.goto('/transacoes/nova');
+  const notice = page.getByRole('status', { name: 'Rascunho offline' });
+  await expect(notice).toContainText('precisa de revisão');
+  await expect(notice).toContainText('não pode exceder 100');
+  expect(JSON.parse(await readDraft())).toEqual(legacy);
+
+  // Continuar o rascunho carrega os dados sem truncar; editar não altera o rascunho salvo.
+  await notice.getByRole('button', { name: 'Continuar rascunho', exact: true }).click();
+  await expect(notice).toContainText('Rascunho offline carregado');
+
+  const formDescription = page.getByLabel(/^Descrição\b/).last();
+  const formAmount = page.getByLabel('Valor', { exact: true }).last();
+  const formDate = page.getByLabel('Data', { exact: true }).last();
+  const incomeButton = page.getByRole('button', { name: 'Receita', exact: true }).first();
+
+  await expect(formDescription).toHaveValue(legacy.description);
+  await expect(formAmount).toHaveValue(/50,00/);
+  await expect(formDate).toHaveValue('2026-09-30');
+  await expect(incomeButton).toHaveAttribute('aria-pressed', 'true');
+
+  const corrected = 'Descrição corrigida online';
+  await formDescription.fill(corrected);
+
+  await expect(formDescription).toHaveValue(corrected);
+  await expect(formAmount).toHaveValue(/50,00/);
+  await expect(formDate).toHaveValue('2026-09-30');
+  await expect(incomeButton).toHaveAttribute('aria-pressed', 'true');
+  expect(JSON.parse(await readDraft())).toEqual(legacy);
 });

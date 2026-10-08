@@ -78,7 +78,10 @@
       button.secondary, a.action { border: 1px solid rgba(100,116,139,.38); background: transparent; color: inherit; }
       button:disabled { opacity: .5; cursor: not-allowed; }
       #status { min-height: 22px; margin: 0; font-size: 14px; }
-      .danger { color: #dc2626; }
+      .danger, .field-error { color: #dc2626; }
+      .field-error { margin: 6px 0 0; font-size: 13px; }
+      .field-error:empty { display: none; }
+      [aria-invalid="true"] { border-color: #dc2626; }
     </style>
   </head>
   <body>
@@ -105,20 +108,29 @@
             </div>
           </fieldset>
 
-          <label>
-            Valor
-            <input id="amount" inputmode="decimal" placeholder="0,00" autocomplete="off" required />
-          </label>
+          <div>
+            <label>
+              Valor
+              <input id="amount" inputmode="decimal" placeholder="0,00" autocomplete="off" required />
+            </label>
+            <p id="amount-error" class="field-error"></p>
+          </div>
 
-          <label>
-            Data
-            <input id="date" type="date" required />
-          </label>
+          <div>
+            <label>
+              Data
+              <input id="date" type="date" required />
+            </label>
+            <p id="date-error" class="field-error"></p>
+          </div>
 
-          <label>
-            Descrição
-            <textarea id="description" maxlength="255" placeholder="Ex.: Mercado" required></textarea>
-          </label>
+          <div>
+            <label>
+              Descrição
+              <textarea id="description" placeholder="Ex.: Mercado" required></textarea>
+            </label>
+            <p id="description-error" class="field-error"></p>
+          </div>
 
           <p id="status" role="status" aria-live="polite"></p>
 
@@ -165,6 +177,83 @@
 
         const key = DRAFT_PREFIX + owner;
 
+        // Limites espelhados de app/lib/transactions/transaction-field-contract.ts.
+        // Mantidos em sincronia por app/lib/pwa/__tests__/offline-transaction-draft-limits.test.ts.
+        const DESCRIPTION_MIN_LENGTH = 2;
+        const DESCRIPTION_MAX_LENGTH = 100;
+        const MAX_AMOUNT_CENTS = 1000000000;
+        const MIN_YEAR = 2000;
+        const MAX_YEAR = 2100;
+
+        const fields = {
+          amount: amountInput,
+          date: dateInput,
+          description: descriptionInput,
+        };
+        const errorElements = {
+          amount: document.getElementById("amount-error"),
+          date: document.getElementById("date-error"),
+          description: document.getElementById("description-error"),
+        };
+
+        // Retorna a mensagem de erro do campo, ou null se o valor é aceito.
+        const validators = {
+          amount(value) {
+            const normalized = value.trim().replace(/\s/g, "").replace(",", ".");
+            if (!/^\d+(?:\.\d{0,2})?$/.test(normalized)) return "Informe um valor válido, como 12,50.";
+            const cents = Math.round(Number(normalized) * 100);
+            if (!Number.isSafeInteger(cents) || cents <= 0) return "O valor deve ser maior que zero.";
+            if (cents > MAX_AMOUNT_CENTS) return "O valor excede o limite permitido para transações.";
+            return null;
+          },
+          date(value) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "Informe uma data válida.";
+            const [y, m, d] = value.split("-").map(Number);
+            const date = new Date(Date.UTC(y, m - 1, d));
+            const real = date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
+            if (!real) return "Informe uma data válida.";
+            if (y < MIN_YEAR || y > MAX_YEAR) return "O ano deve estar entre " + MIN_YEAR + " e " + MAX_YEAR + ".";
+            return null;
+          },
+          description(value) {
+            const length = value.trim().length;
+            if (length < DESCRIPTION_MIN_LENGTH) return "A descrição deve ter pelo menos " + DESCRIPTION_MIN_LENGTH + " caracteres.";
+            if (length > DESCRIPTION_MAX_LENGTH) return "A descrição não pode exceder " + DESCRIPTION_MAX_LENGTH + " caracteres (atual: " + length + ").";
+            return null;
+          },
+        };
+
+        function setFieldError(name, message) {
+          const input = fields[name];
+          const element = errorElements[name];
+          element.textContent = message || "";
+          if (message) {
+            input.setAttribute("aria-invalid", "true");
+            input.setAttribute("aria-describedby", element.id);
+          } else {
+            input.removeAttribute("aria-invalid");
+            input.removeAttribute("aria-describedby");
+          }
+        }
+
+        // Valida todos os campos, atualiza cada indicação de erro e devolve os nomes inválidos.
+        function validateAll() {
+          return Object.keys(fields).filter((name) => {
+            const message = validators[name](fields[name].value);
+            setFieldError(name, message);
+            return Boolean(message);
+          });
+        }
+
+        // Revalida um campo que já exibe erro, para que a mensagem acompanhe o estado real.
+        Object.keys(fields).forEach((name) => {
+          fields[name].addEventListener("input", () => {
+            if (fields[name].getAttribute("aria-invalid") === "true") {
+              setFieldError(name, validators[name](fields[name].value));
+            }
+          });
+        });
+
         function parseAmountToCents(value) {
           const normalized = value.trim().replace(/\s/g, "").replace(",", ".");
           if (!/^\d+(?:\.\d{0,2})?$/.test(normalized)) return null;
@@ -192,7 +281,13 @@
             ].join("-");
             const type = form.querySelector('input[name="type"][value="' + draft.type + '"]');
             if (type) type.checked = true;
-            status.textContent = "Rascunho offline existente carregado.";
+            if (validateAll().length) {
+              status.className = "danger";
+              status.textContent =
+                "Rascunho existente precisa de revisão. Nada foi alterado ou apagado; corrija os campos indicados para salvar.";
+            } else {
+              status.textContent = "Rascunho offline existente carregado.";
+            }
           } catch {
             localStorage.removeItem(key);
           }
@@ -200,16 +295,18 @@
 
         form.addEventListener("submit", (event) => {
           event.preventDefault();
+          const invalid = validateAll();
+          if (invalid.length) {
+            status.className = "danger";
+            status.textContent = "Corrija os campos indicados antes de salvar.";
+            fields[invalid[0]].focus();
+            return;
+          }
+
           const amount = parseAmountToCents(amountInput.value);
           const description = descriptionInput.value.trim();
           const dateValue = dateInput.value;
-          const type = form.querySelector('input[name="type"]:checked')?.value;
-
-          if (!amount || !description || !dateValue || !type) {
-            status.className = "danger";
-            status.textContent = "Preencha tipo, valor, data e descrição.";
-            return;
-          }
+          const type = form.querySelector('input[name="type"]:checked').value;
 
           const [year, month, day] = dateValue.split("-").map(Number);
           const existingRaw = localStorage.getItem(key);
@@ -241,6 +338,7 @@
           localStorage.removeItem(key);
           form.reset();
           dateInput.value = localToday;
+          Object.keys(fields).forEach((name) => setFieldError(name, null));
           status.className = "";
           status.textContent = "Rascunho descartado deste dispositivo.";
         });

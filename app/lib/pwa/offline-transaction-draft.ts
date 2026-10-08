@@ -1,4 +1,11 @@
 import { clearOfflineTransactionQueue } from "@/app/lib/pwa/offline-transaction-queue";
+import {
+  TRANSACTION_DESCRIPTION_MAX_LENGTH,
+  TRANSACTION_DESCRIPTION_MIN_LENGTH,
+  TRANSACTION_MAX_AMOUNT_CENTS,
+  TRANSACTION_MAX_YEAR,
+  TRANSACTION_MIN_YEAR,
+} from "@/app/lib/transactions/transaction-field-contract";
 import type { FormData } from "@/app/lib/interface/transaction.interface";
 import type { TransactionType } from "@/app/types/transaction";
 
@@ -29,7 +36,11 @@ function draftKey(userId: string) {
   return `${OFFLINE_TRANSACTION_DRAFT_PREFIX}${userId}`;
 }
 
-function isValidDraft(value: unknown): value is OfflineTransactionDraft {
+/**
+ * Verifica apenas a estrutura. Rascunhos legados que violam os limites atuais
+ * continuam legíveis e são sinalizados por `getOfflineDraftIssues`.
+ */
+function isStructurallyValidDraft(value: unknown): value is OfflineTransactionDraft {
   if (!value || typeof value !== "object") return false;
   const draft = value as Partial<OfflineTransactionDraft>;
 
@@ -39,7 +50,6 @@ function isValidDraft(value: unknown): value is OfflineTransactionDraft {
     typeof draft.ownerUserId !== "string" ||
     (draft.type !== "INCOME" && draft.type !== "EXPENSE") ||
     !Number.isInteger(draft.amount) ||
-    (draft.amount ?? -1) < 0 ||
     typeof draft.description !== "string" ||
     typeof draft.year !== "number" ||
     typeof draft.month !== "number" ||
@@ -56,6 +66,35 @@ function isValidDraft(value: unknown): value is OfflineTransactionDraft {
     date.getUTCMonth() + 1 === draft.month &&
     date.getUTCDate() === draft.day
   );
+}
+
+export function getOfflineDraftIssues(draft: OfflineTransactionDraft) {
+  const issues: string[] = [];
+  const description = draft.description.trim();
+
+  if (draft.amount <= 0) {
+    issues.push("O valor deve ser maior que zero.");
+  } else if (draft.amount > TRANSACTION_MAX_AMOUNT_CENTS) {
+    issues.push("O valor excede o limite permitido para transações.");
+  }
+
+  if (description.length < TRANSACTION_DESCRIPTION_MIN_LENGTH) {
+    issues.push(
+      `A descrição deve ter pelo menos ${TRANSACTION_DESCRIPTION_MIN_LENGTH} caracteres.`,
+    );
+  } else if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) {
+    issues.push(
+      `A descrição não pode exceder ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`,
+    );
+  }
+
+  if (draft.year < TRANSACTION_MIN_YEAR || draft.year > TRANSACTION_MAX_YEAR) {
+    issues.push(
+      `O ano deve estar entre ${TRANSACTION_MIN_YEAR} e ${TRANSACTION_MAX_YEAR}.`,
+    );
+  }
+
+  return issues;
 }
 
 export function getOfflineDraftOwner() {
@@ -83,7 +122,7 @@ export function readOfflineTransactionDraft(userId: string) {
 
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (!isValidDraft(parsed) || parsed.ownerUserId !== userId) {
+    if (!isStructurallyValidDraft(parsed) || parsed.ownerUserId !== userId) {
       window.localStorage.removeItem(draftKey(userId));
       return null;
     }

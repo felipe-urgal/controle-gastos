@@ -11,6 +11,7 @@ import { useAuth } from '@/app/context';
 import { FormData } from '@/app/lib/interface/transaction.interface';
 import {
   clearOfflineTransactionDraft,
+  getOfflineDraftIssues,
   offlineDraftToFormData,
   readOfflineTransactionDraft,
   type OfflineTransactionDraft,
@@ -316,6 +317,8 @@ export default function New({
     requireReauthentication();
   }
 
+  const offlineDraftIssues = offlineDraft ? getOfflineDraftIssues(offlineDraft) : [];
+
   function continueOfflineDraft() {
     if (!offlineDraft) return;
 
@@ -609,6 +612,16 @@ export default function New({
                 {offlineDraft.description} · {draftAmountLabel(offlineDraft.amount)} ·{' '}
                 {offlineDraft.type === 'EXPENSE' ? 'Despesa' : 'Receita'}
               </p>
+              {offlineDraftIssues.length > 0 && (
+                <div className="mt-2 text-xs font-medium text-[var(--expense)]">
+                  <p>Este rascunho precisa de revisão antes de ser criado:</p>
+                  <ul className="mt-1 list-disc pl-4">
+                    {offlineDraftIssues.map((issue) => (
+                      <li key={issue}>{issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
                 Nada será enviado automaticamente. Revise os dados, escolha conta e categoria e confirme a criação normalmente.
               </p>
