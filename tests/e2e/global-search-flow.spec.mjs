@@ -142,35 +142,35 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
     if (route.isInterceptResolutionHandled()) return;
     try {
       await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: {
-          query,
-          groups: [
-            {
-              type: 'ACCOUNT',
-              items: [
-                {
-                  id: isSlow ? 'slow-id' : 'fast-id',
-                  type: 'ACCOUNT',
-                  title,
-                  subtitle: 'BRL · Ativa',
-                  href: '/contas',
-                },
-              ],
-            },
-          ],
-          total: 1,
-          limitPerGroup: 5,
-          totalLimit: 20,
-        },
-      }),
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            query,
+            groups: [
+              {
+                type: 'ACCOUNT',
+                items: [
+                  {
+                    id: isSlow ? 'slow-id' : 'fast-id',
+                    type: 'ACCOUNT',
+                    title,
+                    subtitle: 'BRL · Ativa',
+                    href: '/contas',
+                  },
+                ],
+              },
+            ],
+            total: 1,
+            limitPerGroup: 5,
+            totalLimit: 20,
+          },
+        }),
       });
     } catch (error) {
       // A rota antiga pode ter sido cancelada enquanto a resposta era atrasada.
-      if (!/Route is already handled|Target page, context or browser has been closed/.test(String(error))) {
+      if (!/Route is already handled/.test(String(error))) {
         throw error;
       }
     }
