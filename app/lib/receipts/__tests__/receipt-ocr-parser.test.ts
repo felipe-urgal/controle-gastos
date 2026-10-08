@@ -94,7 +94,6 @@ describe('OCR respects canonical Transaction limits', () => {
     ['above maximum', 'VALOR TOTAL R$ 10.000.000,01'],
   ] as const)('rejects %s with a review warning', (_label, line) => {
     const result = parseReceiptOcrText(line);
-    console.error('OCR_BOUNDARY_DIAGNOSTIC', JSON.stringify({ line, result }));
     expect(result.inconsistentAmountEvidence).toBe(line);
     expect(getApplicableReceiptOcrSuggestions(result).amountCents).toBeUndefined();
   });
