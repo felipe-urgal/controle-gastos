@@ -43,7 +43,7 @@ function operatorLabel(operator: MerchantAliasOperator) {
   return 'Contém';
 }
 
-export default function MerchantsPage() {
+export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: string }) {
   const [items, setItems] = useState<MerchantDTO[]>([]);
   const [merchantPage, setMerchantPage] = useState(1);
   const [merchantTotal, setMerchantTotal] = useState(0);
@@ -203,6 +203,20 @@ export default function MerchantsPage() {
 
     return () => window.clearTimeout(timeoutId);
   }, [loadAliasMerchantOptions]);
+
+  useEffect(() => {
+    if (!focusMerchantId) return;
+    let cancelled = false;
+    void merchantService.getById(focusMerchantId).then((response) => {
+      if (cancelled) return;
+      setEditing(response.data);
+      setName(response.data.name);
+      setMerchantError(null);
+    }).catch(() => {
+      // An unknown or foreign ID must behave like the normal listing.
+    });
+    return () => { cancelled = true; };
+  }, [focusMerchantId]);
 
   const merchantOptions = useMemo(() => {
     const options = [...aliasMerchantOptions];
