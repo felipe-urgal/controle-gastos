@@ -141,7 +141,15 @@ export default function GlobalSearchDialog({
         .search(trimmed, controller.signal)
         .then((response) => {
           setData(response.data);
-          setActiveIndex(hasLocalResults || response.data.total > 0 ? 0 : -1);
+          const localCount = filteredQuickActions.length + filteredNavigation.length;
+          const normalizeTitle = (value: string) => value.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
+          const localExact = [...filteredQuickActions.map((item) => item.title), ...filteredNavigation.map((item) => item.label)]
+            .some((title) => normalizeTitle(title) === normalizeTitle(trimmed));
+          const exactServerIndex = response.data.groups.flatMap((group) => group.items)
+            .findIndex((item) => item.matchKind === 'exact' || normalizeTitle(item.title) === normalizeTitle(trimmed));
+          setActiveIndex(localExact || exactServerIndex < 0
+            ? (localCount + response.data.total > 0 ? 0 : -1)
+            : localCount + exactServerIndex);
         })
         .catch((requestError) => {
           if (controller.signal.aborted) return;
@@ -162,7 +170,7 @@ export default function GlobalSearchDialog({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [hasLocalResults, query]);
+  }, [hasLocalResults, query, filteredQuickActions, filteredNavigation]);
 
   function activate(result: { href: string }) {
     onClose();
