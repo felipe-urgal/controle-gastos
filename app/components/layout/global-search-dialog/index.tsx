@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fa';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
+import { normalizeGlobalSearchMatch } from '@/app/lib/search/global-search-ranking';
 import { globalSearchService } from '@/app/services/global-search-service';
 import { ApiClientError } from '@/app/services/api-client';
 import type {
@@ -81,15 +82,15 @@ export default function GlobalSearchDialog({
   const [retryVersion, setRetryVersion] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
+  const normalizedQuery = normalizeGlobalSearchMatch(query);
   const filteredQuickActions = useMemo(
     () =>
       quickActions.filter((item) => {
         if (!normalizedQuery) return true;
         return (
-          item.title.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
-          item.subtitle.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
-          item.keywords.toLocaleLowerCase('pt-BR').includes(normalizedQuery)
+          item.title ||
+          item.subtitle ||
+          item.keywords
         );
       }),
     [normalizedQuery],
@@ -99,9 +100,9 @@ export default function GlobalSearchDialog({
       getAppNavigation().filter((item) => {
         if (!normalizedQuery) return true;
         return (
-          item.label.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
-          item.key.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
-          item.keywords?.toLocaleLowerCase('pt-BR').includes(normalizedQuery)
+          item.label ||
+          item.key ||
+          item.keywords?
         );
       }),
     [normalizedQuery],
@@ -288,31 +289,19 @@ export default function GlobalSearchDialog({
               value={query}
               onChange={(event) => {
                 const nextQuery = event.target.value;
-                const nextNormalizedQuery = nextQuery
-                  .trim()
-                  .toLocaleLowerCase('pt-BR');
+                const nextNormalizedQuery = normalizeGlobalSearchMatch(nextQuery);
                 const nextHasQuickAction = quickActions.some(
                   (item) =>
                     !nextNormalizedQuery ||
-                    item.title
-                      .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery) ||
-                    item.subtitle
-                      .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery) ||
-                    item.keywords
-                      .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery),
+                    normalizeGlobalSearchMatch(item.title).includes(nextNormalizedQuery) ||
+                    normalizeGlobalSearchMatch(item.subtitle).includes(nextNormalizedQuery) ||
+                    normalizeGlobalSearchMatch(item.keywords).includes(nextNormalizedQuery),
                 );
                 const nextHasNavigation = getAppNavigation().some(
                   (item) =>
                     !nextNormalizedQuery ||
-                    item.label
-                      .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery) ||
-                    item.key
-                      .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery) ||
+                    normalizeGlobalSearchMatch(item.label).includes(nextNormalizedQuery) ||
+                    normalizeGlobalSearchMatch(item.key).includes(nextNormalizedQuery) ||
                     item.keywords?.toLocaleLowerCase('pt-BR').includes(nextNormalizedQuery),
                 );
 
