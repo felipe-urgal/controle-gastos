@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fa';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
+import { normalizeGlobalSearchMatch } from '@/app/lib/search/global-search-ranking';
 import { globalSearchService } from '@/app/services/global-search-service';
 import { ApiClientError } from '@/app/services/api-client';
 import type {
@@ -64,6 +65,15 @@ const quickActions = [
   },
 ] as const;
 
+// Render textual highlights as React nodes; never interpret server text as HTML.
+function highlightSearchText(value: string, query: string) {
+  const needle = query.trim().toLocaleLowerCase('pt-BR');
+  if (!needle) return value;
+  const start = value.toLocaleLowerCase('pt-BR').indexOf(needle);
+  if (start < 0) return value;
+  return <>{value.slice(0, start)}<mark className="rounded-sm bg-[var(--primary-subtle)] text-inherit">{value.slice(start, start + needle.length)}</mark>{value.slice(start + needle.length)}</>;
+}
+
 export default function GlobalSearchDialog({
   onClose,
 }: {
@@ -81,15 +91,15 @@ export default function GlobalSearchDialog({
   const [retryVersion, setRetryVersion] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
+  const normalizedQuery = normalizeGlobalSearchMatch(query);
   const filteredQuickActions = useMemo(
     () =>
       quickActions.filter((item) => {
         if (!normalizedQuery) return true;
         return (
-          item.title.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
-          item.subtitle.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
-          item.keywords.toLocaleLowerCase('pt-BR').includes(normalizedQuery)
+          normalizeGlobalSearchMatch(item.title).includes(normalizedQuery) ||
+          normalizeGlobalSearchMatch(item.subtitle).includes(normalizedQuery) ||
+          normalizeGlobalSearchMatch(item.keywords).includes(normalizedQuery)
         );
       }),
     [normalizedQuery],
@@ -99,9 +109,9 @@ export default function GlobalSearchDialog({
       getAppNavigation().filter((item) => {
         if (!normalizedQuery) return true;
         return (
-          item.label.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
-          item.key.toLocaleLowerCase('pt-BR').includes(normalizedQuery) ||
-          item.keywords?.toLocaleLowerCase('pt-BR').includes(normalizedQuery)
+          normalizeGlobalSearchMatch(item.label).includes(normalizedQuery) ||
+          normalizeGlobalSearchMatch(item.key).includes(normalizedQuery) ||
+          normalizeGlobalSearchMatch(item.keywords ?? '').includes(normalizedQuery)
         );
       }),
     [normalizedQuery],
@@ -188,7 +198,7 @@ export default function GlobalSearchDialog({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [hasLocalResults, query, retryVersion]);
+  }, [hasLocalResults, query, retryVersion, filteredQuickActions, filteredNavigation]);
 
   useEffect(() => {
     if (activeIndex < 0) return;
@@ -222,6 +232,18 @@ export default function GlobalSearchDialog({
       setActiveIndex((current) =>
         current <= 0 ? flatResults.length - 1 : current - 1,
       );
+      return;
+    }
+
+    if (event.key === 'Home') {
+      event.preventDefault();
+      setActiveIndex(0);
+      return;
+    }
+
+    if (event.key === 'End') {
+      event.preventDefault();
+      setActiveIndex(flatResults.length - 1);
       return;
     }
 
@@ -276,32 +298,20 @@ export default function GlobalSearchDialog({
               value={query}
               onChange={(event) => {
                 const nextQuery = event.target.value;
-                const nextNormalizedQuery = nextQuery
-                  .trim()
-                  .toLocaleLowerCase('pt-BR');
+                const nextNormalizedQuery = normalizeGlobalSearchMatch(nextQuery);
                 const nextHasQuickAction = quickActions.some(
                   (item) =>
                     !nextNormalizedQuery ||
-                    item.title
-                      .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery) ||
-                    item.subtitle
-                      .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery) ||
-                    item.keywords
-                      .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery),
+                    normalizeGlobalSearchMatch(item.title).includes(nextNormalizedQuery) ||
+                    normalizeGlobalSearchMatch(item.subtitle).includes(nextNormalizedQuery) ||
+                    normalizeGlobalSearchMatch(item.keywords).includes(nextNormalizedQuery),
                 );
                 const nextHasNavigation = getAppNavigation().some(
                   (item) =>
                     !nextNormalizedQuery ||
-                    item.label
-                      .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery) ||
-                    item.key
-                      .toLocaleLowerCase('pt-BR')
-                      .includes(nextNormalizedQuery) ||
-                    item.keywords?.toLocaleLowerCase('pt-BR').includes(nextNormalizedQuery),
+                    normalizeGlobalSearchMatch(item.label).includes(nextNormalizedQuery) ||
+                    normalizeGlobalSearchMatch(item.key).includes(nextNormalizedQuery) ||
+                    normalizeGlobalSearchMatch(item.keywords ?? '').includes(nextNormalizedQuery),
                 );
 
                 setQuery(nextQuery);
@@ -491,11 +501,11 @@ export default function GlobalSearchDialog({
                           </span>
                           <span className="min-w-0 flex-1">
                             <strong className="block truncate text-sm text-[var(--foreground)]">
-                              {result.title}
+                              {highlightSearchText(result.title, query)}
                             </strong>
                             {result.subtitle && (
                               <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
-                                {result.subtitle}
+                                {highlightSearchText(result.subtitle, query)}
                               </span>
                             )}
                           </span>

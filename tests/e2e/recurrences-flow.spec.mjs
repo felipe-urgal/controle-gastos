@@ -331,15 +331,23 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
   if (typeof baseURL !== 'string') throw new Error('baseURL do Playwright é obrigatório');
 
   const suffix = `${Date.now()}-ownership-${test.info().project.name}`;
-  const owner = await apiRequest.newContext({ baseURL });
-  const stranger = await apiRequest.newContext({ baseURL });
+  // A suíte compartilha IP no CI: isolar os contextos evita 429 sem alterar
+  // a proteção da API e mantém sessões/cookies independentes.
+  const ipSeed = [...suffix].reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) % 100, 0);
+  const owner = await apiRequest.newContext({
+    baseURL, extraHTTPHeaders: { 'x-forwarded-for': `198.51.100.${100 + ipSeed}` },
+  });
+  const stranger = await apiRequest.newContext({
+    baseURL, extraHTTPHeaders: { 'x-forwarded-for': `198.51.100.${200 + (ipSeed % 50)}` },
+  });
 
   try {
     const ownerEmail = `qa-recurrence-owner-${suffix}@example.test`;
     await createVerifiedUser({ name: 'QA Recurrence Owner', email: ownerEmail, password });
-    await owner.post('/api/auth/login', {
+    const ownerLogin = await owner.post('/api/auth/login', {
       data: { email: ownerEmail, password },
     });
+    expect(ownerLogin.ok(), JSON.stringify(await ownerLogin.json())).toBeTruthy();
 
     const account = await create(owner, '/api/accounts', {
       name: `Owner Account ${suffix}`,
@@ -386,11 +394,13 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
 
     const strangerEmail = `qa-recurrence-stranger-${suffix}@example.test`;
     await createVerifiedUser({ name: 'QA Recurrence Stranger', email: strangerEmail, password });
-    await stranger.post('/api/auth/login', {
+    const strangerLogin = await stranger.post('/api/auth/login', {
       data: { email: strangerEmail, password },
     });
+    expect(strangerLogin.ok(), JSON.stringify(await strangerLogin.json())).toBeTruthy();
 
     const strangerList = await stranger.get('/api/recurrences');
+    expect(strangerList.ok(), JSON.stringify(await strangerList.json())).toBeTruthy();
     const strangerData = (await strangerList.json()).data;
     expect(strangerData.formal).toHaveLength(0);
 
@@ -403,6 +413,7 @@ test('recorrências: ownership impede leitura e edição de série alheia', asyn
     expect(forbiddenEnd.status()).toBe(404);
 
     const ownerList = await owner.get('/api/recurrences');
+    expect(ownerList.ok(), JSON.stringify(await ownerList.json())).toBeTruthy();
     const ownerData = (await ownerList.json()).data;
     expect(ownerData.formal).toHaveLength(1);
     expect(ownerData.formal[0].description).toBe(`Série privada ${suffix}`);

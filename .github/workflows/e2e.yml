@@ -7,6 +7,7 @@ on:
       - ".github/workflows/e2e.yml"
       - "tests/e2e/global-search-accessibility.spec.mjs"
       - "tests/e2e/global-search-entities.spec.mjs"
+      - "tests/e2e/global-search-flow.spec.mjs"
       - "tests/e2e/pwa-offline.spec.mjs"
       - "tests/e2e/accounts-flow.spec.mjs"
       - "tests/e2e/categories-flow.spec.mjs"
@@ -195,6 +196,7 @@ jobs:
           pnpm test:e2e
           tests/e2e/global-search-accessibility.spec.mjs
           tests/e2e/global-search-entities.spec.mjs
+          tests/e2e/global-search-flow.spec.mjs
           tests/e2e/pwa-offline.spec.mjs
           tests/e2e/accounts-flow.spec.mjs
           tests/e2e/categories-flow.spec.mjs

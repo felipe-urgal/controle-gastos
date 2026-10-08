@@ -128,6 +128,39 @@ describe('global search integration', () => {
     expect(result.total).toBeLessThanOrEqual(result.totalLimit);
   });
 
+  it('prioriza uma descrição idêntica antiga acima de mais de cinco matches recentes', async () => {
+    const owner = await createUser('relevance-owner');
+    const marker = `BuscaUnica${randomUUID().slice(0, 8)}`;
+    const account = await prisma.account.create({
+      data: { name: 'Conta relevância', type: 'CREDIT_DEBIT', userId: owner.id },
+    });
+    const category = await prisma.category.create({
+      data: { name: 'Categoria relevância', type: 'EXPENSE', userId: owner.id },
+    });
+    await Promise.all(Array.from({ length: 7 }, (_, index) =>
+      prisma.transaction.create({
+        data: {
+          userId: owner.id, accountId: account.id, categoryId: category.id,
+          description: `${marker} adicional ${index}`, type: 'EXPENSE',
+          status: 'COMPLETED', amount: 100, year: 2026, month: 10, day: 8,
+        },
+      }),
+    ));
+    const older = await prisma.transaction.create({
+      data: {
+        userId: owner.id, accountId: account.id, categoryId: category.id,
+        description: marker, type: 'EXPENSE', status: 'COMPLETED',
+        amount: 100, year: 2020, month: 1, day: 1,
+      },
+    });
+    const result = await getGlobalSearchForUser(owner.id, marker);
+    const items = result.groups.find((group) => group.type === 'TRANSACTION')?.items ?? [];
+    expect(items[0]?.id).toBe(older.id);
+    expect(items[0]?.matchedField).toBe('description');
+    expect(items[0]?.matchKind).toBe('exact');
+    expect(items).toHaveLength(GLOBAL_SEARCH_LIMIT_PER_GROUP);
+  });
+
   it('searches only owned resources across all supported groups', async () => {
     const marker = `Café ${randomUUID().slice(0, 8)}`;
     const [owner, other] = await Promise.all([
@@ -323,6 +356,21 @@ describe('global search integration', () => {
         },
       },
     });
+
+    for (const [query, expectedField, expectedText] of [
+      ['Nubank Mobilidade', 'merchant', 'Nubank Mobilidade'],
+      ['Uber Trip', 'alias', 'Uber Trip'],
+      ['transporte', 'tag', 'transporte'],
+      ['#transporte', 'tag', 'transporte'],
+    ] as const) {
+      const search = await getGlobalSearchForUser(owner.id, query);
+      const match = search.groups.flatMap((group) => group.items)
+        .find((item) => item.id === transaction.id);
+      expect(match?.matchedField).toBe(expectedField);
+      expect(match?.matchedText).toBe(expectedText);
+      expect(match?.subtitle).toContain(expectedField === 'alias' ? 'Alias: Uber Trip' : expectedField === 'merchant' ? 'Nubank Mobilidade' : '#transporte');
+      expect(JSON.stringify(search)).not.toContain('2590');
+    }
 
     for (const query of ['nubnak', 'ubr trip', 'trasnporte']) {
       const result = await getGlobalSearchForUser(owner.id, query);

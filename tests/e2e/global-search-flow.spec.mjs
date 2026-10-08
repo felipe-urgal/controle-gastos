@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -58,7 +59,7 @@ async function seedSearchFixture(page, marker) {
       type: 'EXPENSE',
     });
 
-    const rule = await create('/api/transactions/import/rules', {
+    const rule = await create('/api/import-rules', {
       name: `${searchMarker} Regra`,
       isActive: true,
       priority: 0,
@@ -82,7 +83,6 @@ async function seedSearchFixture(page, marker) {
 
 test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   page,
-  request,
 }) => {
   test.setTimeout(90_000);
 
@@ -90,14 +90,7 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   const email = `qa-global-search-${suffix}@example.test`;
   const marker = `CaféBusca${suffix.slice(-8)}`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: {
-      name: 'QA Busca Global',
-      email,
-      password,
-    },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Busca Global', email, password });
 
   await login(page, email);
   const fixture = await seedSearchFixture(page, marker);
@@ -122,6 +115,20 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   await input.press('Enter');
   await expect(page).toHaveURL(new RegExp(`/transacoes/show/${fixture.transactionId}$`));
 
+  // Verifica que a regra abre seu contexto específico, não a listagem genérica.
+  await page.goto('/dashboard');
+  await page.keyboard.press('Control+K');
+  const ruleDialog = page.getByRole('dialog', { name: 'Busca global', exact: true });
+  const ruleInput = ruleDialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
+  await ruleInput.fill(`${marker} Regra`);
+  await expect(ruleDialog.getByText(`${marker} Regra`, { exact: true })).toBeVisible();
+  await ruleDialog.getByText(`${marker} Regra`, { exact: true }).click();
+  await expect(page).toHaveURL((url) =>
+    url.pathname === '/transacoes/importar/regras' && url.searchParams.get('ruleId') === fixture.ruleId,
+  );
+  await page.goBack();
+  await expect(page).toHaveURL(/\/dashboard$/);
+
   await page.goto('/dashboard');
   await page.setViewportSize({ width: 390, height: 760 });
   await page.getByRole('button', { name: 'Abrir busca global', exact: true }).click();
@@ -145,33 +152,41 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
     }
 
     const title = isSlow ? 'Resultado antigo' : 'Resultado atual';
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: {
-          query,
-          groups: [
-            {
-              type: 'ACCOUNT',
-              items: [
-                {
-                  id: isSlow ? 'slow-id' : 'fast-id',
-                  type: 'ACCOUNT',
-                  title,
-                  subtitle: 'BRL · Ativa',
-                  href: '/contas',
-                },
-              ],
-            },
-          ],
-          total: 1,
-          limitPerGroup: 5,
-          totalLimit: 20,
-        },
-      }),
-    });
+    // Ao digitar outra query, o navegador pode cancelar a requisição anterior.
+    try {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            query,
+            groups: [
+              {
+                type: 'ACCOUNT',
+                items: [
+                  {
+                    id: isSlow ? 'slow-id' : 'fast-id',
+                    type: 'ACCOUNT',
+                    title,
+                    subtitle: 'BRL · Ativa',
+                    href: '/contas',
+                  },
+                ],
+              },
+            ],
+            total: 1,
+            limitPerGroup: 5,
+            totalLimit: 20,
+          },
+        }),
+      });
+    } catch (error) {
+      // A rota antiga pode ter sido cancelada enquanto a resposta era atrasada.
+      if (!/Route is already handled/.test(String(error))) {
+        throw error;
+      }
+    }
   });
 
   await page.keyboard.press('Control+K');
@@ -186,4 +201,42 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   await expect(raceDialog.getByText('Resultado antigo', { exact: true })).toHaveCount(0);
 
   await page.unroute('**/api/search?*');
+});
+
+
+test('busca global: mouse, Home/End, Escape e touch preservam foco', async ({ browser }) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 760 },
+  });
+  try {
+    const page = await context.newPage();
+    const email = `qa-search-interaction-${Date.now()}@example.test`;
+    await createVerifiedUser({ name: 'QA Busca Interação', email, password });
+    await login(page, email);
+
+    const trigger = page.getByRole('button', { name: 'Abrir busca global', exact: true });
+    await trigger.tap();
+    const dialog = page.getByRole('dialog', { name: 'Busca global', exact: true });
+    await expect(dialog).toBeVisible();
+    const input = dialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
+    await expect(input).toBeFocused();
+
+    await input.fill('loja');
+    await expect(dialog.getByText('Estabelecimentos', { exact: true })).toBeVisible();
+    await input.press('End');
+    await expect(dialog.locator('#global-search-result-0')).toBeVisible();
+    await input.press('Home');
+    await input.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+
+    await trigger.click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Fechar busca global' }).tap();
+    await expect(dialog).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
 });

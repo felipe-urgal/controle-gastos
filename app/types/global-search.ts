@@ -15,6 +15,9 @@ export type GlobalSearchResult = {
   title: string;
   subtitle: string | null;
   href: string;
+  matchedField?: string;
+  matchedText?: string | null;
+  matchKind?: 'exact' | 'prefix' | 'contains' | 'fuzzy';
 };
 
 export type GlobalSearchGroup = {

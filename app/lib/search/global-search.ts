@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/app/lib/prisma';
 import { consumeGlobalSearchRateLimit } from '@/app/lib/search/global-search-rate-limit';
 import { searchNamedEntityGroups } from '@/app/lib/search/global-search-entities';
+import { scoreGlobalSearchMatch } from '@/app/lib/search/global-search-ranking';
 import {
   GLOBAL_SEARCH_LIMIT_PER_GROUP,
   GLOBAL_SEARCH_TOTAL_LIMIT,
@@ -34,6 +35,26 @@ const FUZZY_SIMILARITY_THRESHOLD = 0.35;
 export const GLOBAL_SEARCH_P95_BUDGET_MS = 500;
 export const GLOBAL_SEARCH_SLOW_THRESHOLD_MS = 750;
 
+const relevance = scoreGlobalSearchMatch;
+
+function rankNamedResults<T extends { id: string; name: string; isActive: boolean }>(
+  items: T[],
+  query: string,
+  secondaryText: (item: T) => string | null = () => null,
+): T[] {
+  return items
+    .map((item) => ({
+      item,
+      score: Math.max(relevance(item.name, query), relevance(secondaryText(item) ?? '', query) - 25),
+    }))
+    .sort((a, b) => b.score - a.score
+      || Number(b.item.isActive) - Number(a.item.isActive)
+      || a.item.name.localeCompare(b.item.name, 'pt-BR')
+      || a.item.id.localeCompare(b.item.id))
+    .slice(0, GLOBAL_SEARCH_LIMIT_PER_GROUP)
+    .map(({ item }) => item);
+}
+
 function emitSearchTelemetry(input: {
   durationMs: number; queryLength: number; fuzzyUsed: boolean;
   status: 'ok' | 'rate_limited' | 'error';
@@ -49,6 +70,10 @@ function emitSearchTelemetry(input: {
   else console.info(JSON.stringify(record));
 }
 
+// Prefiltering only by transactions.description/ILIKE would drop valid fuzzy
+// matches originating from merchant names, aliases or tags (including typos).
+// Keep all four fields in the candidate set until a measured, equivalent
+// indexed preselection strategy is available; see the real-query EXPLAIN test.
 export function buildGlobalSearchFuzzyQuery(userId: string, query: string, excludeIds: string[]): Prisma.Sql {
   return Prisma.sql`
       SELECT
@@ -120,23 +145,17 @@ export async function getGlobalSearchForUser(
   const contains = { contains: query, mode: 'insensitive' as const };
 
   const [exactTransactions, accounts, categories, importRules, catalogGroups] = await Promise.all([
-    prisma.transaction.findMany({
-      where: {
-        userId,
-        OR: [
-          { description: contains },
-          { merchant: { is: { userId, name: contains } } },
-          {
-            merchant: {
-              is: {
-                userId,
-                aliases: { some: { userId, pattern: contains } },
-              },
-            },
-          },
-          { tagLinks: { some: { userId, tag: { name: contains } } } },
-        ],
-      },
+    Promise.all(([
+      { description: { equals: query, mode: 'insensitive' as const } },
+      { description: { startsWith: query, mode: 'insensitive' as const } },
+      { description: contains },
+      { OR: [
+        { merchant: { is: { userId, name: contains } } },
+        { merchant: { is: { userId, aliases: { some: { userId, pattern: contains } } } } },
+        { tagLinks: { some: { userId, tag: { name: { contains: query.replace(/^#/, ''), mode: 'insensitive' } } } } },
+      ] },
+    ] as Prisma.TransactionWhereInput[]).map((match) => prisma.transaction.findMany({
+      where: { userId, ...match },
       select: {
         id: true,
         description: true,
@@ -146,19 +165,17 @@ export async function getGlobalSearchForUser(
         year: true,
         month: true,
         day: true,
+        merchant: { select: { name: true, aliases: { where: { userId }, select: { pattern: true } } } },
         account: { select: { name: true } },
         category: { select: { name: true } },
-        tagLinks: { select: { tag: { select: { name: true } } }, take: 3 },
+        tagLinks: { where: { userId }, select: { tag: { select: { name: true } } } },
       },
       orderBy: [
-        { year: 'desc' },
-        { month: 'desc' },
-        { day: 'desc' },
-        { createdAt: 'desc' },
-        { id: 'desc' },
+        { year: 'desc' }, { month: 'desc' }, { day: 'desc' },
+        { createdAt: 'desc' }, { id: 'desc' },
       ],
       take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
-    }),
+    }))).then((batches) => [...new Map(batches.flat().map((item) => [item.id, item])).values()]),
     prisma.account.findMany({
       where: {
         userId,
@@ -167,12 +184,13 @@ export async function getGlobalSearchForUser(
       select: {
         id: true,
         name: true,
+        description: true,
         type: true,
         currency: true,
         isActive: true,
       },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP * 10,
     }),
     prisma.category.findMany({
       where: {
@@ -182,11 +200,12 @@ export async function getGlobalSearchForUser(
       select: {
         id: true,
         name: true,
+        description: true,
         type: true,
         isActive: true,
       },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP * 10,
     }),
     prisma.transactionImportRule.findMany({
       where: {
@@ -204,13 +223,27 @@ export async function getGlobalSearchForUser(
         category: { select: { name: true } },
       },
       orderBy: [{ priority: 'asc' }, { name: 'asc' }, { id: 'asc' }],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP * 10,
     }),
     searchNamedEntityGroups(userId, query),
   ]);
 
+  const rankedExactTransactions = exactTransactions
+    .map((item) => ({
+      item,
+      score: Math.max(
+        relevance(item.description, query),
+        relevance(item.merchant?.name ?? '', query) - 25,
+        ...((item.merchant?.aliases ?? []).map((alias) => relevance(alias.pattern, query) - 50)),
+        ...item.tagLinks.map((link) => relevance(link.tag.name, query.replace(/^#/, '')) - 75),
+      ),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, GLOBAL_SEARCH_LIMIT_PER_GROUP)
+    .map(({ item }) => item);
+
   const missingTransactionSlots =
-    GLOBAL_SEARCH_LIMIT_PER_GROUP - exactTransactions.length;
+    GLOBAL_SEARCH_LIMIT_PER_GROUP - rankedExactTransactions.length;
   onFuzzyDecision?.(missingTransactionSlots > 0 && query.length >= 3);
   const fuzzyIds =
     missingTransactionSlots > 0
@@ -218,7 +251,7 @@ export async function getGlobalSearchForUser(
           await fuzzyTransactionIds(
             userId,
             query,
-            exactTransactions.map((item) => item.id),
+            rankedExactTransactions.map((item) => item.id),
           )
         ).slice(0, missingTransactionSlots)
       : [];
@@ -236,16 +269,17 @@ export async function getGlobalSearchForUser(
             year: true,
             month: true,
             day: true,
+            merchant: { select: { name: true, aliases: { where: { userId }, select: { pattern: true } } } },
             account: { select: { name: true } },
             category: { select: { name: true } },
-            tagLinks: { select: { tag: { select: { name: true } } }, take: 3 },
+            tagLinks: { where: { userId }, select: { tag: { select: { name: true } } } },
           },
         })
       : [];
 
   const fuzzyById = new Map(fuzzyTransactions.map((item) => [item.id, item]));
   const transactions = [
-    ...exactTransactions,
+    ...rankedExactTransactions,
     ...fuzzyIds.flatMap((id) => {
       const item = fuzzyById.get(id);
       return item ? [item] : [];
@@ -255,9 +289,18 @@ export async function getGlobalSearchForUser(
   const groups: GlobalSearchGroup[] = [
     group(
       'TRANSACTION',
-      transactions.map((item) => ({
+      transactions.map((item) => {
+        const merchantMatch = item.merchant?.name && relevance(item.merchant.name, query) > 0;
+        const aliasMatch = item.merchant?.aliases.find((alias) => relevance(alias.pattern, query) > 0);
+        const tagMatch = item.tagLinks.find((link) => relevance(link.tag.name, query.replace(/^#/, '')) > 0);
+        const matchedField = relevance(item.description, query) > 0 ? 'description' : merchantMatch ? 'merchant' : aliasMatch ? 'alias' : tagMatch ? 'tag' : 'fuzzy';
+        const matchedText = matchedField === 'description' ? item.description : merchantMatch ? item.merchant?.name : aliasMatch?.pattern ?? tagMatch?.tag.name ?? null;
+        return ({
         id: item.id,
         type: 'TRANSACTION',
+        matchedField,
+        matchedText,
+        matchKind: matchedField === 'fuzzy' ? 'fuzzy' : relevance(matchedText ?? '', query.replace(/^#/, '')) === 400 ? 'exact' : relevance(matchedText ?? '', query.replace(/^#/, '')) === 300 ? 'prefix' : 'contains',
         title: item.description,
         subtitle: [
           item.kind === 'TRANSFER' ? `Transferência · ${item.transferRole === 'SOURCE' ? 'Origem' : 'Destino'}` : item.kind === 'CARD_PAYMENT' ? 'Pagamento de fatura' : 'Transação',
@@ -265,16 +308,18 @@ export async function getGlobalSearchForUser(
           `${String(item.day).padStart(2, '0')}/${String(item.month).padStart(2, '0')}/${item.year}`,
           item.account.name,
           item.category?.name ?? null,
+          merchantMatch || aliasMatch ? item.merchant?.name : null,
+          aliasMatch ? `Alias: ${aliasMatch.pattern}` : null,
           ...item.tagLinks.map((link) => `#${link.tag.name}`),
         ]
           .filter(Boolean)
           .join(' · '),
         href: `/transacoes/show/${item.id}`,
-      })),
+      }); }),
     ),
     group(
       'ACCOUNT',
-      accounts.map((item) => ({
+      rankNamedResults(accounts, query, (item) => item.description).map((item) => ({
         id: item.id,
         type: 'ACCOUNT',
         title: item.name,
@@ -284,7 +329,7 @@ export async function getGlobalSearchForUser(
     ),
     group(
       'CATEGORY',
-      categories.map((item) => ({
+      rankNamedResults(categories, query, (item) => item.description).map((item) => ({
         id: item.id,
         type: 'CATEGORY',
         title: item.name,
@@ -294,7 +339,7 @@ export async function getGlobalSearchForUser(
     ),
     group(
       'IMPORT_RULE',
-      importRules.map((item) => ({
+      rankNamedResults(importRules, query, (item) => item.descriptionPattern).map((item) => ({
         id: item.id,
         type: 'IMPORT_RULE',
         title: item.name,
