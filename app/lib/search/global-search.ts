@@ -95,7 +95,7 @@ export async function getGlobalSearchForUser(
 ): Promise<GlobalSearchData> {
   const contains = { contains: query, mode: 'insensitive' as const };
 
-  const [exactTransactions, accounts, categories, importRules, merchants, tags, debts] = await Promise.all([
+  const [exactTransactions, accounts, categories, importRules, merchants, tags, debts, templates, goals] = await Promise.all([
     prisma.transaction.findMany({
       where: {
         userId,
@@ -193,6 +193,22 @@ export async function getGlobalSearchForUser(
     }),
     prisma.debt.findMany({
       where: { userId, OR: [{ name: contains }, { institution: contains }] },
+      select: { id: true, name: true, status: true },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+    }),
+    prisma.transactionTemplate.findMany({
+      where: { userId, OR: [{ name: contains }, { description: contains }] },
+      select: {
+        id: true, name: true, isFavorite: true,
+        account: { select: { isActive: true } },
+        category: { select: { isActive: true } },
+      },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+    }),
+    prisma.financialGoal.findMany({
+      where: { userId, OR: [{ name: contains }, { description: contains }] },
       select: { id: true, name: true, status: true },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
       take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
@@ -308,6 +324,26 @@ export async function getGlobalSearchForUser(
         id: item.id, type: 'DEBT', title: item.name,
         subtitle: item.status,
         href: `/dividas?debtId=${encodeURIComponent(item.id)}`,
+      })),
+    ),
+    group(
+      'TEMPLATE',
+      templates.map((item) => ({
+        id: item.id, type: 'TEMPLATE', title: item.name,
+        subtitle: [
+          item.isFavorite ? 'Favorito' : 'Modelo',
+          item.account && !item.account.isActive ? 'Conta inativa' : null,
+          item.category && !item.category.isActive ? 'Categoria inativa' : null,
+        ].filter(Boolean).join(' · '),
+        href: `/modelos?templateId=${encodeURIComponent(item.id)}`,
+      })),
+    ),
+    group(
+      'GOAL',
+      goals.map((item) => ({
+        id: item.id, type: 'GOAL', title: item.name,
+        subtitle: item.status === 'ACTIVE' ? 'Ativa' : item.status === 'COMPLETED' ? 'Concluída' : 'Arquivada',
+        href: `/metas?goalId=${encodeURIComponent(item.id)}`,
       })),
     ),
   ].filter((item) => item.items.length > 0);
