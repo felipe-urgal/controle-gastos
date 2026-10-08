@@ -24,7 +24,8 @@ for (const variant of coreVariants) {
   if (!existsSync(join(dest, "core", `${variant}.js`)) || !existsSync(join(dest, "core", variant))) {
     throw new Error(`Missing Tesseract core variant: ${variant}`);
   }
-}\nif (!existsSync(join(dest, "core", "tesseract-core.wasm.js"))) {
+}
+if (!existsSync(join(dest, "core", "tesseract-core.wasm.js"))) {
   throw new Error("Tesseract WASM core not found");
 }
 
