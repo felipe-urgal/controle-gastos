@@ -146,6 +146,46 @@ describe("offline transaction queue", () => {
     expect(readOfflineTransactionQueue("user-a")).toEqual([]);
   });
 
+  it("migrates legacy synced entries without consuming queue capacity", () => {
+    const { localStorage } = installLocalStorage();
+    const key = `${OFFLINE_TRANSACTION_QUEUE_PREFIX}user-a`;
+    const now = new Date().toISOString();
+    localStorage.setItem(key, JSON.stringify(Array.from({ length: 25 }, (_, n) => ({
+      version: 1, id: `old-${n}`, ownerUserId: "user-a",
+      idempotencyKey: `old-key-${n}`, payload, status: "synced",
+      createdAt: now, updatedAt: now,
+    }))));
+    expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+    expect(enqueueOfflineTransaction("user-a", payload, {
+      id: "new-purchase", idempotencyKey: "new-key",
+    }).status).toBe("pending");
+    expect(readOfflineTransactionQueue("user-a")).toHaveLength(1);
+  });
+
+  it("keeps the original key if cleanup fails after server confirmation", async () => {
+    const { localStorage } = installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "crash", idempotencyKey: "same-key" });
+    const originalSetItem = localStorage.setItem;
+    let failCleanup = true;
+    localStorage.setItem = (key, value) => {
+      if (failCleanup && JSON.parse(value).length === 0) {
+        failCleanup = false;
+        throw new Error("disk unavailable");
+      }
+      originalSetItem(key, value);
+    };
+    const created = new Map<string, string>();
+    const send = async (_: typeof payload, key: string) => {
+      if (!created.has(key)) created.set(key, `created-${created.size + 1}`);
+      return created.get(key);
+    };
+    await expect(syncOfflineTransactionQueueItem("user-a", "crash", send)).rejects.toThrow();
+    expect(readOfflineTransactionQueue("user-a")[0].idempotencyKey).toBe("same-key");
+    await syncOfflineTransactionQueueItem("user-a", "crash", send);
+    expect(created.size).toBe(1);
+    expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+  });
+
   it("recovers an interrupted sending item as pending after reload", () => {
     const { localStorage } = installLocalStorage();
     const key = `${OFFLINE_TRANSACTION_QUEUE_PREFIX}user-a`;
