@@ -14,7 +14,7 @@ async function login(page, email) {
 test('busca global: entidades por usuário e destinos contextuais', async ({ page }) => {
   test.setTimeout(120_000);
   const unique = `BuscaEnt${Date.now().toString(36)}`;
-  const email = `qa-search-entities-${unique}@example.test`;
+  const email = `qa-search-entities-${unique.toLowerCase()}@example.test`;
   await createVerifiedUser({ name: 'QA Busca Entidades', email, password });
   await login(page, email);
 
