@@ -1287,7 +1287,7 @@ model PasswordResetToken {
   
   @@map("password_reset_tokens")
 
-  @@index([userId])
+  @@unique([userId])
   @@index([expiresAt])
 }
 

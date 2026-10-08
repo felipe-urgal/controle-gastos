@@ -114,16 +114,18 @@ export async function POST(request: Request): Promise<NextResponse> {
       const { token, tokenHash } = generatePasswordResetToken();
       const expiresAt = new Date(Date.now() + ONE_HOUR);
 
-      await prisma.$transaction([
-        prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }),
-        prisma.passwordResetToken.create({
-          data: {
-            token: tokenHash,
-            userId: user.id,
-            expiresAt,
-          },
-        }),
-      ]);
+      // Um único token por usuário (userId único): o upsert substitui
+      // atomicamente. Guardamos o anterior para restaurá-lo se a entrega falhar.
+      const previous = await prisma.passwordResetToken.findUnique({
+        where: { userId: user.id },
+        select: { token: true, expiresAt: true },
+      });
+
+      await prisma.passwordResetToken.upsert({
+        where: { userId: user.id },
+        create: { token: tokenHash, userId: user.id, expiresAt },
+        update: { token: tokenHash, expiresAt, createdAt: new Date() },
+      });
 
       try {
         await sendPasswordResetEmail({
@@ -132,9 +134,16 @@ export async function POST(request: Request): Promise<NextResponse> {
           token,
         });
       } catch (error) {
-        await prisma.passwordResetToken.deleteMany({
-          where: { userId: user.id, token: tokenHash },
-        });
+        if (previous && previous.expiresAt > new Date()) {
+          await prisma.passwordResetToken.updateMany({
+            where: { userId: user.id, token: tokenHash },
+            data: { token: previous.token, expiresAt: previous.expiresAt },
+          });
+        } else {
+          await prisma.passwordResetToken.deleteMany({
+            where: { userId: user.id, token: tokenHash },
+          });
+        }
         logEvent(
           "error",
           "password_reset_delivery_failed",
