@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
+import { FISCAL_PTAX_LOOKBACK_DAYS } from '@/app/lib/currency/fiscal-ptax-resolver';
 import { EXCHANGE_RATE_MAX_COMPONENT } from '@/app/lib/currency/exchange-rate-domain';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 const PTAX_BASE_URL =
   'https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoMoedaPeriodo(moeda=@moeda,dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)';
 const PTAX_TIMEOUT_MS = 5_000;
-const PTAX_LOOKBACK_DAYS = 10;
+const PTAX_LOOKBACK_DAYS = FISCAL_PTAX_LOOKBACK_DAYS;
 
 const ptaxResponseSchema = z.object({
   value: z.array(
@@ -17,6 +18,37 @@ const ptaxResponseSchema = z.object({
     }),
   ),
 });
+
+export type PtaxErrorKind =
+  | 'INVALID_INPUT'
+  | 'UPSTREAM_TIMEOUT'
+  | 'UPSTREAM_UNAVAILABLE'
+  | 'UPSTREAM_RATE_LIMIT'
+  | 'INVALID_UPSTREAM_PAYLOAD'
+  | 'NO_QUOTE_IN_LOOKBACK';
+
+const PTAX_ERROR_STATUS: Record<PtaxErrorKind, number> = {
+  INVALID_INPUT: 400,
+  NO_QUOTE_IN_LOOKBACK: 404,
+  UPSTREAM_RATE_LIMIT: 429,
+  INVALID_UPSTREAM_PAYLOAD: 502,
+  UPSTREAM_UNAVAILABLE: 503,
+  UPSTREAM_TIMEOUT: 504,
+};
+
+export class PtaxError extends Error {
+  readonly status: number;
+
+  constructor(
+    readonly kind: PtaxErrorKind,
+    message: string,
+    readonly retryAfterSeconds?: number,
+  ) {
+    super(message);
+    this.name = 'PtaxError';
+    this.status = PTAX_ERROR_STATUS[kind];
+  }
+}
 
 type LogicalDate = {
   year: number;
@@ -76,7 +108,10 @@ function toSafeRate(value: Fraction) {
     reduced.numerator > BigInt(EXCHANGE_RATE_MAX_COMPONENT) ||
     reduced.denominator > BigInt(EXCHANGE_RATE_MAX_COMPONENT)
   ) {
-    throw new Error('Cotação PTAX excede o limite numérico suportado');
+    throw new PtaxError(
+      'INVALID_UPSTREAM_PAYLOAD',
+      'Cotação PTAX excede o limite numérico suportado',
+    );
   }
 
   return {
@@ -145,8 +180,10 @@ function buildUrl(currency: Exclude<SupportedCurrency, 'BRL'>, start: LogicalDat
 }
 
 async function requestPtax(url: URL, fetchFn: FetchLike) {
-  let lastError: unknown;
+  let lastError: PtaxError | null = null;
 
+  // No máximo 2 tentativas, só para falhas transitórias (5xx/rede/timeout).
+  // 429 do BCB não é reenviado: respeitamos o limite do upstream.
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), PTAX_TIMEOUT_MS);
@@ -159,38 +196,64 @@ async function requestPtax(url: URL, fetchFn: FetchLike) {
         cache: 'no-store',
       });
 
+      if (response.status === 429) {
+        const retryAfter = Number(response.headers?.get('retry-after'));
+        throw new PtaxError(
+          'UPSTREAM_RATE_LIMIT',
+          'O BCB limitou temporariamente as consultas de PTAX. Tente novamente em instantes.',
+          Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : 60,
+        );
+      }
+
       if (!response.ok) {
-        const error = new Error(`BCB PTAX respondeu HTTP ${response.status}`);
-        if (response.status !== 429 && response.status < 500) {
-          throw error;
-        }
+        const error = new PtaxError(
+          'UPSTREAM_UNAVAILABLE',
+          `BCB PTAX temporariamente indisponível (HTTP ${response.status})`,
+        );
+        if (response.status < 500) throw error;
         lastError = error;
         continue;
       }
 
       const payload = ptaxResponseSchema.safeParse(await response.json());
       if (!payload.success) {
-        throw new Error('Resposta inválida recebida do BCB PTAX');
+        throw new PtaxError(
+          'INVALID_UPSTREAM_PAYLOAD',
+          'Resposta inválida recebida do BCB PTAX',
+        );
       }
       return payload.data.value;
     } catch (error) {
-      lastError = error;
-      if (
-        error instanceof Error &&
-        (error.message.startsWith('Resposta inválida') ||
-          /^BCB PTAX respondeu HTTP 4(?!29)/.test(error.message))
-      ) {
+      if (error instanceof PtaxError) {
         throw error;
+      } else if (error instanceof Error && error.name === 'AbortError') {
+        lastError = new PtaxError(
+          'UPSTREAM_TIMEOUT',
+          'Tempo limite excedido ao consultar o BCB PTAX',
+        );
+      } else if (error instanceof SyntaxError) {
+        throw new PtaxError(
+          'INVALID_UPSTREAM_PAYLOAD',
+          'Resposta inválida recebida do BCB PTAX',
+        );
+      } else {
+        lastError = new PtaxError(
+          'UPSTREAM_UNAVAILABLE',
+          'Não foi possível consultar o BCB PTAX',
+        );
       }
     } finally {
       clearTimeout(timeout);
     }
   }
 
-  if (lastError instanceof Error && lastError.name === 'AbortError') {
-    throw new Error('Tempo limite excedido ao consultar o BCB PTAX');
-  }
-  throw new Error('Não foi possível consultar o BCB PTAX');
+  throw (
+    lastError ??
+    new PtaxError(
+      'UPSTREAM_UNAVAILABLE',
+      'Não foi possível consultar o BCB PTAX',
+    )
+  );
 }
 
 async function loadQuotes(
@@ -219,7 +282,7 @@ async function loadQuotes(
   return quotes;
 }
 
-export async function fetchPtaxExchangeRate(
+async function fetchPtaxExchangeRateUncached(
   input: {
     from: SupportedCurrency;
     to: SupportedCurrency;
@@ -229,7 +292,7 @@ export async function fetchPtaxExchangeRate(
   fetchFn: FetchLike = fetch,
 ) {
   if (input.from === input.to) {
-    throw new Error('Taxa deve converter entre moedas diferentes');
+    throw new PtaxError('INVALID_INPUT', 'Taxa deve converter entre moedas diferentes');
   }
 
   const quoteSide = input.quoteSide ?? 'SELL';
@@ -264,5 +327,36 @@ export async function fetchPtaxExchangeRate(
     };
   }
 
-  throw new Error('BCB PTAX não possui cotação no período solicitado');
+  throw new PtaxError(
+    'NO_QUOTE_IN_LOOKBACK',
+    'BCB PTAX não possui cotação no período solicitado',
+  );
+}
+
+const inFlight = new Map<
+  string,
+  ReturnType<typeof fetchPtaxExchangeRateUncached>
+>();
+
+/** Requisições simultâneas ao mesmo par/data/lado compartilham uma consulta. */
+export function fetchPtaxExchangeRate(
+  input: Parameters<typeof fetchPtaxExchangeRateUncached>[0],
+  fetchFn?: FetchLike,
+) {
+  if (fetchFn) return fetchPtaxExchangeRateUncached(input, fetchFn);
+
+  const key = [
+    input.from,
+    input.to,
+    input.quoteSide ?? 'SELL',
+    dateKey(input.referenceDate),
+  ].join('|');
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+
+  const request = fetchPtaxExchangeRateUncached(input).finally(() => {
+    inFlight.delete(key);
+  });
+  inFlight.set(key, request);
+  return request;
 }

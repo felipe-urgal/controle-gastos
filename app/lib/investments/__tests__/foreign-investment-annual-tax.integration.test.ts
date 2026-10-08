@@ -1209,4 +1209,256 @@ describe("foreign investment annual tax", () => {
     ).toBe(1);
     expect(ptaxMocks.fetchPtaxExchangeRate).toHaveBeenCalledTimes(1);
   });
+
+  it("never accepts a MANUAL rate as PTAX in the fiscal report", async () => {
+    const user = await createUser("Manual Is Not PTAX Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "MANUALFX",
+    });
+    for (const [type, month, price] of [
+      ["BUY", 1, 10_000],
+      ["SELL", 2, 12_000],
+    ] as const) {
+      await addOperation({
+        userId: user.id,
+        accountId: account.id,
+        assetId: asset.id,
+        type,
+        quantity: "1",
+        priceCents: price,
+        year: 2025,
+        month,
+        day: 2,
+      });
+    }
+    for (const month of [1, 2]) {
+      await prisma.exchangeRate.create({
+        data: {
+          userId: user.id,
+          fromCurrency: "USD",
+          toCurrency: "BRL",
+          numerator: 9,
+          denominator: 1,
+          source: "MANUAL",
+          quoteSide: "GENERIC",
+          referenceYear: 2025,
+          referenceMonth: month,
+          referenceDay: 2,
+        },
+      });
+    }
+
+    const report = await getForeignInvestmentAnnualTaxReportForUser(
+      user.id,
+      2025,
+    );
+
+    expect(report.status).toBe("PENDING");
+    expect(report.pending).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "MISSING_PTAX", symbol: "MANUALFX" }),
+      ]),
+    );
+  });
+
+  it("refresh ignores MANUAL: manual only fetches, PTAX exists reuses, manual is kept", async () => {
+    const user = await createUser("Refresh Ignores Manual Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "REFMANUAL",
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      type: "BUY",
+      quantity: "1",
+      priceCents: 10_000,
+      year: 2025,
+      month: 3,
+      day: 10,
+    });
+    const manual = await prisma.exchangeRate.create({
+      data: {
+        userId: user.id,
+        fromCurrency: "USD",
+        toCurrency: "BRL",
+        numerator: 9,
+        denominator: 1,
+        source: "MANUAL",
+        quoteSide: "GENERIC",
+        referenceYear: 2025,
+        referenceMonth: 3,
+        referenceDay: 10,
+      },
+    });
+    ptaxMocks.fetchPtaxExchangeRate.mockResolvedValue({
+      from: "USD",
+      to: "BRL",
+      numerator: 5,
+      denominator: 1,
+      referenceDate: { year: 2025, month: 3, day: 10 },
+      quoteSide: "BUY",
+    });
+
+    const first = await refreshForeignInvestmentPtaxForUser(user.id, 2025);
+    const second = await refreshForeignInvestmentPtaxForUser(user.id, 2025);
+
+    expect(first).toMatchObject({ requested: 1, fetched: 1, reused: 0 });
+    expect(second).toMatchObject({ requested: 1, fetched: 0, reused: 1 });
+    expect(ptaxMocks.fetchPtaxExchangeRate).toHaveBeenCalledTimes(1);
+    const kept = await prisma.exchangeRate.findUnique({
+      where: { id: manual.id },
+    });
+    expect(kept).toMatchObject({ numerator: 9, source: "MANUAL" });
+  });
+
+  it("PTAX BUY does not satisfy a SELL requirement (and vice versa) in refresh", async () => {
+    const user = await createUser("Refresh Side Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "REFSIDE",
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      type: "SELL",
+      quantity: "1",
+      priceCents: 10_000,
+      year: 2025,
+      month: 4,
+      day: 7,
+    });
+    await addRate({
+      userId: user.id,
+      side: "BUY",
+      numerator: 5,
+      year: 2025,
+      month: 4,
+      day: 7,
+    });
+    ptaxMocks.fetchPtaxExchangeRate.mockResolvedValue({
+      from: "USD",
+      to: "BRL",
+      numerator: 6,
+      denominator: 1,
+      referenceDate: { year: 2025, month: 4, day: 7 },
+      quoteSide: "SELL",
+    });
+
+    const result = await refreshForeignInvestmentPtaxForUser(user.id, 2025);
+
+    expect(result).toMatchObject({ fetched: 1, reused: 0 });
+    expect(ptaxMocks.fetchPtaxExchangeRate).toHaveBeenCalledWith(
+      expect.objectContaining({ quoteSide: "SELL" }),
+    );
+  });
+
+  it("refresh runs with limited concurrency and keeps partial failures", async () => {
+    const user = await createUser("Refresh Concurrency Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "REFCONC",
+    });
+    for (let day = 1; day <= 10; day += 1) {
+      await addOperation({
+        userId: user.id,
+        accountId: account.id,
+        assetId: asset.id,
+        type: "BUY",
+        quantity: "1",
+        priceCents: 10_000,
+        year: 2025,
+        month: 5,
+        day: day * 2,
+      });
+    }
+    let active = 0;
+    let maxActive = 0;
+    ptaxMocks.fetchPtaxExchangeRate.mockImplementation(
+      async (input: { referenceDate: { year: number; month: number; day: number } }) => {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        active -= 1;
+        if (input.referenceDate.day === 4) throw new Error("BCB indisponível");
+        return {
+          from: "USD",
+          to: "BRL",
+          numerator: 5,
+          denominator: 1,
+          referenceDate: input.referenceDate,
+          quoteSide: "BUY",
+        };
+      },
+    );
+
+    const result = await refreshForeignInvestmentPtaxForUser(user.id, 2025);
+
+    expect(result.requested).toBe(10);
+    expect(result.fetched).toBe(9);
+    expect(result.failed).toHaveLength(1);
+    expect(maxActive).toBeGreaterThan(1);
+    expect(maxActive).toBeLessThanOrEqual(4);
+  });
+
+  it("loads only the needed PTAX rows (not the whole FX history)", async () => {
+    const user = await createUser("Query Budget Owner");
+    const { account, asset } = await createContext({
+      userId: user.id,
+      symbol: "QBUDGET",
+    });
+    await addOperation({
+      userId: user.id,
+      accountId: account.id,
+      assetId: asset.id,
+      type: "BUY",
+      quantity: "1",
+      priceCents: 10_000,
+      year: 2025,
+      month: 1,
+      day: 6,
+    });
+    await prisma.exchangeRate.createMany({
+      data: [
+        ...Array.from({ length: 30 }, (_, index) => ({
+          userId: user.id,
+          fromCurrency: "EUR",
+          toCurrency: "BRL",
+          numerator: 6,
+          denominator: 1,
+          source: "BCB_PTAX" as const,
+          quoteSide: "BUY" as const,
+          referenceYear: 2025,
+          referenceMonth: 1,
+          referenceDay: index + 1,
+        })),
+        {
+          userId: user.id,
+          fromCurrency: "USD",
+          toCurrency: "EUR",
+          numerator: 9,
+          denominator: 10,
+          source: "BCB_PTAX" as const,
+          quoteSide: "BUY" as const,
+          referenceYear: 2025,
+          referenceMonth: 1,
+          referenceDay: 6,
+        },
+      ],
+    });
+    const spy = vi.spyOn(prisma.exchangeRate, "findMany");
+    try {
+      await getForeignInvestmentAnnualTaxReportForUser(user.id, 2025);
+      const where = spy.mock.calls[0]![0]!.where as {
+        fromCurrency: { in: string[] };
+      };
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(where.fromCurrency.in).toEqual(["USD"]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });

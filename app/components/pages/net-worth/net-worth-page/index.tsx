@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   FaChartLine,
   FaChevronRight,
@@ -57,6 +57,20 @@ function displayPercent(value: number | null, showValues: boolean) {
 
 function currentIsoDate() {
   return formatIsoLogicalDate(logicalDateFromUtcInstant(new Date()));
+}
+
+function refreshFailureMessage(mutation: string | null, what: string) {
+  return mutation
+    ? `A taxa foi ${mutation} com sucesso, mas ${what}. Recarregue a página para ver o estado atual.`
+    : null;
+}
+
+function rateProvenanceLabel(rate: ExchangeRateModel['provenance'], from: string, to: string) {
+  if (rate === 'PTAX_CROSS') {
+    return `Derivada das PTAX ${from}/BRL e ${to}/BRL (referência, não é cotação direta)`;
+  }
+  if (rate === 'PTAX_DIRECT') return 'PTAX direta (BCB)';
+  return 'Taxa manual';
 }
 
 function periodInputValue(period: { year: number; month: number }) {
@@ -145,7 +159,12 @@ export default function NetWorthPage() {
   const [rateTotal, setRateTotal] = useState(0);
   const [rateFilterFrom, setRateFilterFrom] = useState<SupportedCurrency | ''>('');
   const [rateFilterTo, setRateFilterTo] = useState<SupportedCurrency | ''>('');
+  const [rateSourceTab, setRateSourceTab] =
+    useState<ExchangeRateModel['source']>('MANUAL');
   const [rateError, setRateError] = useState('');
+  const [rateNotice, setRateNotice] = useState('');
+  // Mutação concluída cujo refresh ainda não confirmou: falha de GET não vira falha de POST/DELETE.
+  const pendingMutationRef = useRef<string | null>(null);
   const [rateSaving, setRateSaving] = useState(false);
   const [rateFetchingPtax, setRateFetchingPtax] = useState(false);
   const [rateFrom, setRateFrom] = useState<SupportedCurrency>('USD');
@@ -229,9 +248,13 @@ export default function NetWorthPage() {
       .catch((requestError) => {
         if (!cancelled) {
           setRateError(
-            requestError instanceof Error
-              ? requestError.message
-              : 'Não foi possível recalcular a consolidação cambial',
+            refreshFailureMessage(
+              pendingMutationRef.current,
+              'a consolidação não foi recalculada',
+            ) ??
+              (requestError instanceof Error
+                ? requestError.message
+                : 'Não foi possível recalcular a consolidação cambial'),
           );
         }
       });
@@ -249,9 +272,11 @@ export default function NetWorthPage() {
         limit: 10,
         ...(rateFilterFrom ? { from: rateFilterFrom } : {}),
         ...(rateFilterTo ? { to: rateFilterTo } : {}),
+        source: rateSourceTab,
       })
       .then((response) => {
         if (cancelled) return;
+        pendingMutationRef.current = null;
         setRates(response.data.items);
         setRatePage(response.data.page);
         setRateHasMore(response.data.hasMore);
@@ -261,9 +286,13 @@ export default function NetWorthPage() {
       .catch((requestError) => {
         if (!cancelled) {
           setRateError(
-            requestError instanceof Error
-              ? requestError.message
-              : 'Não foi possível carregar as taxas de câmbio',
+            refreshFailureMessage(
+              pendingMutationRef.current,
+              'a lista não foi atualizada',
+            ) ??
+              (requestError instanceof Error
+                ? requestError.message
+                : 'Não foi possível carregar as taxas de câmbio'),
           );
         }
       })
@@ -274,11 +303,12 @@ export default function NetWorthPage() {
     return () => {
       cancelled = true;
     };
-  }, [rateFilterFrom, rateFilterTo, ratesNonce]);
+  }, [rateFilterFrom, rateFilterTo, rateSourceTab, ratesNonce]);
 
   async function handleRateSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setRateError('');
+    setRateNotice('');
 
     if (rateFrom === rateTo) {
       setRateError('Escolha moedas diferentes para a taxa.');
@@ -288,6 +318,11 @@ export default function NetWorthPage() {
     const ratio = decimalRateToRatio(rateValue);
     if (!ratio) {
       setRateError('Informe uma taxa positiva com até 6 casas decimais.');
+      return;
+    }
+
+    if (rateDate > currentIsoDate()) {
+      setRateError('A data de referência não pode ser futura.');
       return;
     }
 
@@ -310,6 +345,8 @@ export default function NetWorthPage() {
         },
       });
       setRateValue('');
+      pendingMutationRef.current = 'salva';
+      setRateNotice('Taxa manual salva.');
       setRatesNonce((current) => current + 1);
       setConsolidationNonce((current) => current + 1);
     } catch (requestError) {
@@ -325,9 +362,15 @@ export default function NetWorthPage() {
 
   async function handlePtaxFetch() {
     setRateError('');
+    setRateNotice('');
 
     if (rateFrom === rateTo) {
       setRateError('Escolha moedas diferentes para a cotação PTAX.');
+      return;
+    }
+
+    if (rateDate > currentIsoDate()) {
+      setRateError('A data de referência não pode ser futura.');
       return;
     }
 
@@ -348,6 +391,8 @@ export default function NetWorthPage() {
           day: dateDay,
         },
       });
+      pendingMutationRef.current = 'salva';
+      setRateNotice('Cotação PTAX salva.');
       setRatesNonce((current) => current + 1);
       setConsolidationNonce((current) => current + 1);
     } catch (requestError) {
@@ -365,9 +410,15 @@ export default function NetWorthPage() {
     if (!ratePendingDelete) return;
 
     setRateError('');
+    setRateNotice('');
     setRateDeleteLoading(true);
     try {
       await exchangeRateService.remove(ratePendingDelete.id);
+      const removedId = ratePendingDelete.id;
+      setRates((current) => current.filter((rate) => rate.id !== removedId));
+      setRateTotal((current) => Math.max(0, current - 1));
+      pendingMutationRef.current = 'excluída';
+      setRateNotice('Taxa manual excluída.');
       setRatePendingDelete(null);
       setRatesNonce((current) => current + 1);
       setConsolidationNonce((current) => current + 1);
@@ -392,6 +443,7 @@ export default function NetWorthPage() {
         limit: 10,
         ...(rateFilterFrom ? { from: rateFilterFrom } : {}),
         ...(rateFilterTo ? { to: rateFilterTo } : {}),
+        source: rateSourceTab,
       });
       setRates((current) => [...current, ...response.data.items]);
       setRatePage(response.data.page);
@@ -565,6 +617,8 @@ export default function NetWorthPage() {
                 total={rateTotal}
                 filterFrom={rateFilterFrom}
                 filterTo={rateFilterTo}
+                sourceTab={rateSourceTab}
+                notice={rateNotice}
                 error={rateError}
                 saving={rateSaving}
                 fetchingPtax={rateFetchingPtax}
@@ -575,6 +629,7 @@ export default function NetWorthPage() {
                 showValues={showValues}
                 onFilterFromChange={setRateFilterFrom}
                 onFilterToChange={setRateFilterTo}
+                onSourceTabChange={setRateSourceTab}
                 onFromChange={setRateFrom}
                 onToChange={setRateTo}
                 onValueChange={setRateValue}
@@ -663,8 +718,10 @@ export default function NetWorthPage() {
             <p className="text-sm leading-relaxed text-[var(--text-muted)]">
               A taxa {ratePendingDelete.from} → {ratePendingDelete.to} de{' '}
               {logicalDateLabel(ratePendingDelete.referenceDate)} será removida.
-              Se ela estiver sustentando uma consolidação, o total convertido pode
-              ficar incompleto.
+              Consolidações são recalculadas com a taxa disponível: o total pode
+              ficar incompleto, usar uma taxa mais antiga ou voltar a usar a PTAX da
+              mesma data, inclusive em períodos anteriores. Você pode recadastrar
+              a taxa depois.
             </p>
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
@@ -745,13 +802,17 @@ function ConsolidationCard({
         <div className="mt-4 space-y-3">
           <div
             className={`rounded-[14px] border p-4 ${
-              consolidation.complete
+              consolidation.complete && !consolidation.stale
                 ? 'border-[var(--income)]/30 bg-[var(--primary-subtle)]'
                 : 'border-[var(--expense)]/30 bg-[var(--danger-subtle)]'
             }`}
           >
             <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
-              {consolidation.complete ? 'Patrimônio convertido' : 'Consolidação incompleta'}
+              {!consolidation.complete
+                ? 'Consolidação incompleta'
+                : consolidation.stale
+                  ? 'Estimativa com taxa defasada'
+                  : 'Patrimônio convertido'}
             </span>
             <strong className="mt-1 block text-2xl font-extrabold text-[var(--foreground)]">
               {consolidation.total === null
@@ -766,6 +827,13 @@ function ConsolidationCard({
               Base {consolidation.baseCurrency} · referência {logicalDateLabel(consolidation.referenceDate)}
             </p>
           </div>
+
+          {consolidation.complete && consolidation.stale && (
+            <p className="rounded-[12px] border border-[var(--expense)]/25 p-3 text-sm text-[var(--text-muted)]">
+              O total usa ao menos uma taxa com mais de 7 dias de defasagem e deve
+              ser lido como estimativa. Cadastre ou busque uma taxa mais recente.
+            </p>
+          )}
 
           {consolidation.missingRates.length > 0 && (
             <div className="rounded-[12px] border border-[var(--expense)]/25 p-3">
@@ -797,6 +865,39 @@ function ConsolidationCard({
                         : `Taxa •••• · ${item.rate.source} · ${logicalDateLabel(item.rate.referenceDate)}`
                       : 'Mesma moeda, sem conversão'}
                   </p>
+                  {item.resolution && (
+                    <ul className="mt-1 space-y-0.5 text-xs text-[var(--text-muted)]">
+                      <li
+                        className={
+                          item.resolution.freshness === 'STALE'
+                            ? 'font-semibold text-[var(--expense)]'
+                            : undefined
+                        }
+                      >
+                        Taxa de {logicalDateLabel(item.rate!.referenceDate)} ·{' '}
+                        {item.resolution.ageDays === 0
+                          ? 'hoje'
+                          : `${item.resolution.ageDays} ${item.resolution.ageDays === 1 ? 'dia' : 'dias'} atrás`}
+                        {item.resolution.freshness === 'STALE' &&
+                          ' · defasada'}
+                      </li>
+                      <li>
+                        {rateProvenanceLabel(
+                          item.resolution.provenance,
+                          item.rate!.from,
+                          item.rate!.to,
+                        )}
+                        {item.resolution.derivedFromInverse &&
+                          ' · inversa da taxa cadastrada no sentido oposto'}
+                      </li>
+                      {item.resolution.overridesPtax && (
+                        <li className="font-semibold text-[var(--foreground)]">
+                          Override manual em uso: existe PTAX na mesma data. Para
+                          usar a PTAX, exclua a taxa manual desta data.
+                        </li>
+                      )}
+                    </ul>
+                  )}
                 </div>
                 <span className="text-sm font-bold text-[var(--foreground)]">
                   {displayMoney(
@@ -828,6 +929,8 @@ function ExchangeRatesCard({
   total,
   filterFrom,
   filterTo,
+  sourceTab,
+  notice,
   error,
   saving,
   fetchingPtax,
@@ -838,6 +941,7 @@ function ExchangeRatesCard({
   showValues,
   onFilterFromChange,
   onFilterToChange,
+  onSourceTabChange,
   onFromChange,
   onToChange,
   onValueChange,
@@ -854,6 +958,8 @@ function ExchangeRatesCard({
   total: number;
   filterFrom: SupportedCurrency | '';
   filterTo: SupportedCurrency | '';
+  sourceTab: ExchangeRateModel['source'];
+  notice: string;
   error: string;
   saving: boolean;
   fetchingPtax: boolean;
@@ -864,6 +970,7 @@ function ExchangeRatesCard({
   showValues: boolean;
   onFilterFromChange: (currency: SupportedCurrency | '') => void;
   onFilterToChange: (currency: SupportedCurrency | '') => void;
+  onSourceTabChange: (source: ExchangeRateModel['source']) => void;
   onFromChange: (currency: SupportedCurrency) => void;
   onToChange: (currency: SupportedCurrency) => void;
   onValueChange: (value: string) => void;
@@ -883,13 +990,16 @@ function ExchangeRatesCard({
         </h2>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
           Use uma taxa manual ou consulte a PTAX oficial sob demanda. A consolidação
-          usa somente a taxa mais recente na data ou antes dela; taxa futura nunca
-          entra no snapshot atual.
+          usa somente a taxa mais recente na data ou antes dela (SELL por padrão);
+          taxa futura nunca entra no snapshot atual. Taxa manual é um override
+          editável: salvar ou excluir recalcula consolidações, inclusive de períodos
+          anteriores. A apuração fiscal de investimentos no exterior usa somente PTAX.
         </p>
       </div>
 
       <form
         onSubmit={onSave}
+        noValidate
         className="mt-4 grid gap-3 rounded-[14px] bg-[var(--surface-raised)] p-3 md:grid-cols-[120px_120px_minmax(150px,1fr)_170px_auto] md:items-end"
       >
         <label>
@@ -947,7 +1057,7 @@ function ExchangeRatesCard({
             value={referenceDate}
             onChange={(event) => onReferenceDateChange(event.target.value)}
             min="2000-01-01"
-            max="2100-12-31"
+            max={currentIsoDate()}
             className="ds-control min-h-11 w-full px-3"
             aria-label="Data de referência da taxa"
           />
@@ -973,9 +1083,14 @@ function ExchangeRatesCard({
       </form>
 
       {futureReference && (
-        <p className="mt-2 text-xs text-[var(--text-muted)]">
-          Essa data é futura. A taxa pode ser salva para referência, mas não será
-          usada automaticamente antes desse dia.
+        <p className="mt-2 text-xs text-[var(--expense)]">
+          Taxas de câmbio factuais não aceitam data futura.
+        </p>
+      )}
+
+      {notice && !error && (
+        <p role="status" className="mt-3 text-sm text-[var(--text-muted)]">
+          {notice}
         </p>
       )}
 
@@ -988,7 +1103,41 @@ function ExchangeRatesCard({
         </p>
       )}
 
-      <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+      <div
+        role="tablist"
+        aria-label="Origem das taxas"
+        className="mt-5 inline-flex rounded-full border border-[var(--border)] p-1"
+      >
+        {(
+          [
+            ['MANUAL', 'Manuais'],
+            ['BCB_PTAX', 'PTAX'],
+          ] as const
+        ).map(([source, label]) => (
+          <button
+            key={source}
+            type="button"
+            role="tab"
+            aria-selected={sourceTab === source}
+            onClick={() => onSourceTabChange(source)}
+            className={`min-h-11 rounded-full px-4 text-sm font-bold ${
+              sourceTab === source
+                ? 'bg-[var(--orbit-primary)] text-white'
+                : 'text-[var(--text-muted)]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {sourceTab === 'BCB_PTAX' && (
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          Inclui cotações buscadas por você e as importadas pela apuração fiscal de
+          investimentos no exterior. Esta lista não pode ser excluída aqui.
+        </p>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h3 className="font-bold text-[var(--foreground)]">
             Histórico de taxas
@@ -1068,6 +1217,7 @@ function ExchangeRatesCard({
                       {rate.source === 'BCB_PTAX' && (
                         <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">
                           PTAX {rate.quoteSide === 'BUY' ? 'compra' : 'venda'}
+                          {rate.provenance === 'PTAX_CROSS' && ' · derivada'}
                         </span>
                       )}
                     </div>
@@ -1079,7 +1229,14 @@ function ExchangeRatesCard({
                       {logicalDateLabel(rate.referenceDate)}
                       {' · '}
                       {rate.source}
+                      {' · atualizada em '}
+                      {new Date(rate.updatedAt).toLocaleDateString('pt-BR')}
                     </span>
+                    {rate.provenance === 'PTAX_CROSS' && (
+                      <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                        {rateProvenanceLabel(rate.provenance, rate.from, rate.to)}
+                      </span>
+                    )}
                   </div>
                   {rate.source === 'MANUAL' ? (
                     <button

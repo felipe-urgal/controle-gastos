@@ -4,7 +4,8 @@ import {
   assertExchangeRate,
   consolidateCurrencyAmounts,
   convertCurrencyAmount,
-  latestRateOnOrBefore,
+  checkedSumCents,
+  exchangeRateProvenance,
 } from '@/app/lib/currency/exchange-rate-domain';
 import type { ExchangeRate } from '@/app/types/exchange-rate';
 
@@ -134,111 +135,38 @@ describe('exchange rate domain', () => {
     });
   });
 
-  it('prefere taxa manual quando manual e PTAX têm a mesma data', () => {
-    const selected = latestRateOnOrBefore({
-      rates: [
-        {
-          ...usdToBrl,
-          source: 'BCB_PTAX',
-          quoteSide: 'SELL',
-          numerator: 530,
-        },
-        { ...usdToBrl, source: 'MANUAL', quoteSide: 'GENERIC', numerator: 540 },
-      ],
-      from: 'USD',
-      to: 'BRL',
-      referenceDate: { year: 2026, month: 9, day: 28 },
-    });
-
-    expect(selected).toMatchObject({ source: 'MANUAL', numerator: 540 });
-  });
-
-  it('não seleciona PTAX BUY quando o consumidor usa SELL por padrão', () => {
-    const selected = latestRateOnOrBefore({
-      rates: [
-        {
-          ...usdToBrl,
-          source: 'BCB_PTAX',
-          quoteSide: 'BUY',
-          numerator: 510,
-        },
-        {
-          ...usdToBrl,
-          source: 'BCB_PTAX',
-          quoteSide: 'SELL',
-          numerator: 530,
-        },
-      ],
-      from: 'USD',
-      to: 'BRL',
-      referenceDate: { year: 2026, month: 9, day: 28 },
-    });
-
-    expect(selected).toMatchObject({
-      source: 'BCB_PTAX',
-      quoteSide: 'SELL',
-      numerator: 530,
-    });
-  });
-
-  it('seleciona PTAX BUY quando solicitado explicitamente', () => {
-    const selected = latestRateOnOrBefore({
-      rates: [
-        {
-          ...usdToBrl,
-          source: 'BCB_PTAX',
-          quoteSide: 'BUY',
-          numerator: 510,
-        },
-        {
-          ...usdToBrl,
-          source: 'BCB_PTAX',
-          quoteSide: 'SELL',
-          numerator: 530,
-        },
-      ],
-      from: 'USD',
-      to: 'BRL',
-      quoteSide: 'BUY',
-      referenceDate: { year: 2026, month: 9, day: 28 },
-    });
-
-    expect(selected).toMatchObject({
-      source: 'BCB_PTAX',
-      quoteSide: 'BUY',
-      numerator: 510,
-    });
-  });
-
-  it('seleciona a taxa histórica mais recente sem usar taxa futura', () => {
-    const rates: ExchangeRate[] = [
-      {
-        ...usdToBrl,
-        numerator: 500,
-        referenceDate: { year: 2026, month: 9, day: 1 },
-      },
-      {
-        ...usdToBrl,
-        numerator: 520,
-        referenceDate: { year: 2026, month: 9, day: 15 },
-      },
-      {
-        ...usdToBrl,
-        numerator: 540,
-        referenceDate: { year: 2026, month: 10, day: 1 },
-      },
-    ];
-
-    expect(
-      latestRateOnOrBefore({
-        rates,
-        from: 'USD',
-        to: 'BRL',
-        referenceDate: { year: 2026, month: 9, day: 20 },
+  it('soma consolidada com checagem de inteiro seguro', () => {
+    expect(checkedSumCents([1, 2, -3])).toBe(0);
+    expect(checkedSumCents([Number.MAX_SAFE_INTEGER, -1])).toBe(
+      Number.MAX_SAFE_INTEGER - 1,
+    );
+    expect(() => checkedSumCents([Number.MAX_SAFE_INTEGER, 1])).toThrow(
+      /excede/,
+    );
+    expect(() =>
+      consolidateCurrencyAmounts({
+        items: [
+          { amount: Number.MAX_SAFE_INTEGER, currency: 'BRL' },
+          { amount: 1, currency: 'BRL' },
+        ],
+        baseCurrency: 'BRL',
+        rates: [],
       }),
-    ).toMatchObject({
-      numerator: 520,
-      referenceDate: { year: 2026, month: 9, day: 15 },
-    });
+    ).toThrow(/excede/);
+  });
+
+  it('classifica proveniência: manual, PTAX direta e cross derivada', () => {
+    expect(
+      exchangeRateProvenance({ source: 'MANUAL', from: 'USD', to: 'EUR' }),
+    ).toBe('MANUAL');
+    expect(
+      exchangeRateProvenance({ source: 'BCB_PTAX', from: 'USD', to: 'BRL' }),
+    ).toBe('PTAX_DIRECT');
+    expect(
+      exchangeRateProvenance({ source: 'BCB_PTAX', from: 'BRL', to: 'EUR' }),
+    ).toBe('PTAX_DIRECT');
+    expect(
+      exchangeRateProvenance({ source: 'BCB_PTAX', from: 'USD', to: 'EUR' }),
+    ).toBe('PTAX_CROSS');
   });
 });

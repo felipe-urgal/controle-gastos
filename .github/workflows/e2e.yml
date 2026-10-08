@@ -20,6 +20,7 @@ on:
       - "tests/e2e/transaction-templates-flow.spec.mjs"
       - "tests/e2e/dashboard-follow-up.spec.mjs"
       - "tests/e2e/financial-comparison-flow.spec.mjs"
+      - "tests/e2e/net-worth-flow.spec.mjs"
       - "tests/e2e/credit-card-flow.spec.mjs"
       - "tests/e2e/reconciliation-flow.spec.mjs"
       - "tests/e2e/recurrences-flow.spec.mjs"
@@ -226,6 +227,7 @@ jobs:
           tests/e2e/transaction-templates-flow.spec.mjs
           tests/e2e/dashboard-follow-up.spec.mjs
           tests/e2e/financial-comparison-flow.spec.mjs
+          tests/e2e/net-worth-flow.spec.mjs
           tests/e2e/credit-card-flow.spec.mjs
           tests/e2e/reconciliation-flow.spec.mjs
           tests/e2e/recurrences-flow.spec.mjs

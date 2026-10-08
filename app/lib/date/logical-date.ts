@@ -64,3 +64,18 @@ export function formatIsoLogicalDate(date: LogicalDate) {
 export function formatPtBrLogicalDate(date: LogicalDate) {
   return `${String(date.day).padStart(2, "0")}/${String(date.month).padStart(2, "0")}/${String(date.year).padStart(4, "0")}`;
 }
+
+export function addDaysToLogicalDate(date: LogicalDate, days: number): LogicalDate {
+  const value = new Date(Date.UTC(date.year, date.month - 1, date.day));
+  value.setUTCDate(value.getUTCDate() + days);
+  return logicalDateFromUtcInstant(value);
+}
+
+/** Dias corridos de `from` até `to` (positivo quando `to` é posterior). */
+export function daysBetweenLogicalDates(from: LogicalDate, to: LogicalDate) {
+  return Math.round(
+    (Date.UTC(to.year, to.month - 1, to.day) -
+      Date.UTC(from.year, from.month - 1, from.day)) /
+      86_400_000,
+  );
+}
