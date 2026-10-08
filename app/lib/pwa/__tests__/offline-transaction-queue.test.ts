@@ -293,10 +293,6 @@ describe("offline transaction queue", () => {
     const error = Object.assign(new Error("Falha"), { status, code, retryAfterSeconds: 60 });
     await expect(syncOfflineTransactionQueueItem("user-a", "item", async () => { throw error; })).rejects.toThrow("Falha");
     const item = readOfflineTransactionQueue("user-a")[0];
-    if (kind === "validation") {
-      expect(item).toBeUndefined();
-      return;
-    }
     expect(item).toMatchObject({ failureKind: kind, idempotencyKey: "stable-key" });
     if (code === undefined) {
       expect(item.errorCode).toBeUndefined();
@@ -342,9 +338,20 @@ describe("offline transaction queue", () => {
       });
       await expect(syncOfflineTransactionQueueItem("user-a", `attempt-${n}`, async () => {
         throw Object.assign(new Error("Categoria inválida"), { status: 422, code: "INVALID_CATEGORY" });
-      })).rejects.toThrow("Categoria inválida");
+      }, { discardOnValidation: true })).rejects.toThrow("Categoria inválida");
       expect(readOfflineTransactionQueue("user-a")).toEqual([]);
     }
+  });
+
+  it("keeps an offline-captured item for review when sync hits a validation error", async () => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "captured", idempotencyKey: "captured-key" });
+    await expect(syncOfflineTransactionQueueItem("user-a", "captured", async () => {
+      throw Object.assign(new Error("Conta inativa"), { status: 400, code: "INACTIVE_ACCOUNT" });
+    })).rejects.toThrow("Conta inativa");
+    expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
+      id: "captured", status: "error", failureKind: "validation", idempotencyKey: "captured-key",
+    });
   });
 
   it.each([

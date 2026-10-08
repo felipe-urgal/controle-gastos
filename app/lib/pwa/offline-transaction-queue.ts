@@ -384,6 +384,9 @@ export async function syncOfflineTransactionQueueItem<T>(
     payload: OfflineTransactionQueuePayload,
     idempotencyKey: string,
   ) => Promise<T>,
+  // O formulário mostra o erro de validação ele mesmo; um item capturado antes (offline)
+  // nunca é descartado em silêncio: fica como "Precisa de revisão".
+  options?: { discardOnValidation?: boolean },
 ) {
   const item = readOfflineTransactionQueue(userId).find(
     (candidate) => candidate.id === itemId,
@@ -422,7 +425,7 @@ export async function syncOfflineTransactionQueueItem<T>(
     const failureKind = classifyQueueFailure(error);
     // A 400/422 validation rejection guarantees no creation. The form keeps
     // the error visible; do not turn each correction into a queued operation.
-    if (failureKind === "validation") {
+    if (failureKind === "validation" && options?.discardOnValidation) {
       removeOfflineTransactionQueueItem(userId, item.id);
       throw error;
     }
