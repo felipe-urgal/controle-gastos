@@ -116,6 +116,9 @@ export async function getGlobalSearchForUser(
       select: {
         id: true,
         description: true,
+        kind: true,
+        status: true,
+        transferRole: true,
         year: true,
         month: true,
         day: true,
@@ -201,6 +204,9 @@ export async function getGlobalSearchForUser(
           select: {
             id: true,
             description: true,
+            kind: true,
+            status: true,
+            transferRole: true,
             year: true,
             month: true,
             day: true,
@@ -228,6 +234,8 @@ export async function getGlobalSearchForUser(
         type: 'TRANSACTION',
         title: item.description,
         subtitle: [
+          item.kind === 'TRANSFER' ? `Transferência · ${item.transferRole === 'SOURCE' ? 'Origem' : 'Destino'}` : item.kind === 'CARD_PAYMENT' ? 'Pagamento de fatura' : 'Transação',
+          item.status === 'PENDING' ? 'Pendente' : item.status === 'CANCELLED' ? 'Cancelada' : null,
           `${String(item.day).padStart(2, '0')}/${String(item.month).padStart(2, '0')}/${item.year}`,
           item.account.name,
           item.category?.name ?? null,
