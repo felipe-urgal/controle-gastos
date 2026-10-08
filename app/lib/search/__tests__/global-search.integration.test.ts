@@ -51,7 +51,7 @@ describe('global search integration', () => {
     expect(result.groups.map((group) => group.type)).toEqual(expect.arrayContaining(['MERCHANT', 'TAG', 'TEMPLATE', 'DEBT', 'GOAL']));
     expect(all.find((item) => item.id === entities[0].id)?.subtitle).toBe('Inativo');
     expect(all.find((item) => item.id === entities[1].id)?.subtitle).toBe('Arquivada');
-    expect(all.find((item) => item.id === entities[3].id)?.subtitle).toBe('PAID');
+    expect(all.find((item) => item.id === entities[3].id)?.subtitle).toBe('Quitada');
     expect(all.find((item) => item.id === entities[4].id)?.subtitle).toBe('Concluída');
     expect(JSON.stringify(result)).not.toContain('987654');
     expect(result.total).toBeLessThanOrEqual(result.totalLimit);
