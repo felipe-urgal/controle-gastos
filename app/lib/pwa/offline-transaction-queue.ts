@@ -414,12 +414,16 @@ export async function syncOfflineTransactionQueueItem<T>(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Falha ao sincronizar lançamento";
+    const failureKind = classifyQueueFailure(error);
+    // Validation and domain conflicts are deterministic: preserve them for review,
+    // never silently rekey or treat them as transient network failures.
     updateOfflineTransactionQueueItem(userId, item.id, {
       status: "error",
-      failureKind: classifyQueueFailure(error),
+      failureKind,
       errorCode: error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : undefined,
-      retryAfterAt: error && typeof error === "object" && "status" in error && error.status === 429 &&
-        "retryAfterSeconds" in error && typeof error.retryAfterSeconds === "number" && Number.isFinite(error.retryAfterSeconds)
+      retryAfterAt: failureKind === "rate_limit" && error && typeof error === "object" &&
+        "retryAfterSeconds" in error && typeof error.retryAfterSeconds === "number" &&
+        Number.isFinite(error.retryAfterSeconds)
         ? new Date(Date.now() + Math.max(0, error.retryAfterSeconds) * 1000).toISOString() : undefined,
       lastError: message,
     });
