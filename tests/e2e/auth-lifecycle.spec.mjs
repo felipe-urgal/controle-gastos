@@ -11,6 +11,15 @@ import {
 const password = 'Playwright-Senha-123';
 const newPassword = 'Playwright-Nova-456';
 
+// Exclui o anunciador de rotas do Next, que também tem role=alert.
+function alertOf(page) {
+  return page.locator('[role="alert"]:not(#__next-route-announcer__)');
+}
+
+function userStatus(page) {
+  return page.evaluate(async () => (await fetch('/api/user', { credentials: 'include' })).status);
+}
+
 async function fillLogin(page, email, pass) {
   await page.getByLabel(/^E-mail\b/).fill(email);
   await page.getByLabel(/^Senha\b/).fill(pass);
@@ -41,7 +50,7 @@ test('ciclo completo: signup, verificação, login, reset e revogação de sess�
   // Conta não verificada não ganha sessão e recebe mensagem genérica.
   await page.getByRole('link', { name: 'Ir para o login' }).first().click();
   await fillLogin(page, email, password);
-  await expect(page.getByRole('alert')).toContainText('E-mail ou senha inválidos!');
+  await expect(alertOf(page)).toContainText('E-mail ou senha inválidos!');
   await expect(page).toHaveURL(/\/login$/);
 
   // Link inválido: aviso com reenvio e query removida do endereço.
@@ -60,7 +69,7 @@ test('ciclo completo: signup, verificação, login, reset e revogação de sess�
   await expect(page).toHaveURL(/\/login$/);
   await fillLogin(page, email, password);
   await expect(page).toHaveURL(/\/dashboard$/);
-  expect((await page.request.get('/api/user')).status()).toBe(200);
+  expect(await userStatus(page)).toBe(200);
 
   // Forgot/reset em outro contexto, mantendo a sessão antiga viva.
   const other = await browser.newContext();
@@ -81,7 +90,7 @@ test('ciclo completo: signup, verificação, login, reset e revogação de sess�
   await expect(otherPage.getByText('Senha redefinida com sucesso!').first()).toBeVisible();
 
   // Sessão antiga revogada; token é one-time.
-  expect((await page.request.get('/api/user')).status()).toBe(401);
+  expect(await userStatus(page)).toBe(401);
   const replay = await other.request.post('/api/auth/reset-password', {
     data: { token: rawToken, novaSenha: 'Outra-Senha-789x' },
   });
@@ -94,7 +103,7 @@ test('ciclo completo: signup, verificação, login, reset e revogação de sess�
   await setIsolatedClientIp(freshPage, `${email}-fresh`);
   await freshPage.goto('/login');
   await fillLogin(freshPage, email, password);
-  await expect(freshPage.getByRole('alert')).toContainText('E-mail ou senha inválidos!');
+  await expect(alertOf(freshPage)).toContainText('E-mail ou senha inválidos!');
   await fillLogin(freshPage, email, newPassword);
   await expect(freshPage).toHaveURL(/\/dashboard$/);
   await fresh.close();

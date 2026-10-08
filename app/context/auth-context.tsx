@@ -209,16 +209,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router, state.user?.id]);
 
+  // Não alterna o status para 'loading': o ClientLayout desmontaria a página e
+  // o estado "Confira seu e-mail" seria perdido.
   const signup = useCallback(async (data: SignupData) => {
-    dispatch({ type: 'LOADING' });
-
-    try {
-      await authService.signup(data);
-      dispatch({ type: 'LOGOUT' });
-    } catch (err) {
-      dispatch({ type: 'LOGOUT' });
-      throw err;
-    }
+    await authService.signup(data);
   }, []);
 
   const updateUser = useCallback(async (data: UpdateUserRequest) => {
