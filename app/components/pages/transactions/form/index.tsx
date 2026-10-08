@@ -735,9 +735,16 @@ export default function TransactionForm({
             }
             // Retry remains safe in this tab, but the attempt cannot survive reload.
             setStorageUnavailable(true);
-            const response = await transactionService.createIdempotent(queuePayload, attempt.key);
-            savedTransaction = response.data;
-            createAttemptRef.current = null;
+            try {
+              const response = await transactionService.createIdempotent(queuePayload, attempt.key);
+              savedTransaction = response.data;
+              createAttemptRef.current = null;
+            } catch (requestError) {
+              if (requestError instanceof ApiClientError && (requestError.status === 400 || requestError.status === 422)) {
+                createAttemptRef.current = null;
+              }
+              throw requestError;
+            }
           }
         }
 
@@ -758,6 +765,11 @@ export default function TransactionForm({
             createAttemptRef.current = null;
             onOfflineQueueChanged?.();
           } catch (error) {
+            // A rejected validation never created a transaction: corrections
+            // are new attempts and must not retain the old payload or key.
+            if (error instanceof ApiClientError && (error.status === 400 || error.status === 422)) {
+              createAttemptRef.current = null;
+            }
             onOfflineQueueChanged?.();
             throw error;
           }
@@ -775,9 +787,16 @@ export default function TransactionForm({
           payload: serializedPayload,
         };
         createAttemptRef.current = attempt;
-        const response = await transactionService.createIdempotent(payload, attempt.key);
-        savedTransaction = response.data;
-        createAttemptRef.current = null;
+        try {
+          const response = await transactionService.createIdempotent(payload, attempt.key);
+          savedTransaction = response.data;
+          createAttemptRef.current = null;
+        } catch (requestError) {
+          if (requestError instanceof ApiClientError && (requestError.status === 400 || requestError.status === 422)) {
+            createAttemptRef.current = null;
+          }
+          throw requestError;
+        }
       }
 
       handleRedirect(savedTransaction);
