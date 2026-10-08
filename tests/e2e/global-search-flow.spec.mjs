@@ -84,7 +84,7 @@ async function seedSearchFixture(page, marker) {
 test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   page,
 }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
 
   const suffix = `${Date.now()}-${test.info().project.name}`;
   const email = `qa-global-search-${suffix}@example.test`;
@@ -201,6 +201,9 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   await expect(raceDialog.getByText('Resultado antigo', { exact: true })).toHaveCount(0);
 
   await page.unroute('**/api/search?*');
+  await raceDialog.getByRole('button', { name: 'Fechar busca global' }).click();
+  await verifyHiddenSearchAndEnter(page, marker, fixture);
+  await verifyPendingTransfer(page);
 });
 
 
@@ -240,3 +243,105 @@ test('busca global: mouse, Home/End, Escape e touch preservam foco', async ({ br
     await context.close();
   }
 });
+
+
+async function verifyHiddenSearchAndEnter(page, marker, fixture) {
+  const setup = await page.evaluate(async () => {
+    const update = await fetch('/api/user', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ showValues: false }),
+    });
+    const account = await fetch('/api/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Conta', type: 'CREDIT_DEBIT', currency: 'BRL', description: null }),
+    });
+    return {
+      updateStatus: update.status,
+      updateBody: await update.json(),
+      accountStatus: account.status,
+      accountBody: await account.json(),
+    };
+  });
+  expect(setup.updateStatus).toBe(200);
+  expect(setup.updateBody.data?.showValues).toBe(false);
+  expect(setup.accountStatus).toBe(201);
+  const exactAccountId = setup.accountBody.data.id;
+  // Recarrega a sessão para o contexto de autenticação aplicar showValues=false.
+  await page.reload();
+
+  const response = await page.evaluate(async (query) => {
+    const request = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+    return { status: request.status, payload: await request.json() };
+  }, marker);
+  expect(response.status).toBe(200);
+  expect(JSON.stringify(response.payload)).not.toContain('987654');
+  expect(response.payload.data.groups.flatMap((group) => group.items)
+    .some((item) => item.id === fixture.transactionId)).toBe(true);
+  for (const item of response.payload.data.groups.flatMap((group) => group.items)) {
+    expect(item).not.toHaveProperty('amount');
+  }
+
+  await page.keyboard.press('Control+K');
+  const dialog = page.getByRole('dialog', { name: 'Busca global' });
+  const input = dialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
+  await input.fill(marker);
+  await expect(dialog.getByText(`${marker} Mercado`, { exact: true })).toBeVisible();
+  const attributesAndText = await dialog.evaluate((element) => [
+    element.textContent ?? '',
+    ...Array.from(element.querySelectorAll('*')).flatMap((node) =>
+      Array.from(node.attributes).map((attribute) => attribute.value)),
+  ].join(' '));
+  expect(attributesAndText).not.toContain('987654');
+
+  await input.fill('Conta');
+  await expect(dialog.getByRole('button', { name: 'Conta BRL · Ativa', exact: true })).toBeVisible();
+  await input.press('Enter');
+  await expect(page).toHaveURL(new RegExp(`/contas/show/${exactAccountId}$`));
+}
+
+
+async function verifyPendingTransfer(page) {
+  const marker = `BuscaTransf${Date.now().toString(36)}`;
+  await page.goto('/dashboard');
+
+  await page.evaluate(async (description) => {
+    async function createAccount(name) {
+      const response = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, type: 'CREDIT_DEBIT', currency: 'BRL', description: null }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(JSON.stringify(body));
+      return body.data.id;
+    }
+    const sourceAccountId = await createAccount(`${description} Origem`);
+    const destinationAccountId = await createAccount(`${description} Destino`);
+    const now = new Date();
+    const response = await fetch('/api/transfers', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': crypto.randomUUID(),
+      },
+      body: JSON.stringify({
+        sourceAccountId, destinationAccountId,
+        amountCents: 987654,
+        description,
+        year: now.getFullYear(), month: now.getMonth() + 1,
+        day: Math.min(now.getDate(), 28),
+        status: 'PENDING',
+      }),
+    });
+    if (!response.ok) throw new Error(JSON.stringify(await response.json()));
+  }, marker);
+
+  await page.keyboard.press('Control+K');
+  const dialog = page.getByRole('dialog', { name: 'Busca global' });
+  await dialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras').fill(marker);
+  await expect(dialog.getByText(/Transferência · Origem · Pendente/)).toBeVisible();
+  await expect(dialog.getByText(/Transferência · Destino · Pendente/)).toBeVisible();
+  await expect(dialog).not.toContainText('987654');
+}

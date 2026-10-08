@@ -14,7 +14,10 @@ import {
 } from 'react-icons/fa';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
-import { normalizeGlobalSearchMatch } from '@/app/lib/search/global-search-ranking';
+import {
+  chooseGlobalSearchInitialIndex,
+  normalizeGlobalSearchMatch,
+} from '@/app/lib/search/global-search-ranking';
 import { globalSearchService } from '@/app/services/global-search-service';
 import { ApiClientError } from '@/app/services/api-client';
 import type {
@@ -116,8 +119,6 @@ export default function GlobalSearchDialog({
       }),
     [normalizedQuery],
   );
-  const hasLocalResults =
-    filteredQuickActions.length > 0 || filteredNavigation.length > 0;
   const serverResults = useMemo(
     () => data?.groups.flatMap((group) => group.items) ?? [],
     [data],
@@ -129,18 +130,29 @@ export default function GlobalSearchDialog({
         href: item.href,
         label: item.title,
         group: 'Ações rápidas',
+        kind: 'action' as const,
+        title: item.title,
+        subtitle: item.subtitle,
+        keywords: item.keywords,
       })),
       ...filteredNavigation.map((item) => ({
         resultKey: 'navigation-' + item.key,
         href: item.href,
         label: item.label,
         group: 'Ir para',
+        kind: 'navigation' as const,
+        title: item.label,
+        keywords: item.keywords,
       })),
       ...serverResults.map((item) => ({
         resultKey: 'server-' + item.type + '-' + item.id,
         href: item.href,
         label: item.title,
         group: groupLabels[item.type],
+        kind: 'data' as const,
+        title: item.title,
+        matchedText: item.matchedText,
+        matchKind: item.matchKind,
       })),
     ],
     [filteredNavigation, filteredQuickActions, serverResults],
@@ -174,7 +186,21 @@ export default function GlobalSearchDialog({
         .search(trimmed, controller.signal)
         .then((response) => {
           setData(response.data);
-          setActiveIndex(hasLocalResults || response.data.total > 0 ? 0 : -1);
+          const candidates = [
+            ...filteredQuickActions.map((item) => ({
+              kind: 'action' as const, title: item.title,
+              subtitle: item.subtitle, keywords: item.keywords,
+            })),
+            ...filteredNavigation.map((item) => ({
+              kind: 'navigation' as const, title: item.label,
+              keywords: item.keywords,
+            })),
+            ...response.data.groups.flatMap((group) => group.items.map((item) => ({
+              kind: 'data' as const, title: item.title,
+              matchedText: item.matchedText, matchKind: item.matchKind,
+            }))),
+          ];
+          setActiveIndex(chooseGlobalSearchInitialIndex(candidates, trimmed));
         })
         .catch((requestError) => {
           if (controller.signal.aborted) return;
@@ -198,7 +224,7 @@ export default function GlobalSearchDialog({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [hasLocalResults, query, retryVersion, filteredQuickActions, filteredNavigation]);
+  }, [query, retryVersion, filteredQuickActions, filteredNavigation]);
 
   useEffect(() => {
     if (activeIndex < 0) return;
@@ -299,25 +325,28 @@ export default function GlobalSearchDialog({
               onChange={(event) => {
                 const nextQuery = event.target.value;
                 const nextNormalizedQuery = normalizeGlobalSearchMatch(nextQuery);
-                const nextHasQuickAction = quickActions.some(
-                  (item) =>
-                    !nextNormalizedQuery ||
-                    normalizeGlobalSearchMatch(item.title).includes(nextNormalizedQuery) ||
-                    normalizeGlobalSearchMatch(item.subtitle).includes(nextNormalizedQuery) ||
-                    normalizeGlobalSearchMatch(item.keywords).includes(nextNormalizedQuery),
-                );
-                const nextHasNavigation = getAppNavigation().some(
-                  (item) =>
-                    !nextNormalizedQuery ||
-                    normalizeGlobalSearchMatch(item.label).includes(nextNormalizedQuery) ||
-                    normalizeGlobalSearchMatch(item.key).includes(nextNormalizedQuery) ||
-                    normalizeGlobalSearchMatch(item.keywords ?? '').includes(nextNormalizedQuery),
-                );
+                const matches = (value: string) =>
+                  !nextNormalizedQuery ||
+                  normalizeGlobalSearchMatch(value).includes(nextNormalizedQuery);
+                const localCandidates = [
+                  ...quickActions.filter((item) =>
+                    matches(item.title) || matches(item.subtitle) || matches(item.keywords),
+                  ).map((item) => ({
+                    kind: 'action' as const, title: item.title,
+                    subtitle: item.subtitle, keywords: item.keywords,
+                  })),
+                  ...getAppNavigation().filter((item) =>
+                    matches(item.label) || matches(item.key) || matches(item.keywords ?? ''),
+                  ).map((item) => ({
+                    kind: 'navigation' as const, title: item.label,
+                    keywords: item.keywords,
+                  })),
+                ];
 
                 setQuery(nextQuery);
                 setData(null);
                 setError('');
-                setActiveIndex(nextHasQuickAction || nextHasNavigation ? 0 : -1);
+                setActiveIndex(chooseGlobalSearchInitialIndex(localCandidates, nextQuery));
                 setLoading(nextQuery.trim().length >= 2);
               }}
               onKeyDown={onKeyDown}

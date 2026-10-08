@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
-import { normalizeGlobalSearchMatch, scoreGlobalSearchMatch } from '@/app/lib/search/global-search-ranking';
+import { chooseGlobalSearchInitialIndex, normalizeGlobalSearchMatch, scoreGlobalSearchMatch } from '@/app/lib/search/global-search-ranking';
 
 describe('global search relevance', () => {
   it('prioriza igualdade, prefixo, contains e ausência de match', () => {
@@ -45,5 +45,42 @@ describe('sinônimos de navegação', () => {
     for (const term of terms) {
       expect(normalizeGlobalSearchMatch(item?.keywords ?? '')).toContain(normalizeGlobalSearchMatch(term));
     }
+  });
+});
+
+describe('seleção inicial entre ações, páginas e dados', () => {
+  it('prioriza um dado exato sobre navegação por keyword ou contains', () => {
+    const candidates = [
+      { kind: 'action' as const, title: 'Nova transação', keywords: 'conta' },
+      { kind: 'navigation' as const, title: 'Contas', keywords: 'conta' },
+      { kind: 'data' as const, title: 'Conta' },
+    ];
+    expect(chooseGlobalSearchInitialIndex(candidates, 'conta')).toBe(2);
+  });
+
+  it('mantém ação/página de nome exato antes de dado de mesmo score', () => {
+    const candidates = [
+      { kind: 'action' as const, title: 'Importar transações' },
+      { kind: 'data' as const, title: 'Importar transações' },
+    ];
+    expect(chooseGlobalSearchInitialIndex(candidates, 'Importar transações')).toBe(0);
+  });
+
+  it('considera alias e match fuzzy sem esconder correspondência forte', () => {
+    expect(chooseGlobalSearchInitialIndex([
+      { kind: 'navigation', title: 'Transações', keywords: 'loja' },
+      { kind: 'data', title: 'Corrida aplicativo', matchedText: 'Loja Central' },
+    ], 'Loja Central')).toBe(1);
+    expect(chooseGlobalSearchInitialIndex([
+      { kind: 'data', title: '#férias' },
+    ], 'férias')).toBe(0);
+  });
+
+  it('mantém fallback determinístico para lista vazia ou sem correspondência', () => {
+    expect(chooseGlobalSearchInitialIndex([], 'texto')).toBe(-1);
+    expect(chooseGlobalSearchInitialIndex([
+      { kind: 'navigation', title: 'Contas' },
+      { kind: 'data', title: 'Outros' },
+    ], 'nenhum')).toBe(0);
   });
 });
