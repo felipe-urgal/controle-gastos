@@ -67,6 +67,7 @@ export default function GlobalSearchDialog({
   const [data, setData] = useState<GlobalSearchData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [retryVersion, setRetryVersion] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
@@ -166,7 +167,7 @@ export default function GlobalSearchDialog({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [hasLocalResults, query]);
+  }, [hasLocalResults, query, retryVersion]);
 
   useEffect(() => {
     if (activeIndex < 0) return;
@@ -427,6 +428,7 @@ export default function GlobalSearchDialog({
                 className="rounded-[12px] bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
               >
                 {error}
+                <button type="button" className="ml-3 underline" onClick={() => setRetryVersion((version) => version + 1)}>Tentar novamente</button>
               </p>
             )}
 
