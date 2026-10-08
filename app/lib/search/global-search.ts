@@ -231,7 +231,7 @@ export async function getGlobalSearchForUser(
             merchant: { select: { name: true, aliases: { where: { userId }, select: { pattern: true } } } },
             account: { select: { name: true } },
             category: { select: { name: true } },
-            tagLinks: { select: { tag: { select: { name: true } } }, take: 3 },
+            tagLinks: { where: { userId }, select: { tag: { select: { name: true } } } },
           },
         })
       : [];
