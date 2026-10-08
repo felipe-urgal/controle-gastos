@@ -108,7 +108,7 @@ function extractDate(lines: string[]): ReceiptOcrSuggestions['date'] {
 function extractInconsistentTotalEvidence(lines: string[]): string | undefined {
   return lines.find((line) => {
     if (NON_PURCHASE.test(line) || (!STRONG_TOTAL.test(line) && !PLAIN_TOTAL.test(line))) return false;
-    const tokens = [...line.matchAll(MONEY_PATTERN)];
+    const tokens = [...line.matchAll(new RegExp(MONEY_PATTERN.source, MONEY_PATTERN.flags))];
     return tokens.some((match) => !isValidOcrAmount(parseMoneyToken(match[0]) ?? undefined));
   });
 }
@@ -130,7 +130,7 @@ function extractAmount(lines: string[]): Pick<ReceiptOcrSuggestions, 'amount' | 
       : PLAIN_TOTAL.test(line) ? 'medium' : undefined;
     if (!confidence) return;
 
-    const matches = [...line.matchAll(MONEY_PATTERN)];
+    const matches = [...line.matchAll(new RegExp(MONEY_PATTERN.source, MONEY_PATTERN.flags))];
     // Preserve evidence of invalid values instead of silently discarding them.
     const parsed = matches.map((match) => parseMoneyToken(match[0]));
     const invalidValue = parsed.some((value) => value === null || !isValidOcrAmount(value));
@@ -171,8 +171,7 @@ function looksLikeMerchantLine(line: string) {
   if (/\b(www\.|https?:\/\/|consumidor|chave\s+de\s+acesso)\b/i.test(line)) return false;
   if (/^\d[\d\s.,:/-]*$/.test(line)) return false;
 
-  MONEY_PATTERN.lastIndex = 0;
-  if (MONEY_PATTERN.test(line)) return false;
+  if (new RegExp(MONEY_PATTERN.source, 'i').test(line)) return false;
 
   return true;
 }
