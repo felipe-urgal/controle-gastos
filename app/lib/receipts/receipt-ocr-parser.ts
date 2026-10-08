@@ -105,6 +105,14 @@ function extractDate(lines: string[]): ReceiptOcrSuggestions['date'] {
   };
 }
 
+function extractInconsistentTotalEvidence(lines: string[]): string | undefined {
+  return lines.find((line) => {
+    if (NON_PURCHASE.test(line) || (!STRONG_TOTAL.test(line) && !PLAIN_TOTAL.test(line))) return false;
+    const tokens = [...line.matchAll(MONEY_PATTERN)];
+    return tokens.some((match) => !isValidOcrAmount(parseMoneyToken(match[0]) ?? undefined));
+  });
+}
+
 function extractAmount(lines: string[]): Pick<ReceiptOcrSuggestions, 'amount' | 'inconsistentAmountEvidence'> {
   let inconsistentAmountEvidence: string | undefined;
   const candidates: Array<{
@@ -190,6 +198,7 @@ export function parseReceiptOcrText(text: string): ReceiptOcrSuggestions {
 
   return {
     ...extractAmount(lines),
+    inconsistentAmountEvidence: extractInconsistentTotalEvidence(lines),
     date: extractDate(lines),
     description: extractDescription(lines),
   };
