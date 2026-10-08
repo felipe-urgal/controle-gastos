@@ -225,6 +225,18 @@ export default function GlobalSearchDialog({
       return;
     }
 
+    if (event.key === 'Home') {
+      event.preventDefault();
+      setActiveIndex(0);
+      return;
+    }
+
+    if (event.key === 'End') {
+      event.preventDefault();
+      setActiveIndex(flatResults.length - 1);
+      return;
+    }
+
     if (event.key === 'Enter' && activeIndex >= 0) {
       event.preventDefault();
       const result = flatResults[activeIndex];
