@@ -321,6 +321,21 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
     );
   }, owner);
 
+  // First dismissal must preserve the authenticated session and local operations.
+  page.once('dialog', async (dialog) => {
+    expect(dialog.message()).toContain('Sair apagará definitivamente');
+    await dialog.dismiss();
+  });
+  await page.getByRole('button', { name: 'Sair da conta', exact: true }).first().click();
+  await expect(page).toHaveURL(/\\/dashboard$/);
+  expect(await page.evaluate((userId) => Boolean(localStorage.getItem(
+    `controle-gastos:offline-transaction-queue:v1:${userId}`,
+  )), owner)).toBe(true);
+
+  page.once('dialog', async (dialog) => {
+    expect(dialog.message()).toContain('sair e descartar');
+    await dialog.accept();
+  });
   await page.getByRole('button', { name: 'Sair da conta', exact: true }).first().click();
   await expect(page).toHaveURL(/\/$/);
 
