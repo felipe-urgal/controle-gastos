@@ -290,6 +290,10 @@ describe("offline transaction queue", () => {
     const error = Object.assign(new Error("Falha"), { status, code, retryAfterSeconds: 60 });
     await expect(syncOfflineTransactionQueueItem("user-a", "item", async () => { throw error; })).rejects.toThrow("Falha");
     const item = readOfflineTransactionQueue("user-a")[0];
+    if (kind === "validation") {
+      expect(item).toBeUndefined();
+      return;
+    }
     expect(item).toMatchObject({ failureKind: kind, errorCode: code, idempotencyKey: "stable-key" });
     if (kind === "rate_limit") {
       expect(Date.parse(item.retryAfterAt!)).toBeGreaterThan(Date.now());
@@ -320,6 +324,33 @@ describe("offline transaction queue", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("does not accumulate validation failures after form corrections", async () => {
+    installLocalStorage();
+    for (let n = 0; n < 3; n++) {
+      enqueueOfflineTransaction("user-a", { ...payload, description: `Correção ${n}` }, {
+        id: `attempt-${n}`, idempotencyKey: `key-${n}`,
+      });
+      await expect(syncOfflineTransactionQueueItem("user-a", `attempt-${n}`, async () => {
+        throw Object.assign(new Error("Categoria inválida"), { status: 422, code: "INVALID_CATEGORY" });
+      })).rejects.toThrow("Categoria inválida");
+      expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+    }
+  });
+
+  it.each([
+    ["network", new TypeError("Resposta perdida")],
+    ["server", Object.assign(new Error("Falha interna"), { status: 503 })],
+    ["auth", Object.assign(new Error("Sessão expirada"), { status: 401 })],
+    ["business_conflict", Object.assign(new Error("Conflito financeiro"), { status: 409, code: "CREDIT_CARD_STATEMENT_ALREADY_PAID" })],
+  ])("preserves original key after %s error", async (kind, error) => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "attempt", idempotencyKey: "original-key" });
+    await expect(syncOfflineTransactionQueueItem("user-a", "attempt", async () => { throw error; })).rejects.toThrow();
+    expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
+      status: "error", failureKind: kind, idempotencyKey: "original-key",
+    });
   });
 
   it("drops malformed or foreign queue items instead of exposing them", () => {
