@@ -1,16 +1,6 @@
 export const RECEIPT_OCR_MAX_FILE_BYTES = 6 * 1024 * 1024;
 export const RECEIPT_OCR_MAX_DIMENSION = 2200;
 
-interface TesseractProgress {
-  status: string;
-  progress: number;
-}
-
-interface TesseractWorker {
-  recognize(image: Blob): Promise<{ data: { text: string } }>;
-  terminate(): Promise<void>;
-}
-
 type TesseractApi = typeof import("tesseract.js");
 
 let tesseractLoader: Promise<TesseractApi> | null = null;
