@@ -30,6 +30,15 @@ function group(
 
 const FUZZY_SIMILARITY_THRESHOLD = 0.35;
 
+function relevance(text: string, query: string) {
+  const candidate = text.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
+  const term = query.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
+  if (candidate === term) return 400;
+  if (candidate.startsWith(term)) return 300;
+  if (candidate.includes(term)) return 200;
+  return 0;
+}
+
 async function fuzzyTransactionIds(
   userId: string,
   query: string,
@@ -130,7 +139,7 @@ export async function getGlobalSearchForUser(
         { createdAt: 'desc' },
         { id: 'desc' },
       ],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
+      take: GLOBAL_SEARCH_LIMIT_PER_GROUP * 10,
     }),
     prisma.account.findMany({
       where: {
@@ -181,15 +190,21 @@ export async function getGlobalSearchForUser(
     }),
   ]);
 
+  const rankedExactTransactions = exactTransactions
+    .map((item) => ({ item, score: relevance(item.description, query) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, GLOBAL_SEARCH_LIMIT_PER_GROUP)
+    .map(({ item }) => item);
+
   const missingTransactionSlots =
-    GLOBAL_SEARCH_LIMIT_PER_GROUP - exactTransactions.length;
+    GLOBAL_SEARCH_LIMIT_PER_GROUP - rankedExactTransactions.length;
   const fuzzyIds =
     missingTransactionSlots > 0
       ? (
           await fuzzyTransactionIds(
             userId,
             query,
-            exactTransactions.map((item) => item.id),
+            rankedExactTransactions.map((item) => item.id),
           )
         ).slice(0, missingTransactionSlots)
       : [];
@@ -213,7 +228,7 @@ export async function getGlobalSearchForUser(
 
   const fuzzyById = new Map(fuzzyTransactions.map((item) => [item.id, item]));
   const transactions = [
-    ...exactTransactions,
+    ...rankedExactTransactions,
     ...fuzzyIds.flatMap((id) => {
       const item = fuzzyById.get(id);
       return item ? [item] : [];
