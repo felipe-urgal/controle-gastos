@@ -79,7 +79,7 @@ function dateLabel(value: string | null) {
   return `${day}/${month}/${year}`;
 }
 
-export default function GoalsCenter() {
+export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
 
@@ -110,6 +110,17 @@ export default function GoalsCenter() {
   const [detailMoreLoading, setDetailMoreLoading] = useState(false);
   const [archiveGoal, setArchiveGoal] = useState<FinancialGoal | null>(null);
   const [deleteGoal, setDeleteGoal] = useState<FinancialGoal | null>(null);
+
+  useEffect(() => {
+    if (!focusGoalId) return;
+    let cancelled = false;
+    void financialGoalService.getById(focusGoalId).then(({ data }) => {
+      if (!cancelled) setDetailGoal(data);
+    }).catch(() => {
+      // No visible difference between an unknown and inaccessible goal.
+    });
+    return () => { cancelled = true; };
+  }, [focusGoalId]);
 
   const load = useCallback(async () => {
     const [goalsResult, accountsResult] = await Promise.allSettled([
