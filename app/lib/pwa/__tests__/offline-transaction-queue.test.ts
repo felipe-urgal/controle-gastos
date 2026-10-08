@@ -276,6 +276,10 @@ describe("offline transaction queue", () => {
 
   it.each([
     [409, "CREDIT_CARD_STATEMENT_ALREADY_PAID", "business_conflict"],
+    [409, "OTHER_DOMAIN_CONFLICT", "business_conflict"],
+    [409, undefined, "business_conflict"],
+    [403, "FORBIDDEN", "auth"],
+    [422, "INVALID_CATEGORY", "validation"],
     [400, "VALIDATION_ERROR", "validation"],
     [429, "RATE_LIMITED", "rate_limit"],
     [503, "SERVICE_UNAVAILABLE", "server"],
@@ -293,6 +297,28 @@ describe("offline transaction queue", () => {
     }
     if (kind === "business_conflict") {
       expect(() => rekeyOfflineTransactionQueueItem("user-a", "item")).toThrow("Somente conflito");
+    }
+  });
+
+  it("keeps 429 key stable across the Retry-After deadline", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-10-08T12:00:00.000Z"));
+      installLocalStorage();
+      enqueueOfflineTransaction("user-a", payload, { id: "rate", idempotencyKey: "original-key" });
+      const limited = Object.assign(new Error("Aguarde"), { status: 429, code: "RATE_LIMITED", retryAfterSeconds: 30 });
+      await expect(syncOfflineTransactionQueueItem("user-a", "rate", async () => { throw limited; })).rejects.toThrow("Aguarde");
+      const queued = readOfflineTransactionQueue("user-a")[0];
+      expect(queued.retryAfterAt).toBe("2026-10-08T12:00:30.000Z");
+      const send = vi.fn(async (_payload: typeof payload, key: string) => ({ key }));
+      await expect(syncOfflineTransactionQueueItem("user-a", "rate", send)).rejects.toThrow("Aguarde");
+      expect(send).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(30_000);
+      const result = await syncOfflineTransactionQueueItem("user-a", "rate", send);
+      expect(result.result.key).toBe("original-key");
+      expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+    } finally {
+      vi.useRealTimers();
     }
   });
 
