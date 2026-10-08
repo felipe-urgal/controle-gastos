@@ -384,6 +384,50 @@ describe('global search integration', () => {
     }
   });
 
+  it('não perde o nome exato de um estabelecimento entre mais de 50 ocorrências', async () => {
+    const owner = await createUser('catalog-rank');
+    const marker = `BuscaCatalogo${randomUUID().slice(0, 8)}`;
+    await prisma.merchant.createMany({
+      data: Array.from({ length: 52 }, (_, index) => ({
+        userId: owner.id,
+        name: `A${String(index).padStart(3, '0')} ${marker}`,
+        normalizedName: `a${String(index).padStart(3, '0')} ${marker.toLowerCase()}`,
+      })),
+    });
+    const exact = await prisma.merchant.create({
+      data: { userId: owner.id, name: marker },
+    });
+
+    const result = await getGlobalSearchForUser(owner.id, marker);
+    const group = result.groups.find((item) => item.type === 'MERCHANT');
+    expect(group?.items).toHaveLength(GLOBAL_SEARCH_LIMIT_PER_GROUP);
+    expect(group?.items[0]?.id).toBe(exact.id);
+  });
+
+  it('explica matches secundários de Dívida, Modelo e Meta sem amounts', async () => {
+    const owner = await createUser('secondary-match');
+    const marker = `BuscaAux${randomUUID().slice(0, 8)}`;
+    const [debt, template, goal] = await Promise.all([
+      prisma.debt.create({ data: {
+        userId: owner.id, name: 'Dívida secundária', institution: marker, balance: 987654,
+      } }),
+      prisma.transactionTemplate.create({ data: {
+        userId: owner.id, name: 'Modelo secundário', description: marker, type: 'EXPENSE',
+      } }),
+      prisma.financialGoal.create({ data: {
+        userId: owner.id, name: 'Meta secundária', description: marker, targetAmount: 987654,
+      } }),
+    ]);
+    const result = await getGlobalSearchForUser(owner.id, marker);
+    const items = result.groups.flatMap((group) => group.items);
+    for (const id of [debt.id, template.id, goal.id]) {
+      const item = items.find((entry) => entry.id === id);
+      expect(item?.matchedText).toBe(marker);
+      expect(item?.subtitle).toContain(marker);
+    }
+    expect(JSON.stringify(result)).not.toContain('987654');
+  });
+
   it('does not leak fuzzy matches from another user', async () => {
     const [owner, other] = await Promise.all([
       createUser('fuzzy-owner-isolation'),
