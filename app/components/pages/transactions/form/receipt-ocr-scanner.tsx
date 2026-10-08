@@ -99,7 +99,7 @@ export default function ReceiptOcrScanner({
     }
   }
 
-  const applicable = result ? getApplicableReceiptOcrSuggestions(result.suggestions) : {};
+  const applicable = getApplicableReceiptOcrSuggestions(result?.suggestions ?? {});
   const hasSuggestions = Boolean(applicable.amountCents || applicable.date || applicable.description);
   const confidenceLabel = { high: 'Alta', medium: 'Média', low: 'Baixa — somente revisão' } as const;
 
