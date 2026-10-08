@@ -15,8 +15,12 @@ export type OfflineTransactionQueueStatus =
 
 export type OfflineTransactionQueueFailureKind =
   | "auth"
-  | "conflict"
+  | "idempotency_conflict"
+  | "business_conflict"
+  | "validation"
+  | "rate_limit"
   | "network"
+  | "server"
   | "other";
 
 export type OfflineTransactionQueuePayload = {
@@ -42,6 +46,8 @@ export type OfflineTransactionQueueItem = {
   payload: OfflineTransactionQueuePayload;
   status: OfflineTransactionQueueStatus;
   failureKind?: OfflineTransactionQueueFailureKind;
+  errorCode?: string;
+  retryAfterAt?: string;
   lastError?: string;
   createdAt: string;
   updatedAt: string;
@@ -138,10 +144,16 @@ function isValidItem(value: unknown): value is OfflineTransactionQueueItem {
       item.status === "error") &&
     (item.failureKind === undefined ||
       item.failureKind === "auth" ||
-      item.failureKind === "conflict" ||
+      item.failureKind === "idempotency_conflict" ||
+      item.failureKind === "business_conflict" ||
+      item.failureKind === "validation" ||
+      item.failureKind === "rate_limit" ||
+      item.failureKind === "server" ||
       item.failureKind === "network" ||
       item.failureKind === "other") &&
     (item.lastError === undefined || typeof item.lastError === "string") &&
+    (item.errorCode === undefined || typeof item.errorCode === "string") &&
+    (item.retryAfterAt === undefined || (typeof item.retryAfterAt === "string" && !Number.isNaN(Date.parse(item.retryAfterAt)))) &&
     typeof item.createdAt === "string" &&
     typeof item.updatedAt === "string"
   );
@@ -203,7 +215,7 @@ export function readOfflineTransactionQueue(userId: string) {
       return [];
     }
 
-    // Sucessos de versões anteriores não fazem parte da fila ativa.
+    // Entries synced by older builds are not active pending operations.
     if (candidate.status === "synced") {
       changed = true;
       return [];
@@ -269,7 +281,7 @@ export function updateOfflineTransactionQueueItem(
   patch: Partial<
     Pick<
       OfflineTransactionQueueItem,
-      "status" | "failureKind" | "lastError"
+      "status" | "failureKind" | "lastError" | "errorCode" | "retryAfterAt"
     >
   >,
 ) {
@@ -313,13 +325,17 @@ export function clearOfflineTransactionQueue(userId: string) {
   }
 }
 
-function classifyQueueFailure(error: unknown): OfflineTransactionQueueFailureKind {
+export function classifyQueueFailure(error: unknown): OfflineTransactionQueueFailureKind {
   if (error && typeof error === "object" && "status" in error) {
     const status = Number((error as { status?: unknown }).status);
-    if (status === 401) return "auth";
-    if (status === 409) return "conflict";
+    const code = (error as { code?: unknown }).code;
+    if (status === 401 || status === 403) return "auth";
+    if (status === 429) return "rate_limit";
+    if (status === 409) return code === "IDEMPOTENCY_PAYLOAD_CONFLICT"
+      ? "idempotency_conflict" : "business_conflict";
+    if (status === 400 || status === 422) return "validation";
+    if (status >= 500) return "server";
   }
-
   if (error instanceof TypeError) return "network";
   return "other";
 }
@@ -334,11 +350,16 @@ export function rekeyOfflineTransactionQueueItem(
     throw new Error("Lançamento pendente não encontrado");
   }
 
+  if (current.failureKind !== "idempotency_conflict" || current.errorCode !== "IDEMPOTENCY_PAYLOAD_CONFLICT") {
+    throw new Error("Somente conflito de idempotência permite criar uma nova tentativa.");
+  }
   const updated: OfflineTransactionQueueItem = {
     ...current,
     idempotencyKey: randomId(),
     status: "pending",
     failureKind: undefined,
+    errorCode: undefined,
+    retryAfterAt: undefined,
     lastError: undefined,
     updatedAt: new Date().toISOString(),
   };
@@ -367,10 +388,18 @@ export async function syncOfflineTransactionQueueItem<T>(
   if (item.status === "synced") {
     throw new Error("Lançamento já sincronizado");
   }
+  if (item.retryAfterAt && Date.now() < Date.parse(item.retryAfterAt)) {
+    throw new Error("Aguarde o prazo informado pelo servidor antes de tentar novamente.");
+  }
+  if (item.failureKind === "validation" || item.failureKind === "business_conflict") {
+    throw new Error("Revise o lançamento antes de uma nova tentativa.");
+  }
 
   updateOfflineTransactionQueueItem(userId, item.id, {
     status: "sending",
     failureKind: undefined,
+    errorCode: undefined,
+    retryAfterAt: undefined,
     lastError: undefined,
   });
 
@@ -384,9 +413,22 @@ export async function syncOfflineTransactionQueueItem<T>(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Falha ao sincronizar lançamento";
+    const failureKind = classifyQueueFailure(error);
+    // A 400/422 validation rejection guarantees no creation. The form keeps
+    // the error visible; do not turn each correction into a queued operation.
+    if (failureKind === "validation") {
+      removeOfflineTransactionQueueItem(userId, item.id);
+      throw error;
+    }
+    // Business conflicts require review; uncertain outcomes keep their key.
     updateOfflineTransactionQueueItem(userId, item.id, {
       status: "error",
-      failureKind: classifyQueueFailure(error),
+      failureKind,
+      errorCode: error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : undefined,
+      retryAfterAt: failureKind === "rate_limit" && error && typeof error === "object" &&
+        "retryAfterSeconds" in error && typeof error.retryAfterSeconds === "number" &&
+        Number.isFinite(error.retryAfterSeconds)
+        ? new Date(Date.now() + Math.max(0, error.retryAfterSeconds) * 1000).toISOString() : undefined,
       lastError: message,
     });
     throw error;

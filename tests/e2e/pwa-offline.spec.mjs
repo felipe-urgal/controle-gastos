@@ -242,7 +242,7 @@ test('salva rascunho offline e exige confirmação online antes de criar', async
   const queuePanel = page.getByRole('region', { name: 'Fila de sincronização' });
   await expect(queuePanel).toBeVisible();
   await expect(queuePanel).toContainText(description);
-  await expect(queuePanel).toContainText('Erro');
+  await expect(queuePanel).toContainText('Falha de conexão');
 
   const draftAfterFailedSend = await page.evaluate((userId) =>
     localStorage.getItem(

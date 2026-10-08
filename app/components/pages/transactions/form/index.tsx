@@ -176,6 +176,7 @@ export default function TransactionForm({
   const [merchantLearningOperator, setMerchantLearningOperator] = useState<MerchantAliasOperator>('EQUALS');
   const [categoryLearningOperator, setCategoryLearningOperator] = useState<MerchantAliasOperator>('EQUALS');
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [storageUnavailable, setStorageUnavailable] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
@@ -595,6 +596,17 @@ export default function TransactionForm({
     }));
   }
 
+  useEffect(() => {
+    if (isEditing) return;
+    try {
+      const key = 'controle-gastos:storage-probe';
+      window.localStorage.setItem(key, '1');
+      window.localStorage.removeItem(key);
+    } catch {
+      queueMicrotask(() => setStorageUnavailable(true));
+    }
+  }, [isEditing]);
+
   async function persistTransaction() {
     if (submitInFlightRef.current) return;
     submitInFlightRef.current = true;
@@ -722,10 +734,18 @@ export default function TransactionForm({
             if (!(error instanceof OfflineTransactionQueueStorageError)) {
               throw error;
             }
-            // A indisponibilidade de storage não pode retirar a idempotência.
-            const response = await transactionService.createIdempotent(queuePayload, attempt.key);
-            savedTransaction = response.data;
-            createAttemptRef.current = null;
+            // Retry remains safe in this tab, but the attempt cannot survive reload.
+            setStorageUnavailable(true);
+            try {
+              const response = await transactionService.createIdempotent(queuePayload, attempt.key);
+              savedTransaction = response.data;
+              createAttemptRef.current = null;
+            } catch (requestError) {
+              if (requestError instanceof ApiClientError && (requestError.status === 400 || requestError.status === 422)) {
+                createAttemptRef.current = null;
+              }
+              throw requestError;
+            }
           }
         }
 
@@ -746,13 +766,38 @@ export default function TransactionForm({
             createAttemptRef.current = null;
             onOfflineQueueChanged?.();
           } catch (error) {
+            // A rejected validation never created a transaction: corrections
+            // are new attempts and must not retain the old payload or key.
+            if (error instanceof ApiClientError && (error.status === 400 || error.status === 422)) {
+              createAttemptRef.current = null;
+            }
             onOfflineQueueChanged?.();
             throw error;
           }
         }
       } else {
-        const response = await transactionService.create(payload);
-        savedTransaction = response.data;
+        // A normal create must be idempotent even if a queue owner is unavailable.
+        const serializedPayload = JSON.stringify(payload);
+        const previousAttempt = createAttemptRef.current;
+        if (previousAttempt && previousAttempt.payload !== serializedPayload) {
+          throw new Error('Há uma tentativa anterior com resultado incerto. Reenvie os mesmos dados antes de alterá-los.');
+        }
+        const attempt = previousAttempt ?? {
+          id: globalThis.crypto.randomUUID(),
+          key: globalThis.crypto.randomUUID(),
+          payload: serializedPayload,
+        };
+        createAttemptRef.current = attempt;
+        try {
+          const response = await transactionService.createIdempotent(payload, attempt.key);
+          savedTransaction = response.data;
+          createAttemptRef.current = null;
+        } catch (requestError) {
+          if (requestError instanceof ApiClientError && (requestError.status === 400 || requestError.status === 422)) {
+            createAttemptRef.current = null;
+          }
+          throw requestError;
+        }
       }
 
       handleRedirect(savedTransaction);
@@ -1610,6 +1655,13 @@ export default function TransactionForm({
         </section>
       </FormContainer>
 
+      {storageUnavailable && !isEditing && (
+        <p role="alert" className="mt-3 rounded-lg border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
+          O armazenamento local está indisponível. Esta aba mantém a chave de segurança durante tentativas de reenvio,
+          mas, se a resposta do servidor se perder e a página for recarregada, não será possível recuperar a tentativa.
+          Antes de criar novamente, confira se o lançamento já existe em Transações.
+        </p>
+      )}
       <FormContainer
         onSubmit={handleSubmit}
         error={submitError}
