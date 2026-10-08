@@ -514,7 +514,7 @@ export default function New({
                         >
                           {queueSyncingId === item.id ? 'Sincronizando...' : 'Sincronizar'}
                         </button>
-                        )
+                        )}
                         <button
                           type="button"
                           onClick={() => discardQueuedTransaction(item)}
