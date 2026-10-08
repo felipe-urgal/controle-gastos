@@ -77,7 +77,6 @@ function normalizeYear(year: number) {
 }
 
 function extractDate(lines: string[]): ReceiptOcrSuggestions['date'] {
-  let inconsistentAmountEvidence: string | undefined;
   const candidates: Array<{ value: ReceiptOcrDate; evidence: string; contextual: boolean }> = [];
   for (const line of lines) {
     const contextual = /\b(data|emiss[aã]o|compra)\b/i.test(line);
@@ -92,7 +91,7 @@ function extractDate(lines: string[]): ReceiptOcrSuggestions['date'] {
       if (isValidOcrDate({ year, month, day })) candidates.push({ value: { year, month, day }, evidence: line, contextual });
     }
   }
-  if (!candidates.length) return { inconsistentAmountEvidence };
+  if (!candidates.length) return undefined;
   const selected = candidates.find((candidate) => candidate.contextual) ?? candidates[0];
   const differentDates = candidates.some((candidate) =>
     candidate.value.year !== selected.value.year ||
