@@ -166,7 +166,7 @@ describe("global search query plan", () => {
       { group: 'tag', text: 'transporte' },
       { group: 'combined', text: 'Mercado' },
     ];
-    const fuzzyMetrics = [];
+    const fuzzyMetrics: Array<{ field: string; executionMs: number | null; correlatedSubplans: number }> = [];
     for (const testCase of fuzzyCases) {
       const rows = await prisma.$queryRaw<Array<{ 'QUERY PLAN': string }>>(
         Prisma.sql`EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) ${buildGlobalSearchFuzzyQuery(targetUserId, testCase.text, [])}`,
