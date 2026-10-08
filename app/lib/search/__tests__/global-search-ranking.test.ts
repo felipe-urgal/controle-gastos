@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { getAppNavigation } from '@/app/components/layout/app-navigation';
 import { normalizeGlobalSearchMatch, scoreGlobalSearchMatch } from '@/app/lib/search/global-search-ranking';
 
 describe('global search relevance', () => {
@@ -28,5 +29,21 @@ describe('global search relevance', () => {
   it('não trata a string vazia como match universal', () => {
     expect(scoreGlobalSearchMatch('Mercado', '')).toBe(0);
     expect(scoreGlobalSearchMatch('', 'mercado')).toBe(0);
+  });
+});
+
+describe('sinônimos de navegação', () => {
+  it.each([
+    ['payroll', ['salário', 'folha', 'holerite']],
+    ['net-worth', ['patrimônio líquido']],
+    ['merchants', ['loja', 'merchant', 'comércio']],
+    ['transactions', ['lançamento']],
+    ['recurrences', ['assinatura', 'recorrente']],
+  ])('inclui os termos em português para %s', (key, terms) => {
+    const item = getAppNavigation().find((entry) => entry.key === key);
+    expect(item).toBeDefined();
+    for (const term of terms) {
+      expect(normalizeGlobalSearchMatch(item?.keywords ?? '')).toContain(normalizeGlobalSearchMatch(term));
+    }
   });
 });
