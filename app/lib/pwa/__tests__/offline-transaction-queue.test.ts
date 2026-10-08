@@ -114,14 +114,35 @@ describe("offline transaction queue", () => {
       idempotencyKey: "key-2",
     });
     expect(readOfflineTransactionQueue("user-a")).toHaveLength(2);
-    const sentKeys: string[] = [];
-    for (const item of [first, second]) {
-      await syncOfflineTransactionQueueItem("user-a", item.id, async (_, key) => {
-        sentKeys.push(key);
-        return { ok: true };
-      });
-    }
-    expect(sentKeys).toEqual(["key-1", "key-2"]);
+    const created = new Map<string, string>();
+    const send = async (_: typeof payload, key: string) => {
+      if (!created.has(key)) created.set(key, `transaction-${created.size + 1}`);
+      return { id: created.get(key) };
+    };
+    const firstResult = await syncOfflineTransactionQueueItem("user-a", first.id, send);
+    const secondResult = await syncOfflineTransactionQueueItem("user-a", second.id, send);
+    expect(firstResult.result.id).not.toBe(secondResult.result.id);
+    expect(created.size).toBe(2);
+    expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+  });
+
+  it("replays the same key without a second server-side creation after response loss", async () => {
+    installLocalStorage();
+    enqueueOfflineTransaction("user-a", payload, { id: "attempt", idempotencyKey: "stable-key" });
+    const created = new Map<string, string>();
+    let requests = 0;
+    const simulateServer = async (_: typeof payload, key: string) => {
+      requests++;
+      if (!created.has(key)) created.set(key, `transaction-${created.size + 1}`);
+      if (requests === 1) throw new TypeError("Resposta perdida após criação");
+      return { id: created.get(key) };
+    };
+    await expect(syncOfflineTransactionQueueItem("user-a", "attempt", simulateServer)).rejects.toThrow("Resposta perdida");
+    expect(readOfflineTransactionQueue("user-a")[0].idempotencyKey).toBe("stable-key");
+    const retried = await syncOfflineTransactionQueueItem("user-a", "attempt", simulateServer);
+    expect(retried.result.id).toBe("transaction-1");
+    expect(requests).toBe(2);
+    expect(created.size).toBe(1);
     expect(readOfflineTransactionQueue("user-a")).toEqual([]);
   });
 
