@@ -503,7 +503,7 @@ export default function New({
                       </>
                     ) : (
                       <>
-                        {(item.failureKind === 'validation' || item.failureKind === 'business_conflict' || item.failureKind === 'conflict') ? (
+                        {(item.failureKind === 'validation' || item.failureKind === 'business_conflict') ? (
                           <span className="text-xs text-[var(--text-muted)]">Este lançamento exige revisão antes de uma nova tentativa. Descarte-o somente após conferir os dados.</span>
                         ) : (
                         <button
