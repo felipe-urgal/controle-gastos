@@ -21,12 +21,28 @@ export interface ReceiptOcrSuggestions {
   date?: ReceiptOcrSuggestion<ReceiptOcrDate>;
   description?: ReceiptOcrSuggestion<string>;
   inconsistentAmountEvidence?: string;
+  /** BRL when "R$" is present; OTHER when another currency marker (US$, USD, EUR, €) appears. */
+  detectedCurrency?: 'BRL' | 'OTHER';
 }
 
+/** OCR amounts are Brazilian reais; they are never applied to another currency or converted. */
+export function isReceiptAmountCompatibleWithCurrency(
+  suggestions: ReceiptOcrSuggestions,
+  accountCurrency?: string,
+) {
+  if (suggestions.detectedCurrency === 'OTHER') return false;
+  return !accountCurrency || accountCurrency === 'BRL';
+}
+
+export type ReceiptOcrApplication = ReturnType<typeof getApplicableReceiptOcrSuggestions>;
+
 /** Only sufficiently supported values may be applied after explicit user confirmation. */
-export function getApplicableReceiptOcrSuggestions(suggestions: ReceiptOcrSuggestions) {
+export function getApplicableReceiptOcrSuggestions(
+  suggestions: ReceiptOcrSuggestions,
+  options: { accountCurrency?: string } = {},
+) {
   return {
-    amountCents: !suggestions.inconsistentAmountEvidence && suggestions.amount?.confidence !== 'low' && isValidOcrAmount(suggestions.amount?.value) ? suggestions.amount?.value : undefined,
+    amountCents: isReceiptAmountCompatibleWithCurrency(suggestions, options.accountCurrency) && !suggestions.inconsistentAmountEvidence && suggestions.amount?.confidence !== 'low' && isValidOcrAmount(suggestions.amount?.value) ? suggestions.amount?.value : undefined,
     date: suggestions.date?.confidence !== 'low' && suggestions.date && isValidOcrDate(suggestions.date.value) ? suggestions.date.value : undefined,
     description: suggestions.description?.confidence !== 'low' && suggestions.description && isValidOcrDescription(suggestions.description.value) ? suggestions.description.value : undefined,
   };
@@ -76,9 +92,13 @@ function normalizeYear(year: number) {
   return year < 100 ? 2000 + year : year;
 }
 
+// Due, validity and authorization dates are never the purchase date.
+const NON_PURCHASE_DATE = /\b(?:vencimento|venc\.?|validade|v[aá]lido|autoriza[cç][aã]o|autoriz\.?)\b/i;
+
 function extractDate(lines: string[]): ReceiptOcrSuggestions['date'] {
   const candidates: Array<{ value: ReceiptOcrDate; evidence: string; contextual: boolean }> = [];
   for (const line of lines) {
+    if (NON_PURCHASE_DATE.test(line)) continue;
     const contextual = /\b(data|emiss[aã]o|compra)\b/i.test(line);
     for (const match of line.matchAll(ISO_DATE_PATTERN)) {
       const [year, month, day] = match.slice(1).map(Number);
@@ -103,6 +123,11 @@ function extractDate(lines: string[]): ReceiptOcrSuggestions['date'] {
     confidence: differentDates ? 'low' : selected.contextual ? 'high' : 'medium',
     evidence: selected.evidence,
   };
+}
+
+function detectCurrency(text: string): ReceiptOcrSuggestions['detectedCurrency'] {
+  if (/(?:US\$|\bUSD\b|\bEUR\b|€)/i.test(text)) return 'OTHER';
+  return /R\$/i.test(text) ? 'BRL' : undefined;
 }
 
 function extractInconsistentTotalEvidence(lines: string[]): string | undefined {
@@ -200,5 +225,6 @@ export function parseReceiptOcrText(text: string): ReceiptOcrSuggestions {
     inconsistentAmountEvidence: extractInconsistentTotalEvidence(lines),
     date: extractDate(lines),
     description: extractDescription(lines),
+    detectedCurrency: detectCurrency(text),
   };
 }
