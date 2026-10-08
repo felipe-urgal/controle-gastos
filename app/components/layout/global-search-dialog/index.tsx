@@ -28,6 +28,8 @@ const groupLabels: Record<GlobalSearchResultType, string> = {
   MERCHANT: 'Estabelecimentos',
   TAG: 'Tags',
   DEBT: 'Dívidas',
+  TEMPLATE: 'Modelos',
+  GOAL: 'Metas',
 };
 
 const resultIcons = {
@@ -38,6 +40,8 @@ const resultIcons = {
   MERCHANT: FaWallet,
   TAG: FaTags,
   DEBT: FaMoneyBillWave,
+  TEMPLATE: FaMagic,
+  GOAL: FaWallet,
 } satisfies Record<GlobalSearchResultType, typeof FaSearch>;
 
 const quickActions = [
