@@ -122,7 +122,7 @@ describe("installment transaction series integration", () => {
     const response = await createInstallmentTransactions(
       new Request("http://localhost/api/transactions/installments", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify(input),
       })
     );
@@ -194,7 +194,7 @@ describe("installment transaction series integration", () => {
     const incomeCategoryUpdate = await transactionCrud.update(
       new Request(`http://localhost/api/transactions/${occurrences[1].id}`, {
         method: "PUT",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({ categoryId: incomeCategory.id }),
       }),
       { params: Promise.resolve({ id: occurrences[1].id }) }
@@ -204,7 +204,7 @@ describe("installment transaction series integration", () => {
     const cancelOne = await transactionCrud.update(
       new Request(`http://localhost/api/transactions/${occurrences[1].id}`, {
         method: "PUT",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({ status: "CANCELLED" }),
       }),
       { params: Promise.resolve({ id: occurrences[1].id }) }
@@ -239,7 +239,7 @@ describe("installment transaction series integration", () => {
     const response = await createInstallmentTransactions(
       new Request("http://localhost/api/transactions/installments", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({
           ...input,
           transaction: { ...input.transaction, tagIds: [tag.id] },
@@ -272,7 +272,7 @@ describe("installment transaction series integration", () => {
     const incomeResponse = await createInstallmentTransactions(
       new Request("http://localhost/api/transactions/installments", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({
           ...input,
           transaction: { ...input.transaction, categoryId: incomeCategory.id },
@@ -284,7 +284,7 @@ describe("installment transaction series integration", () => {
     const foreignAccountResponse = await createInstallmentTransactions(
       new Request("http://localhost/api/transactions/installments", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "Idempotency-Key": randomUUID() },
         body: JSON.stringify({
           ...input,
           transaction: { ...input.transaction, accountId: otherAccount.id },
