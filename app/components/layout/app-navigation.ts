@@ -22,6 +22,7 @@ import {
 export type AppNavigationItem = {
   key: 'dashboard' | 'closing' | 'comparison' | 'commitments' | 'templates' | 'accounts' | 'net-worth' | 'investments' | 'payroll' | 'debts' | 'recurrences' | 'goals' | 'categories' | 'merchants' | 'tags' | 'transactions' | 'calendar' | 'profile';
   label: string;
+  keywords?: string;
   href: string;
   icon: IconType;
   isActive: (pathname: string) => boolean;
@@ -67,6 +68,7 @@ export function getAppNavigation(): AppNavigationItem[] {
     {
       key: 'transactions',
       label: 'Transações',
+      keywords: 'lançamento lançamentos',
       href: '/transacoes',
       icon: FaMoneyBillWave,
       isActive: (pathname) => pathname === '/transacoes' || pathname.startsWith('/transacoes/'),
@@ -81,6 +83,7 @@ export function getAppNavigation(): AppNavigationItem[] {
     {
       key: 'net-worth',
       label: 'Patrimônio',
+      keywords: 'patrimônio líquido',
       href: '/patrimonio',
       icon: FaChartLine,
       isActive: (pathname) => pathname === '/patrimonio' || pathname.startsWith('/patrimonio/'),
@@ -95,6 +98,7 @@ export function getAppNavigation(): AppNavigationItem[] {
     {
       key: 'payroll',
       label: 'Rendimentos',
+      keywords: 'salário folha holerite',
       href: '/rendimentos-trabalho',
       icon: FaBriefcase,
       isActive: (pathname) => pathname === '/rendimentos-trabalho' || pathname.startsWith('/rendimentos-trabalho/'),
@@ -109,6 +113,7 @@ export function getAppNavigation(): AppNavigationItem[] {
     {
       key: 'recurrences',
       label: 'Recorrências',
+      keywords: 'assinatura recorrente',
       href: '/recorrencias',
       icon: FaSyncAlt,
       isActive: (pathname) => pathname === '/recorrencias' || pathname.startsWith('/recorrencias/'),
@@ -130,6 +135,7 @@ export function getAppNavigation(): AppNavigationItem[] {
     {
       key: 'merchants',
       label: 'Estabelecimentos',
+      keywords: 'loja comércio merchant',
       href: '/estabelecimentos',
       icon: FaStore,
       isActive: (pathname) => pathname === '/estabelecimentos' || pathname.startsWith('/estabelecimentos/'),
