@@ -132,9 +132,10 @@ export async function searchNamedEntityGroups(
             item.isFavorite ? 'Favorito' : 'Modelo',
             item.account && !item.account.isActive ? 'Conta inativa' : null,
             item.category && !item.category.isActive ? 'Categoria inativa' : null,
-            matchDescription ? `Descrição: ${item.description}` : null,
+            matchDescription ? 'Correspondência na descrição' : null,
           ].filter(Boolean).join(' · '),
-          ...(matchDescription ? { matchedField: 'description', matchedText: item.description } : {}),
+          // Never echo freeform descriptions: users may include amounts in them.
+          ...(matchDescription ? { matchedField: 'description', matchedText: query } : {}),
           href: `/modelos?templateId=${encodeURIComponent(item.id)}`,
         };
       }),
@@ -148,9 +149,10 @@ export async function searchNamedEntityGroups(
           id: item.id, type: 'GOAL', title: item.name,
           subtitle: [
             item.status === 'ACTIVE' ? 'Ativa' : item.status === 'COMPLETED' ? 'Concluída' : 'Arquivada',
-            matchDescription ? `Descrição: ${item.description}` : null,
+            matchDescription ? 'Correspondência na descrição' : null,
           ].filter(Boolean).join(' · '),
-          ...(matchDescription ? { matchedField: 'description', matchedText: item.description } : {}),
+          // Never echo freeform descriptions: users may include amounts in them.
+          ...(matchDescription ? { matchedField: 'description', matchedText: query } : {}),
           href: `/metas?goalId=${encodeURIComponent(item.id)}`,
         };
       }),
