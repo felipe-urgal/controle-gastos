@@ -8,6 +8,7 @@ import {
   stringInput,
 } from "@/app/lib/auth/auth-input";
 import { hashPassword, validatePassword } from "@/app/lib/auth/password-policy";
+import { revokeAllMcpAccessTokensForUser } from "@/app/lib/mcp/mcp-token";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 import { prisma } from "@/app/lib/prisma";
@@ -134,6 +135,10 @@ export async function POST(request: Request): Promise<NextResponse> {
           authVersion: { increment: 1 },
         },
       });
+
+      // Recuperação de conta pode indicar comprometimento: tokens MCP
+      // (credencial independente das sessões) também são revogados.
+      await revokeAllMcpAccessTokensForUser(resetToken.userId, tx);
     });
 
     logEvent("info", "password_reset_succeeded", {

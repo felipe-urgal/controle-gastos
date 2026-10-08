@@ -222,4 +222,40 @@ describe("MCP HTTP server", () => {
       error: { code: -32600 },
     });
   });
+
+  it("aplica o limite de 64 KB ao corpo real, sem Content-Length", async () => {
+    const payload = JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "ping",
+      params: { padding: "x".repeat(70 * 1024) },
+    });
+    const encoded = new TextEncoder().encode(payload);
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoded.slice(0, 40 * 1024));
+        controller.enqueue(encoded.slice(40 * 1024));
+        controller.close();
+      },
+    });
+    const request = new Request("http://localhost/api/mcp", {
+      method: "POST",
+      headers: { authorization: "Bearer cgmcp_test" },
+      body: stream,
+      duplex: "half",
+    } as RequestInit);
+    expect(request.headers.get("content-length")).toBeNull();
+
+    const response = await handleMcpRequest(request);
+
+    expect(response.status).toBe(413);
+    expect(mocks.authenticate).not.toHaveBeenCalled();
+  });
+
+  it("responde 405 para métodos diferentes de POST", async () => {
+    const response = await handleMcpRequest(
+      new Request("http://localhost/api/mcp", { method: "GET" }),
+    );
+    expect(response.status).toBe(405);
+  });
 });

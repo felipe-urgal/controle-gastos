@@ -5,6 +5,7 @@ import {
   authenticateMcpBearerToken,
   createMcpAccessTokenForUser,
   listMcpAccessTokensForUser,
+  revokeAllMcpAccessTokensForUser,
   revokeMcpAccessTokenForUser,
 } from "@/app/lib/mcp/mcp-token";
 import { prisma } from "@/app/lib/prisma";
@@ -91,10 +92,81 @@ describe("MCP access tokens", () => {
     ).resolves.toBeNull();
 
     const listed = await listMcpAccessTokensForUser(owner.id);
-    expect(listed[0]).toMatchObject({
+    expect(listed.totalActive).toBe(0);
+    expect(listed.items[0]).toMatchObject({
       id: created.id,
       status: "REVOKED",
     });
+  });
+
+  it("respeita o limite de 5 tokens ativos sob concorrência", async () => {
+    const user = await createUser("race");
+    for (let i = 0; i < 4; i += 1) {
+      await createMcpAccessTokenForUser(user.id, {
+        name: `T${i}`,
+        expiresInDays: 30,
+      });
+    }
+
+    const results = await Promise.allSettled(
+      Array.from({ length: 4 }, (_, i) =>
+        createMcpAccessTokenForUser(user.id, {
+          name: `Race ${i}`,
+          expiresInDays: 30,
+        }),
+      ),
+    );
+
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    for (const result of results) {
+      if (result.status === "rejected") {
+        expect(result.reason).toMatchObject({
+          status: 409,
+          code: "MCP_TOKEN_LIMIT_REACHED",
+        });
+      }
+    }
+    await expect(
+      prisma.mcpAccessToken.count({ where: { userId: user.id } }),
+    ).resolves.toBe(5);
+  });
+
+  it("sempre lista tokens ativos antigos, mesmo com muito histórico", async () => {
+    const user = await createUser("list");
+    const old = await createMcpAccessTokenForUser(
+      user.id,
+      { name: "Antigo ativo", expiresInDays: 365 },
+      new Date(),
+    );
+    await prisma.mcpAccessToken.createMany({
+      data: Array.from({ length: 25 }, (_, i) => ({
+        userId: user.id,
+        name: `Revogado ${i}`,
+        tokenHash: randomUUID().replace(/-/g, "").padEnd(64, "0"),
+        tokenPrefix: "cgmcp_revoked",
+        expiresAt: new Date(Date.now() + 86_400_000),
+        revokedAt: new Date(),
+        createdAt: new Date(Date.now() + 1_000 + i),
+      })),
+    });
+
+    const listed = await listMcpAccessTokensForUser(user.id);
+    expect(listed.totalActive).toBe(1);
+    expect(listed.items.find((item) => item.id === old.id)?.status).toBe("ACTIVE");
+    expect(listed.items).toHaveLength(21);
+  });
+
+  it("revoga todos os tokens ativos do usuário", async () => {
+    const user = await createUser("revoke-all");
+    const created = await createMcpAccessTokenForUser(user.id, {
+      name: "Um",
+      expiresInDays: 30,
+    });
+
+    await expect(revokeAllMcpAccessTokensForUser(user.id)).resolves.toBe(1);
+    await expect(
+      authenticateMcpBearerToken(`Bearer ${created.token}`),
+    ).resolves.toBeNull();
   });
 
   it("rejeita token expirado e usuário inativo", async () => {

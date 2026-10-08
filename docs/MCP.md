@@ -94,7 +94,7 @@ curl -X POST https://SEU-DOMINIO/api/mcp \
 
 Lista contas do usuário. Saldos de contas correntes/investimento são derivados somente de transações `COMPLETED`. Cartões não recebem um saldo bancário artificial.
 
-Limite interno: até 100 contas.
+Paginada por `page`/`limit` (máx. 100 por página); `hasMore` indica próxima página.
 
 ### `get_monthly_summary`
 
@@ -120,10 +120,14 @@ Filtros opcionais:
 - tipo;
 - status.
 
+Texto pesquisado: descrição, estabelecimento (nome, sem aliases), categoria e tag. Não equivale à Busca global.
+
 Paginação:
 
 - `limit`: máximo 50;
-- `page`: máximo 20.
+- `page`: máximo 20 (até 1.000 registros por mês).
+
+`hasMore=true` sempre tem uma página seguinte válida. Na última página alcançável, se ainda houver resultados, a resposta traz `truncated=true` (e `hasMore=false`): refine com `query`, `type`, `status` ou `currency`.
 
 Esse limite evita transformar a tool em mecanismo de exportação irrestrita.
 
@@ -169,6 +173,20 @@ Rate limit:
 - até 300 requisições por minuto por IP confiável.
 
 Quando o limite é atingido, o endpoint responde `429` e inclui `Retry-After`.
+
+## Ciclo de vida e eventos de segurança
+
+O token MCP é uma credencial independente das sessões do app e não depende de `authVersion`.
+
+- Máximo de 5 tokens ativos por usuário, garantido sob concorrência (409 `MCP_TOKEN_LIMIT_REACHED`).
+- Todo token ativo é sempre listado e revogável; apenas o histórico expirado/revogado é limitado (20 mais recentes).
+- Troca normal de senha e desativação de MFA **preservam** os tokens (revogue manualmente se necessário).
+- Redefinição de senha por recuperação (forgot/reset) **revoga todos** os tokens ativos.
+- Exclusão da conta remove os tokens em cascata.
+- `lastUsedAt` é telemetria best-effort; falha de escrita não nega a requisição.
+- O corpo é limitado a 64 KB pelos bytes realmente recebidos (413), independente de `Content-Length`.
+- `showValues` é preferência visual: o token MCP retorna valores reais.
+- Apenas `POST /api/mcp` é exposto; demais métodos retornam 405.
 
 ## Revogação
 

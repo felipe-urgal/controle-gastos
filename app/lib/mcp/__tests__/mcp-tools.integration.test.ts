@@ -176,6 +176,60 @@ describe("MCP read-only tools", () => {
     expect(serialized).not.toContain(fixture.otherAccount.id);
   });
 
+  it("pagina contas sem truncar silenciosamente", async () => {
+    const fixture = await createFixture();
+
+    const first = await executeMcpTool(fixture.owner.id, "get_accounts", {
+      limit: 1,
+    });
+    expect(first).toMatchObject({ page: 1, limit: 1, hasMore: true });
+    expect((first as { items: unknown[] }).items).toHaveLength(1);
+
+    const second = await executeMcpTool(fixture.owner.id, "get_accounts", {
+      limit: 1,
+      page: 2,
+    });
+    expect(second).toMatchObject({ hasMore: false });
+    expect((second as { items: unknown[] }).items).toHaveLength(1);
+  });
+
+  it("sinaliza truncated em vez de hasMore na última página alcançável", async () => {
+    const fixture = await createFixture();
+    const category = await prisma.category.findFirstOrThrow({
+      where: { userId: fixture.owner.id },
+    });
+    await prisma.transaction.createMany({
+      data: Array.from({ length: 25 }, (_, index) => ({
+        amount: 100,
+        year: 2026,
+        month: 8,
+        day: 1 + (index % 28),
+        type: "INCOME" as const,
+        description: `Volume ${index}`,
+        status: "COMPLETED" as const,
+        accountId: fixture.ownerBrl.id,
+        categoryId: category.id,
+        userId: fixture.owner.id,
+      })),
+    });
+
+    const middle = await executeMcpTool(fixture.owner.id, "search_transactions", {
+      year: 2026,
+      month: 8,
+      page: 19,
+      limit: 1,
+    });
+    expect(middle).toMatchObject({ hasMore: true, truncated: false });
+
+    const last = await executeMcpTool(fixture.owner.id, "search_transactions", {
+      year: 2026,
+      month: 8,
+      page: 20,
+      limit: 1,
+    });
+    expect(last).toMatchObject({ hasMore: false, truncated: true });
+  });
+
   it("limita range e tamanho de resposta nos schemas", () => {
     expect(() =>
       parseMcpToolArguments("search_transactions", {

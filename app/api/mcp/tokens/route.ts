@@ -21,9 +21,7 @@ const requestSchema = createMcpTokenSchema.extend({
 export async function GET() {
   try {
     const userId = await getAuthenticatedUserId();
-    return success({
-      items: await listMcpAccessTokensForUser(userId),
-    });
+    return success(await listMcpAccessTokensForUser(userId));
   } catch (error) {
     return apiFailureFromError(error, {
       fallbackMessage: "Não foi possível carregar os tokens MCP",

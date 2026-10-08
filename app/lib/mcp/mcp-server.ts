@@ -1,5 +1,7 @@
 import { ZodError, z } from "zod";
 
+import { parseJsonBody } from "@/app/lib/api/request-json";
+import { isHttpError } from "@/app/lib/http-error";
 import {
   authenticateMcpBearerToken,
   type McpPrincipal,
@@ -260,15 +262,13 @@ export async function handleMcpRequest(request: Request) {
     });
   }
 
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > MCP_MAX_BODY_BYTES) {
-    return jsonRpcError(null, -32600, "Requisição MCP excede o limite", 413);
-  }
-
   let rawBody: unknown;
   try {
-    rawBody = await request.json();
-  } catch {
+    rawBody = await parseJsonBody(request, { maxBytes: MCP_MAX_BODY_BYTES });
+  } catch (error) {
+    if (isHttpError(error) && error.status === 413) {
+      return jsonRpcError(null, -32600, "Requisição MCP excede o limite", 413);
+    }
     return jsonRpcError(null, -32700, "JSON inválido", 400);
   }
 
