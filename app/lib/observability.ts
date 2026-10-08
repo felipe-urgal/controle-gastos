@@ -13,6 +13,7 @@ function redactSecrets(value: string): string {
     .replace(/postgres(?:ql)?:\/\/[^\s@]+@/gi, "postgresql://[REDACTED]@")
     .replace(/Bearer\s+[^\s]+/gi, "Bearer [REDACTED]")
     .replace(/\bre_[a-zA-Z0-9_-]{8,}\b/g, "re_[REDACTED]")
+    .replace(/\bcgmcp_[a-zA-Z0-9_-]+/g, "cgmcp_[REDACTED]")
     .replace(/\beyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\b/g, "[JWT_REDACTED]");
 }
 

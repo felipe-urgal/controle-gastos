@@ -5,6 +5,8 @@ import {
   executeMcpTool,
   parseMcpToolArguments,
 } from "@/app/lib/mcp/mcp-tools";
+import { getMonthlyDashboardForUser } from "@/app/lib/dashboard/monthly-dashboard";
+import { getNetWorthForUser } from "@/app/lib/net-worth/net-worth";
 import { prisma } from "@/app/lib/prisma";
 
 const createdUserIds: string[] = [];
@@ -228,6 +230,72 @@ describe("MCP read-only tools", () => {
       limit: 1,
     });
     expect(last).toMatchObject({ hasMore: false, truncated: true });
+  });
+
+  it("delega resumo mensal e patrimônio aos read models canônicos, sem somar moedas", async () => {
+    const fixture = await createFixture();
+
+    const summary = (await executeMcpTool(fixture.owner.id, "get_monthly_summary", {
+      year: 2026,
+      month: 9,
+      currency: "BRL",
+    })) as Awaited<ReturnType<typeof executeMcpTool>> & Record<string, unknown>;
+    const canonical = await getMonthlyDashboardForUser(
+      fixture.owner.id,
+      { year: 2026, month: 9 },
+      "BRL",
+    );
+    expect(summary.summary).toEqual(canonical.summary);
+    expect(summary.comparison).toEqual(canonical.comparison);
+    expect(summary.currency).toBe("BRL");
+    // USD (20_000) não entra no total BRL
+    expect(JSON.stringify(summary.summary)).not.toContain("120000");
+
+    const netWorth = (await executeMcpTool(fixture.owner.id, "get_net_worth", {
+      year: 2026,
+      month: 9,
+      months: 3,
+    })) as Record<string, unknown>;
+    const canonicalNet = await getNetWorthForUser(fixture.owner.id, {
+      year: 2026,
+      month: 9,
+      months: 3,
+    });
+    expect(netWorth.totals).toEqual(canonicalNet.totals);
+    expect(netWorth.history).toEqual(canonicalNet.history);
+    expect(
+      (netWorth.byCurrency as Array<{ currency: string }>).map((item) => item.currency),
+    ).toEqual(canonicalNet.byCurrency.map((item) => item.currency));
+  });
+
+  it("não declara hasMore sem continuação com mais de 1.000 transações no mês", async () => {
+    const fixture = await createFixture();
+    const category = await prisma.category.findFirstOrThrow({
+      where: { userId: fixture.owner.id },
+    });
+    await prisma.transaction.createMany({
+      data: Array.from({ length: 1_001 }, (_, index) => ({
+        amount: 100,
+        year: 2026,
+        month: 7,
+        day: 1 + (index % 28),
+        type: "INCOME" as const,
+        description: `Volume ${index}`,
+        status: "COMPLETED" as const,
+        accountId: fixture.ownerBrl.id,
+        categoryId: category.id,
+        userId: fixture.owner.id,
+      })),
+    });
+
+    const last = await executeMcpTool(fixture.owner.id, "search_transactions", {
+      year: 2026,
+      month: 7,
+      page: 20,
+      limit: 50,
+    });
+    expect(last).toMatchObject({ hasMore: false, truncated: true });
+    expect((last as { items: unknown[] }).items).toHaveLength(50);
   });
 
   it("limita range e tamanho de resposta nos schemas", () => {
