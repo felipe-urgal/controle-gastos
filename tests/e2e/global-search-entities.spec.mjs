@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -14,10 +15,7 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
   test.setTimeout(120_000);
   const unique = `BuscaEnt${Date.now().toString(36)}`;
   const email = `qa-search-entities-${unique}@example.test`;
-  const signup = await request.post('/api/auth/signup', {
-    data: { name: 'QA Busca Entidades', email, password },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Busca Entidades', email, password });
   await login(page, email);
 
   const entities = await page.evaluate(async (marker) => {
