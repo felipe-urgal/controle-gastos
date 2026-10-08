@@ -12,11 +12,15 @@ const periodFields = {
   month: z.number().int().min(1).max(12),
 } as const;
 
+const MAX_TRANSACTION_PAGE = 20;
+
 const toolSchemas = {
   get_accounts: z
     .object({
       currency: currencySchema.optional(),
       includeInactive: z.boolean().default(false),
+      page: z.number().int().min(1).max(100).default(1),
+      limit: z.number().int().min(1).max(100).default(100),
     })
     .strict(),
   get_monthly_summary: z
@@ -32,7 +36,7 @@ const toolSchemas = {
       query: z.string().trim().min(1).max(120).optional(),
       type: z.enum(["INCOME", "EXPENSE"]).optional(),
       status: z.enum(["PENDING", "COMPLETED", "CANCELLED"]).optional(),
-      page: z.number().int().min(1).max(20).default(1),
+      page: z.number().int().min(1).max(MAX_TRANSACTION_PAGE).default(1),
       limit: z.number().int().min(1).max(50).default(20),
     })
     .strict(),
@@ -62,6 +66,8 @@ export const MCP_TOOL_DEFINITIONS = [
       properties: {
         currency: { type: "string", enum: ["BRL", "USD", "EUR"] },
         includeInactive: { type: "boolean", default: false },
+        page: { type: "integer", minimum: 1, maximum: 100, default: 1 },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 100 },
       },
       additionalProperties: false,
     },
@@ -88,7 +94,7 @@ export const MCP_TOOL_DEFINITIONS = [
   {
     name: "search_transactions",
     description:
-      "Busca transações de um único mês com paginação limitada. Nunca retorna dados de outro usuário.",
+      "Busca transações de um único mês por description, estabelecimento, categoria e tag (sem aliases; não equivale à Busca global), com paginação limitada a 20 páginas. hasMore indica página seguinte; truncated=true indica que o teto foi atingido e há mais resultados — refine com query/type/status/currency. Nunca retorna dados de outro usuário.",
     inputSchema: {
       type: "object",
       properties: {
@@ -101,7 +107,7 @@ export const MCP_TOOL_DEFINITIONS = [
           type: "string",
           enum: ["PENDING", "COMPLETED", "CANCELLED"],
         },
-        page: { type: "integer", minimum: 1, maximum: 20, default: 1 },
+        page: { type: "integer", minimum: 1, maximum: MAX_TRANSACTION_PAGE, default: 1 },
         limit: { type: "integer", minimum: 1, maximum: 50, default: 20 },
       },
       required: ["year", "month"],
@@ -162,7 +168,7 @@ async function getAccounts(
   userId: string,
   input: z.infer<typeof toolSchemas.get_accounts>,
 ) {
-  const accounts = await prisma.account.findMany({
+  let accounts = await prisma.account.findMany({
     where: {
       userId,
       ...(input.currency ? { currency: input.currency } : {}),
@@ -184,8 +190,12 @@ async function getAccounts(
       { isActive: "desc" },
       { name: "asc" },
     ],
-    take: 100,
+    skip: (input.page - 1) * input.limit,
+    take: input.limit + 1,
   });
+
+  const hasMore = accounts.length > input.limit;
+  accounts = accounts.slice(0, input.limit);
 
   const balanceEligible = accounts.filter(
     (account) => account.type !== "CREDIT_CARD",
@@ -196,6 +206,9 @@ async function getAccounts(
   );
 
   return {
+    page: input.page,
+    limit: input.limit,
+    hasMore,
     items: accounts.map((account) => ({
       id: account.id,
       name: account.name,
@@ -353,13 +366,17 @@ async function searchTransactions(
     take: input.limit + 1,
   });
 
-  const hasMore = rows.length > input.limit;
+  const hasNextRow = rows.length > input.limit;
+  // A última página alcançável não tem continuação: sinaliza truncamento em
+  // vez de prometer uma página que o schema rejeitaria.
+  const truncated = hasNextRow && input.page >= MAX_TRANSACTION_PAGE;
 
   return {
     period: { year: input.year, month: input.month },
     page: input.page,
     limit: input.limit,
-    hasMore,
+    hasMore: hasNextRow && !truncated,
+    truncated,
     items: rows.slice(0, input.limit).map((row) => ({
       ...row,
       tags: row.tagLinks
@@ -388,6 +405,11 @@ async function getForecast(
       overdue: forecast.cardCommitments.overdue.slice(0, 20),
       upcoming: forecast.cardCommitments.upcoming.slice(0, 20),
     },
+    truncated:
+      forecast.overdue.length > 20 ||
+      forecast.upcoming.length > 30 ||
+      forecast.cardCommitments.overdue.length > 20 ||
+      forecast.cardCommitments.upcoming.length > 20,
   };
 }
 

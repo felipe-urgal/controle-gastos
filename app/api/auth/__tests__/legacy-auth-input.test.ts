@@ -87,6 +87,7 @@ describe("legacy auth input boundaries", () => {
             deleteMany: mocks.passwordResetTokenDeleteMany,
           },
           user: { update: mocks.userUpdate },
+          mcpAccessToken: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         });
       }
       return callbackOrOperations;

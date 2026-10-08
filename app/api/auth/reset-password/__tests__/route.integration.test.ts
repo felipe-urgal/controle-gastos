@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  authenticateMcpBearerToken,
+  createMcpAccessTokenForUser,
+} from "@/app/lib/mcp/mcp-token";
 import { prisma } from "@/app/lib/prisma";
 import { clearRateLimit } from "@/app/lib/security/rate-limit";
 import { hashPasswordResetToken } from "@/app/lib/auth/password-reset-token";
@@ -51,6 +55,11 @@ describe("POST /api/auth/reset-password", () => {
       },
     });
 
+    const mcpToken = await createMcpAccessTokenForUser(user.id, {
+      name: "Cliente",
+      expiresInDays: 30,
+    });
+
     const firstResponse = await POST(
       new Request("http://localhost/api/auth/reset-password", {
         method: "POST",
@@ -66,6 +75,9 @@ describe("POST /api/auth/reset-password", () => {
     );
 
     expect(firstResponse.status).toBe(200);
+    await expect(
+      authenticateMcpBearerToken(`Bearer ${mcpToken.token}`)
+    ).resolves.toBeNull();
     expect(
       await prisma.passwordResetToken.count({ where: { userId: user.id } })
     ).toBe(0);

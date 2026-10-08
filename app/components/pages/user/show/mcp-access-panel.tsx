@@ -24,6 +24,9 @@ export default function McpAccessPanel({
   totpEnabled: boolean;
 }) {
   const [items, setItems] = useState<McpAccessTokenSummary[]>([]);
+  const [totalActive, setTotalActive] = useState(0);
+  const [filter, setFilter] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const [copyStatus, setCopyStatus] = useState('');
   const [name, setName] = useState('Meu cliente MCP');
   const [expiresInDays, setExpiresInDays] =
     useState<McpCreateTokenInput['expiresInDays']>(90);
@@ -40,6 +43,7 @@ export default function McpAccessPanel({
     try {
       const response = await mcpService.listTokens();
       setItems(response.data.items);
+      setTotalActive(response.data.totalActive);
       setError('');
     } catch (requestError) {
       setError(
@@ -60,6 +64,7 @@ export default function McpAccessPanel({
       .then((response) => {
         if (cancelled) return;
         setItems(response.data.items);
+        setTotalActive(response.data.totalActive);
         setError('');
       })
       .catch((requestError) => {
@@ -139,9 +144,19 @@ export default function McpAccessPanel({
   }
 
   async function copyCreatedToken() {
-    if (!createdToken || !navigator.clipboard) return;
-    await navigator.clipboard.writeText(createdToken);
+    setCopyStatus('');
+    try {
+      if (!navigator.clipboard) throw new Error('clipboard-unavailable');
+      await navigator.clipboard.writeText(createdToken);
+      setCopyStatus('Token copiado.');
+    } catch {
+      setCopyStatus('Não foi possível copiar automaticamente. Selecione e copie o token manualmente.');
+    }
   }
+
+  const visibleItems = items.filter((item) =>
+    filter === 'ACTIVE' ? item.status === 'ACTIVE' : item.status !== 'ACTIVE',
+  );
 
   return (
     <section className="ds-panel overflow-hidden" aria-labelledby="mcp-access-title">
@@ -165,6 +180,9 @@ export default function McpAccessPanel({
           </code>
           <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
             Envie o token no header Authorization como Bearer. Escopo fixo: finance:read.
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
+            O token retorna valores financeiros reais (transações, saldos, patrimônio e previsão). Ocultar valores na interface não limita os dados acessíveis por este token. Trocar a senha não revoga tokens; redefinir a senha por recuperação revoga todos.
           </p>
         </div>
 
@@ -254,6 +272,11 @@ export default function McpAccessPanel({
             >
               Copiar token
             </Button>
+            {copyStatus && (
+              <p role="status" className="mt-2 text-xs text-[var(--text-muted)]">
+                {copyStatus}
+              </p>
+            )}
           </div>
         )}
 
@@ -265,18 +288,39 @@ export default function McpAccessPanel({
 
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
-            Tokens
+            Tokens ({totalActive} {totalActive === 1 ? 'ativo' : 'ativos'})
           </h3>
+
+          <div className="mt-3 flex gap-2" role="group" aria-label="Filtrar tokens">
+            <Button
+              type="button"
+              size="sm"
+              variant={filter === 'ACTIVE' ? 'primary' : 'outline'}
+              aria-pressed={filter === 'ACTIVE'}
+              onClick={() => setFilter('ACTIVE')}
+            >
+              Ativos
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={filter === 'INACTIVE' ? 'primary' : 'outline'}
+              aria-pressed={filter === 'INACTIVE'}
+              onClick={() => setFilter('INACTIVE')}
+            >
+              Expirados/revogados
+            </Button>
+          </div>
 
           {loading ? (
             <p className="mt-3 text-sm text-[var(--text-muted)]">Carregando...</p>
-          ) : items.length === 0 ? (
+          ) : visibleItems.length === 0 ? (
             <p className="mt-3 text-sm text-[var(--text-muted)]">
-              Nenhum token MCP criado.
+              Nenhum token MCP nesta lista.
             </p>
           ) : (
             <div className="mt-3 divide-y divide-[var(--border)] rounded-[var(--radius-lg)] border border-[var(--border)]">
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <div
                   key={item.id}
                   className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"

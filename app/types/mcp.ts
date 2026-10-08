@@ -12,6 +12,11 @@ export type McpAccessTokenSummary = {
   status: McpTokenStatus;
 };
 
+export type McpTokenList = {
+  items: McpAccessTokenSummary[];
+  totalActive: number;
+};
+
 export type McpCreatedAccessToken = Omit<
   McpAccessTokenSummary,
   "revokedAt" | "lastUsedAt" | "status"

@@ -1,14 +1,14 @@
 import { apiClient } from "@/app/services/api-client";
 import type { ApiResponse } from "@/app/services/base-service";
 import type {
-  McpAccessTokenSummary,
   McpCreateTokenInput,
   McpCreatedAccessToken,
+  McpTokenList,
 } from "@/app/types/mcp";
 
 export const mcpService = {
-  async listTokens(): Promise<ApiResponse<{ items: McpAccessTokenSummary[] }>> {
-    return apiClient<ApiResponse<{ items: McpAccessTokenSummary[] }>>(
+  async listTokens(): Promise<ApiResponse<McpTokenList>> {
+    return apiClient<ApiResponse<McpTokenList>>(
       "/api/mcp/tokens",
       { method: "GET" },
     );
