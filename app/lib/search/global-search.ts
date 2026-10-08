@@ -5,6 +5,7 @@ import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { Prisma } from '@prisma/client';
 
 import { prisma } from '@/app/lib/prisma';
+import { searchNamedEntityGroups } from '@/app/lib/search/global-search-entities';
 import {
   GLOBAL_SEARCH_LIMIT_PER_GROUP,
   GLOBAL_SEARCH_TOTAL_LIMIT,
@@ -95,7 +96,7 @@ export async function getGlobalSearchForUser(
 ): Promise<GlobalSearchData> {
   const contains = { contains: query, mode: 'insensitive' as const };
 
-  const [exactTransactions, accounts, categories, importRules, merchants, tags, debts, templates, goals] = await Promise.all([
+  const [exactTransactions, accounts, categories, importRules, catalogGroups] = await Promise.all([
     prisma.transaction.findMany({
       where: {
         userId,
@@ -179,40 +180,7 @@ export async function getGlobalSearchForUser(
       orderBy: [{ priority: 'asc' }, { name: 'asc' }, { id: 'asc' }],
       take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
     }),
-    prisma.merchant.findMany({
-      where: { userId, name: contains },
-      select: { id: true, name: true, isActive: true },
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
-    }),
-    prisma.tag.findMany({
-      where: { userId, name: { contains: query.replace(/^#/, ''), mode: 'insensitive' } },
-      select: { id: true, name: true, isActive: true },
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
-    }),
-    prisma.debt.findMany({
-      where: { userId, OR: [{ name: contains }, { institution: contains }] },
-      select: { id: true, name: true, status: true },
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
-    }),
-    prisma.transactionTemplate.findMany({
-      where: { userId, OR: [{ name: contains }, { description: contains }] },
-      select: {
-        id: true, name: true, isFavorite: true,
-        account: { select: { isActive: true } },
-        category: { select: { isActive: true } },
-      },
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
-    }),
-    prisma.financialGoal.findMany({
-      where: { userId, OR: [{ name: contains }, { description: contains }] },
-      select: { id: true, name: true, status: true },
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      take: GLOBAL_SEARCH_LIMIT_PER_GROUP,
-    }),
+    searchNamedEntityGroups(userId, query),
   ]);
 
   const missingTransactionSlots =
@@ -302,50 +270,7 @@ export async function getGlobalSearchForUser(
         href: `/transacoes/importar/regras?ruleId=${encodeURIComponent(item.id)}`,
       })),
     ),
-    group(
-      'MERCHANT',
-      merchants.map((item) => ({
-        id: item.id, type: 'MERCHANT', title: item.name,
-        subtitle: item.isActive ? 'Ativo' : 'Inativo',
-        href: `/estabelecimentos?merchantId=${encodeURIComponent(item.id)}`,
-      })),
-    ),
-    group(
-      'TAG',
-      tags.map((item) => ({
-        id: item.id, type: 'TAG', title: `#${item.name}`,
-        subtitle: item.isActive ? 'Ativa' : 'Arquivada',
-        href: `/tags?tagId=${encodeURIComponent(item.id)}`,
-      })),
-    ),
-    group(
-      'DEBT',
-      debts.map((item) => ({
-        id: item.id, type: 'DEBT', title: item.name,
-        subtitle: item.status === 'ACTIVE' ? 'Ativa' : item.status === 'PAID' ? 'Quitada' : 'Arquivada',
-        href: `/dividas?debtId=${encodeURIComponent(item.id)}`,
-      })),
-    ),
-    group(
-      'TEMPLATE',
-      templates.map((item) => ({
-        id: item.id, type: 'TEMPLATE', title: item.name,
-        subtitle: [
-          item.isFavorite ? 'Favorito' : 'Modelo',
-          item.account && !item.account.isActive ? 'Conta inativa' : null,
-          item.category && !item.category.isActive ? 'Categoria inativa' : null,
-        ].filter(Boolean).join(' · '),
-        href: `/modelos?templateId=${encodeURIComponent(item.id)}`,
-      })),
-    ),
-    group(
-      'GOAL',
-      goals.map((item) => ({
-        id: item.id, type: 'GOAL', title: item.name,
-        subtitle: item.status === 'ACTIVE' ? 'Ativa' : item.status === 'COMPLETED' ? 'Concluída' : 'Arquivada',
-        href: `/metas?goalId=${encodeURIComponent(item.id)}`,
-      })),
-    ),
+    ...catalogGroups,
   ].filter((item) => item.items.length > 0);
 
   const total = groups.reduce((sum, current) => sum + current.items.length, 0);
