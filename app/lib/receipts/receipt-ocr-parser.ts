@@ -122,7 +122,7 @@ function extractAmount(lines: string[]): ReceiptOcrSuggestions['amount'] {
     let score = lineIndex / Math.max(lines.length, 1);
     let strength: 'high' | 'medium' | 'low' = 'low';
     TOTAL_HINTS.forEach((hint, index) => {
-      if (hint.test(line)) {
+      if (hint.test(line) && strength === 'low') {
         score += 120 - index * 12;
         strength = index <= 2 ? 'high' : index === 3 ? 'medium' : 'low';
       }
