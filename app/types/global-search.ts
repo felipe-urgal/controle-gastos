@@ -5,7 +5,9 @@ export type GlobalSearchResultType =
   | 'IMPORT_RULE'
   | 'MERCHANT'
   | 'TAG'
-  | 'DEBT';
+  | 'DEBT'
+  | 'TEMPLATE'
+  | 'GOAL';
 
 export type GlobalSearchResult = {
   id: string;
