@@ -100,10 +100,29 @@ describe("offline transaction queue", () => {
     );
 
     expect(calls).toEqual(["attempt-1", "attempt-1"]);
-    expect(readOfflineTransactionQueue("user-a")[0]).toMatchObject({
-      status: "synced",
-      idempotencyKey: "attempt-1",
+    expect(readOfflineTransactionQueue("user-a")).toEqual([]);
+  });
+
+  it("accepts two identical purchases as independent attempts", async () => {
+    installLocalStorage();
+    const first = enqueueOfflineTransaction("user-a", payload, {
+      id: "purchase-1",
+      idempotencyKey: "key-1",
     });
+    const second = enqueueOfflineTransaction("user-a", payload, {
+      id: "purchase-2",
+      idempotencyKey: "key-2",
+    });
+    expect(readOfflineTransactionQueue("user-a")).toHaveLength(2);
+    const sentKeys: string[] = [];
+    for (const item of [first, second]) {
+      await syncOfflineTransactionQueueItem("user-a", item.id, async (_, key) => {
+        sentKeys.push(key);
+        return { ok: true };
+      });
+    }
+    expect(sentKeys).toEqual(["key-1", "key-2"]);
+    expect(readOfflineTransactionQueue("user-a")).toEqual([]);
   });
 
   it("recovers an interrupted sending item as pending after reload", () => {
