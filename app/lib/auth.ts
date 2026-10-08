@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
 import { verifyAuthToken } from "@/app/lib/auth/auth-token";
+import { readAuthCookie } from "@/app/lib/auth/auth-cookie";
 import { UnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { prisma } from "@/app/lib/prisma";
 
@@ -8,7 +9,7 @@ export { UnauthorizedError, isUnauthorizedError } from "@/app/lib/auth/auth-erro
 
 export async function getAuthenticatedUserId() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+  const token = readAuthCookie(cookieStore);
 
   if (!token) {
     throw new UnauthorizedError();

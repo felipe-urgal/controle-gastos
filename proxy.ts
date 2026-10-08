@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyAuthToken } from "@/app/lib/auth/auth-token";
+import { clearAuthCookies, readAuthCookie } from "@/app/lib/auth/auth-cookie";
 import { isProtectedPath } from "@/app/lib/auth/protected-routes";
 
 const PUBLIC_ROUTES = new Set([
@@ -46,7 +47,7 @@ export function proxy(request: NextRequest) {
     return nextWithRequestId(request, requestId);
   }
 
-  const token = request.cookies.get("token")?.value;
+  const token = readAuthCookie(request.cookies);
 
   try {
     if (!token) throw new Error("UNAUTHORIZED");
@@ -57,7 +58,7 @@ export function proxy(request: NextRequest) {
     loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     const response = NextResponse.redirect(loginUrl);
     response.headers.set("x-request-id", requestId);
-    response.cookies.delete("token");
+    clearAuthCookies(response, request.nextUrl.protocol === "https:");
     return response;
   }
 }

@@ -4,7 +4,11 @@ import { isHttpError } from "@/app/lib/http-error";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/prisma";
 import { signAuthToken } from "@/app/lib/auth/auth-token";
-import { shouldUseSecureAuthCookie } from "@/app/lib/auth/auth-cookie";
+import {
+  clearAuthCookies,
+  setAuthCookie,
+  shouldUseSecureAuthCookie,
+} from "@/app/lib/auth/auth-cookie";
 import { getRequestIp } from "@/app/lib/security/rate-limit";
 import {
   clearLoginRateLimit,
@@ -123,7 +127,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         },
         { status: 200 }
       );
-      response.cookies.delete("token");
+      clearAuthCookies(response, shouldUseSecureAuthCookie(request));
 
       logEvent("info", "auth_login_mfa_required", {
         requestId,
@@ -163,14 +167,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       { status: 200 }
     );
 
-    response.cookies.set("token", token, {
-      httpOnly: true,
-      secure: shouldUseSecureAuthCookie(request),
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-      priority: "high",
-    });
+    setAuthCookie(response, request, token);
 
     logEvent("info", "auth_login_succeeded", {
       requestId,
