@@ -83,7 +83,6 @@ async function seedSearchFixture(page, marker) {
 
 test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   page,
-  request,
 }) => {
   test.setTimeout(90_000);
 
