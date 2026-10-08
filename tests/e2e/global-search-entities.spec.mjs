@@ -74,12 +74,12 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
   }
 
   const destinations = [
-    { name: `${unique} Loja`, title: `${unique} Loja`, path: '/estabelecimentos', key: 'merchantId', id: entities.merchant.id },
-    { name: `#${unique}`, title: `#${unique}`, path: '/tags', key: 'tagId', id: entities.tag.id },
-    { name: `${unique} Modelo`, title: `${unique} Modelo`, path: '/modelos', key: 'templateId', id: entities.template.id },
-    { name: `${unique} Dívida`, title: `${unique} Dívida`, path: '/dividas', key: 'debtId', id: entities.debt.id },
-    { name: `${unique} Meta`, title: `${unique} Meta`, path: '/metas', key: 'goalId', id: entities.goal.id },
-    { name: `${unique} Regra`, title: `${unique} Regra`, path: '/transacoes/importar/regras', key: 'ruleId', id: entities.rule.id },
+    { name: `${unique} Loja`, title: `${unique} Loja`, path: '/estabelecimentos', group: 'MERCHANT', key: 'merchantId', id: entities.merchant.id },
+    { name: `#${unique}`, title: `#${unique}`, path: '/tags', group: 'TAG', key: 'tagId', id: entities.tag.id },
+    { name: `${unique} Modelo`, title: `${unique} Modelo`, path: '/modelos', group: 'TEMPLATE', key: 'templateId', id: entities.template.id },
+    { name: `${unique} Dívida`, title: `${unique} Dívida`, path: '/dividas', group: 'DEBT', key: 'debtId', id: entities.debt.id },
+    { name: `${unique} Meta`, title: `${unique} Meta`, path: '/metas', group: 'GOAL', key: 'goalId', id: entities.goal.id },
+    { name: `${unique} Regra`, title: `${unique} Regra`, path: '/transacoes/importar/regras', group: 'IMPORT_RULE', key: 'ruleId', id: entities.rule.id },
   ];
 
   // A identidade da Tag é a mesma com e sem o prefixo visual #.
@@ -87,7 +87,7 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
   const tagDialog = page.getByRole('dialog', { name: 'Busca global' });
   const tagInput = tagDialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
   await tagInput.fill(unique);
-  await expect(tagDialog.getByText(`#${unique}`, { exact: true })).toBeVisible();
+  await expect(tagDialog.locator('[aria-labelledby="global-search-group-TAG"]').getByText(`#${unique}`, { exact: true })).toBeVisible();
   await tagInput.fill(`#${unique}`);
   await expect(tagDialog.getByText(`#${unique}`, { exact: true })).toBeVisible();
   await tagInput.press('Escape');
@@ -98,8 +98,9 @@ test('busca global: entidades por usuário e destinos contextuais', async ({ pag
     const dialog = page.getByRole('dialog', { name: 'Busca global' });
     await expect(dialog).toBeVisible();
     await dialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras').fill(item.name);
-    await expect(dialog.getByText(item.title, { exact: true })).toBeVisible();
-    await dialog.getByText(item.title, { exact: true }).click();
+    const resultGroup = dialog.locator(`[aria-labelledby="global-search-group-${item.group}"]`);
+    await expect(resultGroup.getByText(item.title, { exact: true })).toBeVisible();
+    await resultGroup.getByRole('button').first().click();
     await expect(page).toHaveURL((url) =>
       url.pathname === item.path && url.searchParams.get(item.key) === item.id,
     );
