@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createVerifiedUser } from './support/verified-user.mjs';
 
 const password = 'Playwright123!';
 
@@ -90,14 +91,7 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   const email = `qa-global-search-${suffix}@example.test`;
   const marker = `CaféBusca${suffix.slice(-8)}`;
 
-  const signup = await request.post('/api/auth/signup', {
-    data: {
-      name: 'QA Busca Global',
-      email,
-      password,
-    },
-  });
-  expect(signup.ok()).toBeTruthy();
+  await createVerifiedUser({ name: 'QA Busca Global', email, password });
 
   await login(page, email);
   const fixture = await seedSearchFixture(page, marker);
