@@ -2,7 +2,10 @@ export type GlobalSearchResultType =
   | 'TRANSACTION'
   | 'ACCOUNT'
   | 'CATEGORY'
-  | 'IMPORT_RULE';
+  | 'IMPORT_RULE'
+  | 'MERCHANT'
+  | 'TAG'
+  | 'DEBT';
 
 export type GlobalSearchResult = {
   id: string;
