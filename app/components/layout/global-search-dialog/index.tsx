@@ -105,14 +105,20 @@ export default function GlobalSearchDialog({
       ...filteredQuickActions.map((item) => ({
         resultKey: 'action-' + item.id,
         href: item.href,
+        label: item.title,
+        group: 'Ações rápidas',
       })),
       ...filteredNavigation.map((item) => ({
         resultKey: 'navigation-' + item.key,
         href: item.href,
+        label: item.label,
+        group: 'Ir para',
       })),
       ...serverResults.map((item) => ({
         resultKey: 'server-' + item.type + '-' + item.id,
         href: item.href,
+        label: item.title,
+        group: groupLabels[item.type],
       })),
     ],
     [filteredNavigation, filteredQuickActions, serverResults],
@@ -290,10 +296,6 @@ export default function GlobalSearchDialog({
               }}
               onKeyDown={onKeyDown}
               aria-label="Buscar em páginas, transações, contas, categorias e regras"
-              aria-controls="global-search-results"
-              aria-activedescendant={
-                activeIndex >= 0 ? `global-search-result-${activeIndex}` : undefined
-              }
               placeholder="Buscar páginas, ações, transações e mais"
               className="w-full bg-transparent text-base text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)] sm:text-lg"
               autoComplete="off"
@@ -309,10 +311,15 @@ export default function GlobalSearchDialog({
           </button>
         </header>
 
+        <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+          {activeIndex >= 0 && flatResults[activeIndex]
+            ? `${flatResults[activeIndex].group}: ${flatResults[activeIndex].label}. ${activeIndex + 1} de ${flatResults.length} resultados`
+            : 'Nenhum resultado selecionado'}
+        </p>
+
         <div
           id="global-search-results"
           className="max-h-[min(68vh,560px)] overflow-y-auto p-3 sm:p-4"
-          role="listbox"
           aria-label="Resultados da busca global"
         >
           <div className="space-y-4">
@@ -337,8 +344,6 @@ export default function GlobalSearchDialog({
                         key={result.id}
                         id={'global-search-result-' + index}
                         type="button"
-                        role="option"
-                        aria-selected={active}
                         onMouseEnter={() => setActiveIndex(index)}
                         onClick={() => activate(result)}
                         className={
@@ -387,8 +392,6 @@ export default function GlobalSearchDialog({
                         key={result.key}
                         id={'global-search-result-' + index}
                         type="button"
-                        role="option"
-                        aria-selected={active}
                         onMouseEnter={() => setActiveIndex(index)}
                         onClick={() => activate(result)}
                         className={
@@ -458,8 +461,6 @@ export default function GlobalSearchDialog({
                           key={result.type + '-' + result.id}
                           id={'global-search-result-' + index}
                           type="button"
-                          role="option"
-                          aria-selected={active}
                           onMouseEnter={() => setActiveIndex(index)}
                           onClick={() => activate(result)}
                           className={
