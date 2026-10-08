@@ -126,6 +126,8 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
   await expect(page).toHaveURL((url) =>
     url.pathname === '/transacoes/importar/regras' && url.searchParams.get('ruleId') === fixture.ruleId,
   );
+  await page.goBack();
+  await expect(page).toHaveURL(/\/dashboard$/);
 
   await page.goto('/dashboard');
   await page.setViewportSize({ width: 390, height: 760 });
