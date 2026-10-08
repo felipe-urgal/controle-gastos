@@ -123,12 +123,14 @@ function extractAmount(lines: string[]): Pick<ReceiptOcrSuggestions, 'amount' | 
     if (!confidence) return;
 
     const matches = [...line.matchAll(MONEY_PATTERN)];
-    // Multiple different monetary values on a total line are ambiguous.
+    // Preserve evidence of invalid values instead of silently discarding them.
     const parsed = matches.map((match) => parseMoneyToken(match[0]));
-    if (parsed.some((value) => !isValidOcrAmount(value ?? undefined))) {
+    const invalidValue = parsed.some((value) => value === null || !isValidOcrAmount(value));
+    if (invalidValue) {
       inconsistentAmountEvidence ??= line;
       return;
     }
+    // Multiple different monetary values on a total line are ambiguous.
     const values = [...new Set(parsed.filter((value): value is number => value !== null))];
     if (values.length !== 1) return;
     candidates.push({ value: values[0], confidence, evidence: line, lineIndex });
