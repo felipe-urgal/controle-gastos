@@ -418,10 +418,12 @@ describe('global search integration', () => {
         userId: owner.id, name: 'Dívida secundária', institution: marker, balance: 987654,
       } }),
       prisma.transactionTemplate.create({ data: {
-        userId: owner.id, name: 'Modelo secundário', description: marker, type: 'EXPENSE',
+        userId: owner.id, name: 'Modelo secundário',
+        description: `${marker} com valor livre 987654`, type: 'EXPENSE',
       } }),
       prisma.financialGoal.create({ data: {
-        userId: owner.id, name: 'Meta secundária', description: marker, targetAmount: 987654,
+        userId: owner.id, name: 'Meta secundária',
+        description: `${marker} com valor livre 987654`, targetAmount: 987654,
       } }),
     ]);
     const result = await getGlobalSearchForUser(owner.id, marker);
@@ -429,7 +431,7 @@ describe('global search integration', () => {
     for (const id of [debt.id, template.id, goal.id]) {
       const item = items.find((entry) => entry.id === id);
       expect(item?.matchedText).toBe(marker);
-      expect(item?.subtitle).toContain(marker);
+      expect(item?.subtitle).toContain(id === debt.id ? marker : 'Correspondência na descrição');
     }
     expect(JSON.stringify(result)).not.toContain('987654');
   });
