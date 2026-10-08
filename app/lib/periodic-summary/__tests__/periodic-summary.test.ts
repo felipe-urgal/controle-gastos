@@ -161,6 +161,30 @@ describe('periodic financial summary service', () => {
     expect(mocks.user.update).not.toHaveBeenCalled();
   });
 
+  it('retries a failed user on the next daily cron without losing queue priority', async () => {
+    mocks.user.count.mockResolvedValue(7);
+    mocks.user.findMany
+      .mockResolvedValueOnce([{ id: 'user-retry' }])
+      .mockResolvedValueOnce([{ id: 'user-retry' }]);
+    mocks.account.findMany
+      .mockRejectedValueOnce(new Error('transient failure'))
+      .mockResolvedValueOnce([{ currency: 'BRL' }]);
+
+    const first = await runPeriodicSummaryCron(now);
+    expect(first).toMatchObject({ processedUsers: 0, failedUsers: 1 });
+    expect(mocks.user.update).not.toHaveBeenCalled();
+
+    const retryAt = new Date('2026-10-06T06:00:00Z');
+    const retry = await runPeriodicSummaryCron(retryAt);
+    expect(retry).toMatchObject({ processedUsers: 1, failedUsers: 0 });
+    expect(mocks.user.update).toHaveBeenCalledTimes(1);
+    expect(mocks.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-retry' },
+      data: { periodicSummaryLastProcessedAt: retryAt },
+      select: { id: true },
+    });
+  });
+
   it('distinguishes a successful summary from a failed rotation marker', async () => {
     mocks.user.count.mockResolvedValue(7);
     mocks.user.findMany.mockResolvedValueOnce([{ id: 'user-1' }]);

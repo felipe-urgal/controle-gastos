@@ -24,7 +24,13 @@ describe('periodic summary persistence integration', () => {
     const owner = await fixtures.user({ periodicSummaryEnabled: true });
     const [cash, card, usd, inactiveEur, category] = await Promise.all([
       fixtures.account(owner.id, { currency: 'BRL' }),
-      fixtures.account(owner.id, { type: 'CREDIT_CARD', currency: 'BRL' }),
+      fixtures.account(owner.id, {
+        type: 'CREDIT_CARD',
+        currency: 'BRL',
+        creditLimit: 100_000,
+        statementClosingDay: 5,
+        statementDueDay: 12,
+      }),
       fixtures.account(owner.id, { currency: 'USD' }),
       fixtures.account(owner.id, { currency: 'EUR', isActive: false }),
       fixtures.category(owner.id, { type: 'EXPENSE' }),
