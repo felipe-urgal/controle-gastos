@@ -200,3 +200,41 @@ test('busca global: desktop, teclado, mobile e respostas obsoletas', async ({
 
   await page.unroute('**/api/search?*');
 });
+
+
+test('busca global: mouse, Home/End, Escape e touch preservam foco', async ({ browser }) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 760 },
+  });
+  try {
+    const page = await context.newPage();
+    const email = `qa-search-interaction-${Date.now()}@example.test`;
+    await createVerifiedUser({ name: 'QA Busca Interação', email, password });
+    await login(page, email);
+
+    const trigger = page.getByRole('button', { name: 'Abrir busca global', exact: true });
+    await trigger.tap();
+    const dialog = page.getByRole('dialog', { name: 'Busca global', exact: true });
+    await expect(dialog).toBeVisible();
+    const input = dialog.getByLabel('Buscar em páginas, transações, contas, categorias e regras');
+    await expect(input).toBeFocused();
+
+    await input.fill('loja');
+    await expect(dialog.getByText('Estabelecimentos', { exact: true })).toBeVisible();
+    await input.press('End');
+    await expect(dialog.locator('#global-search-result-0')).toBeVisible();
+    await input.press('Home');
+    await input.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+
+    await trigger.click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Fechar busca global' }).tap();
+    await expect(dialog).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
