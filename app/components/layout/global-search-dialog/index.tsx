@@ -61,6 +61,8 @@ export default function GlobalSearchDialog({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const navigatingRef = useRef(false);
+  const dialogRef = useRef<HTMLElement>(null);
   const [query, setQuery] = useState('');
   const [data, setData] = useState<GlobalSearchData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -123,7 +125,9 @@ export default function GlobalSearchDialog({
 
     return () => {
       cancelAnimationFrame(frame);
-      restoreFocusRef.current?.focus();
+      if (!navigatingRef.current && restoreFocusRef.current?.isConnected) {
+        restoreFocusRef.current.focus();
+      }
       restoreFocusRef.current = null;
     };
   }, []);
@@ -164,7 +168,14 @@ export default function GlobalSearchDialog({
     };
   }, [hasLocalResults, query]);
 
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    const item = document.getElementById(`global-search-result-${activeIndex}`);
+    item?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex]);
+
   function activate(result: { href: string }) {
+    navigatingRef.current = true;
     onClose();
     router.push(result.href);
   }
@@ -207,6 +218,26 @@ export default function GlobalSearchDialog({
       }}
     >
       <section
+        ref={dialogRef}
+        onKeyDownCapture={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            onClose();
+          }
+          if (event.key !== 'Tab') return;
+          const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? []);
+          if (!focusable.length) return;
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="global-search-title"
