@@ -30,6 +30,23 @@ function group(
 }
 
 const FUZZY_SIMILARITY_THRESHOLD = 0.35;
+export const GLOBAL_SEARCH_P95_BUDGET_MS = 500;
+export const GLOBAL_SEARCH_SLOW_THRESHOLD_MS = 750;
+
+function emitSearchTelemetry(input: {
+  durationMs: number; queryLength: number; fuzzyUsed: boolean;
+  status: 'ok' | 'rate_limited' | 'error';
+  groupCounts?: Record<string, number>;
+}) {
+  // Do not log the search term, account identifiers, monetary values or titles.
+  const record = {
+    event: 'global_search_request', ...input,
+    slow: input.durationMs >= GLOBAL_SEARCH_SLOW_THRESHOLD_MS,
+    p95BudgetMs: GLOBAL_SEARCH_P95_BUDGET_MS,
+  };
+  if (record.slow) console.warn(JSON.stringify(record));
+  else console.info(JSON.stringify(record));
+}
 
 export function buildGlobalSearchFuzzyQuery(userId: string, query: string, excludeIds: string[]): Prisma.Sql {
   return Prisma.sql`
@@ -97,6 +114,7 @@ async function fuzzyTransactionIds(
 export async function getGlobalSearchForUser(
   userId: string,
   query: string,
+  onFuzzyDecision?: (used: boolean) => void,
 ): Promise<GlobalSearchData> {
   const contains = { contains: query, mode: 'insensitive' as const };
 
@@ -191,6 +209,7 @@ export async function getGlobalSearchForUser(
 
   const missingTransactionSlots =
     GLOBAL_SEARCH_LIMIT_PER_GROUP - exactTransactions.length;
+  onFuzzyDecision?.(missingTransactionSlots > 0 && query.length >= 3);
   const fuzzyIds =
     missingTransactionSlots > 0
       ? (
@@ -295,18 +314,30 @@ export async function getGlobalSearchForUser(
 }
 
 export async function getGlobalSearch(request: Request) {
+  const startedAt = performance.now();
+  let queryLength = 0;
+  let fuzzyUsed = false;
   try {
     const userId = await getAuthenticatedUserId();
     const { q } = parseRequest(request);
+    queryLength = q.length;
     const rate = await consumeGlobalSearchRateLimit(userId);
     if (rate.limited) {
+      emitSearchTelemetry({ durationMs: Math.round(performance.now() - startedAt), queryLength, fuzzyUsed, status: 'rate_limited' });
       return Response.json(
         { success: false, error: { code: 'GLOBAL_SEARCH_RATE_LIMITED', message: 'Muitas buscas. Tente novamente em instantes.' } },
         { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } },
       );
     }
-    return success(await getGlobalSearchForUser(userId, q));
+    const data = await getGlobalSearchForUser(userId, q, (used) => { fuzzyUsed = used; });
+    emitSearchTelemetry({
+      durationMs: Math.round(performance.now() - startedAt),
+      queryLength, fuzzyUsed, status: 'ok',
+      groupCounts: Object.fromEntries(data.groups.map((group) => [group.type, group.items.length])),
+    });
+    return success(data);
   } catch (error) {
+    emitSearchTelemetry({ durationMs: Math.round(performance.now() - startedAt), queryLength, fuzzyUsed, status: 'error' });
     return apiFailureFromError(error, {
       fallbackMessage: 'Erro ao realizar busca',
       zodMessage: 'Busca inválida',
