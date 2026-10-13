@@ -56,5 +56,6 @@ Use E2E quando alterar um fluxo crítico de usuário:
 - docs/TASK_TEMPLATE.md
 - docs/CODE_REVIEW.md
 - docs/AUTH.md
+- docs/OBSERVABILITY.md
 
 Não crie documentação histórica por padrão. Git, issues e PRs já preservam histórico. Documente apenas contratos ou procedimentos que precisam permanecer verdadeiros.

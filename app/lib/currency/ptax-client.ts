@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { FISCAL_PTAX_LOOKBACK_DAYS } from '@/app/lib/currency/fiscal-ptax-resolver';
 import { EXCHANGE_RATE_MAX_COMPONENT } from '@/app/lib/currency/exchange-rate-domain';
+import { observeProviderCall, type ProviderOutcome } from '@/app/lib/observability';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 const PTAX_BASE_URL =
@@ -282,7 +283,7 @@ async function loadQuotes(
   return quotes;
 }
 
-async function fetchPtaxExchangeRateUncached(
+async function fetchPtaxExchangeRateUntracked(
   input: {
     from: SupportedCurrency;
     to: SupportedCurrency;
@@ -330,6 +331,29 @@ async function fetchPtaxExchangeRateUncached(
   throw new PtaxError(
     'NO_QUOTE_IN_LOOKBACK',
     'BCB PTAX não possui cotação no período solicitado',
+  );
+}
+
+function classifyPtaxError(error: unknown): ProviderOutcome {
+  if (error instanceof PtaxError) {
+    if (error.kind === 'INVALID_INPUT' || error.kind === 'NO_QUOTE_IN_LOOKBACK') {
+      return 'user_error';
+    }
+    if (error.kind === 'INVALID_UPSTREAM_PAYLOAD') return 'upstream_error';
+    return 'upstream_unavailable';
+  }
+  return 'upstream_error';
+}
+
+/** Telemetria sem moeda/data/valores: apenas provider/operation/outcome. */
+function fetchPtaxExchangeRateUncached(
+  input: Parameters<typeof fetchPtaxExchangeRateUntracked>[0],
+  fetchFn?: FetchLike,
+) {
+  return observeProviderCall(
+    { provider: 'bcb_ptax', operation: 'exchange_rate' },
+    () => fetchPtaxExchangeRateUntracked(input, fetchFn),
+    classifyPtaxError,
   );
 }
 

@@ -239,6 +239,8 @@ export async function runProdSmoke({
   for (const [label, path] of [
     ["authenticated-accounts-read", "/api/accounts?page=1&pageSize=1"],
     ["authenticated-transactions-read", "/api/transactions?page=1&pageSize=1"],
+    // Read model composto canônico (read-only, sem dependência de dados específicos).
+    ["authenticated-forecast-read", "/api/forecast?currency=BRL&days=30"],
   ]) {
     const read = await request({
       fetchImpl,

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 import {
+  normalizeClientErrorPath,
+  parseClientErrorSurface,
+} from "@/app/lib/observability-client-error";
+import {
   consumeRateLimit,
   getRequestIp,
 } from "@/app/lib/security/rate-limit";
@@ -58,6 +62,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   let digest: string | undefined;
+  let surface: ReturnType<typeof parseClientErrorSurface>;
+  let path: string | undefined;
 
   try {
     const rawBody = await readLimitedBody(request);
@@ -71,6 +77,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (typeof candidate === "string" && SAFE_DIGEST.test(candidate)) {
       digest = candidate;
     }
+    surface = parseClientErrorSurface(payload?.surface);
+    path = normalizeClientErrorPath(payload?.path);
   } catch (error) {
     if (error instanceof BodyTooLargeError) {
       return withRequestId(new NextResponse(null, { status: 413 }), requestId);
@@ -98,6 +106,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       requestId,
       route: "client",
       ...(digest ? { digest } : {}),
+      ...(surface ? { surface } : {}),
+      ...(path ? { path } : {}),
     });
   }
 

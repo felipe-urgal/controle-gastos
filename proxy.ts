@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { verifyAuthToken } from "@/app/lib/auth/auth-token";
 import { clearAuthCookies, readAuthCookie } from "@/app/lib/auth/auth-cookie";
 import { isProtectedPath } from "@/app/lib/auth/protected-routes";
+import { resolveRequestId } from "@/app/lib/request-id";
 
 const PUBLIC_ROUTES = new Set([
   "/",
@@ -12,13 +13,8 @@ const PUBLIC_ROUTES = new Set([
   "/reset-password",
 ]);
 
-const SAFE_REQUEST_ID = /^[a-zA-Z0-9._:-]{8,128}$/;
-
 function getRequestId(request: NextRequest) {
-  const incoming = request.headers.get("x-request-id")?.trim();
-  return incoming && SAFE_REQUEST_ID.test(incoming)
-    ? incoming
-    : crypto.randomUUID();
+  return resolveRequestId(request.headers.get("x-request-id"));
 }
 
 function nextWithRequestId(request: NextRequest, requestId: string) {
