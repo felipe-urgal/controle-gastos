@@ -18,7 +18,16 @@ http://localhost:5100/api/mcp
 
 Transporte: HTTP stateless.
 
-O servidor atende o fluxo MCP legado baseado em `initialize` e negocia as revisões `2025-11-25`, `2025-06-18` e `2025-03-26`. Clientes modernos que implementam fallback para servidores legados podem usar o mesmo endpoint.
+O protocolo é servido pelo SDK oficial (`@modelcontextprotocol/server` v2); o código próprio cuida apenas de autenticação bearer, rate limit, limite de body e observabilidade. As tools e o domínio financeiro não dependem do transporte.
+
+Matriz de versões suportadas:
+
+| Revisão | Suporte | Fluxo |
+|---|---|---|
+| `2026-07-28` | nativo (SDK) | `server/discover` + envelope `_meta` por request, resposta JSON |
+| `2025-11-25`, `2025-06-18`, `2025-03-26` | fallback legado stateless | `initialize`, resposta JSON |
+
+Clientes que sondam a revisão atual com `server/discover` usam o fluxo nativo; os demais continuam no fallback 2025 enquanto houver clientes antigos. O contrato é testado contra o cliente oficial (`@modelcontextprotocol/client`) em `app/lib/mcp/__tests__/mcp-protocol-contract.test.ts`. Ao subir a versão do SDK, rode esse teste e atualize esta matriz; não implemente revisões manualmente.
 
 ## Autenticação
 
@@ -44,7 +53,7 @@ O segredo completo:
 - pode ser revogado individualmente;
 - deixa de funcionar imediatamente após revogação ou expiração.
 
-Criação e revogação ficam em **Configurações → Segurança → Acesso MCP somente leitura**. A criação exige confirmação de identidade.
+Criação e revogação ficam em **Configurações → Segurança → Acesso MCP somente leitura**. A criação exige confirmação de identidade; revogar (individual ou todos) reduz privilégio e não exige step-up.
 
 ## Configuração de um cliente
 
@@ -183,10 +192,28 @@ O token MCP é uma credencial independente das sessões do app e não depende de
 - Troca normal de senha e desativação de MFA **preservam** os tokens (revogue manualmente se necessário).
 - Redefinição de senha por recuperação (forgot/reset) **revoga todos** os tokens ativos.
 - Exclusão da conta remove os tokens em cascata.
-- `lastUsedAt` é telemetria best-effort; falha de escrita não nega a requisição.
+- `lastUsedAt` é telemetria best-effort, atualizada no máximo a cada 5 minutos: a UI exibe "último uso (aproximado)"; falha de escrita não nega a requisição.
+- A UI oferece **Revogar todos os tokens ativos** com confirmação simples (`DELETE /api/mcp/tokens`).
+- Revogação bloqueia novas autenticações imediatamente; uma request já autenticada pode concluir (não há cancelamento em execução).
 - O corpo é limitado a 64 KB pelos bytes realmente recebidos (413), independente de `Content-Length`.
 - `showValues` é preferência visual: o token MCP retorna valores reais.
 - Apenas `POST /api/mcp` é exposto; demais métodos retornam 405.
+
+## Erros de tool
+
+Falhas de execução retornam `isError: true` com texto fixo e código estável em `structuredContent.error.code`; mensagens internas (Prisma, provider) nunca são expostas:
+
+| Código | Quando |
+|---|---|
+| `INVALID_ARGUMENTS` | argumentos fora do schema da tool |
+| `UNSUPPORTED` | consulta não suportada para os parâmetros |
+| `TEMPORARILY_UNAVAILABLE` | falha inesperada; tente novamente |
+
+Tool inexistente e método desconhecido continuam sendo erros JSON-RPC (`-32602` / `-32601`).
+
+## Observabilidade
+
+Cada request gera o evento `mcp_request` com `requestId` (também em `x-request-id`), `method`, `tool`, `status`, `durationMs`, `tokenId` interno e `result` (`success`, `auth_failed`, `rate_limited`, `body_too_large`, ...). Bearer token, argumentos e saída financeira nunca são logados.
 
 ## Revogação
 

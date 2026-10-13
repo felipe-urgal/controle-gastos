@@ -5,6 +5,7 @@ import {
   executeMcpTool,
   parseMcpToolArguments,
 } from "@/app/lib/mcp/mcp-tools";
+import { getForecastForUser } from "@/app/lib/forecast/forecast";
 import { getMonthlyDashboardForUser } from "@/app/lib/dashboard/monthly-dashboard";
 import { getNetWorthForUser } from "@/app/lib/net-worth/net-worth";
 import { prisma } from "@/app/lib/prisma";
@@ -266,6 +267,47 @@ describe("MCP read-only tools", () => {
     expect(
       (netWorth.byCurrency as Array<{ currency: string }>).map((item) => item.currency),
     ).toEqual(canonicalNet.byCurrency.map((item) => item.currency));
+  });
+
+  it("forecast equivale ao read model canônico", async () => {
+    const fixture = await createFixture();
+
+    const forecast = (await executeMcpTool(fixture.owner.id, "get_forecast", {
+      currency: "BRL",
+      days: 30,
+    })) as Record<string, unknown>;
+    const canonical = await getForecastForUser(fixture.owner.id, {
+      currency: "BRL",
+      days: 30,
+    });
+
+    expect(forecast.safeToSpend).toEqual(canonical.safeToSpend);
+    expect(forecast.horizonEnd).toEqual(canonical.horizonEnd);
+    expect(forecast.currency).toBe("BRL");
+  });
+
+  it("nenhuma tool devolve dados de outro usuário", async () => {
+    const fixture = await createFixture();
+    const owner = fixture.owner.id;
+    const other = fixture.other.id;
+    const outputs = await Promise.all([
+      executeMcpTool(other, "get_accounts", {}),
+      executeMcpTool(other, "search_transactions", { year: 2026, month: 9 }),
+      executeMcpTool(other, "get_monthly_summary", { year: 2026, month: 9 }),
+      executeMcpTool(other, "get_forecast", { currency: "BRL", days: 30 }),
+      executeMcpTool(other, "get_net_worth", { year: 2026, month: 9 }),
+    ]);
+    const serialized = JSON.stringify(outputs);
+    expect(serialized).not.toContain(fixture.ownerBrl.id);
+    expect(serialized).not.toContain(fixture.ownerUsd.id);
+    expect(serialized).not.toContain("Salário owner");
+    expect(serialized).not.toContain(owner);
+
+    // E o dono não enxerga o segredo do outro usuário em nenhuma busca.
+    const search = JSON.stringify(
+      await executeMcpTool(owner, "search_transactions", { year: 2026, month: 9 }),
+    );
+    expect(search).not.toContain("Segredo other");
   });
 
   it("não declara hasMore sem continuação com mais de 1.000 transações no mês", async () => {
