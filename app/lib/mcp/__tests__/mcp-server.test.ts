@@ -15,7 +15,11 @@ vi.mock("@/app/lib/mcp/mcp-tools", () => ({
     {
       name: "get_accounts",
       description: "read only",
-      inputSchema: { type: "object", properties: {}, additionalProperties: false },
+      inputSchema: {
+        type: "object",
+        properties: { includeInactive: { type: "boolean" } },
+        additionalProperties: false,
+      },
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,

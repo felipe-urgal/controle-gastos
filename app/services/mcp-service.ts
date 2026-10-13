@@ -26,6 +26,13 @@ export const mcpService = {
     );
   },
 
+  async revokeAllTokens(): Promise<ApiResponse<{ revoked: number }>> {
+    return apiClient<ApiResponse<{ revoked: number }>>(
+      "/api/mcp/tokens",
+      { method: "DELETE" },
+    );
+  },
+
   async revokeToken(id: string): Promise<ApiResponse<{ id: string }>> {
     return apiClient<ApiResponse<{ id: string }>>(
       `/api/mcp/tokens/${id}`,

@@ -38,6 +38,8 @@ export default function McpAccessPanel({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [confirmRevokeAll, setConfirmRevokeAll] = useState(false);
+  const [revokingAll, setRevokingAll] = useState(false);
   const [error, setError] = useState('');
 
   async function loadTokens() {
@@ -143,6 +145,24 @@ export default function McpAccessPanel({
       );
     } finally {
       setRevokingId(null);
+    }
+  }
+
+  async function handleRevokeAll() {
+    setError('');
+    setRevokingAll(true);
+    try {
+      await mcpService.revokeAllTokens();
+      setConfirmRevokeAll(false);
+      await loadTokens();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível revogar os tokens MCP.',
+      );
+    } finally {
+      setRevokingAll(false);
     }
   }
 
@@ -320,6 +340,47 @@ export default function McpAccessPanel({
             </Button>
           </div>
 
+          {totalActive > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {confirmRevokeAll ? (
+                <>
+                  <span className="text-sm text-[var(--foreground)]">
+                    Revogar os {totalActive} tokens ativos? Os clientes perdem o acesso na próxima requisição.
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    icon={<FaTrash />}
+                    disabled={revokingAll}
+                    onClick={() => void handleRevokeAll()}
+                  >
+                    {revokingAll ? 'Revogando...' : 'Confirmar'}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={revokingAll}
+                    onClick={() => setConfirmRevokeAll(false)}
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  icon={<FaTrash />}
+                  onClick={() => setConfirmRevokeAll(true)}
+                >
+                  Revogar todos os tokens ativos
+                </Button>
+              )}
+            </div>
+          )}
+
           {loading ? (
             <p className="mt-3 text-sm text-[var(--text-muted)]">Carregando...</p>
           ) : visibleItems.length === 0 ? (
@@ -348,7 +409,7 @@ export default function McpAccessPanel({
                       {item.tokenPrefix}•••• · {item.scope}
                     </p>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">
-                      Expira: {dateLabel(item.expiresAt)} · Último uso: {dateLabel(item.lastUsedAt)}
+                      Expira: {dateLabel(item.expiresAt)} · Último uso (aproximado): {dateLabel(item.lastUsedAt)}
                     </p>
                   </div>
                   {item.status === 'ACTIVE' && (

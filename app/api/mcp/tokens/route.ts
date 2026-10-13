@@ -8,6 +8,7 @@ import {
   createMcpAccessTokenForUser,
   createMcpTokenSchema,
   listMcpAccessTokensForUser,
+  revokeAllMcpAccessTokensForUser,
 } from "@/app/lib/mcp/mcp-token";
 import { SENSITIVE_ACTIONS } from "@/app/lib/security/sensitive-actions";
 import { verifyStepUpAuth } from "@/app/lib/security/step-up-auth";
@@ -53,6 +54,19 @@ export async function POST(request: Request) {
     return apiFailureFromError(error, {
       fallbackMessage: "Não foi possível criar o token MCP",
       zodMessage: "Dados inválidos",
+    });
+  }
+}
+
+/** Revoga todos os tokens ativos. Reduz privilégio: sem step-up obrigatório. */
+export async function DELETE() {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const revoked = await revokeAllMcpAccessTokensForUser(userId);
+    return success({ revoked }, "Tokens MCP revogados");
+  } catch (error) {
+    return apiFailureFromError(error, {
+      fallbackMessage: "Não foi possível revogar os tokens MCP",
     });
   }
 }

@@ -115,7 +115,7 @@ test('fluxo real: token → initialize → tools → ownership → revogação/e
   const forged = await callTool(request, tokenA, 'get_accounts', {
     userId: fixtureB.userId,
   });
-  expect((await forged.json()).error.code).toBe(-32602);
+  expect((await forged.json()).result.isError).toBe(true);
 
   // body > 64 KB sem Content-Length (chunked)
   const big = new TextEncoder().encode(
@@ -141,10 +141,21 @@ test('fluxo real: token → initialize → tools → ownership → revogação/e
   expect(oversized.status).toBe(413);
 
   // revogação pela UI → 401
-  await panel.getByRole('button', { name: 'Revogar' }).first().click();
+  await panel.getByRole('button', { name: 'Revogar', exact: true }).first().click();
   await expect
     .poll(async () => (await mcpCall(request, tokenA, 'ping')).status())
     .toBe(401);
+
+  // revogar todos (confirmação simples) → próxima request 401
+  const tokenBulk1 = await createTokenViaUi(panel, 'E2E bulk 1');
+  const tokenBulk2 = await createTokenViaUi(panel, 'E2E bulk 2');
+  expect((await mcpCall(request, tokenBulk1, 'ping')).status()).toBe(200);
+  await panel.getByRole('button', { name: 'Revogar todos os tokens ativos' }).click();
+  await panel.getByRole('button', { name: 'Confirmar' }).click();
+  await expect
+    .poll(async () => (await mcpCall(request, tokenBulk2, 'ping')).status())
+    .toBe(401);
+  expect((await mcpCall(request, tokenBulk1, 'ping')).status()).toBe(401);
 
   // expiração
   const tokenExpiring = await createTokenViaUi(panel, 'E2E expira');
