@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { periodicSummaryService } from '@/app/services/periodic-summary-service';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
@@ -13,6 +13,7 @@ export function usePeriodicSummary(
   const [data, setData] = useState<PeriodicFinancialSummaryState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -49,7 +50,9 @@ export function usePeriodicSummary(
     return () => {
       active = false;
     };
-  }, [currency, enabled]);
+  }, [currency, enabled, attempt]);
 
-  return { data, loading, error };
+  const retry = useCallback(() => setAttempt((value) => value + 1), []);
+
+  return { data, loading, error, retry };
 }

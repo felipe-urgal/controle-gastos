@@ -11,6 +11,7 @@ const state: PeriodicFinancialSummaryState = {
     id: 'weekly-1',
     generatedAt: '2026-10-05T06:00:00.000Z',
     content: {
+      contentVersion: 2,
       frequency: 'WEEKLY',
       currency: 'BRL',
       period: {
@@ -42,6 +43,18 @@ describe('PeriodicSummaryCard', () => {
     expect(html).toContain('••••');
     expect(html).not.toContain('1.234,56');
     expect(html).not.toContain('456,78');
+  });
+
+  it('keeps the card visible with a retry action on error, never as absence', () => {
+    const html = renderToStaticMarkup(
+      <PeriodicSummaryCard state={null} loading={false} error="Falhou" showValues onRetry={() => {}} />,
+    );
+    expect(html).toContain('Falhou');
+    expect(html).toContain('Tentar novamente');
+  });
+
+  it('states that later corrections do not change the snapshot', () => {
+    expect(render(state)).toContain('correções posteriores não alteram');
   });
 
   it('hides the card after opt-out', () => {

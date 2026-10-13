@@ -72,10 +72,29 @@ describe('periodic summary domain', () => {
       { categoryId: '__uncategorized__', categoryName: 'Sem categoria', amount: 1_000 },
     ]);
     expect(Object.keys(summary).sort()).toEqual(
-      ['frequency', 'currency', 'period', 'totals', 'topCategories'].sort(),
+      ['contentVersion', 'frequency', 'currency', 'period', 'totals', 'topCategories'].sort(),
     );
     expect(realizedCashFlow({ amount: 7_000, type: 'INCOME', accountType: 'CREDIT_CARD' }))
       .toEqual({ income: 0, expense: -7_000 });
+  });
+
+  it('reduces the category by a same-week card refund without inventing a category', () => {
+    const shop = { id: 'shop', name: 'Compras' };
+    const summary = buildWeeklyFinancialSummary({
+      period,
+      currency: 'BRL',
+      transactions: [
+        transaction(10_000, 'EXPENSE', 'CREDIT_CARD', shop),
+        transaction(4_000, 'INCOME', 'CREDIT_CARD', shop),
+        transaction(1_000, 'INCOME', 'CREDIT_CARD'),
+      ],
+    });
+    expect(summary.contentVersion).toBe(2);
+    expect(summary.totals).toEqual({ income: 0, expense: 5_000, balance: -5_000 });
+    expect(summary.topCategories).toEqual([
+      { categoryId: 'shop', categoryName: 'Compras', amount: 6_000 },
+      { categoryId: '__uncategorized__', categoryName: 'Sem categoria', amount: -1_000 },
+    ]);
   });
 
   it('never mutates the input transactions', () => {

@@ -12,10 +12,11 @@ import {
   SUPPORTED_CURRENCIES,
   type SupportedCurrency,
 } from '@/app/types/financial-summary';
-import type {
-  PeriodicFinancialSummary,
+import {
+  PERIODIC_SUMMARY_CONTENT_VERSION,
+  type PeriodicFinancialSummary,
   PeriodicFinancialSummaryContent,
-  PeriodicFinancialSummaryState,
+  type PeriodicFinancialSummaryState,
 } from '@/app/types/periodic-financial-summary';
 
 // Um job diário de 60 s não pode prometer cobertura para volume ilimitado.
@@ -39,10 +40,16 @@ function mapSummary(row: {
   // Os registros legados podem conter Forecast/Insights stale: não expor esses
   // campos no contrato de leitura, sem regravar snapshots históricos.
   const stored = row.content as unknown as PeriodicFinancialSummaryContent;
+  // Linhas sem versão são a v1 legada. Versão desconhecida nunca é reinterpretada.
+  const contentVersion = stored.contentVersion ?? 1;
+  if (contentVersion < 1 || contentVersion > PERIODIC_SUMMARY_CONTENT_VERSION) {
+    throw new Error('Versão de snapshot do resumo periódico não suportada');
+  }
   return {
     id: row.id,
     generatedAt: row.generatedAt.toISOString(),
     content: {
+      contentVersion,
       frequency: stored.frequency,
       currency: stored.currency,
       period: stored.period,

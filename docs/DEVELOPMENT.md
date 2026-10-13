@@ -48,7 +48,15 @@ Não execute E2E indiscriminadamente; use-o para fluxos relevantes ou antes de m
 
 O resumo financeiro semanal usa o Vercel Cron em `/api/cron/periodic-summary`. Configure `CRON_SECRET` no ambiente da aplicação; o endpoint aceita somente `Authorization: Bearer <CRON_SECRET>`.
 
-O cron roda diariamente às 06:00 UTC, mas a materialização é idempotente por usuário, semana lógica concluída e moeda. A frequência do produto continua semanal; a execução diária permite retry sem fila ou worker dedicado.
+O cron roda diariamente às 06:00 UTC, mas a materialização é idempotente por usuário, semana lógica concluída e moeda. A frequência do produto continua semanal; a execução diária permite retry sem fila ou worker dedicado. `periodicSummaryFrequency` só aceita `WEEKLY` (campo mantido para evolução futura; a UI não oferece seletor).
+
+Contrato do snapshot (`PeriodicFinancialSummary.content`):
+
+- É um retrato imutável do que foi apurado na geração; correções posteriores de transações não o alteram, e a UI informa isso junto de `generatedAt`.
+- `contentVersion` identifica o formato/algoritmo (`PERIODIC_SUMMARY_CONTENT_VERSION`). Linhas sem versão são a v1 legada e permanecem como estão; versão desconhecida é rejeitada, nunca reinterpretada. Ao mudar a regra financeira, incremente a versão: semanas novas usam a regra nova e as antigas continuam históricas.
+- O snapshot contém apenas totais e categorias do período fechado. Compromissos/forecast pertencem ao Dashboard e à fonte canônica de Compromissos, não são materializados aqui.
+- Valores monetários ficam estruturados (centavos); nenhum texto livre persistido carrega valor, então `showValues=false` mascara todo o conteúdo.
+- O cron só avança `periodicSummaryLastProcessedAt` após o usuário concluir todas as moedas ativas.
 
 ## Cotações de investimentos
 

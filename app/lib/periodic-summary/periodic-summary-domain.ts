@@ -1,6 +1,9 @@
 import { compareLogicalDates, type LogicalDate } from '@/app/lib/date/logical-date';
 import { realizedCashFlow } from '@/app/lib/dashboard/realized-cash-flow';
-import type { PeriodicFinancialSummaryContent } from '@/app/types/periodic-financial-summary';
+import {
+  PERIODIC_SUMMARY_CONTENT_VERSION,
+  type PeriodicFinancialSummaryContent,
+} from '@/app/types/periodic-financial-summary';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 export const PERIODIC_SUMMARY_TOP_CATEGORY_LIMIT = 5;
@@ -109,6 +112,7 @@ export function buildWeeklyFinancialSummary(args: {
   transactions: readonly PeriodicSummaryTransaction[];
 }): PeriodicFinancialSummaryContent {
   return {
+    contentVersion: PERIODIC_SUMMARY_CONTENT_VERSION,
     frequency: 'WEEKLY',
     currency: args.currency,
     period: args.period,

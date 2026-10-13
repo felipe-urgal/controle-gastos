@@ -71,6 +71,26 @@ describe('periodic financial summary service', () => {
     expect(mocks.periodicFinancialSummary.create).not.toHaveBeenCalled();
   });
 
+  it('reads unversioned legacy rows as v1 and exposes the explicit version', async () => {
+    const result = await materializeWeeklySummaryForUser('user-1', 'BRL', now);
+    expect(result.content.contentVersion).toBe(1);
+  });
+
+  it('writes the current content version and refuses unknown future versions', async () => {
+    mocks.periodicFinancialSummary.findFirst.mockResolvedValueOnce(null);
+    await materializeWeeklySummaryForUser('user-1', 'BRL', now);
+    const created = mocks.periodicFinancialSummary.create.mock.calls[0][0].data.content;
+    expect(created.contentVersion).toBe(2);
+
+    mocks.periodicFinancialSummary.findFirst.mockResolvedValueOnce({
+      ...stored,
+      content: { ...stored.content, contentVersion: 99 },
+    });
+    await expect(materializeWeeklySummaryForUser('user-1', 'BRL', now)).rejects.toThrow(
+      'não suportada',
+    );
+  });
+
   it('respects opt-out without reading or writing a summary', async () => {
     mocks.user.findFirst.mockResolvedValue({
       periodicSummaryEnabled: false,
