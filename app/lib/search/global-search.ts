@@ -55,9 +55,26 @@ function rankNamedResults<T extends { id: string; name: string; isActive: boolea
     .map(({ item }) => item);
 }
 
+const TIMEOUT_NAMES = new Set(['TimeoutError', 'AbortError']);
+const TIMEOUT_CODES = new Set(['57014', 'P1008', 'P2024', 'ETIMEDOUT', 'ECONNRESET_TIMEOUT']);
+
+/**
+ * Diferencia timeout (statement/pool/conexão/abort) de erro genérico para a
+ * telemetria. Só inspeciona nome/código; nunca a mensagem nem o termo buscado.
+ */
+export function isSearchTimeoutError(error: unknown, depth = 0): boolean {
+  if (!error || typeof error !== 'object' || depth > 3) return false;
+  const candidate = error as { name?: unknown; code?: unknown; meta?: unknown; cause?: unknown };
+  if (typeof candidate.name === 'string' && TIMEOUT_NAMES.has(candidate.name)) return true;
+  if (typeof candidate.code === 'string' && TIMEOUT_CODES.has(candidate.code)) return true;
+  const metaCode = (candidate.meta as { code?: unknown } | undefined)?.code;
+  if (typeof metaCode === 'string' && TIMEOUT_CODES.has(metaCode)) return true;
+  return isSearchTimeoutError(candidate.cause, depth + 1);
+}
+
 function emitSearchTelemetry(input: {
   durationMs: number; queryLength: number; fuzzyUsed: boolean;
-  status: 'ok' | 'rate_limited' | 'error';
+  status: 'ok' | 'rate_limited' | 'error' | 'timeout';
   groupCounts?: Record<string, number>;
 }) {
   // Do not log the search term, account identifiers, monetary values or titles.
@@ -72,53 +89,48 @@ function emitSearchTelemetry(input: {
 
 // Prefiltering only by transactions.description/ILIKE would drop valid fuzzy
 // matches originating from merchant names, aliases or tags (including typos).
-// Keep all four fields in the candidate set until a measured, equivalent
-// indexed preselection strategy is available; see the real-query EXPLAIN test.
+// All four fields stay in the candidate set. Alias and tag scores are computed
+// once per merchant/transaction in set-based CTEs (instead of two correlated
+// subplans per candidate row, evaluated again for the projection), and the
+// GREATEST score is computed once per row. Semantics are identical to the
+// previous correlated form; see the differential test and the load test.
 export function buildGlobalSearchFuzzyQuery(userId: string, query: string, excludeIds: string[]): Prisma.Sql {
   return Prisma.sql`
-      SELECT
-        t.id,
-        GREATEST(
-          word_similarity(${query}, t.description),
-          word_similarity(${query}, COALESCE(m.name, '')),
-          COALESCE((
-            SELECT MAX(word_similarity(${query}, ma.pattern))
-            FROM merchant_aliases ma
-            WHERE ma."merchant_id" = t."merchant_id"
-              AND ma."userId" = ${userId}
-          ), 0),
-          COALESCE((
-            SELECT MAX(word_similarity(${query}, tag.name))
-            FROM transaction_tags tt
-            JOIN tags tag ON tag.id = tt."tag_id"
-            WHERE tt."transaction_id" = t.id
-              AND tt."userId" = ${userId}
-          ), 0)
-        ) AS score
+      WITH alias_scores AS (
+        SELECT ma."merchant_id" AS merchant_id,
+               MAX(word_similarity(${query}, ma.pattern)) AS score
+        FROM merchant_aliases ma
+        WHERE ma."userId" = ${userId}
+          AND ma."merchant_id" IS NOT NULL
+        GROUP BY ma."merchant_id"
+      ),
+      tag_scores AS (
+        SELECT tt."transaction_id" AS transaction_id,
+               MAX(word_similarity(${query}, tag.name)) AS score
+        FROM transaction_tags tt
+        JOIN tags tag ON tag.id = tt."tag_id"
+        WHERE tt."userId" = ${userId}
+        GROUP BY tt."transaction_id"
+      )
+      SELECT t.id, s.score
       FROM transactions t
       LEFT JOIN merchants m
         ON m.id = t."merchant_id"
        AND m."userId" = ${userId}
-      WHERE t."userId" = ${userId}
-        AND t.id NOT IN (${Prisma.join(excludeIds.length ? excludeIds : ['__none__'])})
-        AND GREATEST(
+      LEFT JOIN alias_scores a ON a.merchant_id = t."merchant_id"
+      LEFT JOIN tag_scores g ON g.transaction_id = t.id
+      CROSS JOIN LATERAL (
+        SELECT GREATEST(
           word_similarity(${query}, t.description),
           word_similarity(${query}, COALESCE(m.name, '')),
-          COALESCE((
-            SELECT MAX(word_similarity(${query}, ma.pattern))
-            FROM merchant_aliases ma
-            WHERE ma."merchant_id" = t."merchant_id"
-              AND ma."userId" = ${userId}
-          ), 0),
-          COALESCE((
-            SELECT MAX(word_similarity(${query}, tag.name))
-            FROM transaction_tags tt
-            JOIN tags tag ON tag.id = tt."tag_id"
-            WHERE tt."transaction_id" = t.id
-              AND tt."userId" = ${userId}
-          ), 0)
-        ) >= ${FUZZY_SIMILARITY_THRESHOLD}
-      ORDER BY score DESC, t.year DESC, t.month DESC, t.day DESC, t."created_at" DESC, t.id DESC
+          COALESCE(a.score, 0),
+          COALESCE(g.score, 0)
+        ) AS score
+      ) s
+      WHERE t."userId" = ${userId}
+        AND t.id NOT IN (${Prisma.join(excludeIds.length ? excludeIds : ['__none__'])})
+        AND s.score >= ${FUZZY_SIMILARITY_THRESHOLD}
+      ORDER BY s.score DESC, t.year DESC, t.month DESC, t.day DESC, t."created_at" DESC, t.id DESC
       LIMIT ${GLOBAL_SEARCH_LIMIT_PER_GROUP}
   `;
 }
@@ -385,7 +397,12 @@ export async function getGlobalSearch(request: Request) {
     });
     return success(data);
   } catch (error) {
-    emitSearchTelemetry({ durationMs: Math.round(performance.now() - startedAt), queryLength, fuzzyUsed, status: 'error' });
+    emitSearchTelemetry({
+      durationMs: Math.round(performance.now() - startedAt),
+      queryLength,
+      fuzzyUsed,
+      status: isSearchTimeoutError(error) ? 'timeout' : 'error',
+    });
     return apiFailureFromError(error, {
       fallbackMessage: 'Erro ao realizar busca',
       zodMessage: 'Busca inválida',

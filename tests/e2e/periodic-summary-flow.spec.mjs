@@ -3,6 +3,14 @@ import { expect, test } from '@playwright/test';
 import { setIsolatedClientIp } from './support/client-ip.mjs';
 import { createVerifiedUser } from './support/verified-user.mjs';
 
+async function openPreferences(page) {
+  await page.goto('/usuario');
+  await page
+    .getByRole('navigation', { name: 'Áreas de configuração' })
+    .getByRole('button', { name: 'Preferências', exact: true })
+    .click();
+}
+
 const password = 'Playwright123!';
 
 test('preferência: resumo semanal aparece no Dashboard e some no opt-out', async ({ page }, testInfo) => {
@@ -17,10 +25,10 @@ test('preferência: resumo semanal aparece no Dashboard e some no opt-out', asyn
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
 
-  await page.goto('/usuario');
-  const toggle = page.getByRole('checkbox', { name: 'Gerar resumo semanal' });
+  await openPreferences(page);
+  const toggle = page.getByRole('checkbox', { name: /^Gerar resumo semanal/ });
   await expect(toggle).not.toBeChecked();
-  await toggle.check();
+  await page.getByText('Gerar resumo semanal', { exact: true }).click();
   await expect(toggle).toBeChecked();
   await expect(page.getByText('Preferência de resumo semanal atualizada.')).toBeVisible();
 
@@ -36,9 +44,9 @@ test('preferência: resumo semanal aparece no Dashboard e some no opt-out', asyn
   expect(response.body.data.summary.content.currency).toBe('BRL');
 
   // showValues=false: nenhum valor monetário do snapshot pode aparecer.
-  await page.goto('/usuario');
-  const showValues = page.getByRole('checkbox', { name: 'Exibir valores' });
-  await showValues.uncheck();
+  await openPreferences(page);
+  const showValues = page.getByRole('checkbox', { name: /^Exibir valores/ });
+  await page.getByText('Exibir valores', { exact: true }).click();
   await expect(showValues).not.toBeChecked();
   await page.goto('/dashboard');
   const card = page.locator('section[aria-labelledby="periodic-summary-title"]');
@@ -46,8 +54,8 @@ test('preferência: resumo semanal aparece no Dashboard e some no opt-out', asyn
   await expect(card).toContainText('••••');
   await expect(card).not.toContainText(/R\$\s?\d/);
 
-  await page.goto('/usuario');
-  await toggle.uncheck();
+  await openPreferences(page);
+  await page.getByText('Gerar resumo semanal', { exact: true }).click();
   await expect(toggle).not.toBeChecked();
   await expect(page.getByText('Preferência de resumo semanal atualizada.')).toBeVisible();
 

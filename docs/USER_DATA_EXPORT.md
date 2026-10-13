@@ -6,6 +6,8 @@ A exportação em JSON é um **snapshot lógico de portabilidade** da conta. O f
 
 A exportação em CSV é deliberadamente diferente: contém **somente transações** em formato tabular para uso em planilhas. CSV não é backup completo.
 
+Decisão para novos CSVs: cada domínio terá seu próprio export (endpoint/arquivo e cabeçalho próprios). Nunca misturar domínios em um único arquivo ambíguo. O CSV de transações atual não muda de formato ao surgir outro domínio.
+
 ## Consistência e streaming
 
 O snapshot é lido em uma transação PostgreSQL:
