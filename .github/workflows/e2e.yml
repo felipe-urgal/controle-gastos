@@ -241,6 +241,9 @@ jobs:
           tests/e2e/debts-goals-flow.spec.mjs
           tests/e2e/debts-goals-mobile-privacy.spec.mjs
           tests/e2e/investments-flow.spec.mjs
+          tests/e2e/global-search-followups.spec.mjs
+          tests/e2e/periodic-summary-flow.spec.mjs
+          tests/e2e/mcp-access-flow.spec.mjs
           tests/e2e/payroll-flow.spec.mjs
           tests/e2e/user-password-reauth.spec.mjs
           tests/e2e/user-email-change.spec.mjs
