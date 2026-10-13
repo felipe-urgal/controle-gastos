@@ -12,16 +12,19 @@ import {
   SUPPORTED_CURRENCIES,
   type SupportedCurrency,
 } from '@/app/types/financial-summary';
-import type {
-  PeriodicFinancialSummary,
+import {
+  PERIODIC_SUMMARY_CONTENT_VERSION,
+  type PeriodicFinancialSummary,
   PeriodicFinancialSummaryContent,
-  PeriodicFinancialSummaryState,
+  type PeriodicFinancialSummaryState,
 } from '@/app/types/periodic-financial-summary';
 
 // Um job diário de 60 s não pode prometer cobertura para volume ilimitado.
 // O cron prioriza a quota diária do backlog, com limites de tempo e segurança.
 export const PERIODIC_SUMMARY_CRON_MAX_USERS = 200;
 export const PERIODIC_SUMMARY_CRON_TIME_BUDGET_MS = 48_000;
+// Um usuário parado há mais que um ciclo semanal completo indica falha repetida.
+export const PERIODIC_SUMMARY_STALE_USER_DAYS = 9;
 
 function periodWhere(period: ReturnType<typeof getCompletedWeeklySummaryPeriod>) {
   return {
@@ -39,10 +42,16 @@ function mapSummary(row: {
   // Os registros legados podem conter Forecast/Insights stale: não expor esses
   // campos no contrato de leitura, sem regravar snapshots históricos.
   const stored = row.content as unknown as PeriodicFinancialSummaryContent;
+  // Linhas sem versão são a v1 legada. Versão desconhecida nunca é reinterpretada.
+  const contentVersion = stored.contentVersion ?? 1;
+  if (contentVersion < 1 || contentVersion > PERIODIC_SUMMARY_CONTENT_VERSION) {
+    throw new Error('Versão de snapshot do resumo periódico não suportada');
+  }
   return {
     id: row.id,
     generatedAt: row.generatedAt.toISOString(),
     content: {
+      contentVersion,
       frequency: stored.frequency,
       currency: stored.currency,
       period: stored.period,
@@ -318,5 +327,27 @@ export async function runPeriodicSummaryCron(now: Date = new Date()) {
     durationMs: Math.round(performance.now() - startedAt),
   };
   logEvent('info', 'periodic_summary.cron', metrics);
+
+  // Alerta somente com contagens e idade agregada: nunca userId ou e-mail.
+  const oldestAgeDays = oldestProcessed?.periodicSummaryLastProcessedAt
+    ? Math.floor(
+        (now.getTime() - oldestProcessed.periodicSummaryLastProcessedAt.getTime()) / 86_400_000,
+      )
+    : null;
+  const reasons = [
+    failed > 0 && 'user_failures',
+    markerFailures > 0 && 'marker_failures',
+    deadlineReached && 'deadline_reached',
+    metrics.coverageAtRisk && 'coverage_at_risk',
+    oldestAgeDays !== null && oldestAgeDays >= PERIODIC_SUMMARY_STALE_USER_DAYS && 'stale_user',
+  ].filter((reason): reason is string => typeof reason === 'string');
+  if (reasons.length > 0) {
+    logEvent('error', 'periodic_summary.alert', {
+      reasons: reasons.join(','),
+      failedUsers: failed,
+      backlogRemaining,
+      oldestAgeDays,
+    });
+  }
   return metrics;
 }

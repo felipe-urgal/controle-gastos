@@ -18,11 +18,13 @@ export function PeriodicSummaryCard({
   loading,
   error,
   showValues,
+  onRetry,
 }: {
   state: PeriodicFinancialSummaryState | null;
   loading: boolean;
   error: string;
   showValues: boolean;
+  onRetry?: () => void;
 }) {
   if (loading) {
     return (
@@ -34,8 +36,17 @@ export function PeriodicSummaryCard({
 
   if (error) {
     return (
-      <section className="ds-panel p-4 sm:p-5">
+      <section className="ds-panel p-4 sm:p-5" role="alert">
         <p className="text-sm text-[var(--expense)]">{error}</p>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-2 text-sm font-semibold text-[var(--orbit-primary)] underline"
+          >
+            Tentar novamente
+          </button>
+        )}
       </section>
     );
   }
@@ -61,6 +72,14 @@ export function PeriodicSummaryCard({
             <p className="mt-1 text-xs text-[var(--text-muted)]">
               Snapshot gerado em {new Date(generatedAt).toLocaleString('pt-BR', { timeZone: 'UTC', dateStyle: 'short', timeStyle: 'short' })} UTC
             </p>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+              Retrato do que foi apurado nessa data; correções posteriores não alteram este resumo.
+            </p>
+            {summary.contentVersion < 2 && (
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                Gerado com a regra anterior, em que créditos de cartão contavam como entrada.
+              </p>
+            )}
           </div>
         </div>
         <strong className={`text-xl font-black ${summary.totals.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>

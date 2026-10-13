@@ -508,6 +508,7 @@ function DashboardHome({
             state={periodicSummary.data}
             loading={periodicSummary.loading}
             error={periodicSummary.error}
+            onRetry={periodicSummary.retry}
             showValues={showValues}
           />
         </div>

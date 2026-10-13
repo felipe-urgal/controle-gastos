@@ -35,6 +35,17 @@ test('preferência: resumo semanal aparece no Dashboard e some no opt-out', asyn
   expect(response.body.data.enabled).toBe(true);
   expect(response.body.data.summary.content.currency).toBe('BRL');
 
+  // showValues=false: nenhum valor monetário do snapshot pode aparecer.
+  await page.goto('/usuario');
+  const showValues = page.getByRole('checkbox', { name: 'Exibir valores' });
+  await showValues.uncheck();
+  await expect(showValues).not.toBeChecked();
+  await page.goto('/dashboard');
+  const card = page.locator('section[aria-labelledby="periodic-summary-title"]');
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('••••');
+  await expect(card).not.toContainText(/R\$\s?\d/);
+
   await page.goto('/usuario');
   await toggle.uncheck();
   await expect(toggle).not.toBeChecked();

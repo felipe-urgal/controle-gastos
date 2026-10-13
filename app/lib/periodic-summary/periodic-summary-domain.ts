@@ -1,6 +1,9 @@
 import { compareLogicalDates, type LogicalDate } from '@/app/lib/date/logical-date';
 import { realizedCashFlow } from '@/app/lib/dashboard/realized-cash-flow';
-import type { PeriodicFinancialSummaryContent } from '@/app/types/periodic-financial-summary';
+import {
+  PERIODIC_SUMMARY_CONTENT_VERSION,
+  type PeriodicFinancialSummaryContent,
+} from '@/app/types/periodic-financial-summary';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 export const PERIODIC_SUMMARY_TOP_CATEGORY_LIMIT = 5;
@@ -84,6 +87,8 @@ function buildTopCategories(transactions: readonly PeriodicSummaryTransaction[])
       accountType: transaction.account.type,
     }).expense;
     if (expense === 0) continue;
+    // Crédito sem categoria reduz o total, mas não inventa categoria nem bucket.
+    if (expense < 0 && transaction.allocations.length === 0 && !transaction.category) continue;
     const factor = expense / transaction.amount;
     if (transaction.allocations.length > 0) {
       for (const allocation of transaction.allocations) {
@@ -95,7 +100,7 @@ function buildTopCategories(transactions: readonly PeriodicSummaryTransaction[])
   }
 
   return [...totals.values()]
-    .filter((item) => item.amount !== 0)
+    .filter((item) => item.amount > 0)
     .sort((left, right) => {
       if (left.amount !== right.amount) return right.amount - left.amount;
       return left.categoryName.localeCompare(right.categoryName, 'pt-BR');
@@ -109,6 +114,7 @@ export function buildWeeklyFinancialSummary(args: {
   transactions: readonly PeriodicSummaryTransaction[];
 }): PeriodicFinancialSummaryContent {
   return {
+    contentVersion: PERIODIC_SUMMARY_CONTENT_VERSION,
     frequency: 'WEEKLY',
     currency: args.currency,
     period: args.period,
