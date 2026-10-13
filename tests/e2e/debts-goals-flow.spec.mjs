@@ -47,13 +47,13 @@ test('dívidas: parcela avança cronograma sem criar transação financeira', as
   await expect(createDialog).toBeVisible();
   await expect(createDialog).toBeFocused();
 
-  await createDialog.getByLabel('Nome', { exact: true }).fill(debtName);
-  await createDialog.getByLabel('Saldo devedor', { exact: true }).fill('200,00');
+  await createDialog.getByLabel(/^Nome\b/).fill(debtName);
+  await createDialog.getByLabel(/^Saldo devedor\b/).fill('200,00');
   await createDialog
-    .getByLabel('Valor da parcela opcional', { exact: true })
+    .getByLabel(/^Valor da parcela opcional\b/)
     .fill('100,00');
-  await createDialog.getByLabel('Próximo vencimento', { exact: true }).fill('2030-01-10');
-  await createDialog.getByLabel('Parcelas restantes', { exact: true }).fill('2');
+  await createDialog.getByLabel(/^Próximo vencimento\b/).fill('2030-01-10');
+  await createDialog.getByLabel(/^Parcelas restantes\b/).fill('2');
   await createDialog.getByRole('button', { name: 'Criar dívida', exact: true }).click();
   await expect(createDialog).toBeHidden();
 
@@ -74,9 +74,9 @@ test('dívidas: parcela avança cronograma sem criar transação financeira', as
   });
   await expect(paymentDialog).toBeVisible();
   await expect(paymentDialog).toBeFocused();
-  await paymentDialog.getByLabel('Valor pago', { exact: true }).fill('100,00');
+  await paymentDialog.getByLabel(/^Valor pago\b/).fill('100,00');
   await paymentDialog
-    .getByLabel('Descrição opcional', { exact: true })
+    .getByLabel(/^Descrição opcional\b/)
     .fill('Parcela E2E');
   await paymentDialog
     .getByRole('button', { name: 'Registrar pagamento', exact: true })
@@ -139,9 +139,9 @@ test('metas continuam utilizáveis quando contas estão indisponíveis', async (
   await page.getByRole('button', { name: 'Nova meta', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Nova meta', exact: true });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByLabel('Conta de referência opcional', { exact: true })).toBeDisabled();
-  await dialog.getByLabel('Nome', { exact: true }).fill(goalName);
-  await dialog.getByLabel('Valor alvo', { exact: true }).fill('500,00');
+  await expect(dialog.getByRole('combobox', { name: /^Conta de referência opcional/ })).toBeDisabled();
+  await dialog.getByLabel(/^Nome\b/).fill(goalName);
+  await dialog.getByLabel(/^Valor alvo\b/).fill('500,00');
   await dialog.getByRole('button', { name: 'Criar meta', exact: true }).click();
   await expect(dialog).toBeHidden();
 
