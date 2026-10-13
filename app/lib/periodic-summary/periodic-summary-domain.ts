@@ -87,6 +87,8 @@ function buildTopCategories(transactions: readonly PeriodicSummaryTransaction[])
       accountType: transaction.account.type,
     }).expense;
     if (expense === 0) continue;
+    // Crédito sem categoria reduz o total, mas não inventa categoria nem bucket.
+    if (expense < 0 && transaction.allocations.length === 0 && !transaction.category) continue;
     const factor = expense / transaction.amount;
     if (transaction.allocations.length > 0) {
       for (const allocation of transaction.allocations) {
@@ -98,7 +100,7 @@ function buildTopCategories(transactions: readonly PeriodicSummaryTransaction[])
   }
 
   return [...totals.values()]
-    .filter((item) => item.amount !== 0)
+    .filter((item) => item.amount > 0)
     .sort((left, right) => {
       if (left.amount !== right.amount) return right.amount - left.amount;
       return left.categoryName.localeCompare(right.categoryName, 'pt-BR');

@@ -75,6 +75,11 @@ export function PeriodicSummaryCard({
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               Retrato do que foi apurado nessa data; correções posteriores não alteram este resumo.
             </p>
+            {summary.contentVersion < 2 && (
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                Gerado com a regra anterior, em que créditos de cartão contavam como entrada.
+              </p>
+            )}
           </div>
         </div>
         <strong className={`text-xl font-black ${summary.totals.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>

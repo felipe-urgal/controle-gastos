@@ -57,6 +57,18 @@ describe('PeriodicSummaryCard', () => {
     expect(render(state)).toContain('correções posteriores não alteram');
   });
 
+  it('flags legacy v1 snapshots as generated with the previous rule', () => {
+    const legacy = {
+      ...state,
+      summary: state.summary && {
+        ...state.summary,
+        content: { ...state.summary.content, contentVersion: 1 },
+      },
+    };
+    expect(render(legacy)).toContain('regra anterior');
+    expect(render(state)).not.toContain('regra anterior');
+  });
+
   it('hides the card after opt-out', () => {
     expect(render({ ...state, enabled: false, summary: null })).toBe('');
   });

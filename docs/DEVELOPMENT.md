@@ -56,6 +56,10 @@ Contrato do snapshot (`PeriodicFinancialSummary.content`):
 - `contentVersion` identifica o formato/algoritmo (`PERIODIC_SUMMARY_CONTENT_VERSION`). Linhas sem versão são a v1 legada e permanecem como estão; versão desconhecida é rejeitada, nunca reinterpretada. Ao mudar a regra financeira, incremente a versão: semanas novas usam a regra nova e as antigas continuam históricas.
 - O snapshot contém apenas totais e categorias do período fechado. Compromissos/forecast pertencem ao Dashboard e à fonte canônica de Compromissos, não são materializados aqui.
 - Valores monetários ficam estruturados (centavos); nenhum texto livre persistido carrega valor, então `showValues=false` mascara todo o conteúdo.
+- Snapshots v1 (sem versão) são exibidos com aviso de regra anterior; não há rebuild automático, pois o produto trata o resumo como histórico imutável.
+- Crédito/estorno de cartão sem categoria reduz o total, mas não gera categoria nem bucket em `topCategories`.
+- A geração faz uma única query de transações por moeda (sem forecast, insights ou compromissos); duração por usuário e do lote vai para os logs do cron.
+- O cron emite `periodic_summary.alert` (somente contagens e idade agregada, sem identificadores) em falha de usuário/marcador, deadline, cobertura em risco ou usuário parado há mais de 9 dias.
 - O cron só avança `periodicSummaryLastProcessedAt` após o usuário concluir todas as moedas ativas.
 
 ## Cotações de investimentos

@@ -249,6 +249,50 @@ describe('periodic financial summary service', () => {
     expect([...markers.values()].filter(Boolean)).toHaveLength(42);
   });
 
+  it('emits a personal-data-free alert on failure and stays silent when healthy', async () => {
+    mocks.user.count.mockResolvedValue(7);
+    mocks.user.findMany.mockResolvedValueOnce([{ id: 'user-secret' }]);
+    mocks.account.findMany.mockRejectedValueOnce(new Error('boom'));
+    await runPeriodicSummaryCron(now);
+    const alert = mocks.logEvent.mock.calls.find((call) => call[1] === 'periodic_summary.alert');
+    expect(alert?.[0]).toBe('error');
+    expect(alert?.[2]).toMatchObject({ reasons: 'user_failures', failedUsers: 1 });
+    expect(JSON.stringify(mocks.logEvent.mock.calls.map((call) => call[2]))).not.toContain('user-secret');
+
+    mocks.logEvent.mockClear();
+    mocks.user.findMany.mockResolvedValueOnce([{ id: 'user-ok' }]);
+    mocks.account.findMany.mockResolvedValue([{ currency: 'BRL' }]);
+    await runPeriodicSummaryCron(now);
+    expect(mocks.logEvent.mock.calls.some((call) => call[1] === 'periodic_summary.alert')).toBe(false);
+  });
+
+  it('flags users stuck for more than a full weekly cycle', async () => {
+    mocks.user.count.mockResolvedValue(1);
+    mocks.user.findFirst.mockResolvedValue({
+      periodicSummaryLastProcessedAt: new Date('2026-09-20T06:00:00Z'),
+    });
+    mocks.user.findMany.mockResolvedValue([]);
+    await runPeriodicSummaryCron(now);
+    const alert = mocks.logEvent.mock.calls.find((call) => call[1] === 'periodic_summary.alert');
+    expect(alert?.[2]).toMatchObject({ reasons: expect.stringContaining('stale_user') });
+  });
+
+  it('keeps materialization bounded: one scoped transaction query and no prospective reads', async () => {
+    mocks.periodicFinancialSummary.findFirst.mockResolvedValue(null);
+    await materializeWeeklySummaryForUser('user-1', 'BRL', now);
+    expect(mocks.transaction.findMany).toHaveBeenCalledTimes(1);
+    expect(mocks.transaction.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        userId: 'user-1', kind: 'NORMAL', status: 'COMPLETED',
+        account: { is: { userId: 'user-1', currency: 'BRL' } },
+      }),
+    }));
+    const created = mocks.periodicFinancialSummary.create.mock.calls[0][0].data.content;
+    expect(Object.keys(created).sort()).toEqual(
+      ['contentVersion', 'currency', 'frequency', 'period', 'topCategories', 'totals'],
+    );
+  });
+
   it('selects only active-account currencies for cron work', async () => {
     mocks.user.count.mockResolvedValue(7);
     mocks.user.findMany.mockResolvedValueOnce([{ id: 'user-1' }]);

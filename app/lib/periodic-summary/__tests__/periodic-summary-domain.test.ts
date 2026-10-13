@@ -78,7 +78,7 @@ describe('periodic summary domain', () => {
       .toEqual({ income: 0, expense: -7_000 });
   });
 
-  it('reduces the category by a same-week card refund without inventing a category', () => {
+  it('reduces the category by a same-week card refund and ignores uncategorized credit', () => {
     const shop = { id: 'shop', name: 'Compras' };
     const summary = buildWeeklyFinancialSummary({
       period,
@@ -93,7 +93,6 @@ describe('periodic summary domain', () => {
     expect(summary.totals).toEqual({ income: 0, expense: 5_000, balance: -5_000 });
     expect(summary.topCategories).toEqual([
       { categoryId: 'shop', categoryName: 'Compras', amount: 6_000 },
-      { categoryId: '__uncategorized__', categoryName: 'Sem categoria', amount: -1_000 },
     ]);
   });
 
