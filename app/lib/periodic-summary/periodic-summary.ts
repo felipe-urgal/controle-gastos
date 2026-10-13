@@ -25,6 +25,8 @@ export const PERIODIC_SUMMARY_CRON_MAX_USERS = 200;
 export const PERIODIC_SUMMARY_CRON_TIME_BUDGET_MS = 48_000;
 // Um usuário parado há mais que um ciclo semanal completo indica falha repetida.
 export const PERIODIC_SUMMARY_STALE_USER_DAYS = 9;
+// Falha isolada tem retry no cron seguinte: só vira alerta acima do limiar.
+export const PERIODIC_SUMMARY_FAILURE_ALERT_THRESHOLD = 3;
 
 function periodWhere(period: ReturnType<typeof getCompletedWeeklySummaryPeriod>) {
   return {
@@ -311,6 +313,7 @@ export async function runPeriodicSummaryCron(now: Date = new Date()) {
   const backlogRemaining = Math.max(0, backlog - processed + markerFailures);
   const metrics = {
     frequency: 'WEEKLY' as const,
+    status: failed > 0 || markerFailures > 0 || deadlineReached ? ('partial' as const) : ('ok' as const),
     batchLimit,
     maxUsers: PERIODIC_SUMMARY_CRON_MAX_USERS,
     daysRemaining,
@@ -334,9 +337,18 @@ export async function runPeriodicSummaryCron(now: Date = new Date()) {
         (now.getTime() - oldestProcessed.periodicSummaryLastProcessedAt.getTime()) / 86_400_000,
       )
     : null;
+  if (failed > 0 || markerFailures > 0) {
+    // Sinal operacional de falha parcial (HTTP continua 200: o retry é esperado).
+    logEvent('warn', 'periodic_summary.partial_failure', {
+      failedUsers: failed,
+      markerFailures,
+      processedUsers: processed,
+      selectedUsers: users.length,
+    });
+  }
   const reasons = [
-    failed > 0 && 'user_failures',
-    markerFailures > 0 && 'marker_failures',
+    failed >= PERIODIC_SUMMARY_FAILURE_ALERT_THRESHOLD && 'user_failures',
+    markerFailures >= PERIODIC_SUMMARY_FAILURE_ALERT_THRESHOLD && 'marker_failures',
     deadlineReached && 'deadline_reached',
     metrics.coverageAtRisk && 'coverage_at_risk',
     oldestAgeDays !== null && oldestAgeDays >= PERIODIC_SUMMARY_STALE_USER_DAYS && 'stale_user',

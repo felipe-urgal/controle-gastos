@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 
+import { observeProviderCall } from "@/app/lib/observability";
+
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
 }
@@ -24,14 +26,20 @@ async function sendEmail(args: {
   subject: string;
   html: string;
 }) {
-  const { error } = await getResend().emails.send({
-    from: requiredEnv("RESEND_FROM_EMAIL"),
-    to: args.to,
-    subject: args.subject,
-    html: args.html,
-  });
+  // Telemetria sem destinatário, assunto ou corpo.
+  await observeProviderCall({ provider: "resend", operation: "send_email" }, async () => {
+    const { error } = await getResend().emails.send({
+      from: requiredEnv("RESEND_FROM_EMAIL"),
+      to: args.to,
+      subject: args.subject,
+      html: args.html,
+    });
 
-  if (error) throw new Error("AUTH_EMAIL_DELIVERY_FAILED");
+    if (error) throw new Error("AUTH_EMAIL_DELIVERY_FAILED");
+  }, (error) =>
+    error instanceof Error && error.message === "AUTH_EMAIL_DELIVERY_FAILED"
+      ? "upstream_unavailable"
+      : "upstream_error");
 }
 
 function absoluteUrl(path: string) {

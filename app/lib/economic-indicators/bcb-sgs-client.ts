@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  observeProviderCall,
+  type ProviderOutcome,
+} from "@/app/lib/observability";
+
 const BCB_SGS_BASE_URL = "https://api.bcb.gov.br/dados/serie/bcdata.sgs";
 const BCB_SGS_TIMEOUT_MS = 5_000;
 
@@ -131,10 +136,12 @@ async function requestRows(
   url: URL,
   fetchFn: FetchLike,
   timeoutMs: number,
+  meter: { retries: number } = { retries: 0 },
 ) {
   let lastError: unknown;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    meter.retries = attempt;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -183,16 +190,18 @@ async function requestRows(
   throw new Error("Não foi possível consultar o BCB SGS");
 }
 
-export async function fetchBcbSgsIndicator(
+async function fetchBcbSgsIndicatorUntracked(
   key: EconomicIndicatorKey,
   fetchFn: FetchLike = fetch,
   timeoutMs = BCB_SGS_TIMEOUT_MS,
+  meter: { retries: number } = { retries: 0 },
 ) {
   const definition = BCB_SGS_INDICATORS[key];
   const rows = await requestRows(
     buildLatestUrl(definition.seriesCode),
     fetchFn,
     timeoutMs,
+    meter,
   );
 
   const row = rows.at(-1);
@@ -209,11 +218,12 @@ export async function fetchBcbSgsIndicator(
   };
 }
 
-export async function fetchIpcaMonthlyRange(
+async function fetchIpcaMonthlyRangeUntracked(
   start: { year: number; month: number },
   end: { year: number; month: number },
   fetchFn: FetchLike = fetch,
   timeoutMs = BCB_SGS_TIMEOUT_MS,
+  meter: { retries: number } = { retries: 0 },
 ) {
   const startKey = start.year * 12 + start.month;
   const endKey = end.year * 12 + end.month;
@@ -225,6 +235,7 @@ export async function fetchIpcaMonthlyRange(
     buildRangeUrl(IPCA_MONTHLY_SERIES.seriesCode, start, end),
     fetchFn,
     timeoutMs,
+    meter,
   );
 
   return rows.map((row) => ({
@@ -236,4 +247,38 @@ export async function fetchIpcaMonthlyRange(
     referenceDate: parseReferenceDate(row.data),
     source: "BCB_SGS" as const,
   }));
+}
+
+function classifySgsError(error: unknown): ProviderOutcome {
+  const message = error instanceof Error ? error.message : "";
+  if (message.startsWith("Período inválido")) return "user_error";
+  if (message.startsWith("Resposta inválida") || message.startsWith("Valor")) {
+    return "upstream_error";
+  }
+  return "upstream_unavailable";
+}
+
+export function fetchBcbSgsIndicator(
+  key: EconomicIndicatorKey,
+  fetchFn: FetchLike = fetch,
+  timeoutMs = BCB_SGS_TIMEOUT_MS,
+) {
+  return observeProviderCall(
+    { provider: "bcb_sgs", operation: "indicator_latest" },
+    (meter) => fetchBcbSgsIndicatorUntracked(key, fetchFn, timeoutMs, meter),
+    classifySgsError,
+  );
+}
+
+export function fetchIpcaMonthlyRange(
+  start: { year: number; month: number },
+  end: { year: number; month: number },
+  fetchFn: FetchLike = fetch,
+  timeoutMs = BCB_SGS_TIMEOUT_MS,
+) {
+  return observeProviderCall(
+    { provider: "bcb_sgs", operation: "ipca_range" },
+    (meter) => fetchIpcaMonthlyRangeUntracked(start, end, fetchFn, timeoutMs, meter),
+    classifySgsError,
+  );
 }

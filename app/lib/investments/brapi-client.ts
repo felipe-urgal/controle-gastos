@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  observeProviderCall,
+  type ProviderOutcome,
+} from "@/app/lib/observability";
+
 const BRAPI_QUOTE_URL = "https://brapi.dev/api/v2/stocks/quote";
 const BRAPI_TIMEOUT_MS = 5_000;
 
@@ -43,11 +48,12 @@ function quoteError(status: number, hasToken: boolean) {
   return new Error("brapi respondeu HTTP " + status);
 }
 
-export async function fetchBrapiQuote(
+async function fetchBrapiQuoteUntracked(
   symbol: string,
   fetchFn: FetchLike = fetch,
   token = process.env.BRAPI_TOKEN,
   timeoutMs = BRAPI_TIMEOUT_MS,
+  meter: { retries: number } = { retries: 0 },
 ) {
   const normalizedSymbol = symbol.trim().toUpperCase();
   if (!normalizedSymbol) throw new Error("Símbolo do ativo é obrigatório");
@@ -58,6 +64,7 @@ export async function fetchBrapiQuote(
   let lastError: unknown;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    meter.retries = attempt;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -125,4 +132,31 @@ export async function fetchBrapiQuote(
     throw lastError;
   }
   throw new Error("Não foi possível consultar a brapi");
+}
+
+function classifyBrapiError(error: unknown): ProviderOutcome {
+  const message = error instanceof Error ? error.message : "";
+  if (
+    message.startsWith("Ativo não encontrado") ||
+    message.startsWith("Símbolo") ||
+    message.startsWith("Configure BRAPI_TOKEN") ||
+    message.startsWith("BRAPI_TOKEN")
+  ) {
+    return "user_error";
+  }
+  return "upstream_unavailable";
+}
+
+/** Telemetria sem símbolo, token ou payload: apenas provider/operation/outcome. */
+export function fetchBrapiQuote(
+  symbol: string,
+  fetchFn: FetchLike = fetch,
+  token = process.env.BRAPI_TOKEN,
+  timeoutMs = BRAPI_TIMEOUT_MS,
+) {
+  return observeProviderCall(
+    { provider: "brapi", operation: "quote" },
+    (meter) => fetchBrapiQuoteUntracked(symbol, fetchFn, token, timeoutMs, meter),
+    classifyBrapiError,
+  );
 }

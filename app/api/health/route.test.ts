@@ -10,7 +10,7 @@ vi.mock("@/app/lib/prisma", () => ({
   },
 }));
 
-import { GET } from "@/app/api/health/route";
+import { GET, HEALTH_DB_TIMEOUT_MS } from "@/app/api/health/route";
 
 describe("GET /api/health", () => {
   afterEach(() => {
@@ -56,5 +56,38 @@ describe("GET /api/health", () => {
       requestId: "health-request-456",
     });
     expect(JSON.stringify(body)).not.toContain("database connection failed");
+  });
+
+  it("fails fast with 503 when the database query hangs", async () => {
+    vi.useFakeTimers();
+    try {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      queryRaw.mockReturnValue(new Promise(() => undefined));
+
+      const pending = GET(
+        new Request("http://localhost/api/health", {
+          headers: { "x-request-id": "health-request-timeout" },
+        })
+      );
+      await vi.advanceTimersByTimeAsync(HEALTH_DB_TIMEOUT_MS + 1);
+      const response = await pending;
+      const body = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(body).toMatchObject({
+        status: "degraded",
+        checks: { application: "ok", database: "unavailable" },
+      });
+      expect(JSON.stringify(body)).not.toContain("TIMEOUT");
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('"reason":"timeout"'));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the public contract minimal", async () => {
+    queryRaw.mockResolvedValue([{ value: 1 }]);
+    const body = await (await GET(new Request("http://localhost/api/health"))).json();
+    expect(Object.keys(body).sort()).toEqual(["checks", "requestId", "status", "timestamp"]);
   });
 });

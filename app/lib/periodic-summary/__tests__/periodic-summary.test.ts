@@ -249,15 +249,29 @@ describe('periodic financial summary service', () => {
     expect([...markers.values()].filter(Boolean)).toHaveLength(42);
   });
 
-  it('emits a personal-data-free alert on failure and stays silent when healthy', async () => {
+  it('signals a partial failure without alerting for an isolated user failure', async () => {
     mocks.user.count.mockResolvedValue(7);
     mocks.user.findMany.mockResolvedValueOnce([{ id: 'user-secret' }]);
     mocks.account.findMany.mockRejectedValueOnce(new Error('boom'));
+    const result = await runPeriodicSummaryCron(now);
+    expect(result.status).toBe('partial');
+    const partial = mocks.logEvent.mock.calls.find((call) => call[1] === 'periodic_summary.partial_failure');
+    expect(partial?.[0]).toBe('warn');
+    expect(partial?.[2]).toMatchObject({ failedUsers: 1 });
+    expect(mocks.logEvent.mock.calls.some((call) => call[1] === 'periodic_summary.alert')).toBe(false);
+    expect(JSON.stringify(mocks.logEvent.mock.calls.map((call) => call[2]))).not.toContain('user-secret');
+  });
+
+  it('alerts only after the repeated-failure threshold and stays silent when healthy', async () => {
+    mocks.user.count.mockResolvedValue(21);
+    mocks.user.findMany
+      .mockResolvedValueOnce([{ id: 'u1' }, { id: 'u2' }, { id: 'u3' }])
+      .mockResolvedValue([]);
+    mocks.account.findMany.mockRejectedValue(new Error('boom'));
     await runPeriodicSummaryCron(now);
     const alert = mocks.logEvent.mock.calls.find((call) => call[1] === 'periodic_summary.alert');
     expect(alert?.[0]).toBe('error');
-    expect(alert?.[2]).toMatchObject({ reasons: 'user_failures', failedUsers: 1 });
-    expect(JSON.stringify(mocks.logEvent.mock.calls.map((call) => call[2]))).not.toContain('user-secret');
+    expect(alert?.[2]).toMatchObject({ reasons: 'user_failures', failedUsers: 3 });
 
     mocks.logEvent.mockClear();
     mocks.user.findMany.mockResolvedValueOnce([{ id: 'user-ok' }]);

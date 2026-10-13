@@ -114,7 +114,11 @@ describe("prod smoke", () => {
         }
         return response(401);
       }
-      if (url.pathname === "/api/transactions") {
+      if (
+        url.pathname === "/api/transactions" ||
+        url.pathname === "/api/forecast"
+      ) {
+        expect(init.method ?? "GET").toBe("GET");
         expect(new Headers(init.headers).get("cookie")).toBe(
           `token=${sessionSecret}`,
         );
@@ -142,6 +146,7 @@ describe("prod smoke", () => {
       ["/api/auth/login", "POST"],
       ["/api/accounts", "GET"],
       ["/api/transactions", "GET"],
+      ["/api/forecast", "GET"],
     ]);
     expect(logs.join("\n")).not.toContain(secretEmail);
     expect(logs.join("\n")).not.toContain(secretPassword);

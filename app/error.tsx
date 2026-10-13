@@ -13,7 +13,11 @@ export default function ErrorPage({
     void fetch("/api/observability/client-error", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ digest: error.digest }),
+      body: JSON.stringify({
+        digest: error.digest,
+        surface: "route",
+        path: window.location.pathname,
+      }),
       keepalive: true,
     }).catch(() => undefined);
   }, [error.digest]);
