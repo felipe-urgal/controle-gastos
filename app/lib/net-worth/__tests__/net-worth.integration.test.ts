@@ -10,6 +10,7 @@ vi.mock("@/app/lib/auth", () => ({
 }));
 
 import { getNetWorth, getNetWorthForUser } from "@/app/lib/net-worth/net-worth";
+import { measureSql } from "@/app/lib/__tests__/support/sql-counter";
 import { prisma } from "@/app/lib/prisma";
 import { createTransferForUser } from "@/app/lib/transfers/create-transfer";
 
@@ -1220,5 +1221,51 @@ describe("net worth integration", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  it("keeps the SQL statement budget independent of data volume (no N+1)", async () => {
+    const fixture = await createFixture();
+    await seedBrlAndUsd(fixture);
+    const input = { year: 2028, month: 2, months: 12, baseCurrency: "BRL" as const };
+
+    await getNetWorthForUser(fixture.owner.id, input); // aquece caches/pool
+    const baseline = await measureSql(() => getNetWorthForUser(fixture.owner.id, input));
+
+    // Mais dados: 60 transações e 4 contas extras não podem aumentar as consultas.
+    const extraAccounts = await Promise.all(
+      Array.from({ length: 4 }, (_, index) =>
+        prisma.account.create({
+          data: {
+            name: `Extra ${index}`,
+            type: "CREDIT_DEBIT",
+            currency: index % 2 === 0 ? "BRL" : "USD",
+            userId: fixture.owner.id,
+          },
+        }),
+      ),
+    );
+    await prisma.transaction.createMany({
+      data: Array.from({ length: 60 }, (_, index) => ({
+        amount: 1000 + index,
+        year: 2027,
+        month: 1 + (index % 12),
+        day: 1 + (index % 28),
+        type: "INCOME" as const,
+        description: `Volume ${index}`,
+        status: "COMPLETED" as const,
+        accountId: extraAccounts[index % extraAccounts.length]!.id,
+        categoryId: fixture.income.id,
+        userId: fixture.owner.id,
+      })),
+    });
+    const scaled = await measureSql(() => getNetWorthForUser(fixture.owner.id, input));
+
+    // Teto absoluto do read model patrimonial (baseline medido: 7 statements).
+    expect(baseline.statements).toBeGreaterThan(0);
+    expect(baseline.statements).toBeLessThanOrEqual(12);
+    expect(scaled.statements).toBe(baseline.statements);
+    // Latência: sanity check generoso (evita flakiness em CI), não SLO.
+    expect(scaled.durationMs).toBeLessThan(5_000);
+    console.info(`[budget] net-worth statements=${baseline.statements} durationMs=${scaled.durationMs}`);
   });
 });

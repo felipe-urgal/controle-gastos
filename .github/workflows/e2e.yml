@@ -237,6 +237,10 @@ jobs:
           tests/e2e/recurrences-flow.spec.mjs
           tests/e2e/commitments-flow.spec.mjs
           tests/e2e/calendar-flow.spec.mjs
+          tests/e2e/financial-modules-mobile-privacy.spec.mjs
+          tests/e2e/debts-goals-flow.spec.mjs
+          tests/e2e/debts-goals-mobile-privacy.spec.mjs
+          tests/e2e/investments-flow.spec.mjs
           tests/e2e/payroll-flow.spec.mjs
           tests/e2e/user-password-reauth.spec.mjs
           tests/e2e/user-email-change.spec.mjs

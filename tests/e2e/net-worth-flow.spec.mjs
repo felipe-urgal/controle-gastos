@@ -2,6 +2,11 @@ import { expect, test } from '@playwright/test';
 
 import { setIsolatedClientIp } from './support/client-ip.mjs';
 import { createVerifiedUser } from './support/verified-user.mjs';
+import {
+  expectMasked,
+  expectNoMoneyLeak,
+  forEachWidth,
+} from './support/matrix.mjs';
 
 const password = 'Playwright123!';
 
@@ -318,4 +323,41 @@ test('câmbio explicita taxa defasada, rejeita futura, deriva inversa e respeita
   const consolidation = page.locator('article').filter({ hasText: 'Consolidação opcional' }).first();
   await expect(consolidation).toContainText('Taxa ••••');
   await expect(consolidation).not.toContainText('5,00');
+});
+
+test('patrimônio: matriz 320/360/390/1280 sem overflow nem sobreposição com a navegação', async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(120_000);
+  const { email, suffix } = await signup(request, 'net-worth-matrix');
+  await skipRealEvolution(page);
+  await login(page, email);
+  await seedNetWorth(page, suffix);
+
+  await forEachWidth(page, async () => {
+    await page.goto('/patrimonio');
+    await expect(
+      page.locator('article').filter({ hasText: 'Patrimônio líquido em BRL' }).first(),
+    ).toBeVisible();
+  });
+});
+
+test('patrimônio: showValues=false não vaza valores em nenhuma largura', async ({ page }) => {
+  test.setTimeout(120_000);
+  const suffix = `${Date.now()}-${test.info().project.name}-net-worth-private`;
+  const email = `qa-net-worth-private-${suffix}@example.test`;
+  await createVerifiedUser({ name: 'QA privado', email, password, showValues: false });
+  await skipRealEvolution(page);
+  await login(page, email);
+  await seedNetWorth(page, suffix);
+
+  await forEachWidth(page, async () => {
+    await page.goto('/patrimonio');
+    await expect(
+      page.locator('article').filter({ hasText: 'Patrimônio líquido em BRL' }).first(),
+    ).toBeVisible();
+    await expectMasked(page);
+    await expectNoMoneyLeak(page);
+  });
 });
