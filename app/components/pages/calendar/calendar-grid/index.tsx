@@ -1,5 +1,6 @@
 'use client';
 
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { CalendarDaysSkeleton } from '@/app/components/pages/calendar';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { CalendarDay } from '@/app/types/calendar';
@@ -30,6 +31,8 @@ export default function CalendarGrid({
   compact = false,
   showValues = true,
 }: CalendarGridProps) {
+  const isMd = useMediaQuery('(min-width: 768px)');
+
   if (isLoading) {
     if (!compact) return <CalendarDaysSkeleton />;
 
@@ -227,7 +230,8 @@ export default function CalendarGrid({
 
             {eventCount > 0 && (
               <div className="mt-1.5 space-y-1 md:mt-2">
-                <div className="flex flex-wrap gap-1 md:hidden" aria-hidden="true">
+                {!isMd && (
+                <div className="flex flex-wrap gap-1" aria-hidden="true">
                   {summaries.map((summary) => (
                     <span
                       key={summary.currency}
@@ -252,8 +256,10 @@ export default function CalendarGrid({
                     </span>
                   )}
                 </div>
+                )}
 
-                <div className="hidden min-w-0 space-y-1 md:block" aria-hidden="true">
+                {isMd && (
+                <div className="min-w-0 space-y-1" aria-hidden="true">
                   {summaries.map((summary) => (
                     <p
                       key={summary.currency}
@@ -301,6 +307,7 @@ export default function CalendarGrid({
                     </p>
                   )}
                 </div>
+                )}
               </div>
             )}
           </button>

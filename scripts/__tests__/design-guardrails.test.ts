@@ -58,4 +58,14 @@ describe("guardrails de design", () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it("não usa modificadores !important do Tailwind em classes (amplie o primitivo)", () => {
+    const offenders = sourceFiles(join(ROOT, "components")).flatMap((file) => {
+      const matches =
+        readFileSync(file, "utf8").match(/[\s"'`:]!(?:border|bg|p[xytrbl]?|m[xytrbl]?|shadow|rounded|min-h|min-w|max-w|max-h|text|outline|ring|h|w)(?:-|\b)/g) ?? [];
+      return matches.map((match) => `${relative(process.cwd(), file)}: ${match.trim()}`);
+    });
+
+    expect(offenders).toEqual([]);
+  });
 });

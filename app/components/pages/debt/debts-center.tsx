@@ -14,7 +14,7 @@ import {
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { Input } from '@/app/components/ui';
+import { Input, Chip, ChipRow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -474,28 +474,18 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
           ))}
         </section>
 
-        <nav className="mt-5 flex gap-2 overflow-x-auto pb-1" aria-label="Filtrar dívidas">
+        <ChipRow label="Filtrar dívidas" className="mt-5">
           {([
             ['ALL', 'Todas'],
             ['ACTIVE', 'Ativas'],
             ['PAID', 'Quitadas'],
             ['ARCHIVED', 'Arquivadas'],
           ] as const).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setFilter(value)}
-              aria-pressed={filter === value}
-              className={`min-h-11 shrink-0 rounded-full border px-4 text-sm font-bold ${
-                filter === value
-                  ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                  : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
-              }`}
-            >
+            <Chip key={value} selected={filter === value} onClick={() => setFilter(value)}>
               {label}
-            </button>
+            </Chip>
           ))}
-        </nav>
+        </ChipRow>
 
         <section className="mt-4">
           {loading ? (

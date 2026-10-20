@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/app/components/ui';
 import { useState } from 'react';
 import {
   FaCheck,
@@ -274,41 +275,38 @@ function SubscriptionCard({
 
       <div className="mt-4 flex flex-wrap gap-2">
         {item.status === 'CONFIRMED' && item.requiresActivityReview && (
-          <button
+          <Button variant="accent" pill size="sm"
             type="button"
             disabled={reviewing}
             onClick={() => onReview('CONFIRMED')}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
           >
             <FaCheck aria-hidden="true" />
             {reviewing ? 'Confirmando…' : 'Confirmar que continua ativa'}
-          </button>
+          </Button>
         )}
 
         {item.status === 'CONFIRMED' &&
           !item.requiresActivityReview &&
           !item.recurrenceSeriesId && (
-            <button
+            <Button variant="accent" pill size="sm"
               type="button"
               disabled={reviewing || creating}
               onClick={onCreateRecurrence}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
             >
               <FaPlus aria-hidden="true" />
               {creating ? 'Criando…' : 'Criar recorrência'}
-            </button>
+            </Button>
           )}
 
         {item.status === 'POSSIBLE' && (
-          <button
+          <Button variant="accent" pill size="sm"
             type="button"
             disabled={reviewing}
             onClick={() => onReview('CONFIRMED')}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
           >
             <FaCheck aria-hidden="true" />
             É assinatura
-          </button>
+          </Button>
         )}
 
         <button

@@ -192,10 +192,12 @@ export default function OrbitDashboardV2() {
     setCurrency,
     retry,
   } = useDashboardHome();
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   return (
     <ProtectedRoute>
-      <header className="hidden flex-col gap-4 lg:flex lg:flex-row lg:items-start lg:justify-between">
+      {isDesktop && (
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p suppressHydrationWarning className="min-h-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{currentDateLabel()}</p>
           <h1 className={`mt-1 ${pageTitleClassName}`}>Seu dinheiro, no seu controle</h1>
@@ -245,7 +247,9 @@ export default function OrbitDashboardV2() {
           </div>
         </div>
       </header>
+      )}
 
+      {!isDesktop && (
       <MobileDashboardHeader
         periodValue={periodValue}
         currency={currency}
@@ -253,6 +257,7 @@ export default function OrbitDashboardV2() {
         onPeriodChange={setPeriodValue}
         onCurrencyChange={setCurrency}
       />
+      )}
 
       {error && (
         <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3">
@@ -759,7 +764,7 @@ function MobileDashboardHeader({
   onCurrencyChange: (currency: SupportedCurrency) => void;
 }) {
   return (
-    <section className="lg:hidden">
+    <section>
       <h1 className="sr-only">Dashboard financeiro</h1>
       <div className="grid grid-cols-[minmax(0,1fr)_116px] gap-2">
         <label className="relative flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
@@ -778,7 +783,7 @@ function MobileDashboardHeader({
           />
         </label>
 
-        <div className="min-w-0 [&_.ds-control]:!min-h-11 [&_.ds-control]:!rounded-[11px]">
+        <div className="min-w-0">
           <Select
             ariaLabel="Moeda"
             value={currency}

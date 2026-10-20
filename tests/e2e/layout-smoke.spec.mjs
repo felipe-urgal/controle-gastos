@@ -89,7 +89,14 @@ function measure() {
       size: `${Math.round(rect.width)}x${Math.round(rect.height)}`,
     }));
 
+  // iOS Safari dá zoom ao focar campos com fonte < 16px; vale para telas estreitas.
+  const smallFont = interactive
+    .filter((element) => element.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea'))
+    .filter((element) => Number.parseFloat(getComputedStyle(element).fontSize) < 16)
+    .map((element) => `${element.tagName.toLowerCase()}[${element.getAttribute('name') ?? element.getAttribute('type') ?? element.getAttribute('aria-label') ?? ''}] ${getComputedStyle(element).fontSize}`);
+
   return {
+    smallFont,
     h1: [...document.querySelectorAll('h1')].filter(visible).length,
     h1InDom: document.querySelectorAll('h1').length,
     small,
@@ -109,6 +116,7 @@ test.describe('layout mobile', () => {
     const overflow = [];
     const multipleH1 = [];
     const smallTargets = [];
+    const smallFonts = [];
 
     for (const viewport of VIEWPORTS) {
       await page.setViewportSize(viewport);
@@ -128,6 +136,9 @@ test.describe('layout mobile', () => {
         if (viewport.width < 640 && result.small.length > allowed) {
           smallTargets.push(`${route} @${viewport.width}: ${result.small.length} > ${allowed} ${JSON.stringify(result.small.slice(0, 5))}`);
         }
+        if (viewport.width < 768 && result.smallFont.length > 0) {
+          smallFonts.push(`${route} @${viewport.width}: ${JSON.stringify(result.smallFont.slice(0, 5))}`);
+        }
         if (process.env.LAYOUT_SMOKE_REPORT) {
           console.log(`[layout] ${route} @${viewport.width} pequenos=${result.small.length}`, JSON.stringify(result.small.slice(0, 8)));
         }
@@ -143,6 +154,7 @@ test.describe('layout mobile', () => {
     console.log('[layout] overflow:', JSON.stringify(overflow));
     console.log('[layout] múltiplos h1:', JSON.stringify(multipleH1));
 
+    expect(smallFonts, 'campos de formulário com fonte < 16px em tela estreita').toEqual([]);
     expect(smallTargets, 'rotas com mais alvos < 44px que o limite').toEqual([]);
     expect(unexpectedOverflow, 'rotas com rolagem horizontal').toEqual([]);
     expect(unexpectedH1, 'rotas com mais de um h1 visível').toEqual([]);

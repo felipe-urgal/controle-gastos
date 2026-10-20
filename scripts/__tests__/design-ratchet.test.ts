@@ -66,4 +66,21 @@ describe("catraca de dívida de design", () => {
   it("não cria novas cores hex literais em componentes", () => {
     expect(overages(countByFile(/#[0-9a-fA-F]{6}\b/g), HEX_ALLOWED)).toEqual([]);
   });
+
+  it("não cria novos pares mobile/desktop escondidos por CSS (use ShowFrom/ShowBelow/useMediaQuery)", () => {
+    // Elementos únicos do shell (topbar, bottom-nav, auth) e overlays que somem em desktop são válidos.
+    const allowed: Record<string, number> = {
+      "app/components/layout/mobile-topbar/index.tsx": 2,
+      "app/components/layout/mobile-more-menu/index.tsx": 1,
+      "app/components/layout/auth-shell/index.tsx": 1,
+      "app/components/layout/bottom-nav/index.tsx": 1,
+      "app/components/navigation/dynamic-filters/index.tsx": 3,
+      "app/components/pages/category/index/mobile-categories-center/index.tsx": 1,
+      "app/components/pages/transactions/import/index.tsx": 1,
+      "app/components/pages/dashboard/dashboard/orbit-dashboard-v2.tsx": 1, // skeleton de carregamento
+    };
+    expect(
+      overages(countByFile(/\b(?:lg|md):hidden\b|\bhidden (?:lg|md):(?:block|flex|grid)\b/g), allowed),
+    ).toEqual([]);
+  });
 });

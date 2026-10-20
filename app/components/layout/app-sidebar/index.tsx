@@ -136,7 +136,7 @@ export default function AppSidebar({
           <span className={collapsed ? 'sr-only' : undefined}>{resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}</span>
         </button>
 
-        <OfflinePendingBadge className="!w-full" />
+        <OfflinePendingBadge block />
 
         <div
           className={`flex items-center rounded-[var(--radius-lg)] border p-2 transition-colors ${

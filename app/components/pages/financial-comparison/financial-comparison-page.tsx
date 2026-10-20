@@ -1,5 +1,6 @@
 'use client';
 
+import { ShowBelow, ShowFrom } from '@/app/components/ui';
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import {
   useEffect,
@@ -620,7 +621,8 @@ export default function FinancialComparisonPage() {
             )}
 
             <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-              <div className="hidden md:block">
+              <ShowFrom breakpoint="md">
+              <div>
                 <div className="grid grid-cols-[1.4fr_1fr_1fr_1.2fr] gap-2 border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">
                   <span>Métrica</span>
                   <span>
@@ -661,8 +663,10 @@ export default function FinancialComparisonPage() {
                   </div>
                 ))}
               </div>
+              </ShowFrom>
 
-              <div className="grid gap-3 p-3 md:hidden">
+              <ShowBelow breakpoint="md">
+              <div className="grid gap-3 p-3">
                 {totalRows.map((row) => (
                   <article
                     key={row.label}
@@ -710,6 +714,7 @@ export default function FinancialComparisonPage() {
                   </article>
                 ))}
               </div>
+              </ShowBelow>
             </section>
 
             <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
@@ -854,7 +859,8 @@ export default function FinancialComparisonPage() {
                 </p>
               ) : (
                 <>
-                  <div className="mt-4 hidden md:grid md:gap-2">
+                  <ShowFrom breakpoint="md">
+                  <div className="mt-4 grid gap-2">
                     {data.categories.map((category) => (
                       <div
                         key={category.id}
@@ -922,8 +928,10 @@ export default function FinancialComparisonPage() {
                       </div>
                     ))}
                   </div>
+                  </ShowFrom>
 
-                  <div className="mt-4 grid gap-3 md:hidden">
+                  <ShowBelow breakpoint="md">
+                  <div className="mt-4 grid gap-3">
                     {data.categories.map((category) => (
                       <article
                         key={category.id}
@@ -995,6 +1003,7 @@ export default function FinancialComparisonPage() {
                       </article>
                     ))}
                   </div>
+                  </ShowBelow>
                 </>
               )}
             </section>

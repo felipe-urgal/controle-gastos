@@ -300,10 +300,11 @@ export default function TransferForm({
     <>
       {!isDesktop && (
       <FormContainer
+        bare
         onSubmit={(event) => event.preventDefault()}
         error={submitError}
         onClearError={() => setSubmitError(null)}
-        className="mt-4 !border-0 !bg-transparent !p-0 !pb-4 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
+        className="mt-4 pb-4 [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
       >
         <section aria-label="Nova transferência mobile">
           <div className="mb-5 grid grid-cols-[auto_minmax(44px,1fr)_auto_minmax(44px,1fr)_auto] items-start gap-2 px-4" aria-label="Etapas da transferência">
@@ -381,13 +382,14 @@ export default function TransferForm({
                 <label htmlFor="mobile-transfer-amount" className="text-sm text-[var(--text-muted)]">Valor da transferência</label>
                 <div className="mt-2 flex items-center gap-3">
                   <Input
+                    bare
                     id="mobile-transfer-amount"
                     aria-label="Valor"
                     value={displayValue}
                     onChange={handleAmountChange}
                     disabled={loading}
                     inputMode="numeric"
-                    className="!min-h-[76px] min-w-0 flex-1 !border-0 !bg-transparent !px-0 !py-0 text-[44px] font-black tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none min-[360px]:text-[50px]"
+                    className="min-h-[76px] min-w-0 flex-1 border-0 p-0 text-[44px] font-black tracking-tight min-[360px]:text-[50px]"
                   />
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
                     <FaExchangeAlt />
@@ -508,9 +510,9 @@ export default function TransferForm({
                 </button>
               </div>
 
-              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1 [&_button]:!min-h-14">
-                <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>Cancelar</Button>
-                <Button type="button" onClick={advanceMobileTransferStep} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1">
+                <Button size="cta" type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>Cancelar</Button>
+                <Button size="cta" type="button" onClick={advanceMobileTransferStep} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
                   Continuar
                 </Button>
               </div>
@@ -542,9 +544,9 @@ export default function TransferForm({
                 disabled={loading}
               />
 
-              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1 [&_button]:!min-h-14">
-                <Button type="button" variant="secondary" onClick={() => setMobileStep(1)} disabled={loading} fullWidth>Voltar</Button>
-                <Button type="button" onClick={() => setMobileStep(3)} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1">
+                <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(1)} disabled={loading} fullWidth>Voltar</Button>
+                <Button size="cta" type="button" onClick={() => setMobileStep(3)} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
                   Continuar
                 </Button>
               </div>
@@ -570,9 +572,9 @@ export default function TransferForm({
                 </dl>
               </div>
 
-              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1 [&_button]:!min-h-14">
-                <Button type="button" variant="secondary" onClick={() => setMobileStep(2)} disabled={loading} fullWidth>Voltar</Button>
-                <Button
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1">
+                <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(2)} disabled={loading} fullWidth>Voltar</Button>
+                <Button size="cta"
                   type="button"
                   onClick={() => void persistTransfer()}
                   isLoading={isSubmitting}
@@ -592,10 +594,11 @@ export default function TransferForm({
 
       {isDesktop && (
       <FormContainer
+        bare
         onSubmit={handleSubmit}
         error={submitError}
         onClearError={() => setSubmitError(null)}
-        className="mt-4 !border-0 !bg-transparent !p-0 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
+        className="mt-4 [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
       >
         <section
           className="mx-auto w-full max-w-[860px] overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
@@ -635,6 +638,7 @@ export default function TransferForm({
               <div className="text-center lg:pl-[110px]">
                 <label htmlFor="transfer-amount" className="sr-only">Valor</label>
                 <Input
+                  bare
                   id="transfer-amount"
                   ref={amountInputRef}
                   aria-label="Valor"
@@ -645,7 +649,7 @@ export default function TransferForm({
                   disabled={loading}
                   required
                   inputMode="numeric"
-                  className="mx-auto !min-h-[72px] !max-w-[420px] !border-0 !bg-transparent !px-0 !py-0 text-center text-[48px] font-black tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none sm:text-[58px]"
+                  className="mx-auto min-h-[72px] max-w-[420px] border-0 p-0 text-center text-[48px] font-black tracking-tight sm:text-[58px]"
                 />
                 <p className="mt-1 text-xs text-[var(--text-muted)]">Adicionar um valor</p>
               </div>

@@ -1236,10 +1236,11 @@ export default function TransactionForm({
     <>
       {!isDesktop && (
       <FormContainer
+        bare
         onSubmit={(event) => event.preventDefault()}
         error={submitError}
         onClearError={() => setSubmitError(null)}
-        className="mt-4 !border-0 !bg-transparent !p-0 !pb-4 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
+        className="mt-4 pb-4 [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
       >
         <section aria-label={isEditing ? 'Editar transação mobile' : 'Nova transação mobile'}>
           <div className="mb-5 grid grid-cols-[auto_minmax(44px,1fr)_auto_minmax(44px,1fr)_auto] items-start gap-2 px-4" aria-label="Etapas da transação">
@@ -1343,13 +1344,14 @@ export default function TransactionForm({
                 </label>
                 <div className="mt-2 flex items-center gap-3">
                   <Input
+                    bare
                     id="mobile-transaction-amount"
                     aria-label={creationMode === 'installment' ? 'Valor total' : 'Valor'}
                     value={displayValue}
                     onChange={handleAmountChange}
                     disabled={loading}
                     inputMode="numeric"
-                    className="!min-h-[76px] min-w-0 flex-1 !border-0 !bg-transparent !px-0 !py-0 text-[44px] font-black tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none min-[360px]:text-[50px]"
+                    className="min-h-[76px] min-w-0 flex-1 border-0 p-0 text-[44px] font-black tracking-tight min-[360px]:text-[50px]"
                   />
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
                     <FaCalculator />
@@ -1506,11 +1508,11 @@ export default function TransactionForm({
                 </button>
               </div>
 
-              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3 [&_button]:!min-h-14">
-                <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>
+              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+                <Button size="cta" type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>
                   Cancelar
                 </Button>
-                <Button type="button" onClick={advanceMobilePrimaryStep} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
+                <Button size="cta" type="button" onClick={advanceMobilePrimaryStep} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
                   Continuar
                 </Button>
               </div>
@@ -1658,11 +1660,11 @@ export default function TransactionForm({
                 )}
               </div>
 
-              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3 [&_button]:!min-h-14">
-                <Button type="button" variant="secondary" onClick={() => setMobileStep(1)} disabled={loading} fullWidth>
+              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+                <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(1)} disabled={loading} fullWidth>
                   Voltar
                 </Button>
-                <Button type="button" onClick={advanceMobileAdvancedStep} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
+                <Button size="cta" type="button" onClick={advanceMobileAdvancedStep} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
                   Continuar
                 </Button>
               </div>
@@ -1704,11 +1706,11 @@ export default function TransactionForm({
                 </dl>
               </div>
 
-              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3 [&_button]:!min-h-14">
-                <Button type="button" variant="secondary" onClick={() => setMobileStep(2)} disabled={loading} fullWidth>
+              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+                <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(2)} disabled={loading} fullWidth>
                   Voltar
                 </Button>
-                <Button
+                <Button size="cta"
                   type="button"
                   onClick={() => void persistTransaction()}
                   isLoading={isSubmitting}
@@ -1735,10 +1737,11 @@ export default function TransactionForm({
       )}
       {isDesktop && (
       <FormContainer
+        bare
         onSubmit={handleSubmit}
         error={submitError}
         onClearError={() => setSubmitError(null)}
-        className="mt-4 !border-0 !bg-transparent !p-0 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
+        className="mt-4 [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
       >
         <section
           className="mx-auto w-full max-w-[860px] overflow-visible rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
@@ -1801,6 +1804,7 @@ export default function TransactionForm({
                   {creationMode === 'installment' ? 'Valor total' : 'Valor'}
                 </label>
                 <Input
+                  bare
                   id="transaction-amount"
                   ref={amountInputRef}
                   aria-label={creationMode === 'installment' ? 'Valor total' : 'Valor'}
@@ -1811,7 +1815,7 @@ export default function TransactionForm({
                   disabled={loading}
                   required
                   inputMode="numeric"
-                  className="mx-auto !min-h-[72px] !max-w-[420px] !border-0 !bg-transparent !px-0 !py-0 text-center text-[48px] font-black tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none sm:text-[58px]"
+                  className="mx-auto min-h-[72px] max-w-[420px] border-0 p-0 text-center text-[48px] font-black tracking-tight sm:text-[58px]"
                 />
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
                   {creationMode === 'installment' ? 'Valor total da compra' : 'Adicionar um valor'}

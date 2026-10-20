@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/app/components/ui';
 import { PageContainer } from '@/app/components/base-pages';
 import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import Link from 'next/link';
@@ -348,14 +349,13 @@ function FormalCard({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button
+        <Button variant="accent" pill size="sm"
           type="button"
           onClick={onEdit}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white"
         >
           <FaPen aria-hidden="true" />
           Editar série
-        </button>
+        </Button>
         <Link
           href={`/transacoes/alterar/${item.transactionId}`}
           className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)]"
@@ -499,13 +499,12 @@ function EditSeriesModal({
             >
               Cancelar
             </button>
-            <button
+            <Button variant="accent" pill size="sm"
               type="submit"
               disabled={saving || description.trim().length < 2}
-              className="min-h-11 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
             >
               {saving ? 'Salvando…' : 'Salvar série'}
-            </button>
+            </Button>
           </div>
       </form>
     </ModalShell>
@@ -586,15 +585,14 @@ function CandidateCard({
       </details>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button
+        <Button variant="accent" pill size="sm"
           type="button"
           onClick={onConfirm}
           disabled={confirming || suppressing}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
         >
           <FaCheck aria-hidden="true" />
           {confirming ? 'Confirmando…' : 'Confirmar recorrência'}
-        </button>
+        </Button>
         <button
           type="button"
           onClick={onIgnore}

@@ -13,7 +13,7 @@ import {
 
 // Indicador discreto de lançamentos locais ainda não enviados. Nunca exibe valores
 // e nunca inicia sincronização: apenas leva o usuário à tela de revisão manual.
-export default function OfflinePendingBadge({ className = '' }: { className?: string }) {
+export default function OfflinePendingBadge({ className = '', block = false }: { className?: string; /** Ocupa a largura toda (ex.: na sidebar). */ block?: boolean }) {
   const { user } = useAuth();
   const userId = user?.id;
   const [count, setCount] = useState(0);
@@ -51,7 +51,7 @@ export default function OfflinePendingBadge({ className = '' }: { className?: st
       aria-label={label}
       title={label}
       data-testid="offline-pending-badge"
-      className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--warning)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${className}`}
+      className={`relative flex h-11 ${block ? 'w-full' : 'w-11'} shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--warning)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${className}`}
     >
       <FaCloudUploadAlt aria-hidden="true" />
       <span

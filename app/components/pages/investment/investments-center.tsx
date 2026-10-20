@@ -27,7 +27,7 @@ import { TaxLossCarryforwardCard } from '@/app/components/pages/investment/tax-l
 import { InvestmentImportModal } from '@/app/components/pages/investment/investment-import-modal';
 import { ModalShell as SharedModalShell } from '@/app/components/overlays/modal-shell';
 import { ProtectedRoute } from '@/app/components/layout';
-import { Input } from '@/app/components/ui';
+import { Input, Chip, ChipRow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -639,32 +639,21 @@ export default function InvestmentsCenter() {
           </p>
         )}
 
-        <nav
-          aria-label="Áreas de investimentos"
-          className="mt-5 flex gap-2 overflow-x-auto pb-1"
-        >
+        <ChipRow label="Áreas de investimentos" className="mt-5">
           {[
             ['PORTFOLIO', 'Carteira'],
             ['FISCAL', 'Fiscal'],
             ['STATEMENTS', 'Informes / IR'],
           ].map(([value, label]) => (
-            <button
+            <Chip
               key={value}
-              type="button"
-              onClick={() =>
-                setArea(value as 'PORTFOLIO' | 'FISCAL' | 'STATEMENTS')
-              }
-              aria-pressed={area === value}
-              className={
-                area === value
-                  ? 'min-h-11 shrink-0 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white'
-                  : 'min-h-11 shrink-0 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold text-[var(--foreground)]'
-              }
+              selected={area === value}
+              onClick={() => setArea(value as 'PORTFOLIO' | 'FISCAL' | 'STATEMENTS')}
             >
               {label}
-            </button>
+            </Chip>
           ))}
-        </nav>
+        </ChipRow>
 
         {loading ? (
           <div className="mt-5">
