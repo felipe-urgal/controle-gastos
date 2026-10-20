@@ -459,7 +459,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
           </p>
         )}
 
-        <section className="mt-5 grid gap-3 sm:grid-cols-3">
+        <section className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
           <SummaryCard
             label="Ativas"
             value={String(activeGoals.length)}
@@ -629,14 +629,14 @@ function SummaryCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
-      <span className="grid h-11 w-11 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+    <div className="min-w-0 rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4">
+      <span className="hidden h-11 w-11 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)] sm:grid">
         {icon}
       </span>
-      <strong className="mt-4 block text-2xl font-extrabold text-[var(--foreground)]">
+      <strong className="block text-2xl font-extrabold text-[var(--foreground)] sm:mt-4">
         {value}
       </strong>
-      <span className="mt-1 block text-sm text-[var(--text-muted)]">{label}</span>
+      <span className="mt-1 block text-xs text-[var(--text-muted)] sm:text-sm">{label}</span>
     </div>
   );
 }

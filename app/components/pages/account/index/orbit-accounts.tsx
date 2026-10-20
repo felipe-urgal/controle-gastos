@@ -172,8 +172,8 @@ function MobileAccountsCenter({
                 : `${summary?.totalCount ?? accounts.length} ${(summary?.totalCount ?? accounts.length) === 1 ? 'conta' : 'contas'} · Atualizado agora`}
           </p>
 
-          <div className="mt-5 grid grid-cols-2 divide-x divide-white/15 border-t border-white/15 pt-4">
-            <div className="flex min-w-0 items-center gap-3 pr-3">
+          <div className="mt-5 grid grid-cols-1 gap-3 border-t border-white/15 pt-4 min-[360px]:grid-cols-2 min-[360px]:divide-x min-[360px]:divide-white/15">
+            <div className="flex min-w-0 items-center gap-3 min-[360px]:pr-3">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[11px] bg-white/10 text-lg text-[var(--orbit-primary)]">
                 <FaUniversity aria-hidden="true" />
               </span>
@@ -187,7 +187,7 @@ function MobileAccountsCenter({
               </div>
             </div>
 
-            <div className="flex min-w-0 items-center gap-3 pl-4">
+            <div className="flex min-w-0 items-center gap-3 min-[360px]:pl-4">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[11px] bg-white/10 text-lg text-[var(--orbit-primary)]">
                 <FaChartBar aria-hidden="true" />
               </span>

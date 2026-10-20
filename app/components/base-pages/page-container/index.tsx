@@ -18,7 +18,8 @@ export default function PageContainer({
   children: ReactNode;
 }) {
   return (
-    <Tag className={`mx-auto w-full ${WIDTH_CLASS[width]} px-4 py-5 sm:px-6 lg:px-8`}>
+    // O padding da página vem do `ProtectedRoute` (`.orbit-page-container`); aqui só limitamos a largura.
+    <Tag className={`mx-auto w-full ${WIDTH_CLASS[width]}`}>
       {children}
     </Tag>
   );

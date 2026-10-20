@@ -7,7 +7,7 @@ import { createVerifiedUser } from './support/verified-user.mjs';
  * Só roda com `VISUAL_REVIEW=1`; as imagens vão para `SHOTS_DIR` (padrão /tmp/shots) e não
  * são versionadas.
  *
- *   VISUAL_REVIEW=1 SHOTS_DIR=/tmp/shots pnpm test:e2e visual-review --project=chromium
+ *   VISUAL_REVIEW=1 SHOT_WIDTHS=320,360 SHOTS_DIR=/tmp/shots pnpm test:e2e visual-review --project=chromium
  */
 const OUT = process.env.SHOTS_DIR ?? '/tmp/shots';
 const ROUTES = [
@@ -60,7 +60,7 @@ test('capturas', async ({ page }) => {
 
   for (const theme of ['light', 'dark']) {
     await page.evaluate((value) => { try { localStorage.setItem('theme', value); document.documentElement.setAttribute('data-theme', value); } catch {} }, theme);
-    for (const width of [360]) {
+    for (const width of (process.env.SHOT_WIDTHS ?? '360').split(',').map(Number)) {
       await page.setViewportSize({ width, height: 780 });
       for (const [name, route] of ROUTES) {
         await page.goto(route);
