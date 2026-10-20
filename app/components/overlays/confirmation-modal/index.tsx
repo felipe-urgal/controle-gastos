@@ -1,6 +1,6 @@
 'use client';
 
-import { KeyboardEvent, ReactNode, useEffect, useId, useRef } from 'react';
+import type { ReactNode } from 'react';
 import {
   FaBan,
   FaExclamationTriangle,
@@ -8,6 +8,7 @@ import {
   FaTrash,
 } from 'react-icons/fa';
 
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { Button } from '@/app/components/ui';
 
 interface ConfirmationModalProps {
@@ -39,22 +40,6 @@ export default function ConfirmationModal({
   children,
   dangerNotice = 'Esta ação é irreversível e removerá permanentemente todos os dados associados.',
 }: ConfirmationModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const titleId = useId();
-  const descriptionId = useId();
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const previousFocus = document.activeElement as HTMLElement | null;
-    const frame = requestAnimationFrame(() => dialogRef.current?.focus());
-
-    return () => {
-      cancelAnimationFrame(frame);
-      previousFocus?.focus();
-    };
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   const variantConfig = {
@@ -84,118 +69,54 @@ export default function ConfirmationModal({
   const config = variantConfig[variant];
   const Icon = config.icon;
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape' && !isLoading) {
-      event.preventDefault();
-      onClose();
-      return;
-    }
-
-    if (event.key !== 'Tab') return;
-
-    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-
-    if (!focusable?.length) {
-      event.preventDefault();
-      dialogRef.current?.focus();
-      return;
-    }
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const activeElement = document.activeElement;
-
-    if (activeElement === dialogRef.current) {
-      event.preventDefault();
-      (event.shiftKey ? last : first).focus();
-    } else if (event.shiftKey && activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  };
-
   return (
-    <div className="fixed inset-0 z-[var(--z-detail)]">
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[var(--overlay)]"
-        onClick={isLoading ? undefined : onClose}
-      />
-
-      <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          aria-describedby={descriptionId}
-          aria-busy={isLoading || undefined}
-          tabIndex={-1}
-          className="ds-panel w-full max-w-md overflow-hidden"
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={handleKeyDown}
+    <ModalShell
+      title={title}
+      description={message}
+      icon={
+        <span
+          className={`flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] border ${config.iconBackground} ${config.iconBorder}`}
         >
-          <div className="p-5 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] border ${config.iconBackground} ${config.iconBorder}`}
-                aria-hidden="true"
-              >
-                <Icon className={`h-5 w-5 ${config.iconColor}`} />
-              </div>
+          <Icon className={`h-5 w-5 ${config.iconColor}`} />
+        </span>
+      }
+      onClose={onClose}
+      closeDisabled={isLoading}
+      maxWidthClass="max-w-md"
+      footer={
+        <div
+          className={`flex flex-col-reverse gap-2 sm:flex-row ${
+            showCancelButton ? 'sm:justify-between' : 'sm:justify-end'
+          }`}
+        >
+          {showCancelButton && (
+            <Button variant="outline" onClick={onClose} disabled={isLoading}>
+              {cancelText}
+            </Button>
+          )}
 
-              <h2 id={titleId} className="text-xl font-semibold text-[var(--foreground)]">
-                {title}
-              </h2>
-            </div>
-
-            <p
-              id={descriptionId}
-              className="mt-4 text-base leading-relaxed text-[var(--text-muted)]"
-            >
-              {message}
-            </p>
-
-            {children && <div className="mt-4 space-y-3">{children}</div>}
-
-            {variant === 'danger' && dangerNotice && (
-              <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--danger)] bg-[var(--danger-subtle)] p-3.5">
-                <p className="flex items-start gap-2 text-sm leading-relaxed text-[var(--expense)]">
-                  <FaBan className="mt-0.5 shrink-0" aria-hidden="true" />
-                  <span>{dangerNotice}</span>
-                </p>
-              </div>
-            )}
-
-            <div
-              className={`mt-6 flex flex-col-reverse gap-2 sm:flex-row ${
-                showCancelButton ? 'sm:justify-between' : 'sm:justify-end'
-              }`}
-            >
-              {showCancelButton && (
-                <Button variant="outline" onClick={onClose} disabled={isLoading}>
-                  {cancelText}
-                </Button>
-              )}
-
-              <Button
-                variant={config.buttonVariant}
-                onClick={onConfirm}
-                isLoading={isLoading}
-                disabled={isLoading}
-                icon={variant === 'danger' ? <FaTrash /> : undefined}
-              >
-                {confirmText}
-              </Button>
-            </div>
-          </div>
+          <Button
+            variant={config.buttonVariant}
+            onClick={onConfirm}
+            isLoading={isLoading}
+            disabled={isLoading}
+            icon={variant === 'danger' ? <FaTrash /> : undefined}
+          >
+            {confirmText}
+          </Button>
         </div>
-      </div>
-    </div>
+      }
+    >
+      {children && <div className="space-y-3">{children}</div>}
+
+      {variant === 'danger' && dangerNotice && (
+        <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--danger)] bg-[var(--danger-subtle)] p-3.5">
+          <p className="flex items-start gap-2 text-sm leading-relaxed text-[var(--expense)]">
+            <FaBan className="mt-0.5 shrink-0" aria-hidden="true" />
+            <span>{dangerNotice}</span>
+          </p>
+        </div>
+      )}
+    </ModalShell>
   );
 }

@@ -5,7 +5,7 @@ import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   FaArrowDown,
   FaArrowRight,
@@ -24,7 +24,6 @@ import {
   FaFilter,
   FaPlus,
   FaSearch,
-  FaTimes,
   FaWallet,
 } from 'react-icons/fa';
 
@@ -360,7 +359,6 @@ export default function OrbitTransactions() {
     key: '',
     count: INITIAL_TIMELINE_ITEMS,
   });
-  const detailCloseRef = useRef<HTMLButtonElement>(null);
 
   const month = Number(filters.month) || new Date().getMonth() + 1;
   const year = Number(filters.year) || new Date().getFullYear();
@@ -392,7 +390,6 @@ export default function OrbitTransactions() {
     };
   }, []);
 
-  useDialogLifecycle(Boolean(selectedTransaction), detailCloseRef, () => setSelectedTransaction(null));
 
   useEffect(() => {
     const openFilters = () => setFiltersOpen(true);
@@ -815,7 +812,6 @@ export default function OrbitTransactions() {
         <TransactionDetailLayer
           transaction={selectedTransaction}
           showValues={showValues}
-          closeRef={detailCloseRef}
           onClose={() => setSelectedTransaction(null)}
         />
       )}
@@ -1782,21 +1778,18 @@ function TransactionFilterFields({ fields, values, loading, onChange }: { fields
   );
 }
 
-function TransactionDetailLayer({ transaction, showValues, onClose, closeRef }: { transaction: TransactionDTO; showValues: boolean; onClose: () => void; closeRef: RefObject<HTMLButtonElement | null> }) {
+function TransactionDetailLayer({ transaction, showValues, onClose }: { transaction: TransactionDTO; showValues: boolean; onClose: () => void }) {
   return (
-    <>
-      <button type="button" className="fixed inset-0 z-[var(--z-detail)] bg-[var(--overlay)]" onClick={onClose} aria-label="Fechar detalhe da transação" tabIndex={-1} />
-      <aside data-overlay-hide-nav role="dialog" aria-modal="true" aria-labelledby="transaction-detail-title" className="overscroll-contain fixed inset-x-0 bottom-0 z-[var(--z-modal)] flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)] lg:inset-y-0 lg:left-auto lg:w-[430px] lg:max-h-none lg:rounded-none lg:border-y-0 lg:border-r-0">
-        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border)] bg-[var(--background)] p-4">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Detalhe contextual</p>
-            <h2 id="transaction-detail-title" className="mt-1 truncate text-lg font-bold">{transaction.description || 'Transação'}</h2>
-          </div>
-          <button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar detalhe" className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaTimes aria-hidden="true" /></button>
-        </header>
-        <div className="min-h-0 flex-1 overflow-y-auto"><OrbitTransactionDetail transaction={transaction} showValues={showValues} /></div>
-      </aside>
-    </>
+    <ModalShell
+      variant="side-panel"
+      eyebrow="Detalhe contextual"
+      title={transaction.description || 'Transação'}
+      closeLabel="Fechar detalhe"
+      maxWidthClass="sm:max-w-[440px]"
+      onClose={onClose}
+    >
+      <div className="-mx-5"><OrbitTransactionDetail transaction={transaction} showValues={showValues} /></div>
+    </ModalShell>
   );
 }
 
@@ -1887,57 +1880,4 @@ function formatTransactionAmount(transaction: TransactionDTO, showValues: boolea
   if (!showValues) return '••••';
   const amount = formatCurrency(transaction.amount, transaction.account?.currency ?? 'BRL');
   return `${transaction.type === 'INCOME' ? '+' : '-'}${amount}`;
-}
-
-function useDialogLifecycle(open: boolean, closeRef: RefObject<HTMLButtonElement | null>, onClose: () => void) {
-  const onCloseRef = useRef(onClose);
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!open) return;
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-
-      if (event.key !== 'Tab') return;
-      const dialog = closeRef.current?.closest<HTMLElement>('[role="dialog"]');
-      if (!dialog) return;
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ));
-      if (focusable.length === 0) {
-        event.preventDefault();
-        closeRef.current?.focus();
-        return;
-      }
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      window.requestAnimationFrame(() => previousFocus?.focus());
-    };
-  }, [closeRef, open]);
 }

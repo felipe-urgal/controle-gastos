@@ -31,22 +31,15 @@ function overages(counts: Map<string, number>, allowed: Record<string, number>) 
     .map(([file, total]) => `${file}: ${total} > ${allowed[file] ?? 0}`);
 }
 
-// Overlays fora do ModalShell. Infra (overlays/, layout/, feedback/, navigation/) é permitida.
+// Overlays fora do ModalShell: só exceções justificadas (busca global com input no cabeçalho,
+// indicador de progresso, splash, partículas e painel de filtros dinâmicos).
 const OVERLAY_ALLOWED: Record<string, number> = {
   "app/components/overlays/modal-shell/index.tsx": 1,
-  "app/components/overlays/confirmation-modal/index.tsx": 1,
   "app/components/overlays/delete-overlay/index.tsx": 1,
-  "app/components/layout/mobile-more-menu/index.tsx": 1,
   "app/components/layout/background-particles/index.tsx": 1,
   "app/components/layout/global-search-dialog/index.tsx": 1,
-  "app/components/navigation/dynamic-filters/index.tsx": 1,
   "app/components/feedback/splash-screen/index.tsx": 2,
   // Dívida de migração (#882):
-  "app/components/pages/category/index/mobile-categories-center/index.tsx": 1,
-  "app/components/pages/transactions/import/index.tsx": 1,
-  "app/components/pages/transactions/index/orbit-transactions.tsx": 3,
-  "app/components/pages/transactions/form/index.tsx": 1, // migrado no #902
-  "app/components/pages/transactions/transfer-form/index.tsx": 1, // migrado no #902
 };
 
 // Cores literais. color-selector é a paleta que o usuário escolhe (dado, não tema).
