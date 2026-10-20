@@ -457,7 +457,7 @@ function EditSeriesModal({
 
   return (
     <div
-      className="fixed inset-0 z-[80] grid place-items-center bg-black/45 p-4"
+      className="fixed inset-0 z-[80] grid place-items-center bg-[var(--overlay)] p-4"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !saving) onClose();

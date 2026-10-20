@@ -43,6 +43,13 @@
   --overlay: rgba(0, 0, 0, 0.72);
   --skeleton: #223038;
   --shadow-surface: 0 14px 34px rgba(0, 0, 0, 0.24);
+  --shadow-elevated: 0 24px 60px rgba(0, 0, 0, 0.4);
+
+  /* escala de camadas: nav < sheet < modal < toast */
+  --z-nav: 30;
+  --z-sheet: 60;
+  --z-modal: 70;
+  --z-toast: 90;
 
   --radius-sm: 8px;
   --radius-md: 10px;
@@ -100,6 +107,7 @@
   --overlay: rgba(15, 23, 20, 0.56);
   --skeleton: #e0e7e2;
   --shadow-surface: 0 12px 28px rgba(18, 32, 24, 0.08);
+  --shadow-elevated: 0 24px 60px rgba(18, 32, 24, 0.18);
 }
 
 [data-theme="dark"] {
