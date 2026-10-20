@@ -1,7 +1,8 @@
 'use client';
 
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   FaChartBar,
   FaChevronLeft,
@@ -12,7 +13,6 @@ import {
   FaPen,
   FaPlus,
   FaSearch,
-  FaTimes,
   FaUniversity,
 } from 'react-icons/fa';
 
@@ -430,6 +430,7 @@ function MobileAccountsCenter({
 }
 
 export default function OrbitAccounts() {
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const {
@@ -450,54 +451,9 @@ export default function OrbitAccounts() {
   } = useAccounts();
 
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const detailRef = useRef<HTMLElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const selectedAccount =
     accounts.find((account) => account.id === selectedAccountId) ?? accounts[0] ?? null;
-
-  useEffect(() => {
-    if (!mobileDetailOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        setMobileDetailOpen(false);
-        return;
-      }
-
-      if (event.key !== 'Tab') return;
-      const focusable = Array.from(
-        detailRef.current?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ) ?? [],
-      );
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      window.requestAnimationFrame(() => previousFocusRef.current?.focus());
-    };
-  }, [mobileDetailOpen]);
 
   const accountSummary = summary as AccountListSummary | undefined;
   const balancesByCurrency = useMemo(
@@ -587,10 +543,7 @@ export default function OrbitAccounts() {
       : null;
 
   function selectAccount(account: AccountModel) {
-    previousFocusRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSelectedAccountId(account.id);
-    if (window.matchMedia('(max-width: 899px)').matches) setMobileDetailOpen(true);
   }
 
   return (
@@ -616,7 +569,8 @@ export default function OrbitAccounts() {
       )}
       {(!error || accounts.length > 0) && (
         <>
-      <div className="lg:hidden">
+      {!isDesktop && (
+      <div>
         <MobileAccountsCenter
           accounts={accounts}
           loading={loading}
@@ -629,8 +583,10 @@ export default function OrbitAccounts() {
           </div>
         )}
       </div>
+      )}
 
-      <div className="hidden lg:block">
+      {isDesktop && (
+      <div>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-[30px]">
@@ -717,7 +673,7 @@ export default function OrbitAccounts() {
         </div>
       </section>
 
-      <div className="grid min-w-0 items-start gap-4 min-[900px]:grid-cols-[minmax(520px,1.2fr)_minmax(390px,.9fr)]">
+      <div className="grid min-w-0 items-start gap-4 grid-cols-[minmax(520px,1.2fr)_minmax(390px,.9fr)]">
         <section
           className={`overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] ${orbitActionTokens}`}
           aria-label="Portfólio de contas"
@@ -758,58 +714,18 @@ export default function OrbitAccounts() {
 
         {selectedAccount && (
           <>
-            {mobileDetailOpen && (
-              <button
-                type="button"
-                className="fixed inset-0 z-40 bg-[var(--overlay)] min-[900px]:hidden"
-                onClick={() => setMobileDetailOpen(false)}
-                aria-label="Fechar detalhe da conta"
-                tabIndex={-1}
-              />
-            )}
-
             <aside
-              ref={detailRef}
-              role={mobileDetailOpen ? 'dialog' : undefined}
-              aria-modal={mobileDetailOpen ? true : undefined}
-              className={`${
-                mobileDetailOpen
-                  ? 'fixed inset-x-0 bottom-0 z-50 max-h-[78dvh] overflow-y-auto rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)]'
-                  : 'hidden'
-              } min-[900px]:sticky min-[900px]:top-[18px] min-[900px]:block min-[900px]:max-h-[calc(100vh-36px)] min-[900px]:overflow-y-auto min-[900px]:rounded-[18px] min-[900px]:border min-[900px]:border-[var(--border)] min-[900px]:bg-[var(--surface)] ${orbitActionTokens}`}
+              className={`sticky top-[18px] block max-h-[calc(100vh-36px)] overflow-y-auto rounded-[18px] border border-[var(--border)] bg-[var(--surface)] ${orbitActionTokens}`}
               aria-label={`Detalhe da conta ${selectedAccount.name}`}
             >
-              <div
-                className="mx-auto mt-2 h-1 w-12 rounded-full bg-[var(--border-strong)] min-[900px]:hidden"
-                aria-hidden="true"
-              />
-              <button
-                ref={closeRef}
-                type="button"
-                onClick={() => setMobileDetailOpen(false)}
-                aria-label="Fechar detalhe"
-                className="absolute right-3 top-3 z-10 grid h-11 w-11 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] min-[900px]:hidden"
-              >
-                <FaTimes aria-hidden="true" />
-              </button>
               <AccountDetail account={selectedAccount} showValues={showValues} />
             </aside>
           </>
         )}
       </div>
 
-      <Link
-        href="/contas/nova"
-        aria-label="Nova conta"
-        className="fixed right-[18px] z-30 grid h-[54px] w-[54px] place-items-center rounded-full bg-[var(--orbit-primary)] text-2xl text-white shadow-[var(--shadow-surface)] sm:hidden"
-        style={{
-          bottom:
-            'calc(var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom) + 1rem)',
-        }}
-      >
-        <FaPlus aria-hidden="true" />
-      </Link>
       </div>
+      )}
         </>
       )}
     </ProtectedRoute>
@@ -1016,7 +932,7 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
 
   return (
     <div className="p-4 sm:p-5">
-      <header className="flex items-start justify-between gap-3 pr-10 min-[900px]:pr-0">
+      <header className="flex items-start justify-between gap-3 ">
         <div className="flex min-w-0 items-center gap-3">
           <span
             className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] text-white"
@@ -1034,7 +950,7 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
         </div>
 
         <span
-          className={`hidden rounded-full border px-2 py-1 text-xs font-semibold min-[900px]:inline-flex ${
+          className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${
             account.isActive
               ? 'border-[var(--income)]/35 bg-[color-mix(in_srgb,var(--income)_12%,transparent)] text-[var(--income)]'
               : 'border-[var(--border)] text-[var(--text-muted)]'
