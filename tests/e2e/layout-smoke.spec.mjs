@@ -51,7 +51,7 @@ const ROUTES = [
 const KNOWN_HORIZONTAL_OVERFLOW = new Map([]);
 const KNOWN_MULTIPLE_H1 = new Map([]);
 // rotas que já montam uma única árvore: nenhum <h1> duplicado no DOM (nem escondido).
-const SINGLE_TREE_ROUTES = ['/contas'];
+const SINGLE_TREE_ROUTES = ['/contas', '/contas/nova', '/categorias', '/categorias/nova', '/transacoes', '/transacoes/nova'];
 // rota -> máximo tolerado de alvos < 44×44 px (usuário sem dados, 360 e 390 px; não vale em tablet).
 const KNOWN_SMALL_TARGETS = new Map([
   ['/dashboard', 1],

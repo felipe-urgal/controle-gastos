@@ -1,5 +1,6 @@
 'use client';
 
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { useRouter } from 'next/navigation';
 import { ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -186,6 +187,7 @@ export default function TransactionForm({
   const [storageUnavailable, setStorageUnavailable] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const [merchantRecognition, setMerchantRecognition] = useState<
     | { kind: 'auto'; merchantId: string; merchantName: string }
@@ -1232,11 +1234,12 @@ export default function TransactionForm({
         : 'Criar transação';
   return (
     <>
+      {!isDesktop && (
       <FormContainer
         onSubmit={(event) => event.preventDefault()}
         error={submitError}
         onClearError={() => setSubmitError(null)}
-        className="mt-4 !border-0 !bg-transparent !p-0 !pb-4 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:hidden"
+        className="mt-4 !border-0 !bg-transparent !p-0 !pb-4 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
       >
         <section aria-label={isEditing ? 'Editar transação mobile' : 'Nova transação mobile'}>
           <div className="mb-5 grid grid-cols-[auto_minmax(44px,1fr)_auto_minmax(44px,1fr)_auto] items-start gap-2 px-4" aria-label="Etapas da transação">
@@ -1721,6 +1724,7 @@ export default function TransactionForm({
           )}
         </section>
       </FormContainer>
+      )}
 
       {storageUnavailable && !isEditing && (
         <p role="alert" className="mt-3 rounded-lg border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
@@ -1729,11 +1733,12 @@ export default function TransactionForm({
           Antes de criar novamente, confira se o lançamento já existe em Transações.
         </p>
       )}
+      {isDesktop && (
       <FormContainer
         onSubmit={handleSubmit}
         error={submitError}
         onClearError={() => setSubmitError(null)}
-        className="mt-4 hidden !border-0 !bg-transparent !p-0 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)] lg:block"
+        className="mt-4 !border-0 !bg-transparent !p-0 !shadow-none [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
       >
         <section
           className="mx-auto w-full max-w-[860px] overflow-visible rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
@@ -2196,6 +2201,7 @@ export default function TransactionForm({
           </footer>
         </section>
       </FormContainer>
+      )}
 
       <TransactionReviewModal
         isOpen={reviewOpen}

@@ -2,6 +2,7 @@
 
 // importing components
 import { PageHeader } from "@/app/components/base-pages";
+import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { ProtectedRoute } from "@/app/components/layout";
 
 interface NewPageProps {
@@ -19,16 +20,18 @@ export default function NewPage({
   children,
   hideHeaderOnMobile = false,
 }: NewPageProps) {
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+
   return (
     <ProtectedRoute>
       <div className="w-full">
-        <div className={hideHeaderOnMobile ? 'hidden lg:block' : undefined}>
+        {(!hideHeaderOnMobile || isDesktop) && (
           <PageHeader
             title={title}
             description={description}
             backUrl={backUrl}
           />
-        </div>
+        )}
 
         {children}
       </div>

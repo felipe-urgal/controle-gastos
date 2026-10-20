@@ -1,6 +1,7 @@
 'use client';
 
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
@@ -347,6 +348,7 @@ export default function OrbitTransactions() {
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
+  const isTabletUp = useMediaQuery('(min-width: 640px)');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDTO | null>(null);
@@ -602,7 +604,8 @@ export default function OrbitTransactions() {
           </select>
         </label>
       )}
-      <div className="sm:hidden">
+      {!isTabletUp && (
+      <div>
         <MobileTransactionsPrototype2
           month={month}
           year={year}
@@ -623,8 +626,10 @@ export default function OrbitTransactions() {
           onLoadMore={loadMore}
         />
       </div>
+      )}
 
-      <div className="hidden sm:block">
+      {isTabletUp && (
+      <div>
               <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0">
                   <p className="hidden text-sm font-semibold uppercase tracking-[0.12em] text-[var(--orbit-primary)] sm:block">ORBIT / CENTRO OPERACIONAL</p>
@@ -782,6 +787,7 @@ export default function OrbitTransactions() {
         
         
       </div>
+      )}
 
       {periodOpen && (
         <PeriodDialog
