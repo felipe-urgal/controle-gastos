@@ -12,8 +12,8 @@ const capabilities = [
 export default function HeroSection() {
   return (
     <section className="border-b border-[var(--border)]" aria-labelledby="landing-title">
-      <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,0.92fr)_minmax(480px,1.08fr)] lg:items-center lg:gap-14 lg:px-8 lg:py-24">
-        <div className="max-w-2xl">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-[minmax(0,1fr)] gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,0.92fr)_minmax(480px,1.08fr)] lg:items-center lg:gap-14 lg:px-8 lg:py-24">
+        <div className="min-w-0 max-w-2xl">
           <div className="mb-5 inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text-muted)]">
             <FaMoneyBillWave className="text-[var(--primary)]" aria-hidden="true" />
             Controle financeiro pessoal
@@ -58,7 +58,7 @@ export default function HeroSection() {
           </ul>
         </div>
 
-        <div className="relative lg:pl-2">
+        <div className="relative min-w-0 lg:pl-2">
           <div className="mb-4 flex items-center justify-between gap-4 text-sm text-[var(--text-muted)]">
             <span className="inline-flex items-center gap-2 font-semibold text-[var(--foreground)]">
               <FaCalendarAlt className="text-[var(--primary)]" aria-hidden="true" />
