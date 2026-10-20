@@ -76,31 +76,33 @@ export default function ForecastPanel({
   const content = (
     <section
       className={embedded ? 'space-y-4' : 'mt-5 space-y-4'}
-      aria-labelledby="forecast-title"
+      aria-labelledby={embedded ? undefined : 'forecast-title'}
     >
       <div className="ds-panel p-5 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl pr-10 sm:pr-12">
-            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">
-              Próximos movimentos
-            </p>
-            <div className="mt-1 flex items-center gap-2">
-              <FaChartLine
-                className="text-[var(--orbit-primary)]"
-                aria-hidden="true"
-              />
-              <h2
-                id="forecast-title"
-                className="text-xl font-semibold text-[var(--foreground)]"
-              >
-                Saldo projetado
-              </h2>
+          {!embedded && (
+            <div className="max-w-2xl pr-10 sm:pr-12">
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">
+                Próximos movimentos
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <FaChartLine
+                  className="text-[var(--orbit-primary)]"
+                  aria-hidden="true"
+                />
+                <h2
+                  id="forecast-title"
+                  className="text-xl font-semibold text-[var(--foreground)]"
+                >
+                  Saldo projetado
+                </h2>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
+                Leitura dos lançamentos pendentes já cadastrados. O realizado não muda
+                e nenhuma ocorrência é criada por esta visualização.
+              </p>
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
-              Leitura dos lançamentos pendentes já cadastrados. O realizado não muda
-              e nenhuma ocorrência é criada por esta visualização.
-            </p>
-          </div>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-[180px_auto] sm:items-end">
             <Select
