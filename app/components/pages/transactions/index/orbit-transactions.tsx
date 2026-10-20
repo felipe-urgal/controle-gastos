@@ -593,7 +593,7 @@ export default function OrbitTransactions() {
             aria-label="Moeda do resumo financeiro"
             value={currentSummary.currency}
             onChange={(event) => setSummaryCurrency(event.target.value as SupportedCurrency)}
-            className="min-h-9 rounded-[9px] border border-[var(--border)] bg-[var(--surface)] px-2 text-sm font-bold text-[var(--foreground)]"
+            className="min-h-11 sm:min-h-9 rounded-[9px] border border-[var(--border)] bg-[var(--surface)] px-2 text-sm font-bold text-[var(--foreground)]"
           >
             {availableSummaries.map((item) => (
               <option key={item.currency} value={item.currency}>{item.currency}</option>
@@ -657,7 +657,7 @@ export default function OrbitTransactions() {
                         onClick={() => movePeriod(-1)}
                         disabled={loading}
                         aria-label="Mês anterior"
-                        className="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
+                        className="grid h-11 w-11 sm:h-9 sm:w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
                       >
                         <FaChevronLeft aria-hidden="true" />
                       </button>
@@ -666,7 +666,7 @@ export default function OrbitTransactions() {
                         onClick={() => setPeriodOpen(true)}
                         aria-haspopup="dialog"
                         aria-expanded={periodOpen}
-                        className="inline-flex min-h-9 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
+                        className="inline-flex min-h-11 sm:min-h-9 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
                       >
                         <FaCalendarAlt aria-hidden="true" /> {formatPeriod(month, year)}
                       </button>
@@ -675,7 +675,7 @@ export default function OrbitTransactions() {
                         onClick={() => movePeriod(1)}
                         disabled={loading}
                         aria-label="Próximo mês"
-                        className="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
+                        className="grid h-11 w-11 sm:h-9 sm:w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
                       >
                         <FaChevronRight aria-hidden="true" />
                       </button>
@@ -685,7 +685,7 @@ export default function OrbitTransactions() {
                       type="button"
                       onClick={() => setFiltersOpen(true)}
                       aria-label={activeFiltersCount > 0 ? `Filtros, ${activeFiltersCount} ativos` : 'Filtros'}
-                      className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                      className="inline-flex min-h-11 sm:min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
                     >
                       <FaFilter aria-hidden="true" /> Filtros
                     </button>
@@ -955,7 +955,7 @@ function MobileTransactionsPrototype2({
                 type="button"
                 aria-pressed={active}
                 onClick={() => onQuickFilterChange(value)}
-                className={`min-h-9 min-w-0 rounded-full border px-1.5 text-xs font-semibold transition-colors min-[360px]:px-2 min-[360px]:text-xs ${
+                className={`min-h-11 sm:min-h-9 min-w-0 rounded-full border px-1.5 text-xs font-semibold transition-colors min-[360px]:px-2 min-[360px]:text-xs ${
                   active
                     ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-white'
                     : 'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]'
@@ -1296,7 +1296,7 @@ function MovementTimeline({
             <select
               value={order}
               onChange={(event) => onOrderChange(event.target.value as TimelineOrder)}
-              className="min-h-10 appearance-none rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] py-2 pl-3 pr-9 text-xs font-semibold text-[var(--foreground)] outline-none focus:border-[var(--orbit-primary)]"
+              className="min-h-11 sm:min-h-9 appearance-none rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] py-2 pl-3 pr-9 text-xs font-semibold text-[var(--foreground)] outline-none focus:border-[var(--orbit-primary)]"
             >
               <option value="newest">Mais recente</option>
               <option value="oldest">Mais antigo</option>
@@ -1352,7 +1352,7 @@ function MovementTimeline({
         <button
           type="button"
           onClick={onLoadMore}
-          className="mx-auto mt-4 flex min-h-9 w-full max-w-[520px] items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-4 text-xs font-semibold hover:bg-[var(--surface-hover)]"
+          className="mx-auto mt-4 flex min-h-11 sm:min-h-9 w-full max-w-[520px] items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-4 text-xs font-semibold hover:bg-[var(--surface-hover)]"
         >
           Ver mais transações <FaChevronDown aria-hidden="true" />
         </button>
@@ -1565,7 +1565,7 @@ function UpcomingTransactions({
         <button
           type="button"
           onClick={onViewAll}
-          className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold hover:bg-[var(--surface-hover)]"
+          className="mt-3 flex min-h-11 sm:min-h-9 w-full items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold hover:bg-[var(--surface-hover)]"
         >
           Ver todos os agendados ({items.length}) <FaArrowRight aria-hidden="true" />
         </button>
@@ -1713,7 +1713,7 @@ function TagFilterField({
           <button
             type="button"
             onClick={() => onChange('')}
-            className="min-h-9 shrink-0 px-2 text-xs font-bold text-[var(--text-muted)]"
+            className="min-h-11 sm:min-h-9 shrink-0 px-2 text-xs font-bold text-[var(--text-muted)]"
           >
             Limpar
           </button>

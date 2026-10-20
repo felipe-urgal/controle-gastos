@@ -1503,7 +1503,7 @@ export default function TransactionForm({
                 </button>
               </div>
 
-              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1 [&_button]:!min-h-14">
+              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3 [&_button]:!min-h-14">
                 <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>
                   Cancelar
                 </Button>
@@ -1655,7 +1655,7 @@ export default function TransactionForm({
                 )}
               </div>
 
-              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1 [&_button]:!min-h-14">
+              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3 [&_button]:!min-h-14">
                 <Button type="button" variant="secondary" onClick={() => setMobileStep(1)} disabled={loading} fullWidth>
                   Voltar
                 </Button>
@@ -1701,7 +1701,7 @@ export default function TransactionForm({
                 </dl>
               </div>
 
-              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1 [&_button]:!min-h-14">
+              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3 [&_button]:!min-h-14">
                 <Button type="button" variant="secondary" onClick={() => setMobileStep(2)} disabled={loading} fullWidth>
                   Voltar
                 </Button>
@@ -1749,7 +1749,7 @@ export default function TransactionForm({
                 aria-pressed={operationType === 'EXPENSE'}
                 onClick={() => handleCategoryType('EXPENSE')}
                 disabled={loading}
-                className={`flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 ${
+                className={`flex min-h-11 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 ${
                   operationType === 'EXPENSE'
                     ? 'bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-sm'
                     : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
@@ -1762,7 +1762,7 @@ export default function TransactionForm({
                 aria-pressed={operationType === 'INCOME'}
                 onClick={() => handleCategoryType('INCOME')}
                 disabled={loading}
-                className={`flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 ${
+                className={`flex min-h-11 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 ${
                   operationType === 'INCOME'
                     ? 'bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-sm'
                     : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
@@ -1775,7 +1775,7 @@ export default function TransactionForm({
                 onClick={onSelectTransfer}
                 disabled={loading || !onSelectTransfer}
                 aria-label={isEditing ? 'Transferência indisponível na edição' : 'Transferência'}
-                className="flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex min-h-11 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <FaExchangeAlt aria-hidden="true" /> Transferência
               </button>
@@ -1828,7 +1828,7 @@ export default function TransactionForm({
                     value: String(option.value),
                     label: option.label,
                   }))}
-                  triggerClassName="flex min-h-9 w-full items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                  triggerClassName="flex min-h-11 w-full items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
                   menuClassName="min-w-[190px]"
                 >
                   <span className="h-2 w-2 rounded-full bg-[var(--orbit-primary)]" aria-hidden="true" />
@@ -1847,7 +1847,7 @@ export default function TransactionForm({
                       { value: 'recurring', label: 'Recorrente' },
                       { value: 'installment', label: 'Parcelada' },
                     ]}
-                    triggerClassName="flex min-h-9 w-full items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                    triggerClassName="flex min-h-11 w-full items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
                     menuClassName="min-w-[190px]"
                   >
                     <FaCalendarAlt aria-hidden="true" />
@@ -1855,7 +1855,7 @@ export default function TransactionForm({
                     <FaChevronRight className="ml-auto rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
                   </ReceiptSelect>
                 ) : (
-                  <div className="flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                  <div className="flex min-h-11 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
                     <FaCalendarAlt aria-hidden="true" /> Única
                   </div>
                 )}
