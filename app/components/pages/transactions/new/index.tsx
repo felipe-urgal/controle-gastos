@@ -453,7 +453,7 @@ export default function New({
       )}
 
       {reviewingQueueItem && !isTransfer && (
-        <section role="alert" aria-label="Revisão de lançamento" className="mt-4 rounded-lg border border-[var(--warning)] p-4 text-sm">
+        <section role="alert" aria-label="Revisão de lançamento" className="mt-4 [overflow-wrap:anywhere] rounded-lg border border-[var(--warning)] p-4 text-sm">
           <p className="font-bold">Revisar lançamento pendente</p>
           <p className="mt-1">Motivo: {reviewingQueueItem.lastError || reviewingQueueItem.errorCode || 'Rejeição pelo servidor'}</p>
           <p className="mt-1">Confira conta, categoria, tags e estabelecimento. Alterar os dados cria uma nova tentativa com outra chave; o lançamento não será enviado automaticamente.</p>
@@ -468,7 +468,7 @@ export default function New({
           aria-label="Rascunho offline"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
+            <div className="min-w-0 [overflow-wrap:anywhere]">
               <p className="text-sm font-extrabold text-[var(--foreground)]">
                 {loadedOfflineDraftId === offlineDraft.id
                   ? 'Rascunho offline carregado'
@@ -503,7 +503,7 @@ export default function New({
                 <button
                   type="button"
                   onClick={continueOfflineDraft}
-                  className="min-h-10 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white"
+                  className="min-h-11 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white"
                 >
                   Continuar rascunho
                 </button>
@@ -511,7 +511,7 @@ export default function New({
               <button
                 type="button"
                 onClick={discardOfflineDraft}
-                className="min-h-10 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold text-[var(--foreground)]"
+                className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold text-[var(--foreground)]"
               >
                 Descartar
               </button>

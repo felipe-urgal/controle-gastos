@@ -128,7 +128,7 @@ export default function ClientLayout({
           className={
             immersiveMobile
               ? 'min-h-screen w-full overflow-x-hidden pb-[env(safe-area-inset-bottom)] lg:pb-0'
-              : 'min-h-screen w-full overflow-x-hidden pb-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] lg:pb-0'
+              : 'min-h-screen w-full overflow-x-clip pb-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] lg:pb-0'
           }
           id="main-content"
           tabIndex={-1}
