@@ -16,7 +16,10 @@ export function useModalFocus<T extends HTMLElement>(
     if (!isOpen) return;
 
     const previousFocus = document.activeElement as HTMLElement | null;
-    const frame = window.requestAnimationFrame(() => dialogRef.current?.focus());
+    const frame = window.requestAnimationFrame(() => {
+      const dialog = dialogRef.current;
+      if (dialog && !dialog.contains(document.activeElement)) dialog.focus();
+    });
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape' && !closeDisabled) {

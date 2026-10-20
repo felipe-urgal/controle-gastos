@@ -8,7 +8,6 @@ import {
   FaPlus,
   FaSyncAlt,
   FaTrash,
-  FaTimes,
 } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
@@ -24,7 +23,7 @@ import { InvestmentTaxControlCard } from '@/app/components/pages/investment/inve
 import { RealizedResultReportCard } from '@/app/components/pages/investment/realized-result-report-card';
 import { TaxLossCarryforwardCard } from '@/app/components/pages/investment/tax-loss-carryforward-card';
 import { InvestmentImportModal } from '@/app/components/pages/investment/investment-import-modal';
-import { useDialogA11y } from '@/app/components/pages/investment/use-dialog-a11y';
+import { ModalShell as SharedModalShell } from '@/app/components/overlays/modal-shell';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -742,7 +741,7 @@ export default function InvestmentsCenter() {
         )}
 
         {pendingDelete && (
-          <ModalShell
+          <InvestmentModal
             title={
               pendingDelete.kind === 'OPERATION'
                 ? 'Excluir operação'
@@ -773,7 +772,7 @@ export default function InvestmentsCenter() {
                 {saving ? 'Excluindo...' : 'Excluir'}
               </button>
             </div>
-          </ModalShell>
+          </InvestmentModal>
         )}
 
         {importModal && portfolio && (
@@ -786,7 +785,7 @@ export default function InvestmentsCenter() {
         )}
 
         {assetModal && (
-          <ModalShell title="Novo ativo" onClose={() => setAssetModal(false)}>
+          <InvestmentModal title="Novo ativo" onClose={() => setAssetModal(false)}>
             <form onSubmit={handleAssetSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input
@@ -870,11 +869,11 @@ export default function InvestmentsCenter() {
                 submitLabel="Criar ativo"
               />
             </form>
-          </ModalShell>
+          </InvestmentModal>
         )}
 
         {operationModal && portfolio && (
-          <ModalShell
+          <InvestmentModal
             title="Nova operação"
             onClose={() => setOperationModal(false)}
           >
@@ -1005,11 +1004,11 @@ export default function InvestmentsCenter() {
                 submitLabel="Registrar"
               />
             </form>
-          </ModalShell>
+          </InvestmentModal>
         )}
 
         {fiscalCostModal && portfolio && (
-          <ModalShell
+          <InvestmentModal
             title={`Ajustar custo fiscal · ${
               portfolio.assets.find((asset) => asset.id === fiscalCostForm.assetId)
                 ?.symbol ?? ''
@@ -1136,11 +1135,11 @@ export default function InvestmentsCenter() {
                 submitLabel="Registrar ajuste"
               />
             </form>
-          </ModalShell>
+          </InvestmentModal>
         )}
 
         {fiscalOperation && (
-          <ModalShell
+          <InvestmentModal
             title={`Classificação fiscal · ${fiscalOperation.asset.symbol}`}
             onClose={() => setFiscalOperation(null)}
           >
@@ -1194,11 +1193,11 @@ export default function InvestmentsCenter() {
                 submitLabel="Salvar classificação"
               />
             </form>
-          </ModalShell>
+          </InvestmentModal>
         )}
 
         {historyAsset && (
-          <ModalShell
+          <InvestmentModal
             title={`Histórico · ${historyAsset.symbol}`}
             onClose={closeHistory}
           >
@@ -1259,7 +1258,7 @@ export default function InvestmentsCenter() {
                 )}
               </div>
             )}
-          </ModalShell>
+          </InvestmentModal>
         )}
       </section>
       </InvestmentFiscalYearProvider>
@@ -1897,7 +1896,7 @@ function ModalActions({
   );
 }
 
-function ModalShell({
+function InvestmentModal({
   title,
   children,
   onClose,
@@ -1906,35 +1905,9 @@ function ModalShell({
   children: React.ReactNode;
   onClose: () => void;
 }) {
-  const dialogRef = useDialogA11y(onClose);
-
   return (
-    <div className="fixed inset-0 z-[70] overflow-y-auto bg-[var(--overlay)] p-4">
-      <div className="flex min-h-full items-center justify-center">
-        <div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={title}
-          tabIndex={-1}
-          className="w-full max-w-2xl rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-elevated)]"
-        >
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <h2 className="text-xl font-extrabold text-[var(--foreground)]">
-              {title}
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Fechar"
-              className="grid h-10 w-10 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
-            >
-              <FaTimes aria-hidden="true" />
-            </button>
-          </div>
-          {children}
-        </div>
-      </div>
-    </div>
+    <SharedModalShell title={title} onClose={onClose} maxWidthClass="max-w-2xl">
+      {children}
+    </SharedModalShell>
   );
 }
