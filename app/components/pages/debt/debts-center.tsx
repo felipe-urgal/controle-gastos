@@ -444,7 +444,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
       <section className="mx-auto w-full max-w-6xl pb-8">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-[34px] font-extrabold tracking-tight text-[var(--foreground)]">Dívidas</h1>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-[var(--foreground)]">Dívidas</h1>
             <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
               Passivos manuais, separados das contas e sem alterar saldos financeiros.
             </p>
@@ -461,11 +461,11 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
           </p>
         )}
 
-        <section className="mt-5 grid gap-3 sm:grid-cols-3">
+        <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(['BRL', 'USD', 'EUR'] as const).map((currency) => (
             <article key={currency} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
               <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Saldo devedor · {currency}</span>
-              <strong className="mt-1 block text-2xl text-[var(--foreground)]">
+              <strong className="mt-1 block break-words text-2xl tabular-nums text-[var(--foreground)]">
                 {showValues ? formatCurrency(totals[currency] ?? 0, currency) : '••••'}
               </strong>
             </article>
