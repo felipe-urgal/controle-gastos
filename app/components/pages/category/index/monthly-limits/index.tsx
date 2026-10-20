@@ -1,5 +1,6 @@
 'use client';
 
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { FormEvent, type ReactNode, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
@@ -16,7 +17,6 @@ import {
   FaPencilAlt,
   FaPlus,
   FaSearch,
-  FaTimes,
   FaTrashAlt,
   FaWallet,
 } from 'react-icons/fa';
@@ -25,7 +25,6 @@ import MobileCategoriesCenter from '@/app/components/pages/category/index/mobile
 import { Button, IconRenderer, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context/auth-context';
 import { useCategoryMonthlyLimits } from '@/app/hooks/categories/category-monthly-limits';
-import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
@@ -1367,43 +1366,15 @@ function LimitEditorModal({
   const close = useCallback(() => {
     if (!saving) onClose();
   }, [onClose, saving]);
-  const dialogRef = useModalFocus<HTMLElement>(true, close, saving);
 
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-4"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) close();
-      }}
+    <ModalShell
+      title={`${item.limit ? 'Editar limite' : 'Definir limite'} — ${item.category.name}`}
+      description={`Moeda do recorte: ${currency}`}
+      onClose={close}
+      closeDisabled={saving}
+      maxWidthClass="max-w-[520px]"
     >
-      <section
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="limit-editor-title"
-        aria-busy={saving || undefined}
-        tabIndex={-1}
-        className="w-full max-w-[520px] rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-5 shadow-[var(--shadow-surface)]"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 id="limit-editor-title" className="text-xl font-bold text-[var(--foreground)]">
-              {item.limit ? 'Editar limite' : 'Definir limite'} — {item.category.name}
-            </h2>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">Moeda do recorte: {currency}</p>
-          </div>
-          <button
-            type="button"
-            onClick={close}
-            disabled={saving}
-            aria-label="Fechar editor de limite"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-          >
-            <FaTimes aria-hidden="true" />
-          </button>
-        </div>
-
         <form className="mt-4" onSubmit={onSubmit}>
           <Input
             label={`Valor do limite em ${currency}`}
@@ -1419,7 +1390,6 @@ function LimitEditorModal({
             <Button type="submit" icon={<FaCheck />} isLoading={saving} loadingText="Salvando">Salvar limite</Button>
           </div>
         </form>
-      </section>
-    </div>
+    </ModalShell>
   );
 }

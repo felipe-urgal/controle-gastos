@@ -12,7 +12,7 @@ import {
 import Pagination from '@/app/components/navigation/pagination';
 import { useAuth } from '@/app/context';
 import { useDebounce } from '@/app/hooks/use-debounce';
-import { useModalFocus } from '@/app/hooks/use-modal-focus';
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { analyzeTransactionTemplateSource } from '@/app/lib/templates/transaction-template-mapping';
 import {
@@ -141,11 +141,6 @@ export default function TransactionTemplatesPage({
   const closeDeleteDialog = useCallback(() => {
     setDeleteCandidate(null);
   }, []);
-  const deleteDialogRef = useModalFocus<HTMLDivElement>(
-    Boolean(deleteCandidate),
-    closeDeleteDialog,
-    deletingCandidate,
-  );
 
   const loadTemplates = useCallback(async () => {
     setTemplatesLoading(true);
@@ -781,35 +776,14 @@ export default function TransactionTemplatesPage({
       </section>
 
       {deleteCandidate && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !deletingCandidate) {
-              closeDeleteDialog();
-            }
-          }}
-        >
-          <div
-            ref={deleteDialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-template-title"
-            aria-describedby="delete-template-description"
-            tabIndex={-1}
-            className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl outline-none"
-          >
-            <h2 id="delete-template-title" className="text-lg font-bold">
-              Excluir Modelo?
-            </h2>
-            <p
-              id="delete-template-description"
-              className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]"
-            >
-              “{deleteCandidate.name}” será removido definitivamente. Transações
-              existentes não serão alteradas.
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-2">
+        <ModalShell
+          title="Excluir Modelo?"
+          description={`“${deleteCandidate.name}” será removido definitivamente. Transações existentes não serão alteradas.`}
+          onClose={closeDeleteDialog}
+          closeDisabled={deletingCandidate}
+          maxWidthClass="max-w-md"
+          footer={
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 disabled={deletingCandidate}
@@ -827,8 +801,10 @@ export default function TransactionTemplatesPage({
                 {deletingCandidate ? 'Excluindo...' : 'Excluir'}
               </button>
             </div>
-          </div>
-        </div>
+          }
+        >
+          {null}
+        </ModalShell>
       )}
     </PageContainer>
   );

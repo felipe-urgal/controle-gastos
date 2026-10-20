@@ -1,5 +1,6 @@
 'use client';
 
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import {
   useCallback,
   useEffect,
@@ -17,7 +18,6 @@ import { ProtectedRoute } from '@/app/components/layout';
 import Pagination from '@/app/components/navigation/pagination';
 import { Button, Input } from '@/app/components/ui';
 import { useDebounce } from '@/app/hooks/use-debounce';
-import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { merchantAliasService } from '@/app/services/merchant-alias-service';
 import { merchantService } from '@/app/services/merchant-service';
 import type {
@@ -292,11 +292,6 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
     if (!deleting) setDeleteCandidate(null);
   }, [deleting]);
 
-  const deleteDialogRef = useModalFocus<HTMLDivElement>(
-    Boolean(deleteCandidate),
-    closeDeleteDialog,
-    deleting,
-  );
 
   async function confirmDeleteAction() {
     if (!deleteCandidate) return;
@@ -1098,97 +1093,77 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
       </div>
 
       {deleteCandidate ? (
-        <div className="fixed inset-0 z-[70]">
-          <button
+        <ModalShell
+          title={
+            (deleteCandidate.transactionsCount > 0 || deleteCandidate.aliasesCount > 0)
+              ? 'Este estabelecimento está em uso'
+              : 'Excluir estabelecimento?'
+          }
+          onClose={closeDeleteDialog}
+          closeDisabled={deleting}
+          maxWidthClass="max-w-md"
+          footer={
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button
             type="button"
-            tabIndex={-1}
-            aria-label="Fechar confirmação"
-            className="absolute inset-0 h-full w-full bg-[var(--overlay)]"
-            onClick={deleting ? undefined : closeDeleteDialog}
-          />
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
-            <div
-              ref={deleteDialogRef}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="merchant-delete-title"
-              aria-describedby="merchant-delete-description"
-              tabIndex={-1}
-              className="pointer-events-auto w-full max-w-md rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] p-5 shadow-2xl"
-            >
-              <h2
-                id="merchant-delete-title"
-                className="text-lg font-semibold text-[var(--foreground)]"
-              >
-                {deleteCandidate.transactionsCount > 0 ||
-                deleteCandidate.aliasesCount > 0
-                  ? 'Este estabelecimento está em uso'
-                  : 'Excluir estabelecimento?'}
-              </h2>
-
-              <div
-                id="merchant-delete-description"
-                className="mt-2 space-y-2 text-sm text-[var(--text-muted)]"
-              >
-                <p>
-                  <strong className="text-[var(--foreground)]">
-                    {deleteCandidate.name}
-                  </strong>{' '}
-                  possui {deleteCandidate.transactionsCount} transação(ões) e{' '}
-                  {deleteCandidate.aliasesCount} alias(es).
-                </p>
-                {deleteCandidate.transactionsCount > 0 ||
-                deleteCandidate.aliasesCount > 0 ? (
-                  <p>
-                    O histórico não será apagado. Para impedir novos usos,
-                    desative o estabelecimento; aliases continuam administráveis
-                    separadamente.
-                  </p>
-                ) : (
-                  <p>
-                    Como não há transações nem aliases vinculados, a exclusão
-                    permanente é segura.
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={deleting}
-                  onClick={closeDeleteDialog}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="button"
-                  variant={
-                    deleteCandidate.transactionsCount > 0 ||
-                    deleteCandidate.aliasesCount > 0
-                      ? 'secondary'
-                      : 'danger'
-                  }
-                  isLoading={deleting}
-                  disabled={
-                    deleting ||
-                    ((!deleteCandidate.isActive &&
-                      (deleteCandidate.transactionsCount > 0 ||
-                        deleteCandidate.aliasesCount > 0)))
-                  }
-                  onClick={() => void confirmDeleteAction()}
-                >
-                  {deleteCandidate.transactionsCount > 0 ||
-                  deleteCandidate.aliasesCount > 0
-                    ? deleteCandidate.isActive
-                      ? 'Desativar'
-                      : 'Já está inativo'
-                    : 'Excluir definitivamente'}
-                </Button>
-              </div>
-            </div>
-          </div>
+            variant="secondary"
+            disabled={deleting}
+            onClick={closeDeleteDialog}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            variant={
+              deleteCandidate.transactionsCount > 0 ||
+              deleteCandidate.aliasesCount > 0
+                ? 'secondary'
+                : 'danger'
+            }
+            isLoading={deleting}
+            disabled={
+              deleting ||
+              ((!deleteCandidate.isActive &&
+                (deleteCandidate.transactionsCount > 0 ||
+                  deleteCandidate.aliasesCount > 0)))
+            }
+            onClick={() => void confirmDeleteAction()}
+          >
+            {deleteCandidate.transactionsCount > 0 ||
+            deleteCandidate.aliasesCount > 0
+              ? deleteCandidate.isActive
+                ? 'Desativar'
+                : 'Já está inativo'
+              : 'Excluir definitivamente'}
+          </Button>
         </div>
+          }
+        >
+      <div
+        className="space-y-2 text-sm text-[var(--text-muted)]"
+      >
+        <p>
+          <strong className="text-[var(--foreground)]">
+            {deleteCandidate.name}
+          </strong>{' '}
+          possui {deleteCandidate.transactionsCount} transação(ões) e{' '}
+          {deleteCandidate.aliasesCount} alias(es).
+        </p>
+        {deleteCandidate.transactionsCount > 0 ||
+        deleteCandidate.aliasesCount > 0 ? (
+          <p>
+            O histórico não será apagado. Para impedir novos usos,
+            desative o estabelecimento; aliases continuam administráveis
+            separadamente.
+          </p>
+        ) : (
+          <p>
+            Como não há transações nem aliases vinculados, a exclusão
+            permanente é segura.
+          </p>
+        )}
+      </div>
+        </ModalShell>
       ) : null}
     </ProtectedRoute>
   );

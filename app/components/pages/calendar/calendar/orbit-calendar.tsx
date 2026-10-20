@@ -1,7 +1,8 @@
 'use client';
 
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   FaArrowDown,
   FaArrowUp,
@@ -11,7 +12,6 @@ import {
   FaExchangeAlt,
   FaPlus,
   FaRedo,
-  FaTimes,
   FaWallet,
 } from 'react-icons/fa';
 
@@ -21,7 +21,6 @@ import { Button, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useCalendar } from '@/app/hooks/calendar/use-calendar';
 import { useCalendarPersistence } from '@/app/hooks/calendar/use-calendar-persistence';
-import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { monthNames } from '@/app/lib/date/constants';
 import type {
@@ -754,78 +753,39 @@ function EventDetailDrawer({
   onClose: () => void;
 }) {
   const date = eventDate(event);
-  const dialogRef = useModalFocus<HTMLElement>(true, onClose);
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--overlay)]"
-      onMouseDown={(mouseEvent) => {
-        if (mouseEvent.target === mouseEvent.currentTarget) onClose();
-      }}
+    <ModalShell
+      title={event.title}
+      description={eventKindLabel(event)}
+      closeLabel="Fechar detalhe"
+      onClose={onClose}
+      maxWidthClass={`max-w-[520px] ${orbitActionTokens}`}
     >
-      <section
-        ref={dialogRef}
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="calendar-detail-title"
-        className={`w-full max-w-[520px] rounded-t-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-[var(--shadow-surface)] ${orbitActionTokens}`}
-      >
-        <header className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs text-[var(--text-muted)]">
-              {eventKindLabel(event)}
-            </p>
-            <h2
-              id="calendar-detail-title"
-              className="mt-1 break-words text-xl font-bold text-[var(--foreground)]"
-            >
-              {event.title}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fechar detalhe"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-          >
-            <FaTimes aria-hidden="true" />
-          </button>
-        </header>
-
-        <dl className="mt-4 grid grid-cols-2 gap-2.5">
-          <DetailBox label="Valor" value={signedAmount(event, showValues)} />
-          <DetailBox label="Data" value={date.toLocaleDateString('pt-BR')} />
+      <dl className=" grid grid-cols-2 gap-2.5">
+        <DetailBox label="Valor" value={signedAmount(event, showValues)} />
+        <DetailBox label="Data" value={date.toLocaleDateString('pt-BR')} />
+        <DetailBox
+          label="Conta"
+          value={event.account?.name ?? 'Não se aplica'}
+        />
+        {event.counterpartAccount && (
           <DetailBox
-            label="Conta"
-            value={event.account?.name ?? 'Não se aplica'}
+            label="Contraparte"
+            value={event.counterpartAccount.name}
           />
-          {event.counterpartAccount && (
-            <DetailBox
-              label="Contraparte"
-              value={event.counterpartAccount.name}
-            />
-          )}
-          <DetailBox label="Status" value={eventStatusLabel(event)} />
-          <DetailBox label="Origem" value={eventKindLabel(event)} />
-        </dl>
+        )}
+        <DetailBox label="Status" value={eventStatusLabel(event)} />
+        <DetailBox label="Origem" value={eventKindLabel(event)} />
+      </dl>
 
-        <Link
-          href={event.href}
-          className="mt-4 inline-flex min-h-11 items-center rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          Abrir origem
-        </Link>
-      </section>
-    </div>
+      <Link
+        href={event.href}
+        className="mt-4 inline-flex min-h-11 items-center rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+      >
+        Abrir origem
+      </Link>
+    </ModalShell>
   );
 }
 
