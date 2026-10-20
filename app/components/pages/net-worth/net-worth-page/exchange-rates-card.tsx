@@ -68,7 +68,7 @@ export function ExchangeRatesCard({
   const futureReference = referenceDate > currentIsoDate();
 
   return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <article className="min-w-0 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div>
         <h2 className="text-lg font-bold text-[var(--foreground)]">
           Taxas de câmbio

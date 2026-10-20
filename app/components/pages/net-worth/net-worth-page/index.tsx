@@ -552,7 +552,7 @@ export default function NetWorthPage() {
                   />
                 )}
 
-                <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+                <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
                   <HistoryCard
                     history={history}
                     currency={selected.currency}

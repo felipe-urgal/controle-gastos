@@ -108,7 +108,9 @@ test('overlays mobile mantêm ações acessíveis sem competição com a navega�
   await expect(bottomNav).toBeVisible();
 });
 
-test('ModalShell: foco inicial, Tab preso, Esc, clique no fundo e retorno do foco', async ({ page }) => {
+test('ModalShell: foco inicial, Tab preso, Esc, clique no fundo e retorno do foco', async ({ page, browserName }) => {
+  // Safari/WebKit não foca botões ao clicar: não há foco anterior a restaurar no botão de origem.
+  const restoresFocusToTrigger = browserName !== 'webkit';
   test.setTimeout(60_000);
 
   const email = `playwright-modal-focus-${Date.now()}-${test.info().retry}@example.test`;
@@ -136,7 +138,7 @@ test('ModalShell: foco inicial, Tab preso, Esc, clique no fundo e retorno do foc
   // Esc fecha e devolve o foco ao botão que abriu.
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
-  await expect(trigger).toBeFocused();
+  if (restoresFocusToTrigger) await expect(trigger).toBeFocused();
 
   // Clique no fundo (faixa acima do sheet) fecha.
   await trigger.click();
@@ -145,5 +147,5 @@ test('ModalShell: foco inicial, Tab preso, Esc, clique no fundo e retorno do foc
   await page.mouse.down();
   await page.mouse.up();
   await expect(dialog).toBeHidden();
-  await expect(trigger).toBeFocused();
+  if (restoresFocusToTrigger) await expect(trigger).toBeFocused();
 });

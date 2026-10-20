@@ -12,7 +12,7 @@ async function login(page, email) {
 }
 
 test.describe('transações no mobile (360×640)', () => {
-  test.skip(({ browserName }) => browserName !== 'chromium', 'roda só no chromium');
+  test.skip(({ browserName }) => !['chromium', 'webkit'].includes(browserName), 'roda em chromium e webkit');
 
   test('filtros acessíveis sem filtro ativo e CTA do formulário sempre visível acima da navegação', async ({ page }) => {
     test.setTimeout(90_000);

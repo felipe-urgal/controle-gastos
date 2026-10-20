@@ -79,7 +79,7 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputProps>(
     }, [error, focusOnError, id]);
 
     const baseClasses = `
-      ${bare ? 'min-w-0 bg-transparent text-[var(--foreground)] outline-none focus-visible:outline-none' : 'ds-control min-w-0 px-3.5 py-2.5'}
+      ${bare ? 'w-full min-w-0 bg-transparent text-[var(--foreground)] outline-none focus-visible:outline-none' : 'ds-control min-w-0 px-3.5 py-2.5'}
       ${error ? 'border-[var(--danger)] focus-visible:border-[var(--danger)] focus-visible:outline-[var(--danger)]' : ''}
       ${icon ? 'pl-10' : ''}
       ${rightIcon ? 'pr-14' : ''}
