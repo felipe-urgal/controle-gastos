@@ -47,7 +47,6 @@ const OVERLAY_ALLOWED: Record<string, number> = {
   "app/components/pages/transactions/index/orbit-transactions.tsx": 3,
   "app/components/pages/transactions/form/index.tsx": 1, // migrado no #902
   "app/components/pages/transactions/transfer-form/index.tsx": 1, // migrado no #902
-  "app/components/pages/account/index/orbit-accounts.tsx": 1,
 };
 
 // Cores literais. color-selector é a paleta que o usuário escolhe (dado, não tema).

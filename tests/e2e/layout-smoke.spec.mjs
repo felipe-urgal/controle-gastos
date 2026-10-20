@@ -49,6 +49,8 @@ const ROUTES = [
 // rota -> motivo/issue. Preencher a partir do primeiro relatório.
 const KNOWN_HORIZONTAL_OVERFLOW = new Map([]);
 const KNOWN_MULTIPLE_H1 = new Map([]);
+// rotas que já montam uma única árvore: nenhum <h1> duplicado no DOM (nem escondido).
+const SINGLE_TREE_ROUTES = ['/contas'];
 // rota -> máximo tolerado de alvos < 44×44 px (usuário sem dados, 360 e 390 px; não vale em tablet).
 const KNOWN_SMALL_TARGETS = new Map([
   ['/dashboard', 1],
@@ -87,6 +89,7 @@ function measure() {
   return {
     overflow: document.documentElement.scrollWidth - window.innerWidth,
     h1: [...document.querySelectorAll('h1')].filter(visible).length,
+    h1InDom: document.querySelectorAll('h1').length,
     small,
   };
 }
@@ -113,6 +116,9 @@ test.describe('layout mobile', () => {
         const result = await page.evaluate(measure);
 
         if (result.overflow > 1) overflow.push(`${route} @${viewport.width} (+${result.overflow}px)`);
+        if (SINGLE_TREE_ROUTES.includes(route) && result.h1InDom > 1) {
+          multipleH1.push(`${route} @${viewport.width} (${result.h1InDom} h1 no DOM)`);
+        }
         if (result.h1 > 1) multipleH1.push(`${route} @${viewport.width} (${result.h1} h1)`);
         const allowed = KNOWN_SMALL_TARGETS.get(route) ?? 0;
         // Em ≥640px os controles são compactos por design; o limite vale só para o mobile.

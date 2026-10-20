@@ -1,5 +1,6 @@
 'use client';
 
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaArrowLeft, FaArrowRight, FaChartLine, FaCheck, FaCreditCard, FaInfoCircle, FaPalette, FaTimes, FaWallet } from 'react-icons/fa';
@@ -69,6 +70,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const [mobileStepError, setMobileStepError] = useState<string | null>(null);
   const [showAllMobileIcons, setShowAllMobileIcons] = useState(false);
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   function handleRedirect() {
     if (isEditing && account?.id) {
@@ -173,7 +175,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
   }
 
   const mobileWizard = (
-    <form onSubmit={handleSubmit} className={orbitSelectionTokens + ' lg:hidden'}>
+    <form onSubmit={handleSubmit} className={orbitSelectionTokens}>
       <div className="mx-auto w-full max-w-[430px] pb-4">
         <header className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 pt-1">
           <button
@@ -824,8 +826,9 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
 
   return (
     <>
-      {mobileWizard}
-      <div className="hidden lg:block">
+      {!isDesktop && mobileWizard}
+      {isDesktop && (
+      <div>
         <FormContainer
       onSubmit={handleSubmit}
       error={submitError}
@@ -995,6 +998,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
       </div>
         </FormContainer>
       </div>
+      )}
     </>
   );
 }
