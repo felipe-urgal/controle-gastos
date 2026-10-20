@@ -2,6 +2,7 @@
 
 // importing components
 
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { PageHeader } from "@/app/components/base-pages";
 import { PageLoading, PageEmpty } from "@/app/components/feedback";
 import { ProtectedRoute } from "@/app/components/layout";
@@ -50,6 +51,10 @@ export default function ShowPage<T>({
   mobileContent,
   children,
 }: ShowPageProps<T>) {
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  // Com `mobileContent`, monta só a árvore do viewport (sem duplicar DOM escondido por CSS).
+  const showDesktop = !mobileContent || isDesktop;
+
   return (
     <ProtectedRoute>
       <DeleteOverlay
@@ -58,7 +63,7 @@ export default function ShowPage<T>({
         title={`Excluindo ${entityName}`}
       />
 
-      <div className={mobileContent ? 'hidden lg:block' : undefined}>
+      {showDesktop && (
         <PageHeader
           title={titleFallback}
           description={description}
@@ -68,7 +73,7 @@ export default function ShowPage<T>({
           loading={loading}
           isDeleting={isDeleting}
         />
-      </div>
+      )}
 
       {loading ? (
         <PageLoading type="details" />
@@ -79,8 +84,8 @@ export default function ShowPage<T>({
         />
       ) : (
         <>
-          {mobileContent && <div className="lg:hidden">{mobileContent}</div>}
-          <div className={mobileContent ? 'hidden lg:block' : undefined}>{children}</div>
+          {!showDesktop && mobileContent}
+          {showDesktop && children}
 
           {allowMutations && (
             <ConfirmationModal
