@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { horizontalOverflow } from './support/layout.mjs';
 import { createVerifiedUser } from './support/verified-user.mjs';
 
 /**
@@ -86,26 +87,7 @@ function measure() {
       size: `${Math.round(rect.width)}x${Math.round(rect.height)}`,
     }));
 
-  // O wrapper do layout corta o excesso horizontal (overflow-x: clip), então o
-  // scrollWidth do documento não vê conteúdo estourando. Medimos dentro de #main-content:
-  // elementos visíveis cuja borda direita passa da tela e que não estão dentro de um
-  // contêiner rolável/cortado (abas rolantes, tabelas com overflow-x).
-  const main = document.getElementById('main-content') ?? document.body;
-  const clipped = (element) => {
-    for (let node = element.parentElement; node && node !== main; node = node.parentElement) {
-      const overflowX = getComputedStyle(node).overflowX;
-      if (overflowX !== 'visible') return true;
-    }
-    return false;
-  };
-  const escaping = [...main.querySelectorAll('*')]
-    .filter((element) => visible(element) && getComputedStyle(element).position !== 'fixed')
-    .filter((element) => element.getBoundingClientRect().right > window.innerWidth + 1 && !clipped(element));
-  const widest = escaping.reduce((max, element) => Math.max(max, element.getBoundingClientRect().right), 0);
-
   return {
-    escapingTag: escaping[0] ? `${escaping[0].tagName.toLowerCase()}.${String(escaping[0].className).slice(0, 60)}` : '',
-    overflow: Math.max(document.documentElement.scrollWidth - window.innerWidth, Math.round(widest - window.innerWidth)),
     h1: [...document.querySelectorAll('h1')].filter(visible).length,
     h1InDom: document.querySelectorAll('h1').length,
     small,
@@ -132,8 +114,9 @@ test.describe('layout mobile', () => {
         await page.goto(route);
         await page.waitForLoadState('networkidle').catch(() => {});
         const result = await page.evaluate(measure);
+        const { overflow: overflowPx, tag: escapingTag } = await page.evaluate(horizontalOverflow);
 
-        if (result.overflow > 1) overflow.push(`${route} @${viewport.width} (+${result.overflow}px ${result.escapingTag})`);
+        if (overflowPx > 1) overflow.push(`${route} @${viewport.width} (+${overflowPx}px ${escapingTag})`);
         if (SINGLE_TREE_ROUTES.includes(route) && result.h1InDom > 1) {
           multipleH1.push(`${route} @${viewport.width} (${result.h1InDom} h1 no DOM)`);
         }
