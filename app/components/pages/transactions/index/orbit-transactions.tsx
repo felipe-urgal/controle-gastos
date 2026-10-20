@@ -1,5 +1,6 @@
 'use client';
 
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import {
@@ -356,8 +357,6 @@ export default function OrbitTransactions() {
     count: INITIAL_TIMELINE_ITEMS,
   });
   const detailCloseRef = useRef<HTMLButtonElement>(null);
-  const filterCloseRef = useRef<HTMLButtonElement>(null);
-  const periodCloseRef = useRef<HTMLButtonElement>(null);
 
   const month = Number(filters.month) || new Date().getMonth() + 1;
   const year = Number(filters.year) || new Date().getFullYear();
@@ -390,8 +389,6 @@ export default function OrbitTransactions() {
   }, []);
 
   useDialogLifecycle(Boolean(selectedTransaction), detailCloseRef, () => setSelectedTransaction(null));
-  useDialogLifecycle(filtersOpen, filterCloseRef, () => setFiltersOpen(false));
-  useDialogLifecycle(periodOpen, periodCloseRef, () => setPeriodOpen(false));
 
   useEffect(() => {
     const openFilters = () => setFiltersOpen(true);
@@ -787,7 +784,6 @@ export default function OrbitTransactions() {
 
       {periodOpen && (
         <PeriodDialog
-          closeRef={periodCloseRef}
           month={month}
           year={year}
           loading={loading}
@@ -798,7 +794,6 @@ export default function OrbitTransactions() {
 
       {filtersOpen && (
         <FilterDialog
-          closeRef={filterCloseRef}
           fields={filtersWithRelations}
           values={refinementValues}
           loading={loading}
@@ -971,15 +966,18 @@ function MobileTransactionsPrototype2({
             );
           })}
         </div>
-        {activeFiltersCount > 0 && (
-          <button
-            type="button"
-            onClick={onOpenFilters}
-            className="mt-2 min-h-8 rounded-full border border-[var(--orbit-primary)]/40 bg-[var(--orbit-primary-subtle)] px-3 text-xs font-semibold text-[var(--orbit-primary)]"
-          >
-            +{activeFiltersCount} filtros avançados
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onOpenFilters}
+          className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
+        >
+          <FaFilter aria-hidden="true" /> Filtros
+          {activeFiltersCount > 0 && (
+            <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-0.5 text-xs font-bold text-[var(--orbit-primary)]">
+              {activeFiltersCount}
+            </span>
+          )}
+        </button>
       </div>
 
       <MobileUpcomingPreview
@@ -1577,72 +1575,66 @@ function UpcomingTransactions({
 }
 
 
-function PeriodDialog({ closeRef, month, year, loading, onApply, onClose }: { closeRef: RefObject<HTMLButtonElement | null>; month: number; year: number; loading: boolean; onApply: (month: number, year: number) => void; onClose: () => void }) {
+function PeriodDialog({ month, year, loading, onApply, onClose }: { month: number; year: number; loading: boolean; onApply: (month: number, year: number) => void; onClose: () => void }) {
   const now = new Date();
   const [draftMonth, setDraftMonth] = useState(Number.isInteger(month) && month >= 1 && month <= 12 ? month : now.getMonth() + 1);
   const [draftYear, setDraftYear] = useState(Number.isInteger(year) && year > 0 ? year : now.getFullYear());
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--overlay)] sm:items-center sm:p-5" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section role="dialog" aria-modal="true" aria-labelledby="transaction-period-title" className="flex w-full flex-col overflow-hidden rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)] sm:max-w-[430px] sm:rounded-[18px]">
-        <header className="flex items-start justify-between gap-3 border-b border-[var(--border)] p-4 sm:p-5">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Período</p>
-            <h2 id="transaction-period-title" className="mt-1 text-xl font-bold">Selecionar mês</h2>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">Escolha o período usado na listagem de transações.</p>
-          </div>
-          <button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar seleção de período" className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaTimes aria-hidden="true" /></button>
-        </header>
-
-        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5">
-          <Select label="Mês" value={draftMonth} onChange={(value) => setDraftMonth(Number(value))} options={monthOptions} disabled={loading} />
-          <Select label="Ano" value={draftYear} onChange={(value) => setDraftYear(Number(value))} options={yearOptions} disabled={loading} />
-        </div>
-
-        <footer className="grid grid-cols-2 gap-2 border-t border-[var(--border)] bg-[var(--surface)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-5">
+    <ModalShell
+      variant="fullscreen-sheet"
+      eyebrow="Período"
+      title="Selecionar mês"
+      description="Escolha o período usado na listagem de transações."
+      closeLabel="Fechar seleção de período"
+      maxWidthClass="sm:max-w-[430px]"
+      onClose={onClose}
+      footer={
+        <div className="grid grid-cols-2 gap-2">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button variant="primary" className="bg-[var(--orbit-primary)] text-white hover:bg-[var(--orbit-primary-hover)]" onClick={() => { onApply(draftMonth, draftYear); onClose(); }}>Aplicar período</Button>
-        </footer>
-      </section>
-    </div>
+        </div>
+      }
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Select label="Mês" value={draftMonth} onChange={(value) => setDraftMonth(Number(value))} options={monthOptions} disabled={loading} />
+        <Select label="Ano" value={draftYear} onChange={(value) => setDraftYear(Number(value))} options={yearOptions} disabled={loading} />
+      </div>
+    </ModalShell>
   );
 }
 
-function FilterDialog({ closeRef, fields, values, loading, total, onApply, onClose }: { closeRef: RefObject<HTMLButtonElement | null>; fields: FilterField[]; values: Record<string, any>; loading: boolean; total?: number; onApply: (values: Record<string, any>) => void; onClose: () => void }) {
+function FilterDialog({ fields, values, loading, total, onApply, onClose }: { fields: FilterField[]; values: Record<string, any>; loading: boolean; total?: number; onApply: (values: Record<string, any>) => void; onClose: () => void }) {
   const [draftValues, setDraftValues] = useState<Record<string, any>>(() => ({ ...values }));
   const activeCount = Object.values(draftValues).filter((value) => value !== undefined && value !== null && value !== '').length;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--overlay)] sm:items-center sm:p-5" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section role="dialog" aria-modal="true" aria-labelledby="transaction-filter-title" className="flex max-h-[82dvh] w-full flex-col overflow-hidden rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)] sm:max-w-[720px] sm:rounded-[18px]">
-        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border)] p-4 sm:p-5">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Refinar transações</p>
-            <h2 id="transaction-filter-title" className="mt-1 text-xl font-bold">Filtros</h2>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">{activeCount} filtro{activeCount === 1 ? '' : 's'} selecionado{activeCount === 1 ? '' : 's'}{total !== undefined ? ` · ${total} resultado${total === 1 ? '' : 's'}` : ''}</p>
-          </div>
-          <button ref={closeRef} type="button" onClick={onClose} aria-label="Fechar filtros" className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaTimes aria-hidden="true" /></button>
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-6 sm:p-5">
-          <TransactionFilterFields fields={fields} values={draftValues} loading={loading} onChange={(key, value) => setDraftValues((previous) => ({ ...previous, [key]: value }))} />
-          <Link
-            href="/transacoes/importar"
-            className="mt-5 flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] sm:hidden"
-          >
-            <FaFileImport aria-hidden="true" /> Importar CSV/OFX/QFX/QIF/XLSX
-          </Link>
-        </div>
-
-        <footer className="flex shrink-0 flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:p-5">
+    <ModalShell
+      variant="fullscreen-sheet"
+      eyebrow="Refinar transações"
+      title="Filtros"
+      description={`${activeCount} filtro${activeCount === 1 ? '' : 's'} selecionado${activeCount === 1 ? '' : 's'}${total !== undefined ? ` · ${total} resultado${total === 1 ? '' : 's'}` : ''}`}
+      closeLabel="Fechar filtros"
+      maxWidthClass="sm:max-w-[720px]"
+      onClose={onClose}
+      footer={
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button size="sm" variant="ghost" onClick={() => setDraftValues({})} disabled={activeCount === 0}>Limpar filtros</Button>
           <div className="grid grid-cols-2 gap-2 sm:flex">
             <Button variant="secondary" onClick={onClose}>Cancelar</Button>
             <Button variant="primary" className="bg-[var(--orbit-primary)] text-white hover:bg-[var(--orbit-primary-hover)]" onClick={() => { onApply(draftValues); onClose(); }}>Aplicar filtros</Button>
           </div>
-        </footer>
-      </section>
-    </div>
+        </div>
+      }
+    >
+      <TransactionFilterFields fields={fields} values={draftValues} loading={loading} onChange={(key, value) => setDraftValues((previous) => ({ ...previous, [key]: value }))} />
+      <Link
+        href="/transacoes/importar"
+        className="mt-5 flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] sm:hidden"
+      >
+        <FaFileImport aria-hidden="true" /> Importar CSV/OFX/QFX/QIF/XLSX
+      </Link>
+    </ModalShell>
   );
 }
 

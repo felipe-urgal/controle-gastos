@@ -22,6 +22,8 @@ export function lockBodyScroll() {
   };
 }
 
+export type ModalShellVariant = 'sheet' | 'fullscreen-sheet';
+
 export function ModalShell({
   title,
   children,
@@ -31,25 +33,39 @@ export function ModalShell({
   footer,
   hideBottomNav = true,
   description,
+  eyebrow,
   closeLabel = 'Fechar',
+  variant = 'sheet',
+  sectionClassName = '',
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   closeDisabled?: boolean;
   maxWidthClass?: string;
-  /** Nome acessível do botão de fechar. */
-  closeLabel?: string;
-  /** Texto de apoio sob o título; vira `aria-describedby` do diálogo. */
-  description?: string;
-  /** Ações fixas no rodapé; ficam sempre visíveis ao rolar o conteúdo. */
+  /** Ações fixas no rodapé; ficam sempre visíveis enquanto o corpo rola. */
   footer?: ReactNode;
   /** Oculta a bottom-nav do shell enquanto o overlay está aberto (mobile). */
   hideBottomNav?: boolean;
+  /** Texto de apoio sob o título; vira `aria-describedby` do diálogo. */
+  description?: string;
+  /** Rótulo curto acima do título. */
+  eyebrow?: string;
+  /** Nome acessível do botão de fechar. */
+  closeLabel?: string;
+  /**
+   * `sheet`: folha na base no mobile. `fullscreen-sheet`: ocupa a área útil
+   * abaixo da topbar em telas pequenas (filtros, período, formulários longos).
+   * Em ≥ sm ambos viram diálogo centralizado.
+   */
+  variant?: ModalShellVariant;
+  /** Classes extras no diálogo (ex.: sobrescrever tokens de cor do escopo). */
+  sectionClassName?: string;
 }) {
   const titleId = useId();
   const descriptionId = useId();
   const onCloseRef = useRef(onClose);
+  const fullscreen = variant === 'fullscreen-sheet';
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -63,10 +79,17 @@ export function ModalShell({
 
   useEffect(() => lockBodyScroll(), []);
 
+  const topInset = fullscreen
+    ? 'max-sm:pt-[calc(var(--app-mobile-topbar-height)+env(safe-area-inset-top))]'
+    : 'pt-[max(1rem,env(safe-area-inset-top))]';
+  const sectionSize = fullscreen
+    ? 'max-sm:h-full max-sm:rounded-none sm:max-h-[min(88dvh,820px)]'
+    : 'max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))]';
+
   return (
     <div
       data-overlay-hide-nav={hideBottomNav || undefined}
-      className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center overflow-y-auto bg-[var(--overlay)] px-3 pt-[max(1rem,env(safe-area-inset-top))] sm:items-center sm:p-5"
+      className={`fixed inset-0 z-[var(--z-modal)] flex ${fullscreen ? 'items-stretch' : 'items-end'} justify-center bg-[var(--overlay)] ${fullscreen ? 'px-0' : 'px-3'} ${topInset} sm:items-center sm:p-5`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) close();
       }}
@@ -79,12 +102,24 @@ export function ModalShell({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         aria-busy={closeDisabled || undefined}
-        className={`w-full ${maxWidthClass} max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))] flex flex-col overflow-y-auto overscroll-contain rounded-t-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-elevated)] outline-none sm:rounded-[22px]`}
+        className={`flex w-full ${maxWidthClass} ${sectionSize} flex-col overflow-hidden rounded-t-[22px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-elevated)] outline-none sm:rounded-[22px] ${sectionClassName}`}
       >
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <h2 id={titleId} className="text-xl font-extrabold text-[var(--foreground)]">
-            {title}
-          </h2>
+        <header className="flex shrink-0 items-start justify-between gap-4 px-5 pb-5 pt-5">
+          <div className="min-w-0">
+            {eyebrow && (
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">
+                {eyebrow}
+              </p>
+            )}
+            <h2 id={titleId} className="text-xl font-extrabold text-[var(--foreground)]">
+              {title}
+            </h2>
+            {description && (
+              <p id={descriptionId} className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+                {description}
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={close}
@@ -94,17 +129,16 @@ export function ModalShell({
           >
             <FaTimes aria-hidden="true" />
           </button>
+        </header>
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 ${footer ? 'pb-5' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom))]'}`}
+        >
+          {children}
         </div>
-        {description && (
-          <p id={descriptionId} className="-mt-3 mb-5 text-sm leading-relaxed text-[var(--text-muted)]">
-            {description}
-          </p>
-        )}
-        {children}
         {footer && (
-          <div className="sticky bottom-[calc(-1.25rem-env(safe-area-inset-bottom))] -mx-5 mt-5 border-t border-[var(--border)] bg-[var(--surface)] px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
+          <footer className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
             {footer}
-          </div>
+          </footer>
         )}
       </section>
     </div>

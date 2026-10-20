@@ -374,6 +374,7 @@ export default function CreditCardOverview({
       {payingStatement && (
         <ModalShell
           title="Pagar fatura"
+          description={`${logicalLabel(payingStatement.closingDate)} · ${money(payingStatement.total)}`}
           onClose={closePayment}
           closeDisabled={isPaying}
           maxWidthClass="max-w-md"
@@ -388,9 +389,6 @@ export default function CreditCardOverview({
     </div>
           }
         >
-          <p className="-mt-3 text-sm text-[var(--text-muted)]">
-                  {logicalLabel(payingStatement.closingDate)} · {money(payingStatement.total)}
-                </p>
         <div className="mt-5 space-y-4">
           <label className="block">
             <span className="mb-2 block text-sm font-bold text-[var(--foreground)]">Conta pagadora</span>
