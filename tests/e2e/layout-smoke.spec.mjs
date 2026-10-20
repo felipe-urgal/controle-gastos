@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { horizontalOverflow } from './support/layout.mjs';
 import { createVerifiedUser } from './support/verified-user.mjs';
 
 /**
@@ -87,7 +88,6 @@ function measure() {
     }));
 
   return {
-    overflow: document.documentElement.scrollWidth - window.innerWidth,
     h1: [...document.querySelectorAll('h1')].filter(visible).length,
     h1InDom: document.querySelectorAll('h1').length,
     small,
@@ -114,8 +114,9 @@ test.describe('layout mobile', () => {
         await page.goto(route);
         await page.waitForLoadState('networkidle').catch(() => {});
         const result = await page.evaluate(measure);
+        const { overflow: overflowPx, tag: escapingTag } = await page.evaluate(horizontalOverflow);
 
-        if (result.overflow > 1) overflow.push(`${route} @${viewport.width} (+${result.overflow}px)`);
+        if (overflowPx > 1) overflow.push(`${route} @${viewport.width} (+${overflowPx}px ${escapingTag})`);
         if (SINGLE_TREE_ROUTES.includes(route) && result.h1InDom > 1) {
           multipleH1.push(`${route} @${viewport.width} (${result.h1InDom} h1 no DOM)`);
         }
