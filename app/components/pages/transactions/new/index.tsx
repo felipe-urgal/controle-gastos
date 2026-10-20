@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/app/components/ui';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -500,13 +501,12 @@ export default function New({
 
             <div className="flex shrink-0 flex-wrap gap-2">
               {loadedOfflineDraftId !== offlineDraft.id && (
-                <button
+                <Button variant="accent" pill size="sm"
                   type="button"
                   onClick={continueOfflineDraft}
-                  className="min-h-11 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white"
                 >
                   Continuar rascunho
-                </button>
+                </Button>
               )}
               <button
                 type="button"

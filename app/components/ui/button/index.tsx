@@ -19,6 +19,8 @@ interface BaseButtonProps {
   iconPosition?: 'left' | 'right';
   isLoading?: boolean;
   fullWidth?: boolean;
+  /** Formato de pílula (`rounded-full`). */
+  pill?: boolean;
   loadingText?: string;
   href?: string;
   target?: string;
@@ -28,6 +30,7 @@ interface BaseButtonProps {
 
 type ButtonVariant =
   | 'primary'
+  | 'accent'
   | 'secondary'
   | 'success'
   | 'danger'
@@ -37,7 +40,7 @@ type ButtonVariant =
   | 'ghost'
   | 'link';
 
-type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+type ButtonSize = 'xs' | 'sm' | 'md' | 'cta' | 'lg' | 'xl';
 
 type ButtonProps = BaseButtonProps &
   (BaseButtonProps['as'] extends 'a'
@@ -58,6 +61,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
       iconPosition = 'left',
       isLoading = false,
       fullWidth = false,
+      pill = false,
       loadingText,
       href,
       target,
@@ -69,7 +73,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
   ) => {
     const baseClasses = `
       relative inline-flex items-center justify-center overflow-hidden
-      rounded-[var(--radius-md)] border border-transparent
+      ${pill ? 'rounded-full' : 'rounded-[var(--radius-md)]'} border border-transparent
       font-semibold leading-none
       transition-[background-color,border-color,color,box-shadow,transform]
       duration-150 ease-out
@@ -82,6 +86,9 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     const variantMap: Record<ButtonVariant, string> = {
       primary:
         'bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary-hover)] shadow-sm',
+      // Ação principal da interface autenticada (acento --orbit-*; `primary` é a identidade do produto).
+      accent:
+        'bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] hover:bg-[var(--orbit-primary-hover)] shadow-sm',
       secondary:
         'bg-[var(--surface-raised)] text-[var(--foreground)] border-[var(--border)] hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)]',
       success:
@@ -105,13 +112,17 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     const sizes: Record<ButtonSize, string> = {
       xs: isIconOnly
         ? 'p-2 min-h-11 min-w-11'
-        : 'px-3 py-2 text-sm gap-1.5 min-h-9 pointer-coarse:min-h-11',
+        : 'px-3 py-2 text-sm gap-1.5 min-h-11 sm:min-h-9',
       sm: isIconOnly
         ? 'p-2.5 min-h-11 min-w-11'
         : 'px-4 py-2.5 text-sm gap-2 min-h-11',
       md: isIconOnly
         ? 'p-3 min-h-11 min-w-11'
         : 'px-5 py-3 text-base gap-2.5 min-h-11',
+      // Botão principal de rodapé de fluxo mobile (56px).
+      cta: isIconOnly
+        ? 'p-4 min-h-14 min-w-14'
+        : 'px-6 py-3 text-base gap-2.5 min-h-14',
       lg: isIconOnly
         ? 'p-3.5 min-h-12 min-w-12'
         : 'px-6 py-3.5 text-lg gap-3 min-h-12',
@@ -124,6 +135,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
       xs: 'w-4 h-4',
       sm: 'w-4 h-4',
       md: 'w-5 h-5',
+      cta: 'w-5 h-5',
       lg: 'w-5 h-5',
       xl: 'w-6 h-6',
     };
@@ -132,6 +144,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
       xs: 'w-4 h-4 border-2',
       sm: 'w-4 h-4 border-2',
       md: 'w-5 h-5 border-2',
+      cta: 'w-5 h-5 border-2',
       lg: 'w-5 h-5 border-2',
       xl: 'w-6 h-6 border-2',
     };

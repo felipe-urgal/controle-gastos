@@ -778,7 +778,7 @@ function MobileDashboardHeader({
           />
         </label>
 
-        <div className="min-w-0 [&_.ds-control]:!min-h-11 [&_.ds-control]:!rounded-[11px]">
+        <div className="min-w-0">
           <Select
             ariaLabel="Moeda"
             value={currency}

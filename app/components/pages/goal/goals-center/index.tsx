@@ -17,7 +17,7 @@ import {
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { Input } from '@/app/components/ui';
+import { Input, Chip, ChipRow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -479,31 +479,18 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
           />
         </section>
 
-        <nav
-          className="mt-5 flex gap-2 overflow-x-auto pb-1"
-          aria-label="Filtrar metas por status"
-        >
+        <ChipRow label="Filtrar metas por status" className="mt-5">
           {[
             ['ALL', 'Todas'],
             ['ACTIVE', 'Ativas'],
             ['COMPLETED', 'Concluídas'],
             ['ARCHIVED', 'Arquivadas'],
           ].map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setFilter(value as GoalFilter)}
-              aria-pressed={filter === value}
-              className={`min-h-11 shrink-0 rounded-full border px-4 text-sm font-bold ${
-                filter === value
-                  ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                  : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
-              }`}
-            >
+            <Chip key={value} selected={filter === value} onClick={() => setFilter(value as GoalFilter)}>
               {label}
-            </button>
+            </Chip>
           ))}
-        </nav>
+        </ChipRow>
 
         <div className="mt-5">
           {loading ? (

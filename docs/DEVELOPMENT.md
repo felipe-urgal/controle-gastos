@@ -91,3 +91,10 @@ Mantenha somente documentação viva. Decisões concluídas, planos antigos e re
 - **Camadas (z-index):** use sempre os tokens de `globals.css`: `--z-popover` 20 < `--z-nav` 30 (bottom-nav) < `--z-header` 40 (topbar/sidebar/filtros) < `--z-sheet` 50 < `--z-detail` 60 < `--z-modal` 70 (`ModalShell`) < `--z-search` 80 < `--z-toast` 90. Ex.: `z-[var(--z-sheet)]`. `z-10`/`z-20`/`z-[1]` só para empilhamento local dentro de um componente.
 - **Cores de marca em duas camadas com papéis fixos:** `--primary*` é a identidade e a semântica financeira do produto (o shell **não** a redefine — teste em `orbit.test.ts`); `--orbit-*` é o acento da interface autenticada (navegação, botões de ação, foco). Receita/despesa usam `--income`/`--expense`; avisos usam `--warning`/`--warning-subtle`. Cores literais (hex/paleta Tailwind) só para dado escolhido pelo usuário (cor de conta/categoria).
 - **Overlays:** `ModalShell` (variantes `sheet` e `fullscreen-sheet`) e o atributo `data-overlay-hide-nav` (o shell oculta a bottom-nav sem conhecer telas específicas).
+
+## Primitivos de UI (`app/components/ui`)
+
+- **`Button`**: `variant` `primary` (identidade do produto), `accent` (ação principal da UI autenticada, tokens `--orbit-*`), `secondary`, `outline`, `ghost`, `danger`, `success`, `warning`, `info`, `link`; `size` `xs`/`sm`/`md`/`cta`/`lg`/`xl` (todos ≥ 44px de altura em telas estreitas; `xs` volta a 36px em ≥ 640px; `cta` = 56px, rodapé de fluxo mobile); `pill` para formato de pílula; `isLoading`/`disabled`.
+- **`IconButton` / `IconLink`**: só ícone, 44×44, `label` (aria-label) obrigatório. **`Chip` / `ChipRow`**: pílulas de filtro/aba com `aria-pressed` e esmaecimento nas bordas quando a linha rola.
+- **`Input`/`Select`**: 44px e 16px (a regra global de 16px em telas estreitas evita o zoom do iOS); `Input bare` e `FormContainer bare` para visuais próprios sem `!important` (guardrail proíbe modificadores `!` do Tailwind).
+- `node scripts/count-raw-controls.mjs` mede os controles crus (`<button>`/`<input>`/…) por módulo; `scripts/__tests__/raw-controls.test.ts` impede aumentá-los. Ao migrar para os primitivos, rode com `--write` para baixar o baseline.

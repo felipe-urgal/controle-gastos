@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/app/components/ui';
 import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -341,13 +342,12 @@ export default function CreditCardOverview({
                   </div>
                 </div>
                 {statement.status === 'OPEN' && statement.total > 0 && (
-                  <button
+                  <Button variant="accent" pill size="sm" className="mt-3"
                     type="button"
                     onClick={() => openPayment(statement)}
-                    className="mt-3 min-h-11 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white"
                   >
                     Pagar fatura
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}
@@ -526,9 +526,9 @@ function StatementCard({
       )}
 
       {statement.status === 'OPEN' && statement.total > 0 && compareStatementToToday(statement) <= 0 && (
-        <button type="button" onClick={() => onPay(statement)} className="mt-4 min-h-11 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white">
+        <Button variant="accent" pill size="sm" className="mt-4" type="button" onClick={() => onPay(statement)}>
           Pagar fatura
-        </button>
+        </Button>
       )}
     </section>
   );

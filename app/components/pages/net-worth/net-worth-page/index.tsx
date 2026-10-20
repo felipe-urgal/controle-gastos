@@ -15,7 +15,7 @@ import {
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { IconRenderer } from '@/app/components/ui';
+import { IconRenderer, Chip, ChipRow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import {
@@ -569,32 +569,22 @@ export default function NetWorthPage() {
           </div>
         ) : (
           <>
-            <nav
-              className="mt-5 flex gap-2 overflow-x-auto pb-1"
-              aria-label="Selecionar moeda do patrimônio"
-            >
+            <ChipRow label="Selecionar moeda do patrimônio" className="mt-5">
               {currencies.map((currency) => {
-                const available = data.byCurrency.some(
-                  (item) => item.currency === currency,
-                );
+                const available = data.byCurrency.some((item) => item.currency === currency);
                 return (
-                  <button
+                  <Chip
                     key={currency}
-                    type="button"
                     disabled={!available}
+                    selected={selectedCurrency === currency}
                     onClick={() => setSelectedCurrency(currency)}
-                    aria-pressed={selectedCurrency === currency}
-                    className={`min-h-11 shrink-0 rounded-full border px-4 text-sm font-bold disabled:opacity-35 ${
-                      selectedCurrency === currency
-                        ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                        : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
-                    }`}
+                    className="disabled:opacity-35"
                   >
                     {currency}
-                  </button>
+                  </Chip>
                 );
               })}
-            </nav>
+            </ChipRow>
 
             <div className="mt-5 space-y-4">
               <ConsolidationCard

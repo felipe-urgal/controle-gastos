@@ -21,7 +21,7 @@ import {
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Pagination } from '@/app/components/navigation';
-import { Button, IconRenderer, Input } from '@/app/components/ui';
+import { Button, IconRenderer, Input, Chip, ChipRow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
 import {
@@ -647,32 +647,17 @@ export default function OrbitAccounts() {
           />
         </div>
 
-        <div
-          className="flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          role="group"
-          aria-label="Tipos de conta"
-        >
-          {filterOptions.map((option) => {
-            const active = accountFilter === option.queryValue;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={active}
-                onClick={() =>
-                  setFilters((previous) => ({ ...previous, type: option.queryValue }))
-                }
-                className={`min-h-10 shrink-0 rounded-[10px] border px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-                  active
-                    ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                    : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--foreground)]'
-                }`}
-              >
-                {option.label} · {option.count}
-              </button>
-            );
-          })}
-        </div>
+        <ChipRow label="Tipos de conta">
+          {filterOptions.map((option) => (
+            <Chip
+              key={option.value}
+              selected={accountFilter === option.queryValue}
+              onClick={() => setFilters((previous) => ({ ...previous, type: option.queryValue }))}
+            >
+              {option.label} · {option.count}
+            </Chip>
+          ))}
+        </ChipRow>
       </section>
 
       <div className="grid min-w-0 items-start gap-4 grid-cols-[minmax(520px,1.2fr)_minmax(390px,.9fr)]">

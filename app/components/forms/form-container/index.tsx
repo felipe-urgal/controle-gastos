@@ -10,6 +10,8 @@ interface FormContainerProps {
   error?: string | null;
   onClearError?: () => void;
   className?: string;
+  /** Sem o painel (borda, fundo, sombra e padding): o chamador define o visual. */
+  bare?: boolean;
 }
 
 export default function FormContainer({
@@ -18,6 +20,7 @@ export default function FormContainer({
   error,
   onClearError,
   className = '',
+  bare = false,
 }: FormContainerProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -40,7 +43,7 @@ export default function FormContainer({
     <form
       ref={formRef}
       onSubmit={onSubmit}
-      className={`ds-panel relative flex flex-col gap-4 p-5 sm:p-6 ${className}`}
+      className={`relative flex flex-col gap-4 ${bare ? '' : 'ds-panel p-5 sm:p-6'} ${className}`}
     >
       {error && (
         <div ref={errorRef} tabIndex={-1} className="rounded-[var(--radius-md)] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
