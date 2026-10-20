@@ -3,6 +3,7 @@
 // importing components
 import { PageLoading, PageError } from "@/app/components/feedback";
 import { PageHeader } from "@/app/components/base-pages";
+import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { ProtectedRoute } from "@/app/components/layout";
 
 interface EditPageProps {
@@ -30,17 +31,19 @@ export default function EditPage({
   errorRedirectTo,
   hideHeaderOnMobile = false,
 }: EditPageProps) {
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+
   return (
     <ProtectedRoute>
       <div className="mx-auto">
-        <div className={hideHeaderOnMobile ? 'hidden lg:block' : undefined}>
+        {(!hideHeaderOnMobile || isDesktop) && (
           <PageHeader
             title={title}
             description={description}
             backUrl={backUrl}
             loading={loading}
           />
-        </div>
+        )}
 
         {loading ? (
           <PageLoading type="form" />

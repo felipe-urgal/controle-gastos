@@ -1,5 +1,6 @@
 'use client';
 
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { PageHeader } from '@/app/components/base-pages';
@@ -115,6 +116,7 @@ function toConfirmItem(item: EditablePreviewItem) {
 }
 
 export default function TransactionImportPage() {
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
@@ -874,7 +876,8 @@ export default function TransactionImportPage() {
               )}
             </div>
 
-            <div className="hidden lg:block">
+            {isDesktop && (
+            <div>
               {activeItem ? (
                 <div className="sticky top-4">
                   <ImportDetail
@@ -898,6 +901,7 @@ export default function TransactionImportPage() {
                 <div className="ds-panel p-5 text-sm text-[var(--text-muted)]">Selecione um item para revisar os detalhes.</div>
               )}
             </div>
+            )}
           </div>
 
           <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)_+_env(safe-area-inset-bottom)_+_0.75rem)] z-20 rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--card)]/95 p-4 shadow-lg backdrop-blur lg:bottom-3">
@@ -943,7 +947,7 @@ export default function TransactionImportPage() {
             )}
           </div>
 
-          {mobileDetailOpen && activeItem && (
+          {!isDesktop && mobileDetailOpen && activeItem && (
             <MobileImportDetail
               item={activeItem}
               accountId={preview.accountId}
