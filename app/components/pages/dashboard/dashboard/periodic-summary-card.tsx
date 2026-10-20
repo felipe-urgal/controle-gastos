@@ -62,7 +62,7 @@ export function PeriodicSummaryCard({
             <FaCalendarWeek aria-hidden="true" />
           </span>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">Semana concluída</p>
+            <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">Semana concluída</p>
             <h2 id="periodic-summary-title" className="mt-0.5 text-base font-bold text-[var(--foreground)]">
               Resumo semanal
             </h2>

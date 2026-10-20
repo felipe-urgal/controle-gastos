@@ -1215,7 +1215,7 @@ function ExchangeRatesCard({
                         {rate.from} → {rate.to}
                       </strong>
                       {rate.source === 'BCB_PTAX' && (
-                        <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">
+                        <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">
                           PTAX {rate.quoteSide === 'BUY' ? 'compra' : 'venda'}
                           {rate.provenance === 'PTAX_CROSS' && ' · derivada'}
                         </span>
@@ -1249,7 +1249,7 @@ function ExchangeRatesCard({
                     </button>
                   ) : (
                     <span
-                      className="text-center text-[10px] font-bold text-[var(--text-muted)]"
+                      className="text-center text-xs font-bold text-[var(--text-muted)]"
                       title="Banco Central do Brasil"
                     >
                       BCB
@@ -1312,7 +1312,7 @@ function NetWorthHero({
         <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-white/75">
           <FaEye aria-hidden="true" />
           <span>Patrimônio líquido em {currency}</span>
-          <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px]">
+          <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-xs">
             {valuationBasisLabel(valuation.basis)}
           </span>
         </div>
@@ -1476,7 +1476,7 @@ function RealReturnCard({
         </p>
       )}
 
-      <div className="mt-3 space-y-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+      <div className="mt-3 space-y-1 text-xs leading-relaxed text-[var(--text-muted)]">
         <p>
           Esta métrica mede evolução patrimonial e inclui aportes, retiradas e
           reavaliações de passivos. Não representa rentabilidade isolada de investimentos.
@@ -1677,7 +1677,7 @@ function HistoryCard({
         </div>
       </details>
 
-      <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-muted)]">
+      <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
         {historyValuation.description} O ponto mais recente usa dados até{' '}
         {logicalDateLabel(historyValuation.currentPointAsOf)}.
       </p>
@@ -1758,7 +1758,7 @@ function DistributionCard({
                     {!account.isActive ? ' · Inativa' : ''}
                   </span>
                   {investment && account.cashBalance !== undefined && (
-                    <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-muted)]">
+                    <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
                       O valor das posições substitui o saldo transacional
                       {showValues
                         ? ` (${formatCurrency(account.cashBalance, currency)})`
@@ -1768,7 +1768,7 @@ function DistributionCard({
                   )}
                   {investment &&
                     (account.staleMarketPositionCount ?? 0) > 0 && (
-                      <span className="mt-1 block text-[11px] font-semibold text-[var(--warning)]">
+                      <span className="mt-1 block text-xs font-semibold text-[var(--warning)]">
                         {account.staleMarketPositionCount}{' '}
                         {account.staleMarketPositionCount === 1
                           ? 'cotação stale'

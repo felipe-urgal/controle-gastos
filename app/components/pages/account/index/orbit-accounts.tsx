@@ -973,7 +973,7 @@ function AccountRow({
         >
           {money(displayedValue, account.currency, showValues)}
         </p>
-        <small className="text-[11px] text-[var(--text-muted)]">
+        <small className="text-xs text-[var(--text-muted)]">
           {valueLabel}
         </small>
       </div>

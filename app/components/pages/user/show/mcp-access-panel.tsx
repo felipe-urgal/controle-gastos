@@ -397,7 +397,7 @@ export default function McpAccessPanel({
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <strong className="text-sm text-[var(--foreground)]">{item.name}</strong>
-                      <span className="rounded-full bg-[var(--surface-raised)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]">
+                      <span className="rounded-full bg-[var(--surface-raised)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">
                         {item.status === 'ACTIVE'
                           ? 'Ativo'
                           : item.status === 'EXPIRED'

@@ -313,12 +313,12 @@ function TransactionTags({ transaction }: { transaction: TransactionDTO }) {
   return (
     <span className="flex flex-wrap gap-1">
       {transaction.tags.slice(0, 3).map((tag) => (
-        <span key={tag.id} className="rounded-full bg-[var(--surface-subtle)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]">
+        <span key={tag.id} className="rounded-full bg-[var(--surface-subtle)] px-1.5 py-0.5 text-xs font-semibold text-[var(--text-muted)]">
           #{tag.name}
         </span>
       ))}
       {transaction.tags.length > 3 ? (
-        <span className="text-[10px] text-[var(--text-muted)]">+{transaction.tags.length - 3}</span>
+        <span className="text-xs text-[var(--text-muted)]">+{transaction.tags.length - 3}</span>
       ) : null}
     </span>
   );
@@ -878,7 +878,7 @@ function MobileTransactionsPrototype2({
           className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-bold"
         >
           <span className="truncate">{monthTitle(month, year)}</span>
-          <FaChevronDown className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+          <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
         </button>
         <button
           type="button"
@@ -920,7 +920,7 @@ function MobileTransactionsPrototype2({
               <FaArrowUp aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] text-[var(--text-muted)]">Entradas</p>
+              <p className="text-xs text-[var(--text-muted)]">Entradas</p>
               <strong className="mt-0.5 block truncate text-sm text-[var(--income)]">
                 {displayMoney(summary.income, showValues, summary.currency)}
               </strong>
@@ -931,7 +931,7 @@ function MobileTransactionsPrototype2({
               <FaArrowDown aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] text-[var(--text-muted)]">Saídas</p>
+              <p className="text-xs text-[var(--text-muted)]">Saídas</p>
               <strong className="mt-0.5 block truncate text-sm text-[var(--expense)]">
                 {displayMoney(summary.expense, showValues, summary.currency)}
               </strong>
@@ -955,7 +955,7 @@ function MobileTransactionsPrototype2({
                 type="button"
                 aria-pressed={active}
                 onClick={() => onQuickFilterChange(value)}
-                className={`min-h-9 min-w-0 rounded-full border px-1.5 text-[11px] font-semibold transition-colors min-[360px]:px-2 min-[360px]:text-xs ${
+                className={`min-h-9 min-w-0 rounded-full border px-1.5 text-xs font-semibold transition-colors min-[360px]:px-2 min-[360px]:text-xs ${
                   active
                     ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-white'
                     : 'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]'
@@ -1040,14 +1040,14 @@ function MobileUpcomingPreview({
           </span>
           <span className="min-w-0">
             <strong className="block truncate text-sm">{first.description || 'Sem descrição'}</strong>
-            <span className="mt-1 block truncate text-[11px] text-[var(--text-muted)]">
+            <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
               {scheduledDistanceLabel(first)} • {first.account?.name ?? 'Conta'}
             </span>
           </span>
           <strong className={`shrink-0 text-xs ${first.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
             {formatTransactionAmount(first, showValues)}
           </strong>
-          <FaChevronRight className="text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+          <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
         </button>
       )}
     </section>
@@ -1169,7 +1169,7 @@ function MobileTransactionRow({
 
       <span className="min-w-0">
         <strong className="block truncate text-sm">{transaction.description || 'Sem descrição'}</strong>
-        <span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">
+        <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
           {transaction.account?.name ?? 'Conta'} • {isTransfer ? 'Transferência' : isCardPayment ? 'Pagamento de fatura' : transaction.category?.name ?? 'Sem categoria'}
         </span>
         <TransactionTags transaction={transaction} />
@@ -1177,7 +1177,7 @@ function MobileTransactionRow({
 
       <span className="min-w-[86px] text-right">
         <strong className={`block text-xs ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
-        <span className="mt-1 block text-[10px] text-[var(--text-muted)]">
+        <span className="mt-1 block text-xs text-[var(--text-muted)]">
           {transaction.status === 'PENDING' ? 'Pendente' : formatTransactionTime(transaction)}
         </span>
       </span>
@@ -1301,7 +1301,7 @@ function MovementTimeline({
               <option value="newest">Mais recente</option>
               <option value="oldest">Mais antigo</option>
             </select>
-            <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+            <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)]" aria-hidden="true" />
           </span>
         </label>
       </header>
@@ -1533,7 +1533,7 @@ function UpcomingTransactions({
             >
               <span className="grid h-11 w-11 place-content-center rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] text-center">
                 <strong className="text-sm leading-none">{String(transaction.day).padStart(2, '0')}</strong>
-                <span className="mt-1 text-[9px] font-semibold uppercase text-[var(--text-muted)]">{compactMonth(transaction.month, transaction.year)}</span>
+                <span className="mt-1 text-xs font-semibold uppercase text-[var(--text-muted)]">{compactMonth(transaction.month, transaction.year)}</span>
               </span>
               <span
                 className="hidden h-9 w-9 place-items-center rounded-full text-white sm:grid"
@@ -1543,7 +1543,7 @@ function UpcomingTransactions({
               </span>
               <span className="min-w-0">
                 <strong className="block truncate text-xs">{transaction.description || 'Sem descrição'}</strong>
-                <span className="mt-1 block truncate text-[11px] text-[var(--text-muted)]">
+                <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
                   {transaction.category?.name ?? 'Sem categoria'} • {transaction.account?.name ?? 'Conta'}
                 </span>
               </span>
@@ -1552,8 +1552,8 @@ function UpcomingTransactions({
                   {formatTransactionAmount(transaction, showValues)}
                 </strong>
                 <span className="flex items-center gap-2">
-                  <span className="text-[10px] text-[var(--text-muted)]">{scheduledDistanceLabel(transaction)}</span>
-                  <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-1 text-[9px] font-bold text-[var(--orbit-primary)]">Agendada</span>
+                  <span className="text-xs text-[var(--text-muted)]">{scheduledDistanceLabel(transaction)}</span>
+                  <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-1 text-xs font-bold text-[var(--orbit-primary)]">Agendada</span>
                 </span>
               </span>
             </button>

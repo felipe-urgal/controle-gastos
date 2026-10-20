@@ -233,7 +233,7 @@ export default function ReceiptSelect({
           {groups.length
             ? groups.map((group) => (
                 <div key={group.label} className="py-1">
-                  <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+                  <p className="px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     {group.label}
                   </p>
                   {group.options.map((option) => {

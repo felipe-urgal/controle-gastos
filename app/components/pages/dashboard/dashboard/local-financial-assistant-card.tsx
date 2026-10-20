@@ -135,7 +135,7 @@ export function LocalFinancialAssistantCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">
+          <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">
             IA local · privada
           </p>
           <h2
@@ -150,7 +150,7 @@ export function LocalFinancialAssistantCard({
             possui ações de escrita.
           </p>
         </div>
-        <span className="rounded-full bg-[var(--surface-raised)] px-2.5 py-1 text-[10px] font-semibold text-[var(--text-muted)]">
+        <span className="rounded-full bg-[var(--surface-raised)] px-2.5 py-1 text-xs font-semibold text-[var(--text-muted)]">
           {support === 'checking'
             ? 'Verificando suporte'
             : support === 'supported'
@@ -197,7 +197,7 @@ export function LocalFinancialAssistantCard({
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--foreground)]">
             {answer}
           </p>
-          <p className="mt-3 border-t border-[var(--border)] pt-3 text-[11px] leading-relaxed text-[var(--text-muted)]">
+          <p className="mt-3 border-t border-[var(--border)] pt-3 text-xs leading-relaxed text-[var(--text-muted)]">
             Texto explicativo gerado localmente. Valores e cálculos oficiais
             continuam sendo os exibidos pelo domínio financeiro do app.
           </p>
@@ -234,7 +234,7 @@ export function LocalFinancialAssistantCard({
               ? 'Gerar novamente'
               : 'Explique meu mês'}
           </button>
-          <p className="max-w-xl text-[11px] leading-relaxed text-[var(--text-muted)]">
+          <p className="max-w-xl text-xs leading-relaxed text-[var(--text-muted)]">
             O primeiro uso baixa o modelo local e exibe o progresso. Os artefatos
             do modelo podem ficar em cache no navegador; nenhuma API de IA paga é
             necessária.

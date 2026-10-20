@@ -519,14 +519,14 @@ export function AnnualFinancialStatementCard({
                             <strong className="text-xs text-[var(--foreground)]">
                               {position.symbol ?? position.description}
                             </strong>
-                            <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                            <p className="mt-1 text-xs text-[var(--text-muted)]">
                               Sistema {quantity(position.internalQuantity)} · Informe{' '}
                               {quantity(position.statementQuantity)}
                             </p>
                           </div>
                           <span
                             className={
-                              'rounded-full px-2 py-1 text-[11px] font-semibold ' +
+                              'rounded-full px-2 py-1 text-xs font-semibold ' +
                               statusClass(position.status)
                             }
                           >
@@ -612,14 +612,14 @@ export function AnnualFinancialStatementCard({
                             <strong className="text-xs text-[var(--foreground)]">
                               {income.symbol ?? income.descriptions[0] ?? 'Rendimento'}
                             </strong>
-                            <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                            <p className="mt-1 text-xs text-[var(--text-muted)]">
                               Sistema {money(income.internalAmountCents, showValues)} · Informe{' '}
                               {money(income.statementAmountCents, showValues)}
                             </p>
                           </div>
                           <span
                             className={
-                              'rounded-full px-2 py-1 text-[11px] font-semibold ' +
+                              'rounded-full px-2 py-1 text-xs font-semibold ' +
                               statusClass(income.status)
                             }
                           >
@@ -634,7 +634,7 @@ export function AnnualFinancialStatementCard({
                           </p>
                         )}
                         {income.eventIds.length > 0 && (
-                          <p className="mt-2 text-[11px] text-[var(--text-muted)]">
+                          <p className="mt-2 text-xs text-[var(--text-muted)]">
                             {income.eventIds.length} pagamento(s) compõem o total interno.
                           </p>
                         )}
@@ -672,14 +672,14 @@ export function AnnualFinancialStatementCard({
                               <strong className="text-xs text-[var(--foreground)]">
                                 {item.symbol ?? item.descriptions[0] ?? 'IRRF'}
                               </strong>
-                              <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                              <p className="mt-1 text-xs text-[var(--text-muted)]">
                                 Sistema {money(item.internalAmountCents, showValues)} · Informe{' '}
                                 {money(item.statementAmountCents, showValues)}
                               </p>
                             </div>
                             <span
                               className={
-                                'rounded-full px-2 py-1 text-[11px] font-semibold ' +
+                                'rounded-full px-2 py-1 text-xs font-semibold ' +
                                 statusClass(item.status)
                               }
                             >
@@ -694,7 +694,7 @@ export function AnnualFinancialStatementCard({
                             </p>
                           )}
                           {item.requiresCompetenceConfirmation && (
-                            <p className="mt-2 text-[11px] leading-relaxed text-[var(--warning)]">
+                            <p className="mt-2 text-xs leading-relaxed text-[var(--warning)]">
                               Confirme a competência/data antes de registrar ou corrigir o IRRF.
                               O informe anual não cria lançamento fiscal automaticamente.
                             </p>
@@ -791,7 +791,7 @@ export function AnnualFinancialStatementCard({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
-      <span className="block text-[11px] text-[var(--text-muted)]">{label}</span>
+      <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="mt-1 block text-xs text-[var(--foreground)]">{value}</strong>
     </div>
   );

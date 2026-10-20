@@ -76,7 +76,7 @@ export default function AppSidebar({
             Busca global
           </span>
           {!collapsed && (
-            <kbd className="rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--text-subtle)]">
+            <kbd className="rounded border border-[var(--border)] px-1.5 py-0.5 text-xs text-[var(--text-subtle)]">
               Ctrl K
             </kbd>
           )}
