@@ -1909,7 +1909,7 @@ function ModalShell({
   const dialogRef = useDialogA11y(onClose);
 
   return (
-    <div className="fixed inset-0 z-[70] overflow-y-auto bg-black/55 p-4">
+    <div className="fixed inset-0 z-[70] overflow-y-auto bg-[var(--overlay)] p-4">
       <div className="flex min-h-full items-center justify-center">
         <div
           ref={dialogRef}

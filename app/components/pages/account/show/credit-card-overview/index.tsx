@@ -426,7 +426,7 @@ export default function CreditCardOverview({
       </div>
 
       {payingStatement && (
-        <div ref={paymentDialogRef} className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-labelledby="pay-card-title">
+        <div ref={paymentDialogRef} className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-4" role="dialog" aria-modal="true" aria-labelledby="pay-card-title">
           <div className="w-full max-w-md rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-elevated)]">
             <div className="flex items-start justify-between gap-4">
               <div>

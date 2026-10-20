@@ -1411,7 +1411,7 @@ function MobileImportDetail({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/45 p-0 lg:hidden">
+    <div className="fixed inset-0 z-50 flex items-end bg-[var(--overlay)] p-0 lg:hidden">
       <div
         ref={dialogRef}
         role="dialog"
