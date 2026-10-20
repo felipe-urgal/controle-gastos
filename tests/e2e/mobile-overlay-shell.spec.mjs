@@ -82,4 +82,28 @@ test('overlays mobile mantêm ações acessíveis sem competição com a navega�
   await filterDialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
   await expect(filterDialog).toBeHidden();
   await expect(bottomNav).toBeVisible();
+
+  // Projeção no Dashboard: acessível no mobile, tela cheia abaixo da topbar e sem a bottom-nav.
+  await page.goto('/dashboard');
+  const forecastButton = page.getByRole('button', { name: 'Ver projeção', exact: true });
+  await expect(forecastButton).toBeEnabled();
+  await forecastButton.click();
+
+  const forecastDialog = page.getByRole('dialog', { name: 'Saldo projetado', exact: true });
+  await expect(forecastDialog).toBeVisible();
+  await expectBottomNavSuppressed(page);
+
+  const closeForecast = forecastDialog.getByRole('button', { name: 'Fechar projeção', exact: true });
+  await expectControlIsTopmost(closeForecast);
+
+  const forecastGeometry = await forecastDialog.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { top: rect.top, bottom: rect.bottom, viewportHeight: window.innerHeight };
+  });
+  expect(forecastGeometry.top).toBeGreaterThanOrEqual(64);
+  expect(forecastGeometry.bottom).toBeLessThanOrEqual(forecastGeometry.viewportHeight + 1);
+
+  await page.keyboard.press('Escape');
+  await expect(forecastDialog).toBeHidden();
+  await expect(bottomNav).toBeVisible();
 });

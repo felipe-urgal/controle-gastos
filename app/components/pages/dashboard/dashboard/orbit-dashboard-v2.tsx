@@ -1,7 +1,9 @@
 'use client';
 
+import { ModalShell } from '@/app/components/overlays/modal-shell';
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import Link from 'next/link';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   FaArrowDown,
   FaArrowRight,
@@ -20,7 +22,6 @@ import {
   FaPlus,
   FaQuestionCircle,
   FaSyncAlt,
-  FaTimes,
 } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
@@ -31,7 +32,6 @@ import { IconRenderer, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useDashboardHome } from '@/app/hooks/dashboard/use-dashboard-home';
 import { usePeriodicSummary } from '@/app/hooks/dashboard/use-periodic-summary';
-import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type {
@@ -325,6 +325,7 @@ function DashboardHome({
   onRetry: () => void;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const data = home.monthly;
   const forecast = sectionState(home.current.forecast);
   const commitments = sectionState(home.current.commitments);
@@ -364,7 +365,7 @@ function DashboardHome({
           <p className="text-xs text-[var(--foreground)]">
             Parte do Dashboard está indisponível. Os valores conhecidos continuam visíveis sem transformar falha em zero.
           </p>
-          <button type="button" onClick={onRetry} className="min-h-9 rounded-[9px] border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-semibold">
+          <button type="button" onClick={onRetry} className="min-h-11 sm:min-h-9 rounded-[9px] border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-semibold">
             Tentar novamente
           </button>
         </div>
@@ -376,7 +377,7 @@ function DashboardHome({
         </div>
       )}
 
-      <div className="lg:hidden">
+      {!isDesktop && (
         <MobileDashboardHome
           home={home}
           showValues={showValues}
@@ -386,10 +387,12 @@ function DashboardHome({
           topCategories={topCategories}
           netWorth={netWorth}
           insights={insights}
+          onOpenForecast={() => setForecastOpen(true)}
         />
-      </div>
+      )}
 
-      <div className="hidden lg:block">
+      {isDesktop && (
+        <>
         <section className="grid gap-[14px] xl:grid-cols-[1.95fr_1fr_1.22fr]">
           <CurrentCashCard
             accounts={cashAccounts}
@@ -500,7 +503,8 @@ function DashboardHome({
             enabled={Boolean(forecast.data) && !forecast.loading}
           />
         </section>
-      </div>
+        </>
+      )}
 
       {periodicSummaryEnabled && (
         <div className="mt-[14px]">
@@ -793,9 +797,11 @@ function MobileDashboardHome({
   topCategories,
   netWorth,
   insights,
+  onOpenForecast,
 }: {
   home: DashboardHome;
   showValues: boolean;
+  onOpenForecast: () => void;
   forecast: {
     data: ForecastData | null;
     loading: boolean;
@@ -851,6 +857,15 @@ function MobileDashboardHome({
         loading={forecast.loading}
         error={forecast.error}
       />
+
+      <button
+        type="button"
+        onClick={onOpenForecast}
+        disabled={!forecast.data}
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] disabled:opacity-50"
+      >
+        <FaChartLine aria-hidden="true" /> Ver projeção
+      </button>
 
       {data.cards.length > 0 && (
         <MobileCreditCardsCard
@@ -1143,7 +1158,7 @@ function MobileUpcomingCard({
           <FaCalendarAlt className="text-[var(--orbit-primary)]" aria-hidden="true" />
           Compromissos · hoje
         </h2>
-        <Link href="/compromissos" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
+        <Link href="/compromissos" className="inline-flex min-h-11 items-center px-2 -mx-2 text-xs font-semibold text-[var(--orbit-primary)] sm:min-h-0">Ver todos</Link>
       </div>
 
       {loading ? (
@@ -1216,7 +1231,7 @@ function MobileCategoriesCard({
     <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-bold">Principais categorias de gastos</h2>
-        <Link href="/categorias" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
+        <Link href="/categorias" className="inline-flex min-h-11 items-center px-2 -mx-2 text-xs font-semibold text-[var(--orbit-primary)] sm:min-h-0">Ver todas</Link>
       </div>
 
       <div className="mt-2 divide-y divide-[var(--border)]">
@@ -1262,7 +1277,7 @@ function MobileRecentTransactionsCard({
     <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-bold">Últimas transações do mês</h2>
-        <Link href="/transacoes" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
+        <Link href="/transacoes" className="inline-flex min-h-11 items-center px-2 -mx-2 text-xs font-semibold text-[var(--orbit-primary)] sm:min-h-0">Ver todas</Link>
       </div>
 
       <div className="mt-2 divide-y divide-[var(--border)]">
@@ -1574,7 +1589,7 @@ function FinancialGoalsCard({
             Progresso atual das metas. Nenhum valor altera o saldo das contas.
           </p>
         </div>
-        <Link href="/metas" className="text-xs font-semibold text-[var(--orbit-primary)]">
+        <Link href="/metas" className="inline-flex min-h-11 items-center px-2 -mx-2 text-xs font-semibold text-[var(--orbit-primary)] sm:min-h-0">
           Ver todas
         </Link>
       </div>
@@ -1656,7 +1671,7 @@ function MobileFinancialGoalsCard({
           <FaBullseye className="text-[var(--orbit-primary)]" aria-hidden="true" />
           Metas
         </h2>
-        <Link href="/metas" className="text-xs font-semibold text-[var(--orbit-primary)]">
+        <Link href="/metas" className="inline-flex min-h-11 items-center px-2 -mx-2 text-xs font-semibold text-[var(--orbit-primary)] sm:min-h-0">
           Ver todas
         </Link>
       </div>
@@ -1791,7 +1806,7 @@ function MobileCreditCardsCard({
           <FaCreditCard className="text-[var(--orbit-primary)]" aria-hidden="true" />
           Cartões
         </h2>
-        <Link href="/contas" className="text-xs font-semibold text-[var(--orbit-primary)]">
+        <Link href="/contas" className="inline-flex min-h-11 items-center px-2 -mx-2 text-xs font-semibold text-[var(--orbit-primary)] sm:min-h-0">
           Ver todos
         </Link>
       </div>
@@ -1854,7 +1869,7 @@ function UpcomingCard({
     <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">Compromissos · hoje</h2>
-        <Link href="/compromissos" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
+        <Link href="/compromissos" className="inline-flex min-h-11 items-center px-2 -mx-2 text-xs font-semibold text-[var(--orbit-primary)] sm:min-h-0">Ver todos</Link>
       </div>
 
       <div className="mt-2 divide-y divide-[var(--border)]">
@@ -2060,7 +2075,7 @@ function CategoriesCard({
           ))
         )}
       </div>
-      <Link href="/categorias" className="mt-2 flex min-h-9 items-center justify-between rounded-[10px] border border-[var(--border-strong)] px-3 text-sm font-semibold">
+      <Link href="/categorias" className="mt-2 flex min-h-11 sm:min-h-9 items-center justify-between rounded-[10px] border border-[var(--border-strong)] px-3 text-sm font-semibold">
         Ver todas as categorias <FaChevronRight aria-hidden="true" />
       </Link>
     </article>
@@ -2084,7 +2099,7 @@ function RecentTransactionsCard({
     <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Últimas transações do mês</h2>
-        <Link href="/transacoes" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
+        <Link href="/transacoes" className="inline-flex min-h-11 items-center px-2 -mx-2 text-xs font-semibold text-[var(--orbit-primary)] sm:min-h-0">Ver todas</Link>
       </div>
 
       <div className="mt-2 divide-y divide-[var(--border)]">
@@ -2105,7 +2120,7 @@ function RecentTransactionsCard({
             const statusLabel = transaction.status === 'COMPLETED' ? null : transaction.status === 'PENDING' ? 'Pendente' : 'Cancelada';
 
             return (
-              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1 sm:grid-cols-[minmax(0,1.25fr)_130px_150px_auto]">
+              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-11 sm:min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1 sm:grid-cols-[minmax(0,1.25fr)_130px_150px_auto]">
                 <div className="flex min-w-0 items-center gap-3">
                   <span
                     className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
@@ -2245,32 +2260,18 @@ function ForecastDialog({
   initialData: ForecastData;
   onClose: () => void;
 }) {
-  const dialogRef = useModalFocus<HTMLElement>(true, onClose);
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--overlay)] p-3 sm:p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section
-        ref={dialogRef}
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="forecast-title"
-        className="relative max-h-[90dvh] w-full max-w-[920px] overflow-y-auto rounded-[18px] border border-[var(--border-strong)] bg-[var(--background)] p-3 shadow-[var(--shadow-surface)] sm:p-4"
-      >
-        <button type="button" onClick={onClose} aria-label="Fechar projeção" className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]">
-          <FaTimes aria-hidden="true" />
-        </button>
-        <ForecastPanel embedded initialCurrency={currency} initialData={initialData} />
-      </section>
-    </div>
+    <ModalShell
+      variant="fullscreen-sheet"
+      eyebrow="Próximos movimentos"
+      title="Saldo projetado"
+      description="Leitura dos lançamentos pendentes já cadastrados. O realizado não muda e nenhuma ocorrência é criada por esta visualização."
+      closeLabel="Fechar projeção"
+      maxWidthClass="sm:max-w-[920px]"
+      onClose={onClose}
+    >
+      <ForecastPanel embedded initialCurrency={currency} initialData={initialData} />
+    </ModalShell>
   );
 }
 

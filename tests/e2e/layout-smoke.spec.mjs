@@ -17,6 +17,7 @@ const password = 'Playwright123!';
 const VIEWPORTS = [
   { width: 360, height: 740 },
   { width: 390, height: 780 },
+  { width: 768, height: 900 },
 ];
 const ROUTES = [
   '/dashboard',
@@ -48,9 +49,9 @@ const ROUTES = [
 // rota -> motivo/issue. Preencher a partir do primeiro relatório.
 const KNOWN_HORIZONTAL_OVERFLOW = new Map([]);
 const KNOWN_MULTIPLE_H1 = new Map([]);
-// rota -> máximo tolerado de alvos < 44×44 px (usuário sem dados, 360 e 390 px).
+// rota -> máximo tolerado de alvos < 44×44 px (usuário sem dados, 360 e 390 px; não vale em tablet).
 const KNOWN_SMALL_TARGETS = new Map([
-  ['/dashboard', 4],
+  ['/dashboard', 1],
   ['/transacoes', 4],
   ['/transacoes/nova', 1],
   ['/transacoes/importar', 3],
@@ -118,7 +119,8 @@ test.describe('layout mobile', () => {
         if (result.overflow > 1) overflow.push(`${route} @${viewport.width} (+${result.overflow}px)`);
         if (result.h1 > 1) multipleH1.push(`${route} @${viewport.width} (${result.h1} h1)`);
         const allowed = KNOWN_SMALL_TARGETS.get(route) ?? 0;
-        if (result.small.length > allowed) {
+        // Em ≥640px os controles são compactos por design; o limite vale só para o mobile.
+        if (viewport.width < 640 && result.small.length > allowed) {
           smallTargets.push(`${route} @${viewport.width}: ${result.small.length} > ${allowed} ${JSON.stringify(result.small.slice(0, 5))}`);
         }
         if (process.env.LAYOUT_SMOKE_REPORT) {
