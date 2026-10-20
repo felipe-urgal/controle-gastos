@@ -52,10 +52,6 @@ const KNOWN_MULTIPLE_H1 = new Map([]);
 // rota -> máximo tolerado de alvos < 44×44 px (usuário sem dados, 360 e 390 px; não vale em tablet).
 const KNOWN_SMALL_TARGETS = new Map([
   ['/dashboard', 1],
-  ['/transacoes', 4],
-  ['/transacoes/nova', 1],
-  ['/transacoes/importar', 3],
-  ['/transacoes/importar/regras', 4],
   ['/categorias', 3],
   ['/calendario', 40], // inclui as células do mês (varia com o mês exibido)
   ['/modelos', 1],
