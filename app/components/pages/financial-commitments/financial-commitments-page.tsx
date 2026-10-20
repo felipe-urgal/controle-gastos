@@ -1,5 +1,6 @@
 'use client';
 
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -72,21 +73,13 @@ export default function FinancialCommitmentsPage() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--orbit-primary)]">
-            Planejamento
-          </p>
-          <h1 className="mt-1 text-2xl font-black text-[var(--foreground)] sm:text-3xl">
-            Compromissos financeiros
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-[var(--text-muted)]">
-            Acompanhe separadamente valores a pagar, a receber, vencidos e marcos de planejamento.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
+    <PageContainer as="section">
+      <PageTitle
+        eyebrow="Planejamento"
+        title="Compromissos financeiros"
+        description="Acompanhe separadamente valores a pagar, a receber, vencidos e marcos de planejamento."
+        actions={
+          <>
           <select
             aria-label="Horizonte"
             value={days}
@@ -125,8 +118,9 @@ export default function FinancialCommitmentsPage() {
           >
             {loading ? 'Atualizando…' : 'Atualizar'}
           </button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {error && (
         <div role="alert" className="mt-5 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-4">
@@ -221,7 +215,7 @@ export default function FinancialCommitmentsPage() {
           </section>
         </div>
       ) : null}
-    </section>
+    </PageContainer>
   );
 }
 

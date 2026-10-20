@@ -1,5 +1,6 @@
 'use client';
 
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import {
   useEffect,
   useMemo,
@@ -443,19 +444,8 @@ export default function FinancialComparisonPage() {
   const maxMonth = monthValue(currentMonth);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-      <header className="border-b border-[var(--border)] pb-5">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--orbit-primary)]">
-          Análise
-        </p>
-        <h1 className="mt-1 text-2xl font-black text-[var(--foreground)] sm:text-3xl">
-          Comparar períodos
-        </h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
-          Compare realizado financeiro entre dois intervalos de até 24
-          meses na mesma moeda.
-        </p>
-      </header>
+    <PageContainer>
+      <PageTitle eyebrow="Análise" title="Comparar períodos" description="Compare realizado financeiro entre dois intervalos de até 24 meses na mesma moeda." />
 
       <section
         aria-label="Atalhos de comparação"
@@ -1010,6 +1000,6 @@ export default function FinancialComparisonPage() {
             </section>
           </div>
         )}
-    </div>
+    </PageContainer>
   );
 }
