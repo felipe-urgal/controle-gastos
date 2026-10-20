@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { FaFileImport, FaTimes } from 'react-icons/fa';
+import { FaFileImport } from 'react-icons/fa';
 
-import { useDialogA11y } from '@/app/components/pages/investment/use-dialog-a11y';
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import {
   investmentService,
@@ -32,7 +32,6 @@ export function InvestmentImportModal({
   const [preview, setPreview] = useState<InvestmentImportPreview | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
-  const dialogRef = useDialogA11y(onClose);
 
   const groups = useMemo(() => {
     if (!preview) return [];
@@ -120,237 +119,210 @@ export function InvestmentImportModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[80] overflow-y-auto bg-[var(--overlay)] p-4">
-      <div className="flex min-h-full items-center justify-center">
-        <div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Importar investimentos"
-          tabIndex={-1}
-          className="w-full max-w-3xl rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-elevated)]"
+    <ModalShell title="Importar investimentos" onClose={onClose} closeDisabled={working} maxWidthClass="max-w-3xl">
+      <p className="-mt-3 mb-4 text-xs text-[var(--text-muted)]">
+        CSV/XLSX da B3 ou nota de corretagem PDF da Nu Investimentos.
+      </p>
+
+      {error && (
+        <p
+          role="alert"
+          className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-extrabold text-[var(--foreground)]">
-                Importar investimentos
-              </h2>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                CSV/XLSX da B3 ou nota de corretagem PDF da Nu Investimentos.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
+          {error}
+        </p>
+      )}
+
+      {!preview ? (
+        <div className="mt-5 space-y-4">
+          <label>
+            <span className="ds-label mb-2 block">Conta de investimento</span>
+            <select
+              value={accountId}
+              onChange={(event) => setAccountId(event.target.value)}
               disabled={working}
-              aria-label="Fechar"
-              className="grid h-10 w-10 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
+              className="ds-control min-h-11 w-full px-3"
             >
-              <FaTimes aria-hidden="true" />
-            </button>
+              <option value="" disabled>
+                Selecione
+              </option>
+              {accounts
+                .filter((account) => account.isActive)
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} · {account.currency}
+                  </option>
+                ))}
+            </select>
+          </label>
+
+          <label>
+            <span className="ds-label mb-2 block">Arquivo</span>
+            <input
+              type="file"
+              accept=".csv,.xlsx,.pdf"
+              disabled={working}
+              onChange={(event) => {
+                setFile(event.target.files?.[0] ?? null);
+                setPreview(null);
+              }}
+              className="ds-control min-h-11 w-full px-3 py-2"
+            />
+          </label>
+
+          <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+            O formato é detectado automaticamente. Ativos inexistentes são
+            criados em BRL/B3. Registros já importados são ignorados.
+          </p>
+
+          <button
+            type="button"
+            onClick={generatePreview}
+            disabled={!file || !accountId || working}
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 font-extrabold text-white disabled:opacity-40"
+          >
+            <FaFileImport aria-hidden="true" />
+            {working ? 'Analisando...' : 'Analisar arquivo'}
+          </button>
+        </div>
+      ) : (
+        <div className="mt-5 space-y-4">
+          {preview.detectedSource && (
+            <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--foreground)]">
+              Arquivo detectado: <strong>{preview.detectedSource === 'NUBANK_BROKERAGE_NOTE' ? 'Notas de corretagem Nu Investimentos' : 'Extrato B3'}</strong>
+            </div>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-4">
+            <Summary label="Registros" value={preview.summary.total} />
+            <Summary label="Novos" value={preview.summary.valid} />
+            <Summary label="Duplicados" value={preview.summary.duplicates} />
+            <Summary label="Inválidos" value={preview.summary.invalid} />
           </div>
 
-          {error && (
-            <p
-              role="alert"
-              className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
-            >
-              {error}
-            </p>
-          )}
-
-          {!preview ? (
-            <div className="mt-5 space-y-4">
-              <label>
-                <span className="ds-label mb-2 block">Conta de investimento</span>
-                <select
-                  value={accountId}
-                  onChange={(event) => setAccountId(event.target.value)}
-                  disabled={working}
-                  className="ds-control min-h-11 w-full px-3"
-                >
-                  <option value="" disabled>
-                    Selecione
-                  </option>
-                  {accounts
-                    .filter((account) => account.isActive)
-                    .map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name} · {account.currency}
-                      </option>
-                    ))}
-                </select>
-              </label>
-
-              <label>
-                <span className="ds-label mb-2 block">Arquivo</span>
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.pdf"
-                  disabled={working}
-                  onChange={(event) => {
-                    setFile(event.target.files?.[0] ?? null);
-                    setPreview(null);
-                  }}
-                  className="ds-control min-h-11 w-full px-3 py-2"
-                />
-              </label>
-
-              <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                O formato é detectado automaticamente. Ativos inexistentes são
-                criados em BRL/B3. Registros já importados são ignorados.
-              </p>
-
-              <button
-                type="button"
-                onClick={generatePreview}
-                disabled={!file || !accountId || working}
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 font-extrabold text-white disabled:opacity-40"
-              >
-                <FaFileImport aria-hidden="true" />
-                {working ? 'Analisando...' : 'Analisar arquivo'}
-              </button>
+          <div className="rounded-[16px] border border-[var(--border)]">
+            <div className="border-b border-[var(--border)] px-4 py-3">
+              <strong className="text-sm text-[var(--foreground)]">
+                {preview.kind === 'INCOMES' ? 'Proventos' : 'Movimentações'} ·{' '}
+                {preview.fileName}
+              </strong>
             </div>
-          ) : (
-            <div className="mt-5 space-y-4">
-              {preview.detectedSource && (
-                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--foreground)]">
-                  Arquivo detectado: <strong>{preview.detectedSource === 'NUBANK_BROKERAGE_NOTE' ? 'Notas de corretagem Nu Investimentos' : 'Extrato B3'}</strong>
-                </div>
-              )}
-
-              <div className="grid gap-3 sm:grid-cols-4">
-                <Summary label="Registros" value={preview.summary.total} />
-                <Summary label="Novos" value={preview.summary.valid} />
-                <Summary label="Duplicados" value={preview.summary.duplicates} />
-                <Summary label="Inválidos" value={preview.summary.invalid} />
-              </div>
-
-              <div className="rounded-[16px] border border-[var(--border)]">
-                <div className="border-b border-[var(--border)] px-4 py-3">
+            <div className="divide-y divide-[var(--border)]">
+              {groups.map((group) => (
+                <div
+                  key={group.symbol}
+                  className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-center"
+                >
+                  <span>
+                    <strong className="block text-sm text-[var(--foreground)]">
+                      {group.symbol}
+                    </strong>
+                    <span className="text-xs text-[var(--text-muted)]">
+                      {group.count} registro(s)
+                      {!group.assetExists ? ' · novo ativo' : ''}
+                      {group.duplicates > 0
+                        ? ` · ${group.duplicates} duplicado(s)`
+                        : ''}
+                    </span>
+                  </span>
+                  <span className="text-sm text-[var(--text-muted)]">
+                    {group.quantity.toLocaleString('pt-BR', {
+                      maximumFractionDigits: 8,
+                    })}{' '}
+                    un.
+                  </span>
                   <strong className="text-sm text-[var(--foreground)]">
-                    {preview.kind === 'INCOMES' ? 'Proventos' : 'Movimentações'} ·{' '}
-                    {preview.fileName}
+                    {showValues
+                      ? formatCurrency(group.amountCents, 'BRL')
+                      : '••••'}
                   </strong>
                 </div>
-                <div className="divide-y divide-[var(--border)]">
-                  {groups.map((group) => (
-                    <div
-                      key={group.symbol}
-                      className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-center"
-                    >
-                      <span>
-                        <strong className="block text-sm text-[var(--foreground)]">
-                          {group.symbol}
-                        </strong>
-                        <span className="text-xs text-[var(--text-muted)]">
-                          {group.count} registro(s)
-                          {!group.assetExists ? ' · novo ativo' : ''}
-                          {group.duplicates > 0
-                            ? ` · ${group.duplicates} duplicado(s)`
-                            : ''}
-                        </span>
-                      </span>
-                      <span className="text-sm text-[var(--text-muted)]">
-                        {group.quantity.toLocaleString('pt-BR', {
-                          maximumFractionDigits: 8,
-                        })}{' '}
-                        un.
-                      </span>
-                      <strong className="text-sm text-[var(--foreground)]">
-                        {showValues
-                          ? formatCurrency(group.amountCents, 'BRL')
-                          : '••••'}
-                      </strong>
-                    </div>
-                  ))}
-                </div>
+              ))}
+            </div>
+          </div>
+
+          {preview.brokerageNotes && preview.brokerageNotes.length > 0 && (
+            <div className="rounded-[16px] border border-[var(--border)]">
+              <div className="border-b border-[var(--border)] px-4 py-3">
+                <strong className="text-sm text-[var(--foreground)]">Notas detectadas</strong>
               </div>
-
-              {preview.brokerageNotes && preview.brokerageNotes.length > 0 && (
-                <div className="rounded-[16px] border border-[var(--border)]">
-                  <div className="border-b border-[var(--border)] px-4 py-3">
-                    <strong className="text-sm text-[var(--foreground)]">Notas detectadas</strong>
-                  </div>
-                  <div className="divide-y divide-[var(--border)]">
-                    {preview.brokerageNotes.map((note) => (
-                      <div key={note.noteNumber} className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[1fr_auto]">
-                        <span>
-                          <strong className="block text-[var(--foreground)]">Nota {note.noteNumber}</strong>
-                          <span className="text-xs text-[var(--text-muted)]">
-                            {note.tradeDate} · {note.businesses} negócio(s)
-                            {note.brokerCnpj ? ` · ${note.brokerCnpj}` : ''}
-                          </span>
+              <div className="divide-y divide-[var(--border)]">
+                {preview.brokerageNotes.map((note) => (
+                  <div key={note.noteNumber} className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[1fr_auto]">
+                    <span>
+                      <strong className="block text-[var(--foreground)]">Nota {note.noteNumber}</strong>
+                      <span className="text-xs text-[var(--text-muted)]">
+                        {note.tradeDate} · {note.businesses} negócio(s)
+                        {note.brokerCnpj ? ` · ${note.brokerCnpj}` : ''}
+                      </span>
+                    </span>
+                    <span className="text-right text-xs text-[var(--text-muted)]">
+                      Taxas: {showValues ? formatCurrency(note.feesCents, 'BRL') : '••••'}
+                      {note.irrfCents > 0 ? ` · IRRF: ${showValues ? formatCurrency(note.irrfCents, 'BRL') : '••••'}` : ''}
+                      {note.irrfCents > 0 && (
+                        <span className="mt-1 block">
+                          {note.taxDestination === 'IRRF'
+                            ? 'Destino fiscal: IRRF importado automaticamente'
+                            : note.taxDestination === 'REVIEW_REQUIRED'
+                              ? 'Destino fiscal: revisão obrigatória'
+                              : 'Sem registro fiscal'}
                         </span>
-                        <span className="text-right text-xs text-[var(--text-muted)]">
-                          Taxas: {showValues ? formatCurrency(note.feesCents, 'BRL') : '••••'}
-                          {note.irrfCents > 0 ? ` · IRRF: ${showValues ? formatCurrency(note.irrfCents, 'BRL') : '••••'}` : ''}
-                          {note.irrfCents > 0 && (
-                            <span className="mt-1 block">
-                              {note.taxDestination === 'IRRF'
-                                ? 'Destino fiscal: IRRF importado automaticamente'
-                                : note.taxDestination === 'REVIEW_REQUIRED'
-                                  ? 'Destino fiscal: revisão obrigatória'
-                                  : 'Sem registro fiscal'}
-                            </span>
-                          )}
-                          {note.taxDestination === 'REVIEW_REQUIRED' && (
-                            <span className="mt-1 block max-w-sm">{note.taxReason}</span>
-                          )}
-                        </span>
-                      </div>
-                    ))}
+                      )}
+                      {note.taxDestination === 'REVIEW_REQUIRED' && (
+                        <span className="mt-1 block max-w-sm">{note.taxReason}</span>
+                      )}
+                    </span>
                   </div>
-                </div>
-              )}
-
-              {preview.summary.invalid > 0 && (
-                <div className="rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]">
-                  {preview.items
-                    .filter((item) => item.errors.length > 0)
-                    .slice(0, 5)
-                    .map((item) => (
-                      <p key={item.index}>
-                        Linha {item.index + 2}: {item.errors.join(' ')}
-                      </p>
-                    ))}
-                </div>
-              )}
-
-              <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                Somente registros válidos e ainda não importados serão gravados.
-                Proventos ficam no domínio de investimentos e não criam receitas
-                em Transações.
-              </p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  disabled={working}
-                  onClick={() => {
-                    setPreview(null);
-                    setError('');
-                  }}
-                  className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
-                >
-                  Voltar
-                </button>
-                <button
-                  type="button"
-                  disabled={working || preview.summary.valid === 0}
-                  onClick={confirmImport}
-                  className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-40"
-                >
-                  {working
-                    ? 'Importando...'
-                    : `Importar ${preview.summary.valid} registro(s)`}
-                </button>
+                ))}
               </div>
             </div>
           )}
+
+          {preview.summary.invalid > 0 && (
+            <div className="rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]">
+              {preview.items
+                .filter((item) => item.errors.length > 0)
+                .slice(0, 5)
+                .map((item) => (
+                  <p key={item.index}>
+                    Linha {item.index + 2}: {item.errors.join(' ')}
+                  </p>
+                ))}
+            </div>
+          )}
+
+          <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+            Somente registros válidos e ainda não importados serão gravados.
+            Proventos ficam no domínio de investimentos e não criam receitas
+            em Transações.
+          </p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              disabled={working}
+              onClick={() => {
+                setPreview(null);
+                setError('');
+              }}
+              className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
+            >
+              Voltar
+            </button>
+            <button
+              type="button"
+              disabled={working || preview.summary.valid === 0}
+              onClick={confirmImport}
+              className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-40"
+            >
+              {working
+                ? 'Importando...'
+                : `Importar ${preview.summary.valid} registro(s)`}
+            </button>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </ModalShell>
   );
 }
 

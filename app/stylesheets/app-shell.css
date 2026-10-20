@@ -200,3 +200,11 @@
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   }
 }
+
+@media (max-width: 1023px) {
+  /* Overlays declaram `data-overlay-hide-nav`; o shell não conhece telas específicas. */
+  .authenticated-shell:has([data-overlay-hide-nav]) > nav[aria-label='Navegação principal'] {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}

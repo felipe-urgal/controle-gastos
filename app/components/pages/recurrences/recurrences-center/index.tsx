@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { SubscriptionSection } from '@/app/components/pages/recurrences/recurrences-center/subscription-section';
 import { ProtectedRoute } from '@/app/components/layout';
 import { useAuth } from '@/app/context';
@@ -406,27 +407,8 @@ function EditSeriesModal({
   const descriptionRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const previouslyFocused =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-
-    document.body.style.overflow = 'hidden';
     descriptionRef.current?.focus();
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape' && !saving) {
-        event.preventDefault();
-        onClose();
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previouslyFocused?.focus();
-    };
-  }, [onClose, saving]);
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -456,43 +438,12 @@ function EditSeriesModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[80] grid place-items-center bg-[var(--overlay)] p-4"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !saving) onClose();
-      }}
-    >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="edit-series-title"
-        className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-2xl"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">
-              Série recorrente
-            </p>
-            <h2 id="edit-series-title" className="mt-1 text-xl font-bold text-[var(--foreground)]">
-              Editar série
-            </h2>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              A alteração afeta somente as ocorrências pendentes. Histórico concluído, frequência e datas são preservados.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            aria-label="Fechar edição da série"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[var(--border)] text-[var(--foreground)] disabled:opacity-50"
-          >
-            <FaTimes aria-hidden="true" />
-          </button>
-        </div>
+    <ModalShell title="Editar série" onClose={onClose} closeDisabled={saving} maxWidthClass="max-w-md">
+      <p className="-mt-3 text-sm text-[var(--text-muted)]">
+        A alteração afeta somente as ocorrências pendentes. Histórico concluído, frequência e datas são preservados.
+      </p>
 
-        <form onSubmit={submit} className="mt-5 space-y-4">
+      <form onSubmit={submit} className="mt-5 space-y-4">
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
               Descrição
@@ -551,9 +502,8 @@ function EditSeriesModal({
               {saving ? 'Salvando…' : 'Salvar série'}
             </button>
           </div>
-        </form>
-      </section>
-    </div>
+      </form>
+    </ModalShell>
   );
 }
 
