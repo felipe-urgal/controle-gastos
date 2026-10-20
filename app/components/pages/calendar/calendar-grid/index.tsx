@@ -38,7 +38,7 @@ export default function CalendarGrid({
         {Array.from({ length: 35 }).map((_, index) => (
           <div
             key={index}
-            className="min-h-10 animate-pulse rounded-[9px] bg-[var(--surface-subtle)]"
+            className="min-h-11 animate-pulse rounded-[9px] bg-[var(--surface-subtle)]"
           />
         ))}
       </div>
@@ -63,7 +63,7 @@ export default function CalendarGrid({
           aria-hidden="true"
           className={
             compact
-              ? 'min-h-10 rounded-[9px]'
+              ? 'min-h-11 rounded-[9px]'
               : 'border-b border-r border-[var(--border)] bg-[var(--surface-raised)]'
           }
         />
@@ -145,7 +145,7 @@ export default function CalendarGrid({
               aria-label={`${visibleDateLabel}. ${dateLabel}. ${summaryParts.join('. ')}.`}
               aria-pressed={selected}
               aria-current={day.isToday ? 'date' : undefined}
-              className={`relative min-h-10 min-w-0 rounded-[9px] border px-1 py-1 text-center transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+              className={`relative min-h-11 min-w-0 rounded-[9px] border px-1 py-1 text-center transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
                 selected
                   ? 'border-[var(--orbit-primary)] bg-[var(--primary-subtle)] text-[var(--foreground)]'
                   : day.isToday
