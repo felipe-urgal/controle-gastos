@@ -490,7 +490,7 @@ export default function NetWorthPage() {
       <section className="mx-auto w-full max-w-6xl pb-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-[34px] font-extrabold tracking-tight text-[var(--foreground)]">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-[var(--foreground)]">
               Patrimônio
             </h1>
             <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
@@ -1652,7 +1652,7 @@ function HistoryCard({
           Ver valores em tabela
         </summary>
         <div className="overflow-x-auto border-t border-[var(--border)]">
-          <table className="w-full min-w-[360px] text-left text-sm">
+          <table className="w-full text-left text-sm">
             <thead className="bg-[var(--surface-raised)] text-xs text-[var(--text-muted)]">
               <tr>
                 <th className="px-3 py-2 font-semibold">Mês</th>
