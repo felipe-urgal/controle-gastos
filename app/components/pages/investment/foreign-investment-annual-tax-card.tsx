@@ -220,7 +220,7 @@ export function ForeignInvestmentAnnualTaxCard({
             type="button"
             onClick={() => void refreshPtax()}
             disabled={loading || refreshing}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-50"
           >
             <FaSyncAlt
               aria-hidden="true"
@@ -296,7 +296,7 @@ export function ForeignInvestmentAnnualTaxCard({
           </div>
 
           {report.status === 'PENDING' && (
-            <div className="mt-4 rounded-[14px] bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+            <div className="mt-4 rounded-[14px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
               <strong className="block text-sm">Apuração pendente</strong>
               <span className="mt-1 block">
                 O imposto não é fechado enquanto houver PTAX, classificação,
@@ -466,7 +466,7 @@ export function ForeignInvestmentAnnualTaxCard({
                   type="button"
                   onClick={() => void createForeignTaxCredit()}
                   disabled={savingCredit || !creditNonRefundable}
-                  className="inline-flex min-h-10 items-center rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-40"
+                  className="inline-flex min-h-11 items-center rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-40"
                 >
                   {savingCredit ? 'Registrando...' : 'Registrar imposto pago'}
                 </button>

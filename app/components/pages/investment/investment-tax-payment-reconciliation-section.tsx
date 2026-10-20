@@ -194,7 +194,7 @@ export function InvestmentTaxPaymentReconciliationSection({
                     type="button"
                     disabled={workingKey !== ''}
                     onClick={() => void unlink(item.paymentId)}
-                    className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
+                    className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
                   >
                     <FaUnlink aria-hidden="true" />
                     {workingKey === item.paymentId + ':unlink'
@@ -219,7 +219,7 @@ export function InvestmentTaxPaymentReconciliationSection({
                           type="button"
                           disabled={workingKey !== ''}
                           onClick={() => void link(item.paymentId, candidate.id)}
-                          className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-full bg-[var(--foreground)] px-3 text-xs font-bold text-[var(--background)] disabled:opacity-40"
+                          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--foreground)] px-3 text-xs font-bold text-[var(--background)] disabled:opacity-40"
                         >
                           <FaLink aria-hidden="true" />
                           {workingKey === key ? 'Vinculando...' : 'Vincular'}

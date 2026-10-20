@@ -180,14 +180,14 @@ export function InvestmentTaxControlCard({
           <button
             type="button"
             onClick={() => setMode(mode === 'IRRF' ? null : 'IRRF')}
-            className="min-h-10 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
+            className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
           >
             Registrar IRRF
           </button>
           <button
             type="button"
             onClick={() => setMode(mode === 'DARF' ? null : 'DARF')}
-            className="min-h-10 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
+            className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
           >
             Registrar DARF
           </button>
@@ -310,7 +310,7 @@ export function InvestmentTaxControlCard({
           <button
             type="submit"
             disabled={saving}
-            className="min-h-10 rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-50"
+            className="min-h-11 rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-50"
           >
             {saving ? 'Salvando...' : 'Salvar ' + mode}
           </button>
@@ -324,7 +324,7 @@ export function InvestmentTaxControlCard({
       )}
 
       {report && report.unsupportedCurrencies.length > 0 && (
-        <div className="mt-4 rounded-[14px] bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+        <div className="mt-4 rounded-[14px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
           <strong className="block text-sm">
             Investimentos no exterior pendentes
           </strong>
@@ -336,7 +336,7 @@ export function InvestmentTaxControlCard({
       )}
 
       {report && report.unsupportedTaxLocations.length > 0 && (
-        <div className="mt-4 rounded-[14px] bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+        <div className="mt-4 rounded-[14px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
           <strong className="block text-sm">
             Ativos classificados no exterior
           </strong>
@@ -350,7 +350,7 @@ export function InvestmentTaxControlCard({
       {loading ? (
         <p className="mt-4 text-sm text-[var(--text-muted)]">Carregando...</p>
       ) : report && !report.ruleSupported ? (
-        <div className="mt-4 rounded-[14px] bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+        <div className="mt-4 rounded-[14px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
           <strong className="block text-sm">
             Regras fiscais de {year} ainda não suportadas
           </strong>

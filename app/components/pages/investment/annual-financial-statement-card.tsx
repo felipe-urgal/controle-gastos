@@ -333,7 +333,7 @@ export function AnnualFinancialStatementCard({
               <button
                 type="button"
                 onClick={() => setPreview(null)}
-                className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] text-xs font-bold"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] text-xs font-bold"
               >
                 <FaRedo aria-hidden="true" /> Escolher outro PDF
               </button>
@@ -559,7 +559,7 @@ export function AnnualFinancialStatementCard({
                             <button
                               type="button"
                               onClick={() => onInspectAsset(position.internalAssetId!)}
-                              className="min-h-9 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
+                              className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
                             >
                               Ver histórico
                             </button>
@@ -581,7 +581,7 @@ export function AnnualFinancialStatementCard({
                                     symbol: position.symbol!,
                                   })
                                 }
-                                className="min-h-9 rounded-full bg-[var(--foreground)] px-3 text-xs font-bold text-[var(--background)] disabled:opacity-40"
+                                className="min-h-11 rounded-full bg-[var(--foreground)] px-3 text-xs font-bold text-[var(--background)] disabled:opacity-40"
                               >
                                 {baselineKey ===
                                 position.statementId + ':' + position.positionIndex
@@ -642,7 +642,7 @@ export function AnnualFinancialStatementCard({
                           <button
                             type="button"
                             onClick={() => onInspectAsset(income.internalAssetId!)}
-                            className="mt-3 min-h-9 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
+                            className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
                           >
                             Ver pagamentos/histórico
                           </button>

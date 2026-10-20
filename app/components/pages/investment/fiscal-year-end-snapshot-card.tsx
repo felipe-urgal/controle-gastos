@@ -158,7 +158,7 @@ export function FiscalYearEndSnapshotCard({
                           'rounded-full border px-2 py-0.5 text-xs font-bold ' +
                           (item.status === 'OK'
                             ? 'border-[var(--income)]/35 text-[var(--income)]'
-                            : 'border-amber-500/35 text-amber-400')
+                            : 'border-[var(--warning)]/35 text-[var(--warning)]')
                         }
                       >
                         {item.status === 'OK' ? 'Conciliado' : 'Pendente'}
@@ -171,7 +171,7 @@ export function FiscalYearEndSnapshotCard({
                         : 'Sem instituição identificada'}
                     </span>
                     {context?.pending[0] && (
-                      <span className="mt-1 block text-xs leading-relaxed text-amber-400">
+                      <span className="mt-1 block text-xs leading-relaxed text-[var(--warning)]">
                         {context.pending[0].message}
                       </span>
                     )}
