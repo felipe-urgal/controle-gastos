@@ -1,5 +1,6 @@
 'use client';
 
+import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -154,7 +155,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
           >
             <FaArrowLeft aria-hidden="true" />
           </button>
-          <h1 className="truncate text-left text-[20px] font-bold tracking-tight text-[var(--foreground)]">
+          <h1 className={`text-left ${appBarTitleClassName}`}>
             {isEditing ? 'Editar categoria' : 'Nova categoria'}
           </h1>
         </header>

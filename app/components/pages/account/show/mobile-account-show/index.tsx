@@ -1,5 +1,6 @@
 'use client';
 
+import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
@@ -104,7 +105,7 @@ export default function MobileAccountShow({
           <FaArrowLeft aria-hidden="true" />
         </Link>
 
-        <h1 className="truncate text-center text-[24px] font-extrabold tracking-tight text-[var(--foreground)]">
+        <h1 className={`text-center ${appBarTitleClassName}`}>
           {account.name}
         </h1>
 

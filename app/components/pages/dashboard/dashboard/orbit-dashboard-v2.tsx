@@ -1,5 +1,6 @@
 'use client';
 
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
@@ -197,7 +198,7 @@ export default function OrbitDashboardV2() {
       <header className="hidden flex-col gap-4 lg:flex lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p suppressHydrationWarning className="min-h-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{currentDateLabel()}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)] lg:text-[32px]">Seu dinheiro, no seu controle</h1>
+          <h1 className={`mt-1 ${pageTitleClassName}`}>Seu dinheiro, no seu controle</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">Acompanhe o mês selecionado sem misturar com o estado financeiro de hoje.</p>
         </div>
 

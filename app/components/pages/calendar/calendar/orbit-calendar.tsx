@@ -1,5 +1,6 @@
 'use client';
 
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
@@ -198,7 +199,7 @@ export default function OrbitCalendar() {
           <p className="hidden text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] sm:block">
             Linha do tempo financeira
           </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-[30px]">
+          <h1 className={`mt-1 ${pageTitleClassName}`}>
             Calendário
           </h1>
           <p className="mt-1 hidden text-sm text-[var(--text-muted)] sm:block">

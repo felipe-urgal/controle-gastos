@@ -2,6 +2,7 @@
 
 import { FaArrowLeft, FaEdit, FaPlus, FaTrash } from 'react-icons/fa';
 
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { Button } from '@/app/components/ui';
 
 interface PageHeaderProps {
@@ -45,7 +46,7 @@ export default function PageHeader({
 
         <div className="min-w-0">
           {title && (
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
+            <h1 className={`break-words ${pageTitleClassName}`}>
               {title}
             </h1>
           )}

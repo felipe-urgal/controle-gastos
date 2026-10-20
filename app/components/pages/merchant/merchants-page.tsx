@@ -1,5 +1,7 @@
 'use client';
 
+import { PageContainer } from '@/app/components/base-pages';
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import {
   useCallback,
@@ -482,13 +484,13 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
 
   return (
     <ProtectedRoute>
-      <div className="mx-auto w-full max-w-5xl">
+      <PageContainer>
         <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--orbit-primary)]">
               Organização
             </p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)]">
+            <h1 className={`mt-1 ${pageTitleClassName}`}>
               Estabelecimentos
             </h1>
             <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -1090,7 +1092,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
             />
           </div>
         </section>
-      </div>
+      </PageContainer>
 
       {deleteCandidate ? (
         <ModalShell

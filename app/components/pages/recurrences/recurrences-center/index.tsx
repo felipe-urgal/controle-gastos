@@ -1,5 +1,7 @@
 'use client';
 
+import { PageContainer } from '@/app/components/base-pages';
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import Link from 'next/link';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -165,10 +167,10 @@ export default function RecurrencesCenter() {
 
   return (
     <ProtectedRoute>
-      <section className="mx-auto w-full max-w-6xl pb-6">
+      <PageContainer as="section">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-[var(--foreground)]">
+            <h1 className={pageTitleClassName}>
               Recorrências e assinaturas
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-[var(--text-muted)] sm:text-base">
@@ -283,7 +285,7 @@ export default function RecurrencesCenter() {
             onSave={(input) => saveSeries(editing, input)}
           />
         )}
-      </section>
+      </PageContainer>
     </ProtectedRoute>
   );
 }

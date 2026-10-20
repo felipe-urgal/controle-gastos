@@ -1,5 +1,6 @@
 'use client';
 
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import Link from 'next/link';
@@ -113,7 +114,7 @@ function MobileAccountsCenter({
     <div className="space-y-[22px] pb-3">
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-[34px] font-extrabold leading-none tracking-tight text-[var(--foreground)]">
+          <h1 className={pageTitleClassName}>
             Contas
           </h1>
           <p className="mt-2 text-base text-[var(--text-muted)]">
@@ -590,7 +591,7 @@ export default function OrbitAccounts() {
       <div>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-[30px]">
+          <h1 className={pageTitleClassName}>
             Contas
           </h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
