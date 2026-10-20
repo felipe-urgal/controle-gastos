@@ -1,5 +1,6 @@
 'use client';
 
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -306,16 +307,8 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
 
   return (
     <ProtectedRoute>
-      <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
-        <header className="border-b border-[var(--border)] pb-5">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--orbit-primary)]">
-            Contexto
-          </p>
-          <h1 className="mt-1 text-2xl font-black sm:text-3xl">Tags</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Classifique transações por contexto sem alterar categoria, saldo ou tipo financeiro.
-          </p>
-        </header>
+      <PageContainer>
+        <PageTitle eyebrow="Contexto" title="Tags" description="Classifique transações por contexto sem alterar categoria, saldo ou tipo financeiro." />
 
 
         <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,.8fr)]">
@@ -719,7 +712,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
           isLoading={deletingId !== null}
           dangerNotice="Esta ação é irreversível. Tags em uso não podem ser excluídas; devem ser arquivadas."
         />
-      </div>
+      </PageContainer>
     </ProtectedRoute>
   );
 }
