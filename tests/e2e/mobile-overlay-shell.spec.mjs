@@ -37,7 +37,10 @@ async function seedAccount(page, name) {
 }
 
 async function expectBottomNavSuppressed(page) {
-  const bottomNav = page.getByRole('navigation', { name: 'Navegação principal' });
+  const bottomNav = page.getByRole('navigation', {
+    name: 'Navegação principal',
+    includeHidden: true,
+  });
   await expect(bottomNav).toBeAttached();
   await expect(bottomNav).toBeHidden();
 }
@@ -86,7 +89,7 @@ test('overlays mobile mantêm ações acessíveis sem competição com a navega�
   const bottomNav = page.getByRole('navigation', { name: 'Navegação principal' });
   await expect(bottomNav).toBeVisible();
 
-  await page.locator('button[aria-haspopup="dialog"]').click();
+  await page.locator('button[aria-haspopup="dialog"]:not([aria-label="Mais"]):visible').click();
 
   const periodDialog = page.getByRole('dialog', { name: 'Selecionar mês', exact: true });
   const applyPeriod = periodDialog.getByRole('button', { name: 'Aplicar período', exact: true });
