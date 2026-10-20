@@ -17,11 +17,9 @@ import {
   FaPlus,
   FaSearch,
   FaTag,
-  FaTimes,
 } from 'react-icons/fa';
 
 import { IconRenderer } from '@/app/components/ui';
-import { useModalFocus } from '@/app/hooks/use-modal-focus';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type {
@@ -229,11 +227,6 @@ export default function MobileCategoriesCenter({
     setSelectedIncomeId(null);
     onCancelRemove();
   }, [mutationBusy, onCancelRemove]);
-  const categoryDialogRef = useModalFocus<HTMLElement>(
-    Boolean(selectedExpense || selectedIncome),
-    closeSelectedCategory,
-    mutationBusy,
-  );
 
   const safePercentage = Math.max(0, Math.min(100, budgetPercentage));
 
@@ -627,132 +620,100 @@ export default function MobileCategoriesCenter({
       )}
 
       {(selectedExpense || selectedIncome) && (
-        <div
-          className="fixed inset-0 z-[var(--z-sheet)] flex items-end bg-[var(--overlay)] lg:hidden"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeSelectedCategory();
-          }}
+        <ModalShell
+          title={selectedExpense?.category.name || selectedIncome?.name || ''}
+          description={selectedExpense ? 'Despesa' : 'Receita · Fora do orçamento'}
+          closeLabel="Fechar resumo da categoria"
+          maxWidthClass="max-w-[430px]"
+          onClose={closeSelectedCategory}
+          closeDisabled={mutationBusy}
+          icon={
+            <span
+              className="grid h-14 w-14 place-items-center rounded-[16px] text-xl text-white"
+              style={{
+                backgroundColor:
+                  selectedExpense?.category.color || selectedIncome?.color || DEFAULT_CATEGORY_COLOR,
+              }}
+            >
+              <IconRenderer
+                iconName={selectedExpense?.category.icon || selectedIncome?.icon || 'tag'}
+                size={23}
+              />
+            </span>
+          }
         >
-          <section
-            ref={categoryDialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="mobile-category-summary-title"
-            aria-busy={mutationBusy || undefined}
-            tabIndex={-1}
-            className="w-full rounded-t-[28px] border-t border-[var(--border-strong)] bg-[var(--background)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-elevated)]">
-            <div className="mx-auto w-full max-w-[430px]">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span
-                    className="grid h-14 w-14 shrink-0 place-items-center rounded-[16px] text-xl text-white"
-                    style={{
-                      backgroundColor:
-                        selectedExpense?.category.color || selectedIncome?.color || DEFAULT_CATEGORY_COLOR,
-                    }}
-                    aria-hidden="true"
-                  >
-                    <IconRenderer
-                      iconName={
-                        selectedExpense?.category.icon || selectedIncome?.icon || 'tag'
-                      }
-                      size={23}
-                    />
-                  </span>
-                  <div className="min-w-0">
-                    <h2 id="mobile-category-summary-title" className="truncate text-xl font-extrabold text-[var(--foreground)]">
-                      {selectedExpense?.category.name || selectedIncome?.name}
-                    </h2>
-                    <p className="mt-1 text-sm text-[var(--text-muted)]">
-                      {selectedExpense ? 'Despesa' : 'Receita · Fora do orçamento'}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeSelectedCategory}
-                  disabled={mutationBusy}
-                  aria-label="Fechar resumo da categoria"
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--surface)] text-[var(--text-muted)]"
-                >
-                  <FaTimes aria-hidden="true" />
-                </button>
-              </div>
+      {selectedExpense && (
+        <>
+          <dl className="mt-5 grid grid-cols-2 gap-2">
+            <SheetMetric label="Orçado" value={displayMoney(selectedExpense.limit?.amount ?? null, showValues, currency)} />
+            <SheetMetric label="Realizado" value={displayMoney(selectedExpense.realized, showValues, currency)} />
+            <SheetMetric label="Comprometido" value={displayMoney(selectedExpense.committed, showValues, currency)} />
+            <SheetMetric
+              label="Disponível"
+              value={displayMoney(selectedExpense.available, showValues, currency)}
+              className={(selectedExpense.available ?? 0) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}
+            />
+          </dl>
 
-              {selectedExpense && (
-                <>
-                  <dl className="mt-5 grid grid-cols-2 gap-2">
-                    <SheetMetric label="Orçado" value={displayMoney(selectedExpense.limit?.amount ?? null, showValues, currency)} />
-                    <SheetMetric label="Realizado" value={displayMoney(selectedExpense.realized, showValues, currency)} />
-                    <SheetMetric label="Comprometido" value={displayMoney(selectedExpense.committed, showValues, currency)} />
-                    <SheetMetric
-                      label="Disponível"
-                      value={displayMoney(selectedExpense.available, showValues, currency)}
-                      className={(selectedExpense.available ?? 0) < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}
-                    />
-                  </dl>
+          <div className="mt-5 grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={() => onEditLimit(selectedExpense)}
+              disabled={mutationBusy}
+              className="min-h-[52px] rounded-[14px] border border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] px-3 text-sm font-bold text-[var(--orbit-primary)] disabled:opacity-50"
+            >
+              {selectedExpense.limit ? 'Editar limite' : 'Definir limite'}
+            </button>
+            <Link
+              href={`/transacoes?categoryId=${encodeURIComponent(selectedExpense.category.id)}`}
+              className="flex min-h-[52px] items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-bold text-[var(--foreground)]"
+            >
+              Ver transações
+            </Link>
+          </div>
 
-                  <div className="mt-5 grid grid-cols-2 gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => onEditLimit(selectedExpense)}
-                      disabled={mutationBusy}
-                      className="min-h-[52px] rounded-[14px] border border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] px-3 text-sm font-bold text-[var(--orbit-primary)] disabled:opacity-50"
-                    >
-                      {selectedExpense.limit ? 'Editar limite' : 'Definir limite'}
-                    </button>
-                    <Link
-                      href={`/transacoes?categoryId=${encodeURIComponent(selectedExpense.category.id)}`}
-                      className="flex min-h-[52px] items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-bold text-[var(--foreground)]"
-                    >
-                      Ver transações
-                    </Link>
-                  </div>
+          <Link
+            href={`/categorias/show/${selectedExpense.category.id}`}
+            className="mt-2.5 flex min-h-[50px] items-center justify-center gap-2 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-bold text-[var(--foreground)]"
+          >
+            Abrir categoria
+            <FaChevronRight aria-hidden="true" />
+          </Link>
 
-                  <Link
-                    href={`/categorias/show/${selectedExpense.category.id}`}
-                    className="mt-2.5 flex min-h-[50px] items-center justify-center gap-2 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-bold text-[var(--foreground)]"
-                  >
-                    Abrir categoria
-                    <FaChevronRight aria-hidden="true" />
-                  </Link>
+          {selectedExpense.limit && (
+            <button
+              type="button"
+              onClick={() => void onRemoveLimit(selectedExpense)}
+              disabled={mutationBusy && removingCategoryId !== selectedExpense.category.id}
+              className="mt-2.5 min-h-[48px] w-full rounded-[14px] text-sm font-bold text-[var(--expense)] disabled:opacity-50"
+            >
+              {removingCategoryId === selectedExpense.category.id
+                ? 'Removendo...'
+                : confirmingRemoveId === selectedExpense.category.id
+                  ? 'Confirmar remoção do limite'
+                  : 'Remover limite'}
+            </button>
+          )}
+        </>
+      )}
 
-                  {selectedExpense.limit && (
-                    <button
-                      type="button"
-                      onClick={() => void onRemoveLimit(selectedExpense)}
-                      disabled={mutationBusy && removingCategoryId !== selectedExpense.category.id}
-                      className="mt-2.5 min-h-[48px] w-full rounded-[14px] text-sm font-bold text-[var(--expense)] disabled:opacity-50"
-                    >
-                      {removingCategoryId === selectedExpense.category.id
-                        ? 'Removendo...'
-                        : confirmingRemoveId === selectedExpense.category.id
-                          ? 'Confirmar remoção do limite'
-                          : 'Remover limite'}
-                    </button>
-                  )}
-                </>
-              )}
-
-              {selectedIncome && (
-                <div className="mt-5 grid grid-cols-2 gap-2.5">
-                  <Link
-                    href={`/categorias/show/${selectedIncome.id}`}
-                    className="flex min-h-[52px] items-center justify-center rounded-[14px] border border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] px-3 text-sm font-bold text-[var(--orbit-primary)]"
-                  >
-                    Abrir categoria
-                  </Link>
-                  <Link
-                    href={`/transacoes?categoryId=${encodeURIComponent(selectedIncome.id)}`}
-                    className="flex min-h-[52px] items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-bold text-[var(--foreground)]"
-                  >
-                    Ver transações
-                  </Link>
-                </div>
-              )}
-            </div>
-          </section>
+      {selectedIncome && (
+        <div className="mt-5 grid grid-cols-2 gap-2.5">
+          <Link
+            href={`/categorias/show/${selectedIncome.id}`}
+            className="flex min-h-[52px] items-center justify-center rounded-[14px] border border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] px-3 text-sm font-bold text-[var(--orbit-primary)]"
+          >
+            Abrir categoria
+          </Link>
+          <Link
+            href={`/transacoes?categoryId=${encodeURIComponent(selectedIncome.id)}`}
+            className="flex min-h-[52px] items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-bold text-[var(--foreground)]"
+          >
+            Ver transações
+          </Link>
         </div>
+      )}
+        </ModalShell>
       )}
     </section>
   );

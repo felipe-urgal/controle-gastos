@@ -107,3 +107,43 @@ test('overlays mobile mantêm ações acessíveis sem competição com a navega�
   await expect(forecastDialog).toBeHidden();
   await expect(bottomNav).toBeVisible();
 });
+
+test('ModalShell: foco inicial, Tab preso, Esc, clique no fundo e retorno do foco', async ({ page }) => {
+  test.setTimeout(60_000);
+
+  const email = `playwright-modal-focus-${Date.now()}-${test.info().retry}@example.test`;
+  await createVerifiedUser({ name: 'Playwright Modal Focus', email, password });
+  await login(page, email);
+  await page.setViewportSize({ width: 390, height: 760 });
+  await page.goto('/transacoes');
+
+  const trigger = page.getByRole('button', { name: /^Filtros\b/ });
+  const dialog = page.getByRole('dialog', { name: 'Filtros', exact: true });
+
+  // Foco inicial no diálogo e Tab nunca escapa dele.
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toBeFocused();
+  for (let index = 0; index < 25; index += 1) {
+    await page.keyboard.press('Tab');
+    expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBeTruthy();
+  }
+  for (let index = 0; index < 25; index += 1) {
+    await page.keyboard.press('Shift+Tab');
+    expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBeTruthy();
+  }
+
+  // Esc fecha e devolve o foco ao botão que abriu.
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+
+  // Clique no fundo (faixa acima do sheet) fecha.
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await page.mouse.move(180, 8);
+  await page.mouse.down();
+  await page.mouse.up();
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+});
