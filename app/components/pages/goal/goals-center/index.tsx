@@ -1,5 +1,7 @@
 'use client';
 
+import { PageContainer } from '@/app/components/base-pages';
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FaArchive,
@@ -421,10 +423,10 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
 
   return (
     <ProtectedRoute>
-      <section className="mx-auto w-full max-w-6xl pb-6">
+      <PageContainer as="section">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-[var(--foreground)]">
+            <h1 className={pageTitleClassName}>
               Metas
             </h1>
             <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
@@ -542,7 +544,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
             </div>
           )}
         </div>
-      </section>
+      </PageContainer>
 
       {formOpen && (
         <GoalFormModal

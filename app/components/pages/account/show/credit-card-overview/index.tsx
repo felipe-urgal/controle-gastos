@@ -1,5 +1,6 @@
 'use client';
 
+import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -228,7 +229,7 @@ export default function CreditCardOverview({
         >
           <FaArrowLeft aria-hidden="true" />
         </Link>
-        <h1 className="min-w-0 flex-1 truncate text-center text-xl font-extrabold text-[var(--foreground)]">
+        <h1 className={`text-center ${appBarTitleClassName}`}>
           {account.name}
         </h1>
         <Link

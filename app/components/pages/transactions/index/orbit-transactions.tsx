@@ -1,5 +1,6 @@
 'use client';
 
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
@@ -634,7 +635,7 @@ export default function OrbitTransactions() {
                 <div className="min-w-0">
                   <p className="hidden text-sm font-semibold uppercase tracking-[0.12em] text-[var(--orbit-primary)] sm:block">ORBIT / CENTRO OPERACIONAL</p>
                   <div className="flex items-center justify-between gap-3">
-                    <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:mt-1 sm:text-[30px]">Transações</h1>
+                    <h1 className={`sm:mt-1 ${pageTitleClassName}`}>Transações</h1>
                     <Link
                       href="/transacoes/importar"
                       aria-label="Importar transações"

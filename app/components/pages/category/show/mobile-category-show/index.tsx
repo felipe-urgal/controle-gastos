@@ -1,5 +1,6 @@
 'use client';
 
+import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -87,7 +88,7 @@ export default function MobileCategoryShow({
           <FaArrowLeft aria-hidden="true" />
         </Link>
 
-        <h1 className="truncate text-center text-[22px] font-extrabold tracking-tight text-[var(--foreground)] min-[360px]:text-[24px]">
+        <h1 className={`text-center ${appBarTitleClassName}`}>
           {category.name}
         </h1>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
@@ -241,7 +242,7 @@ export default function MobileCategoriesCenter({
     <section className="mx-auto w-full max-w-[430px] pb-3">
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-[36px] font-extrabold leading-none tracking-tight text-[var(--foreground)]">
+          <h1 className={pageTitleClassName}>
             Categorias
           </h1>
           <p className="mt-2 text-[16px] text-[var(--text-muted)]">

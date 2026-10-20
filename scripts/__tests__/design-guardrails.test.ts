@@ -43,4 +43,19 @@ describe("guardrails de design", () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it("títulos <h1> usam pageTitleClassName/appBarTitleClassName (sem tamanho literal)", () => {
+    // Fora do shell autenticado: landing e telas de autenticação têm escala própria.
+    const allowed = ["components/layout/auth-shell/", "components/pages/home/", "components/base-pages/page-title/"];
+    const offenders = sourceFiles(join(ROOT, "components")).flatMap((file) => {
+      const path = relative(process.cwd(), file);
+      if (allowed.some((prefix) => path.includes(prefix))) return [];
+      const matches = readFileSync(file, "utf8").match(/<h1\b[^>]*className="[^"]*"/g) ?? [];
+      return matches
+        .filter((match) => !/sr-only/.test(match))
+        .map((match) => `${path}: ${match.slice(0, 90)}`);
+    });
+
+    expect(offenders).toEqual([]);
+  });
 });

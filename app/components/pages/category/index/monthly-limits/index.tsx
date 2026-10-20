@@ -1,5 +1,6 @@
 'use client';
 
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
@@ -400,7 +401,7 @@ export default function CategoryMonthlyLimits({
       >
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 id="categories-title" className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-[30px]">
+          <h1 id="categories-title" className={pageTitleClassName}>
             Categorias / Limites
           </h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">

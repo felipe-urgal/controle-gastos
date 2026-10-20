@@ -1,5 +1,6 @@
 'use client';
 
+import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -187,7 +188,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           >
             <FaArrowLeft aria-hidden="true" />
           </button>
-          <h1 className="truncate text-center text-[25px] font-extrabold tracking-tight text-[var(--foreground)] min-[360px]:text-[27px]">
+          <h1 className={`text-center ${appBarTitleClassName}`}>
             {isEditing ? 'Editar conta' : 'Nova conta'}
           </h1>
           <span className="text-right text-base font-extrabold text-[var(--orbit-primary)] min-[360px]:text-lg">

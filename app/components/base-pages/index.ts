@@ -5,3 +5,4 @@ export { default as NewPage } from '@/app/components/base-pages/new-page';
 export { default as PageHeader } from '@/app/components/base-pages/page-header';
 export { default as PageTitle } from '@/app/components/base-pages/page-title';
 export { default as PageContainer } from '@/app/components/base-pages/page-container';
+export { pageTitleClassName, appBarTitleClassName } from '@/app/components/base-pages/page-title';

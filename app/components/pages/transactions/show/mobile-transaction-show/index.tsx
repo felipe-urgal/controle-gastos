@@ -1,5 +1,6 @@
 'use client';
 
+import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Link from 'next/link';
@@ -138,7 +139,7 @@ export default function MobileTransactionShow({
         >
           <FaArrowLeft aria-hidden="true" />
         </Link>
-        <h1 className="min-w-0 flex-1 truncate text-center text-xl font-bold tracking-tight text-[var(--foreground)]">
+        <h1 className={`text-center ${appBarTitleClassName}`}>
           {isTransfer ? 'Detalhes da transferência' : isCardPayment ? 'Pagamento de fatura' : 'Detalhes da transação'}
         </h1>
         {allowMutations && (

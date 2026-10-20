@@ -1,5 +1,7 @@
 'use client';
 
+import { PageContainer } from '@/app/components/base-pages';
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FaArchive,
@@ -441,10 +443,10 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
 
   return (
     <ProtectedRoute>
-      <section className="mx-auto w-full max-w-6xl pb-8">
+      <PageContainer as="section">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-[var(--foreground)]">Dívidas</h1>
+            <h1 className={pageTitleClassName}>Dívidas</h1>
             <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
               Passivos manuais, separados das contas e sem alterar saldos financeiros.
             </p>
@@ -693,7 +695,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
             </div>
           </ModalShell>
         )}
-      </section>
+      </PageContainer>
     </ProtectedRoute>
   );
 }
