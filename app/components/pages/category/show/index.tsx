@@ -2,7 +2,7 @@
 
 import { useCategories } from "@/app/hooks/categories/category-show";
 import { ShowPage } from "@/app/components/base-pages";
-import { CategoryInfo } from "@/app/components/pages/category";
+import CategoryInfo from '@/app/components/pages/category/show/category-info';
 import MobileCategoryShow from "@/app/components/pages/category/show/mobile-category-show";
 
 export default function Show({ id }: { id: string }) {

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { NewPage } from '@/app/components/base-pages';
-import { TransactionForm } from '@/app/components/pages/transactions';
+import TransactionForm from '@/app/components/pages/transactions/form';
 import OfflineQueuePanel from '@/app/components/pages/transactions/new/offline-queue-panel';
 import TransferForm from '@/app/components/pages/transactions/transfer-form';
 import { useAuth } from '@/app/context';

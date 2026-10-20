@@ -46,16 +46,16 @@ const OVERLAY_ALLOWED: Record<string, number> = {
 const HEX_ALLOWED: Record<string, number> = {
   "app/components/ui/color-selector/index.tsx": 13,
   // Dívida de tokens (#880):
-  "app/components/pages/category/show/mobile-category-show/index.tsx": 1,
-  "app/components/pages/category/index/mobile-categories-center/index.tsx": 1,
-  "app/components/pages/category/form/index.tsx": 9,
-  "app/components/pages/net-worth/net-worth-page/index.tsx": 1,
-  "app/components/pages/transactions/show/mobile-transaction-show/index.tsx": 3,
-  "app/components/pages/transactions/index/orbit-transactions.tsx": 1,
+  "app/components/pages/account/form/index.tsx": 9,
+  "app/components/pages/account/index/orbit-accounts.tsx": 4,
   "app/components/pages/account/show/account-info/index.tsx": 1,
   "app/components/pages/account/show/mobile-account-show/index.tsx": 1,
-  "app/components/pages/account/index/orbit-accounts.tsx": 4,
-  "app/components/pages/account/form/index.tsx": 10,
+  "app/components/pages/category/form/index.tsx": 8,
+  "app/components/pages/category/index/mobile-categories-center/index.tsx": 1,
+  "app/components/pages/category/show/mobile-category-show/index.tsx": 1,
+  "app/components/pages/net-worth/net-worth-page/net-worth-cards.tsx": 1,
+  "app/components/pages/transactions/index/desktop-transactions.tsx": 1,
+  "app/components/pages/transactions/show/mobile-transaction-show/index.tsx": 3,
 };
 
 describe("catraca de dívida de design", () => {

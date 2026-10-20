@@ -1,5 +1,5 @@
 import { NewPage } from '@/app/components/base-pages';
-import { CategoryForm } from '@/app/components/pages/category';
+import CategoryForm from '@/app/components/pages/category/form';
 
 export default function NewCategoryPage() {
   return (

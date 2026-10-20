@@ -1,7 +1,7 @@
 'use client';
 
 import { ShowPage } from '@/app/components/base-pages';
-import { AccountInfo } from '@/app/components/pages/account';
+import AccountInfo from '@/app/components/pages/account/show/account-info';
 import MobileAccountShow from '@/app/components/pages/account/show/mobile-account-show';
 import CreditCardOverview from '@/app/components/pages/account/show/credit-card-overview';
 import { useAccounts } from '@/app/hooks/accounts/account-show';

@@ -1,7 +1,7 @@
 'use client';
 
 import { ShowPage } from '@/app/components/base-pages';
-import { TransactionInfo } from '@/app/components/pages/transactions';
+import TransactionInfo from '@/app/components/pages/transactions/show/transaction-info';
 import MobileTransactionShow from '@/app/components/pages/transactions/show/mobile-transaction-show';
 import { useTransactions } from '@/app/hooks/transactions/transaction-show';
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { EditPage } from '@/app/components/base-pages';
-import { AccountForm } from '@/app/components/pages/account';
+import AccountForm from '@/app/components/pages/account/form';
 import { useAccounts } from '@/app/hooks/accounts/account-edit';
 
 export default function Edit({ id }: { id: string }) {
