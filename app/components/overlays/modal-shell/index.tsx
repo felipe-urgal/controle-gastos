@@ -36,6 +36,7 @@ export function ModalShell({
   eyebrow,
   closeLabel = 'Fechar',
   variant = 'sheet',
+  sectionClassName = '',
 }: {
   title: string;
   children: ReactNode;
@@ -58,6 +59,8 @@ export function ModalShell({
    * Em ≥ sm ambos viram diálogo centralizado.
    */
   variant?: ModalShellVariant;
+  /** Classes extras no diálogo (ex.: sobrescrever tokens de cor do escopo). */
+  sectionClassName?: string;
 }) {
   const titleId = useId();
   const descriptionId = useId();
@@ -99,7 +102,7 @@ export function ModalShell({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         aria-busy={closeDisabled || undefined}
-        className={`flex w-full ${maxWidthClass} ${sectionSize} flex-col overflow-hidden rounded-t-[22px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-elevated)] outline-none sm:rounded-[22px]`}
+        className={`flex w-full ${maxWidthClass} ${sectionSize} flex-col overflow-hidden rounded-t-[22px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-elevated)] outline-none sm:rounded-[22px] ${sectionClassName}`}
       >
         <header className="flex shrink-0 items-start justify-between gap-4 px-5 pb-5 pt-5">
           <div className="min-w-0">

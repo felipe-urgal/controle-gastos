@@ -1,7 +1,8 @@
 'use client';
 
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { useRouter } from 'next/navigation';
-import { KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FaArrowDown,
   FaArrowRight,
@@ -846,111 +847,42 @@ function TransferReviewModal({
   destination,
   status,
 }: TransferReviewModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const titleId = useId();
-  const descriptionId = useId();
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const previousFocus = document.activeElement as HTMLElement | null;
-    const frame = requestAnimationFrame(() => dialogRef.current?.focus());
-
-    return () => {
-      cancelAnimationFrame(frame);
-      previousFocus?.focus();
-    };
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Escape' && !isLoading) {
-      event.preventDefault();
-      onClose();
-      return;
-    }
-
-    if (event.key !== 'Tab') return;
-
-    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-
-    if (!focusable?.length) {
-      event.preventDefault();
-      dialogRef.current?.focus();
-      return;
-    }
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const activeElement = document.activeElement;
-
-    if (activeElement === dialogRef.current) {
-      event.preventDefault();
-      (event.shiftKey ? last : first).focus();
-    } else if (event.shiftKey && activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }
-
   return (
-    <div className="fixed inset-0 z-[60]">
-      <button
-        type="button"
-        tabIndex={-1}
-        aria-label="Fechar revisão"
-        className="absolute inset-0 h-full w-full bg-[var(--overlay)]"
-        onClick={isLoading ? undefined : onClose}
-      />
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
-        <div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          aria-describedby={descriptionId}
-          aria-busy={isLoading || undefined}
-          tabIndex={-1}
-          onKeyDown={handleKeyDown}
-          className="pointer-events-auto w-full max-w-[520px] rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] p-5 shadow-2xl [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary:var(--orbit-primary)]"
+    <ModalShell
+      title="Revisar transferência"
+      description="Confira as duas contas e o valor antes de confirmar."
+      closeLabel="Fechar revisão"
+      onClose={onClose}
+      closeDisabled={isLoading}
+      maxWidthClass="max-w-[520px]"
+      sectionClassName="[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary:var(--orbit-primary)]"
+      footer={
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="secondary" onClick={onClose} disabled={isLoading}>
+          Voltar
+        </Button>
+        <Button
+          type="button"
+          onClick={onConfirm}
+          isLoading={isLoading}
+          disabled={isLoading}
+          icon={<FaCheck />}
         >
-          <h2 id={titleId} className="text-xl font-semibold text-[var(--foreground)]">
-            Revisar transferência
-          </h2>
-          <p id={descriptionId} className="mt-1 text-sm text-[var(--text-muted)]">
-            Confira as duas contas e o valor antes de confirmar.
-          </p>
-
-          <dl className="mt-4 grid gap-2">
-            <TransferReviewRow label="Valor" value={amount} />
-            <TransferReviewRow label="Origem" value={source} />
-            <TransferReviewRow label="Destino" value={destination} />
-            <TransferReviewRow label="Status" value={status} />
-          </dl>
-
-          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={isLoading}>
-              Voltar
-            </Button>
-            <Button
-              type="button"
-              onClick={onConfirm}
-              isLoading={isLoading}
-              disabled={isLoading}
-              icon={<FaCheck />}
-            >
-              Confirmar transferência
-            </Button>
-          </div>
-        </div>
+          Confirmar transferência
+        </Button>
       </div>
-    </div>
+      }
+    >
+      <dl className="grid gap-2">
+        <TransferReviewRow label="Valor" value={amount} />
+        <TransferReviewRow label="Origem" value={source} />
+        <TransferReviewRow label="Destino" value={destination} />
+        <TransferReviewRow label="Status" value={status} />
+      </dl>
+
+    </ModalShell>
   );
 }
 

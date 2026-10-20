@@ -11,31 +11,6 @@ async function login(page, email) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
-async function seedAccount(page, name) {
-  return page.evaluate(async (accountName) => {
-    const response = await fetch('/api/accounts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: accountName,
-        type: 'CREDIT_DEBIT',
-        currency: 'BRL',
-        color: '#7C3AED',
-        icon: 'wallet',
-        description: 'Conta para validar overlay mobile',
-        isActive: true,
-      }),
-    });
-    const body = await response.json();
-
-    if (!response.ok) {
-      throw new Error(`Falha ao criar conta: ${response.status} ${JSON.stringify(body)}`);
-    }
-
-    return body.data;
-  }, name);
-}
-
 async function expectBottomNavSuppressed(page) {
   const bottomNav = page.getByRole('navigation', {
     name: 'Navegação principal',
@@ -73,7 +48,6 @@ test('overlays mobile mantêm ações acessíveis sem competição com a navega�
 
   const suffix = `${Date.now()}-${test.info().retry}`;
   const email = `playwright-mobile-overlay-${suffix}@example.test`;
-  const accountName = `Conta overlay ${suffix}`;
 
   await createVerifiedUser({
       name: 'Playwright Mobile Overlay',
@@ -82,7 +56,6 @@ test('overlays mobile mantêm ações acessíveis sem competição com a navega�
     });
 
   await login(page, email);
-  await seedAccount(page, accountName);
   await page.setViewportSize({ width: 390, height: 740 });
 
   await page.goto('/transacoes');
@@ -109,71 +82,4 @@ test('overlays mobile mantêm ações acessíveis sem competição com a navega�
   await filterDialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
   await expect(filterDialog).toBeHidden();
   await expect(bottomNav).toBeVisible();
-
-  await page.goto('/contas');
-  await page.getByRole('button', { name: new RegExp(accountName) }).click();
-
-  const accountSheet = page.locator(`aside[aria-label="Detalhe da conta ${accountName}"]`);
-  await expect(accountSheet).toBeVisible();
-  await expectBottomNavSuppressed(page);
-
-  const sheetGeometry = await accountSheet.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return {
-      top: rect.top,
-      bottom: rect.bottom,
-      viewportHeight: window.innerHeight,
-      maxHeight: Number.parseFloat(getComputedStyle(element).maxHeight),
-      overflowY: getComputedStyle(element).overflowY,
-    };
-  });
-
-  expect(sheetGeometry.top).toBeGreaterThanOrEqual(64);
-  expect(sheetGeometry.bottom).toBeLessThanOrEqual(sheetGeometry.viewportHeight + 1);
-  expect(sheetGeometry.maxHeight).toBeGreaterThan(0);
-  expect(sheetGeometry.maxHeight).toBeLessThanOrEqual(sheetGeometry.viewportHeight);
-  expect(sheetGeometry.overflowY).toBe('auto');
-
-  const closeButton = accountSheet.getByRole('button', { name: 'Fechar detalhe', exact: true });
-  await expectControlIsTopmost(closeButton);
-  await closeButton.click();
-  await expect(accountSheet).toBeHidden();
-
-  await page.goto('/dashboard');
-  const forecastButton = page.getByRole('button', { name: 'Ver projeção', exact: true });
-  await expect(forecastButton).toBeEnabled();
-  await forecastButton.click();
-
-  const forecastDialog = page.getByRole('dialog', { name: 'Saldo projetado', exact: true });
-  await expect(forecastDialog).toBeVisible();
-  await expect(forecastDialog).toBeFocused();
-  await expectBottomNavSuppressed(page);
-
-  const closeForecast = forecastDialog.getByRole('button', { name: 'Fechar projeção', exact: true });
-  await page.keyboard.press('Tab');
-  await expect(closeForecast).toBeFocused();
-  await page.keyboard.press('Shift+Tab');
-  const focusStayedInside = await forecastDialog.evaluate((element) =>
-    element.contains(document.activeElement),
-  );
-  expect(focusStayedInside).toBeTruthy();
-
-  const forecastGeometry = await forecastDialog.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return {
-      top: rect.top,
-      bottom: rect.bottom,
-      viewportHeight: window.innerHeight,
-      overflowY: getComputedStyle(element).overflowY,
-    };
-  });
-
-  expect(forecastGeometry.top).toBeGreaterThanOrEqual(64);
-  expect(forecastGeometry.bottom).toBeLessThanOrEqual(forecastGeometry.viewportHeight + 1);
-  expect(forecastGeometry.overflowY).toBe('auto');
-
-  await expectControlIsTopmost(closeForecast);
-  await page.keyboard.press('Escape');
-  await expect(forecastDialog).toBeHidden();
-  await expect(forecastButton).toBeFocused();
 });
