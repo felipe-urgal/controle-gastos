@@ -197,7 +197,7 @@ export default function OrbitDashboardV2() {
       <header className="hidden flex-col gap-4 lg:flex lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p suppressHydrationWarning className="min-h-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{currentDateLabel()}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)] min-[901px]:text-[32px]">Seu dinheiro, no seu controle</h1>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)] lg:text-[32px]">Seu dinheiro, no seu controle</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">Acompanhe o mês selecionado sem misturar com o estado financeiro de hoje.</p>
         </div>
 
@@ -233,7 +233,7 @@ export default function OrbitDashboardV2() {
           >
             <FaChevronRight aria-hidden="true" />
           </button>
-          <div className="w-[145px] max-[520px]:w-full">
+          <div className="w-full sm:w-[145px]">
             <Select
               ariaLabel="Moeda"
               value={currency}
@@ -1132,7 +1132,7 @@ function MobileQuickActions() {
             {action.icon}
           </span>
           <span className="min-w-0 flex-1 leading-tight">{action.label}</span>
-          <FaChevronRight className="hidden shrink-0 text-xs opacity-70 min-[380px]:block" aria-hidden="true" />
+          <FaChevronRight className="hidden shrink-0 text-xs opacity-70 min-[360px]:block" aria-hidden="true" />
         </Link>
       ))}
     </section>

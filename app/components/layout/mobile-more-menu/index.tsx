@@ -110,7 +110,7 @@ export default function MobileMoreMenu({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end bg-[var(--overlay)] backdrop-blur-[2px] lg:hidden"
+      className="fixed inset-0 z-[var(--z-search)] flex items-end bg-[var(--overlay)] backdrop-blur-[2px] lg:hidden"
       onMouseDown={(event) => {
         if (event.currentTarget === event.target) onClose();
       }}

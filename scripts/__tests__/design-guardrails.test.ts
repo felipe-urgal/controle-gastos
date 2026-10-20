@@ -23,4 +23,24 @@ describe("guardrails de design", () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it("usa só a escala de breakpoints padrão (+ um ponto compacto de 360px)", () => {
+    const offenders = sourceFiles(ROOT).flatMap((file) => {
+      const matches = readFileSync(file, "utf8").match(/\b(?:min|max)-\[\d+px\]:/g) ?? [];
+      return matches
+        .filter((match) => !["min-[360px]:", "max-[359px]:"].includes(match))
+        .map((match) => `${relative(process.cwd(), file)}: ${match}`);
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("não usa z-index numérico global (use os tokens --z-*)", () => {
+    const offenders = sourceFiles(ROOT).flatMap((file) => {
+      const matches = readFileSync(file, "utf8").match(/\bz-(?:30|40|50)\b|\bz-\[(?:60|70|80|90|1000)\]/g) ?? [];
+      return matches.map((match) => `${relative(process.cwd(), file)}: ${match}`);
+    });
+
+    expect(offenders).toEqual([]);
+  });
 });

@@ -9,7 +9,7 @@ export default function HomeClient() {
     <div className={`${styles.root} min-h-screen bg-[var(--background)] text-[var(--foreground)]`}>
       <a
         href="#conteudo-principal"
-        className="sr-only z-50 rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-3 text-base font-semibold text-[var(--on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-[var(--z-toast)] rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-3 text-base font-semibold text-[var(--on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
         Pular para o conteúdo
       </a>

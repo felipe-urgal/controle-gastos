@@ -87,7 +87,7 @@ export default function MobileCategoryShow({
           <FaArrowLeft aria-hidden="true" />
         </Link>
 
-        <h1 className="truncate text-center text-[22px] font-extrabold tracking-tight text-[var(--foreground)] min-[390px]:text-[24px]">
+        <h1 className="truncate text-center text-[22px] font-extrabold tracking-tight text-[var(--foreground)] min-[360px]:text-[24px]">
           {category.name}
         </h1>
 
@@ -106,7 +106,7 @@ export default function MobileCategoryShow({
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 top-12 z-30 w-48 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-elevated)]">
+              className="absolute right-0 top-12 z-[var(--z-popover)] w-48 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-elevated)]">
               <Link
                 href={editUrl}
                 onClick={() => setMenuOpen(false)}
@@ -202,7 +202,7 @@ export default function MobileCategoryShow({
               type="button"
               onClick={() => setTab(item.key)}
               aria-pressed={active}
-              className={`relative min-h-[58px] px-1 text-[14px] font-bold transition-colors min-[390px]:text-[15px] ${
+              className={`relative min-h-[58px] px-1 text-[14px] font-bold transition-colors min-[360px]:text-[15px] ${
                 active
                   ? 'text-[var(--orbit-primary)]'
                   : 'text-[var(--text-muted)]'

@@ -1784,8 +1784,8 @@ function TransactionFilterFields({ fields, values, loading, onChange }: { fields
 function TransactionDetailLayer({ transaction, showValues, onClose, closeRef }: { transaction: TransactionDTO; showValues: boolean; onClose: () => void; closeRef: RefObject<HTMLButtonElement | null> }) {
   return (
     <>
-      <button type="button" className="fixed inset-0 z-[60] bg-[var(--overlay)]" onClick={onClose} aria-label="Fechar detalhe da transação" tabIndex={-1} />
-      <aside role="dialog" aria-modal="true" aria-labelledby="transaction-detail-title" className="fixed inset-x-0 bottom-0 z-[70] flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)] lg:inset-y-0 lg:left-auto lg:w-[430px] lg:max-h-none lg:rounded-none lg:border-y-0 lg:border-r-0">
+      <button type="button" className="fixed inset-0 z-[var(--z-detail)] bg-[var(--overlay)]" onClick={onClose} aria-label="Fechar detalhe da transação" tabIndex={-1} />
+      <aside data-overlay-hide-nav role="dialog" aria-modal="true" aria-labelledby="transaction-detail-title" className="overscroll-contain fixed inset-x-0 bottom-0 z-[var(--z-modal)] flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[20px] border border-[var(--border-strong)] bg-[var(--background)] shadow-[var(--shadow-surface)] lg:inset-y-0 lg:left-auto lg:w-[430px] lg:max-h-none lg:rounded-none lg:border-y-0 lg:border-r-0">
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border)] bg-[var(--background)] p-4">
           <div className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">Detalhe contextual</p>

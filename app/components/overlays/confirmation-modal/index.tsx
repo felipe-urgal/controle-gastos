@@ -120,7 +120,7 @@ export default function ConfirmationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60]">
+    <div className="fixed inset-0 z-[var(--z-detail)]">
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-[var(--overlay)]"

@@ -45,11 +45,15 @@
   --shadow-surface: 0 14px 34px rgba(0, 0, 0, 0.24);
   --shadow-elevated: 0 24px 60px rgba(0, 0, 0, 0.4);
 
-  /* escala de camadas: nav < sheet < modal < toast */
-  --z-nav: 30;
-  --z-sheet: 60;
-  --z-modal: 70;
-  --z-toast: 90;
+  /* escala de camadas (menor → maior); use sempre estes tokens para z-index global */
+  --z-popover: 20; /* menus e listas flutuantes ancorados a um campo */
+  --z-nav: 30; /* bottom-nav */
+  --z-header: 40; /* topbar, sidebar, painéis de filtro */
+  --z-sheet: 50; /* sheets, drawers e seus backdrops */
+  --z-detail: 60; /* detalhe lateral e confirmações */
+  --z-modal: 70; /* ModalShell */
+  --z-search: 80; /* busca global e menu "Mais" */
+  --z-toast: 90; /* splash, skip-link, avisos */
 
   --radius-sm: 8px;
   --radius-md: 10px;
@@ -311,7 +315,7 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: var(--z-toast);
 }
 
 @keyframes slide-up {

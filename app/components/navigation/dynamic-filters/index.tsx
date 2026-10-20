@@ -300,7 +300,7 @@ export default function DynamicFilters({
       {showFloatingButton && isOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-[var(--overlay)] md:hidden"
+          className="fixed inset-0 z-[var(--z-header)] bg-[var(--overlay)] md:hidden"
           onClick={() => {
             setIsOpen(false);
             window.requestAnimationFrame(() => floatingButtonRef.current?.focus());
@@ -320,7 +320,7 @@ export default function DynamicFilters({
             aria-expanded={isOpen}
             aria-controls={floatingPanelId}
             className={`
-              fixed left-0 z-50 flex min-h-11 items-center justify-between gap-3
+              fixed left-0 z-[var(--z-sheet)] flex min-h-11 items-center justify-between gap-3
               border border-l-0 bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold shadow-[var(--shadow-surface)]
               transition-[width,border-color,border-radius] duration-150 md:hidden
               ${isOpen ? 'w-[min(92vw,420px)] rounded-tr-[var(--radius-lg)]' : 'w-auto rounded-r-[var(--radius-lg)]'}
@@ -350,7 +350,7 @@ export default function DynamicFilters({
             id={floatingPanelId}
             hidden={!isOpen}
             tabIndex={-1}
-            className="filter-panel-mobile-safe ds-panel fixed left-0 z-50 w-[min(92vw,420px)] rounded-l-none p-4 md:hidden"
+            className="filter-panel-mobile-safe ds-panel fixed left-0 z-[var(--z-sheet)] w-[min(92vw,420px)] rounded-l-none p-4 md:hidden"
             style={{
               top: 'calc(var(--app-mobile-topbar-height) + env(safe-area-inset-top) + 4rem)',
             }}
@@ -362,7 +362,7 @@ export default function DynamicFilters({
 
       <div
         ref={filtersRef}
-        className="sticky top-[calc(var(--app-mobile-topbar-height)+env(safe-area-inset-top)+1rem)] z-30 md:top-4"
+        className="sticky top-[calc(var(--app-mobile-topbar-height)+env(safe-area-inset-top)+1rem)] z-[var(--z-nav)] md:top-4"
       >
         <div
           className={`ds-panel p-4 transition-colors duration-150 ${
@@ -413,7 +413,7 @@ export default function DynamicFilters({
           id={desktopPanelId}
           hidden={!isOpen || showFloatingButton}
           tabIndex={-1}
-          className="filter-panel-mobile-safe ds-panel absolute left-0 right-0 z-40 mt-2 p-4"
+          className="filter-panel-mobile-safe ds-panel absolute left-0 right-0 z-[var(--z-header)] mt-2 p-4"
         >
           {!showFloatingButton && renderFiltersContent()}
         </div>

@@ -267,7 +267,7 @@ export default function OrbitCalendar() {
         showValues={showValues}
       />
 
-      <section className="grid items-start gap-3.5 min-[851px]:grid-cols-[250px_minmax(0,1fr)] min-[1051px]:grid-cols-[280px_minmax(420px,1fr)_360px]">
+      <section className="grid items-start gap-3.5 md:grid-cols-[250px_minmax(0,1fr)] 2xl:grid-cols-[280px_minmax(420px,1fr)_360px]">
         <MonthNavigator
           monthLabel={monthLabel}
           calendarDays={calendarDays}
@@ -294,7 +294,7 @@ export default function OrbitCalendar() {
           showValues={showValues}
           onOpen={setSelectedEvent}
           onToggleAll={() => setShowAllCommitments((value) => !value)}
-          className="min-[851px]:col-span-2 min-[1051px]:col-span-1"
+          className="md:col-span-2 2xl:col-span-1"
         />
       </section>
 

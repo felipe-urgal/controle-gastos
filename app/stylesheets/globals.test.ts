@@ -110,3 +110,32 @@ describe('contraste dos tokens do design system', () => {
     }
   });
 });
+
+describe('escala de camadas (z-index)', () => {
+  const zTokens = [...stylesheet.matchAll(/--z-([a-z]+):\s*(\d+);/g)].map(
+    (match) => [match[1], Number(match[2])] as const,
+  );
+
+  it('define a escala completa em ordem crescente', () => {
+    expect(zTokens.map(([name]) => name)).toEqual([
+      'popover',
+      'nav',
+      'header',
+      'sheet',
+      'detail',
+      'modal',
+      'search',
+      'toast',
+    ]);
+    const values = zTokens.map(([, value]) => value);
+    expect(values).toEqual([...values].sort((a, b) => a - b));
+  });
+});
+
+describe('avisos (warning) legíveis nos dois temas', () => {
+  it.each(['dark', 'light'] as const)('foreground sobre warning-subtle e warning sobre surface atingem AA (%s)', (theme) => {
+    const tokens = themes[theme];
+    expect(contrastRatio(tokens.foreground, tokens['warning-subtle'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(tokens.warning, tokens.surface)).toBeGreaterThanOrEqual(3);
+  });
+});

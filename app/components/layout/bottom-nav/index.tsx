@@ -33,7 +33,7 @@ export default function BottomNav({
   return (
     <nav
       aria-label="Navegação principal"
-      className="orbit-navigation-surface fixed inset-x-0 bottom-0 z-50 border-t border-[var(--border)] lg:hidden"
+      className="orbit-navigation-surface fixed inset-x-0 bottom-0 z-[var(--z-nav)] border-t border-[var(--border)] lg:hidden"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingLeft: 'env(safe-area-inset-left)',
@@ -71,7 +71,7 @@ export default function BottomNav({
               >
                 <Icon className="h-[18px] w-[18px]" />
               </span>
-              <span className="max-w-full truncate max-[339px]:sr-only">{label}</span>
+              <span className="max-w-full truncate max-[359px]:sr-only">{label}</span>
               {active && (
                 <span
                   className="absolute bottom-0 h-0.5 w-8 rounded-full bg-[var(--primary)]"
@@ -107,7 +107,7 @@ export default function BottomNav({
           >
             <FaEllipsisH className="h-[18px] w-[18px]" />
           </span>
-          <span className="max-w-full truncate max-[339px]:sr-only">Mais</span>
+          <span className="max-w-full truncate max-[359px]:sr-only">Mais</span>
           {moreActive && (
             <span
               className="absolute bottom-0 h-0.5 w-8 rounded-full bg-[var(--primary)]"

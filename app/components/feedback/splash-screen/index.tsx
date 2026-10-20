@@ -31,7 +31,7 @@ export default function SplashScreen() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center text-center"
+      className="fixed inset-0 z-[var(--z-toast)] flex flex-col items-center justify-center text-center"
       role="status"
       aria-label="Carregando aplicação"
     >
