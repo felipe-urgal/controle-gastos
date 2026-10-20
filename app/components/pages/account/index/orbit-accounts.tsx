@@ -1,5 +1,6 @@
 'use client';
 
+import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
@@ -49,7 +50,7 @@ const typeLabels: Record<AccountType, string> = {
 };
 
 function money(amount: number, currency: string, showValues: boolean) {
-  return showValues ? formatCurrency(amount, currency) : '••••';
+  return showValues ? wrappableMoney(formatCurrency(amount, currency)) : '••••';
 }
 
 function transactionMoney(
@@ -178,7 +179,7 @@ function MobileAccountsCenter({
               </span>
               <div className="min-w-0">
                 <p className="text-sm text-white/70">Bancos</p>
-                <strong className="block truncate text-lg font-bold text-white">
+                <strong className="block tabular-nums text-lg font-bold text-white">
                   {summaryCurrency && bankBalance !== null
                     ? money(bankBalance, summaryCurrency, showValues)
                     : '—'}
@@ -192,7 +193,7 @@ function MobileAccountsCenter({
               </span>
               <div className="min-w-0">
                 <p className="text-sm text-white/70">Investimentos</p>
-                <strong className="block truncate text-lg font-bold text-white">
+                <strong className="block tabular-nums text-lg font-bold text-white">
                   {summaryCurrency && investmentBalance !== null
                     ? money(investmentBalance, summaryCurrency, showValues)
                     : '—'}

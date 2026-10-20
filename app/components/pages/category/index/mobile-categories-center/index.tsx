@@ -1,5 +1,6 @@
 'use client';
 
+import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import Link from 'next/link';
@@ -88,7 +89,7 @@ function displayMoney(
   currency: SupportedCurrency | string,
 ) {
   if (amount === null) return '—';
-  return showValues ? formatCurrency(amount, currency) : '••••';
+  return showValues ? wrappableMoney(formatCurrency(amount, currency)) : '••••';
 }
 
 function monthLabel(periodValue: string) {
@@ -274,7 +275,7 @@ export default function MobileCategoriesCenter({
           aria-hidden="true"
         />
 
-        <div className="relative z-[1] flex items-start gap-3">
+        <div className="relative z-[1] flex flex-wrap items-start gap-x-3 gap-y-1">
           <span className="grid h-[58px] w-[58px] shrink-0 place-items-center rounded-full border border-[var(--orbit-primary)]/50 bg-[var(--orbit-primary)]/15 text-[22px] text-[var(--orbit-primary)]">
             <FaChartPie aria-hidden="true" />
           </span>
@@ -283,7 +284,7 @@ export default function MobileCategoriesCenter({
             <p className="mt-0.5 text-sm text-white/65">Seu limite para viver bem</p>
           </div>
 
-          <label className="relative inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-2 px-1 text-xs font-semibold text-white/70">
+          <label className="relative inline-flex min-h-11 basis-full cursor-pointer items-center gap-2 px-1 text-xs font-semibold text-white/70 sm:min-h-9 sm:shrink-0 sm:basis-auto">
             <FaCalendarAlt className="text-[15px]" aria-hidden="true" />
             {monthLabel(periodValue)}
             <FaChevronRight className="text-xs" aria-hidden="true" />
@@ -323,7 +324,7 @@ export default function MobileCategoriesCenter({
               <FaArrowUp aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <strong className="block truncate text-[18px] font-extrabold text-white">
+              <strong className="block tabular-nums text-[18px] font-extrabold text-white">
                 {displayMoney(summary.realized, showValues, currency)}
               </strong>
               <span className="mt-1 block text-sm text-white/60">Realizado</span>
@@ -335,7 +336,7 @@ export default function MobileCategoriesCenter({
               <FaArrowDown aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <strong className="block truncate text-[18px] font-extrabold text-white">
+              <strong className="block tabular-nums text-[18px] font-extrabold text-white">
                 {displayMoney(summary.available, showValues, currency)}
               </strong>
               <span className="mt-1 block text-sm text-white/60">Disponível</span>
@@ -935,7 +936,7 @@ function SheetMetric({
   return (
     <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3">
       <dt className="text-xs text-[var(--text-muted)]">{label}</dt>
-      <dd className={`mt-1 truncate text-sm font-extrabold ${className}`}>{value}</dd>
+      <dd className={`mt-1 tabular-nums text-sm font-extrabold ${className}`}>{value}</dd>
     </div>
   );
 }

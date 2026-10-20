@@ -1,5 +1,6 @@
 'use client';
 
+import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import Link from 'next/link';
@@ -128,7 +129,7 @@ function shiftPeriod(month: number, year: number, offset: number) {
 }
 
 function displayMoney(amount: number, showValues: boolean, currency: string) {
-  return showValues ? formatCurrency(amount, currency) : '••••';
+  return showValues ? wrappableMoney(formatCurrency(amount, currency)) : '••••';
 }
 
 function percentageChange(current: number, previous: number) {
@@ -927,7 +928,7 @@ function MobileTransactionsPrototype2({
             </span>
             <div className="min-w-0">
               <p className="text-xs text-[var(--text-muted)]">Entradas</p>
-              <strong className="mt-0.5 block truncate text-sm text-[var(--income)]">
+              <strong className="mt-0.5 block tabular-nums text-sm text-[var(--income)]">
                 {displayMoney(summary.income, showValues, summary.currency)}
               </strong>
             </div>
@@ -938,7 +939,7 @@ function MobileTransactionsPrototype2({
             </span>
             <div className="min-w-0">
               <p className="text-xs text-[var(--text-muted)]">Saídas</p>
-              <strong className="mt-0.5 block truncate text-sm text-[var(--expense)]">
+              <strong className="mt-0.5 block tabular-nums text-sm text-[var(--expense)]">
                 {displayMoney(summary.expense, showValues, summary.currency)}
               </strong>
             </div>
@@ -947,7 +948,7 @@ function MobileTransactionsPrototype2({
       </section>
 
       <div>
-        <div className="grid grid-cols-4 gap-2" aria-label="Filtros rápidos">
+        <div className="flex flex-wrap gap-2" aria-label="Filtros rápidos">
           {([
             ['all', 'Todas'],
             ['income', 'Receitas'],
@@ -961,13 +962,13 @@ function MobileTransactionsPrototype2({
                 type="button"
                 aria-pressed={active}
                 onClick={() => onQuickFilterChange(value)}
-                className={`min-h-11 sm:min-h-9 min-w-0 rounded-full border px-1.5 text-xs font-semibold transition-colors min-[360px]:px-2 min-[360px]:text-xs ${
+                className={`min-h-11 flex-1 rounded-full border px-2 text-xs font-semibold transition-colors sm:min-h-9 ${
                   active
                     ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-white'
                     : 'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]'
                 }`}
               >
-                <span className="block truncate">{label}</span>
+                {label}
               </button>
             );
           })}

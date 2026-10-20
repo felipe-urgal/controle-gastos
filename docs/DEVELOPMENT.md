@@ -83,3 +83,4 @@ Mantenha somente documentação viva. Decisões concluídas, planos antigos e re
 
 - `pnpm test:e2e layout-smoke --project=chromium`: percorre as rotas autenticadas em 360 e 390 px e falha em rolagem horizontal, mais de um `h1` visível ou aumento de alvos de toque menores que 44×44 px. As listas `KNOWN_*` do spec só podem diminuir; `LAYOUT_SMOKE_REPORT=1` imprime o detalhe dos alvos pequenos.
 - `scripts/__tests__/design-ratchet.test.ts`: limites por arquivo para overlays `fixed inset-0` fora do `ModalShell` e cores hex literais. Ao migrar um arquivo, reduza ou remova a entrada.
+- `VISUAL_REVIEW=1 SHOTS_DIR=/tmp/shots pnpm test:e2e visual-review --project=chromium`: gera capturas das telas principais a 360px (claro/escuro, com dados semeados) para revisão visual; não roda por padrão.
