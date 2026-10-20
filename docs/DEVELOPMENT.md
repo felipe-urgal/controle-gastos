@@ -115,3 +115,7 @@ Mantenha somente documentação viva. Decisões concluídas, planos antigos e re
 - Listas: paginadas (240 itens = ~1300 nós DOM, LCP ~1 s); virtualização não é necessária com esse volume.
 - `BackgroundParticles` só existe na splash e no 404; já usa 24 partículas com `prefers-reduced-motion` (desenho estático) e 50 em telas estreitas.
 - Nenhum arquivo de componente passa de 1200 linhas (`find app/components -name '*.tsx' | xargs wc -l | sort -rn | head`).
+
+## Smoke de layout mobile no CI
+
+Os PRs rodam `layout-smoke` (rotas autenticadas sem dados, 320/360/390/430/768/1024/1280px), `layout-smoke-public` (landing e autenticação), `layout-smoke-data` (usuário com 80 transações e as rotas `[id]` de transação, conta e categoria, em 6 larguras) e `transactions-mobile`/`mobile-overlay-shell` em **chromium e webkit (Safari/iOS)**. Localmente o webkit exige as bibliotecas do sistema (`sudo npx playwright install-deps webkit`); sem elas use `--project=chromium`.

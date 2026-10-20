@@ -13,7 +13,7 @@ const VIEWPORTS = [
 const ROUTES = ['/', '/login', '/signup', '/forgot-password'];
 
 test.describe('layout mobile (rotas públicas)', () => {
-  test.skip(({ browserName }) => browserName !== 'chromium', 'smoke de layout roda só no chromium');
+  test.skip(({ browserName }) => !['chromium', 'webkit'].includes(browserName), 'smoke de layout roda em chromium e webkit');
 
   test('landing e telas de autenticação sem estouro, h1 único e campos de 44px', async ({ page }) => {
     test.setTimeout(120_000);

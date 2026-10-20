@@ -169,7 +169,7 @@ export async function setUserActive({ email, isActive }) {
 
 /**
  * Semeia `count` transações COMPLETED no mês corrente direto no banco (sem passar pelo rate limit
- * da API). Cria uma conta e uma categoria de despesa. Retorna `{ accountId, categoryId }`.
+ * da API). Cria uma conta e uma categoria de despesa. Retorna `{ accountId, categoryId, transactionId }` (a transação de descrição longa).
  */
 export async function seedBulkTransactions({ userId, count }) {
   return withPrisma(async (prisma) => {
@@ -180,6 +180,20 @@ export async function seedBulkTransactions({ userId, count }) {
       data: { name: 'Categoria volume', type: 'EXPENSE', color: '#EF4444', icon: 'tag', isActive: true, position: 0, userId },
     });
     const now = new Date();
+    const first = await prisma.transaction.create({
+      data: {
+        amount: 12345,
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        day: 1,
+        type: 'EXPENSE',
+        status: 'COMPLETED',
+        description: 'Supermercado do bairro com descrição bem longa para testar quebra de linha',
+        accountId: account.id,
+        categoryId: category.id,
+        userId,
+      },
+    });
     await prisma.transaction.createMany({
       data: Array.from({ length: count }, (_, index) => ({
         amount: 1000 + index,
@@ -194,6 +208,6 @@ export async function seedBulkTransactions({ userId, count }) {
         userId,
       })),
     });
-    return { accountId: account.id, categoryId: category.id };
+    return { accountId: account.id, categoryId: category.id, transactionId: first.id };
   });
 }

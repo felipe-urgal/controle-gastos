@@ -159,7 +159,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: ${{ fromJSON(github.event_name == 'pull_request' && '["chromium"]' || '["chromium","firefox","webkit"]') }}
+        browser: ${{ fromJSON(github.event_name == 'pull_request' && '["chromium","webkit"]' || '["chromium","firefox","webkit"]') }}
     services:
       postgres:
         image: postgres:17-alpine
@@ -213,10 +213,28 @@ jobs:
       - name: Install Playwright browser
         run: pnpm --dir tests/e2e --ignore-workspace exec playwright install --with-deps ${{ matrix.browser }}
 
-      - name: Run PR E2E
-        if: github.event_name == 'pull_request'
+      # Smoke de layout mobile (estouro horizontal, h1 único, alvos de toque, fonte dos campos,
+      # overlays e formulário): roda em chromium e, nos PRs, também em webkit (Safari/iOS).
+      - name: Run PR mobile smoke (webkit)
+        if: github.event_name == 'pull_request' && matrix.browser == 'webkit'
         run: >-
           pnpm test:e2e
+          tests/e2e/layout-smoke.spec.mjs
+          tests/e2e/layout-smoke-public.spec.mjs
+          tests/e2e/layout-smoke-data.spec.mjs
+          tests/e2e/transactions-mobile.spec.mjs
+          tests/e2e/mobile-overlay-shell.spec.mjs
+          --project=webkit
+
+      - name: Run PR E2E
+        if: github.event_name == 'pull_request' && matrix.browser == 'chromium'
+        run: >-
+          pnpm test:e2e
+          tests/e2e/layout-smoke.spec.mjs
+          tests/e2e/layout-smoke-public.spec.mjs
+          tests/e2e/layout-smoke-data.spec.mjs
+          tests/e2e/transactions-mobile.spec.mjs
+          tests/e2e/mobile-overlay-shell.spec.mjs
           tests/e2e/global-search-accessibility.spec.mjs
           tests/e2e/global-search-entities.spec.mjs
           tests/e2e/global-search-flow.spec.mjs

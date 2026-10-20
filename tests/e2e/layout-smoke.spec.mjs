@@ -16,8 +16,10 @@ import { createVerifiedUser } from './support/verified-user.mjs';
  */
 const password = 'Playwright123!';
 const VIEWPORTS = [
+  { width: 320, height: 700 },
   { width: 360, height: 740 },
   { width: 390, height: 780 },
+  { width: 430, height: 880 },
   { width: 768, height: 900 },
   { width: 1024, height: 800 },
   { width: 1280, height: 900 },
@@ -104,7 +106,7 @@ function measure() {
 }
 
 test.describe('layout mobile', () => {
-  test.skip(({ browserName }) => browserName !== 'chromium', 'smoke de layout roda só no chromium');
+  test.skip(({ browserName }) => !['chromium', 'webkit'].includes(browserName), 'smoke de layout roda em chromium e webkit');
 
   test('rotas autenticadas sem rolagem horizontal, um único h1 e alvos de toque sob controle', async ({ page }) => {
     test.setTimeout(240_000);
