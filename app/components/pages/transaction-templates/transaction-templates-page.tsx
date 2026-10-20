@@ -1,5 +1,6 @@
 'use client';
 
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import Link from 'next/link';
 import {
   useCallback,
@@ -388,19 +389,8 @@ export default function TransactionTemplatesPage({
     categoriesLoading || Boolean(categoryError);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-      <header className="border-b border-[var(--border)] pb-5">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--orbit-primary)]">
-          Atalhos
-        </p>
-        <h1 className="mt-1 text-2xl font-black sm:text-3xl">
-          Modelos de lançamento
-        </h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
-          Modelos apenas preenchem uma nova transação. Nada é lançado sem sua
-          confirmação.
-        </p>
-      </header>
+    <PageContainer>
+      <PageTitle eyebrow="Atalhos" title="Modelos de lançamento" description="Modelos apenas preenchem uma nova transação. Nada é lançado sem sua confirmação." />
 
       {actionError && (
         <p
@@ -840,6 +830,6 @@ export default function TransactionTemplatesPage({
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

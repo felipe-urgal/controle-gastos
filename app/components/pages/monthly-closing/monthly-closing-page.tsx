@@ -1,5 +1,6 @@
 'use client';
 
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -134,21 +135,13 @@ export default function MonthlyClosingPage() {
     retrospective.summary.expense === 0;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--orbit-primary)]">
-            Revisão mensal
-          </p>
-          <h1 className="mt-1 text-2xl font-black text-[var(--foreground)] sm:text-3xl">
-            Fechamento mensal
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-[var(--text-muted)]">
-            Retrospectiva calculada a partir dos dados financeiros atuais.
-            Alterações retroativas podem mudar esta revisão.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <PageContainer>
+      <PageTitle
+        eyebrow="Revisão mensal"
+        title="Fechamento mensal"
+        description="Retrospectiva calculada a partir dos dados financeiros atuais. Alterações retroativas podem mudar esta revisão."
+        actions={
+          <>
           <input
             aria-label="Período do fechamento"
             type="month"
@@ -171,8 +164,9 @@ export default function MonthlyClosingPage() {
               </option>
             ))}
           </select>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {loading && (
         <div
@@ -627,6 +621,6 @@ export default function MonthlyClosingPage() {
           )}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
