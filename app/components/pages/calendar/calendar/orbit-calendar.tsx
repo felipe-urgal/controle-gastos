@@ -234,7 +234,7 @@ export default function OrbitCalendar() {
           </div>
           <Link
             href="/transacoes/nova"
-            className="col-span-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/40 bg-[var(--orbit-primary-subtle)] px-3 text-sm font-bold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:col-span-1"
+            className="col-span-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/40 bg-[var(--orbit-primary-subtle)] px-3 text-sm font-bold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:col-span-1"
           >
             <FaPlus aria-hidden="true" />
             Nova transação
@@ -422,7 +422,7 @@ function MonthNavigator({
           type="button"
           onClick={onPrevious}
           aria-label="Mês anterior"
-          className="grid h-10 w-10 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          className="grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
         >
           <FaChevronLeft aria-hidden="true" />
         </button>
@@ -433,7 +433,7 @@ function MonthNavigator({
           type="button"
           onClick={onNext}
           aria-label="Próximo mês"
-          className="grid h-10 w-10 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          className="grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
         >
           <FaChevronRight aria-hidden="true" />
         </button>

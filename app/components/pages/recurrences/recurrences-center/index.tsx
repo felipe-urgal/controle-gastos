@@ -168,7 +168,7 @@ export default function RecurrencesCenter() {
       <section className="mx-auto w-full max-w-6xl pb-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-[34px] font-extrabold tracking-tight text-[var(--foreground)]">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-[var(--foreground)]">
               Recorrências e assinaturas
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-[var(--text-muted)] sm:text-base">
