@@ -30,18 +30,25 @@ export function ModalShell({
   maxWidthClass = 'max-w-xl',
   footer,
   hideBottomNav = true,
+  description,
+  closeLabel = 'Fechar',
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   closeDisabled?: boolean;
   maxWidthClass?: string;
+  /** Nome acessível do botão de fechar. */
+  closeLabel?: string;
+  /** Texto de apoio sob o título; vira `aria-describedby` do diálogo. */
+  description?: string;
   /** Ações fixas no rodapé; ficam sempre visíveis ao rolar o conteúdo. */
   footer?: ReactNode;
   /** Oculta a bottom-nav do shell enquanto o overlay está aberto (mobile). */
   hideBottomNav?: boolean;
 }) {
   const titleId = useId();
+  const descriptionId = useId();
   const onCloseRef = useRef(onClose);
 
   useEffect(() => {
@@ -70,6 +77,7 @@ export function ModalShell({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
         aria-busy={closeDisabled || undefined}
         className={`w-full ${maxWidthClass} max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))] flex flex-col overflow-y-auto overscroll-contain rounded-t-[22px] border border-[var(--border)] bg-[var(--surface)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-elevated)] outline-none sm:rounded-[22px]`}
       >
@@ -81,12 +89,17 @@ export function ModalShell({
             type="button"
             onClick={close}
             disabled={closeDisabled}
-            aria-label="Fechar"
+            aria-label={closeLabel}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)] disabled:opacity-45"
           >
             <FaTimes aria-hidden="true" />
           </button>
         </div>
+        {description && (
+          <p id={descriptionId} className="-mt-3 mb-5 text-sm leading-relaxed text-[var(--text-muted)]">
+            {description}
+          </p>
+        )}
         {children}
         {footer && (
           <div className="sticky bottom-[calc(-1.25rem-env(safe-area-inset-bottom))] -mx-5 mt-5 border-t border-[var(--border)] bg-[var(--surface)] px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
