@@ -1,9 +1,9 @@
 'use client';
 
 import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
+import { useCategoryForm } from '@/app/hooks/categories/use-category-form';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   FaArrowDown,
   FaArrowLeft,
@@ -20,12 +20,8 @@ import {
   CATEGORY_DESCRIPTION_MAX_LENGTH,
   CATEGORY_NAME_MAX_LENGTH,
 } from '@/app/lib/categories/category-limits';
-import {
-  categoryTypeOptions,
-  initialFormData,
-} from '@/app/lib/constants/category.constants';
+import { categoryTypeOptions } from '@/app/lib/constants/category.constants';
 import { CategoryFormProps } from '@/app/lib/interface/category.interface';
-import { categoryService } from '@/app/services/category-service';
 import { CategoryType } from '@/app/types/category';
 
 const orbitSelectionTokens =
@@ -57,61 +53,10 @@ const mobileIcons = [
 
 export default function CategoryForm({ category, isEditing }: CategoryFormProps) {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
-  const router = useRouter();
-  const [formData, setFormData] = useState(() =>
-    isEditing && category
-      ? {
-          name: category.name ?? '',
-          type: category.type,
-          color: category.color ?? '#3B82F6',
-          icon: category.icon ?? 'tag',
-          description: category.description ?? '',
-          isActive: category.isActive,
-        }
-      : initialFormData,
-  );
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { formData, setFormData, submitError, setSubmitError, isSubmitting, handleSubmit, handleRedirect } =
+    useCategoryForm({ category, isEditing });
   const [mobileStep, setMobileStep] = useState<1 | 2>(1);
   const [mobileStepError, setMobileStepError] = useState<string | null>(null);
-
-  function handleRedirect() {
-    if (isEditing && category?.id) {
-      router.replace(`/categorias/show/${category.id}`);
-    } else {
-      router.replace('/categorias');
-    }
-  }
-
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setSubmitError(null);
-
-    try {
-      const payload = {
-        ...formData,
-        description: formData.description || null,
-      };
-
-      if (isEditing && category) {
-        await categoryService.update(category.id, payload);
-      } else {
-        await categoryService.create(payload);
-      }
-
-      handleRedirect();
-    } catch (error: any) {
-      const apiMessage =
-        error?.response?.data?.error?.message ||
-        error?.data?.error?.message ||
-        error?.message;
-
-      setSubmitError(apiMessage || 'Erro ao salvar categoria');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
 
   const loading = isSubmitting;
   const mobileColorOptions = Array.from(

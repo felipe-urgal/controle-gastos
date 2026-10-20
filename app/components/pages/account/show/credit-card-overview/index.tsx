@@ -1,5 +1,6 @@
 'use client';
 
+import { ShowBelow } from '@/app/components/ui';
 import { Button } from '@/app/components/ui';
 import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -222,7 +223,8 @@ export default function CreditCardOverview({
 
   return (
     <div className={`mx-auto w-full max-w-5xl space-y-5 transition-opacity ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
-      <div className="flex items-center justify-between gap-3 lg:hidden">
+      <ShowBelow breakpoint="lg">
+      <div className="flex items-center justify-between gap-3">
         <Link
           href={backUrl}
           aria-label="Voltar para contas"
@@ -241,6 +243,7 @@ export default function CreditCardOverview({
           <FaPen aria-hidden="true" />
         </Link>
       </div>
+      </ShowBelow>
 
       <section className="overflow-hidden rounded-[24px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_46%,var(--surface))_0%,#24133f_48%,#10151b_100%)] p-5 text-white shadow-[0_18px_42px_color-mix(in_srgb,var(--orbit-primary)_20%,transparent)] sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">

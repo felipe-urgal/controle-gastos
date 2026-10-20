@@ -787,7 +787,7 @@ function AccountSummary({
         </small>
       </article>
 
-      <article className={`${metric} hidden lg:block`}>
+      <article className={metric}>
         <p className="text-xs text-[var(--text-muted)]">ÚLTIMA ATIVIDADE</p>
         <strong
           className={`mt-2 block truncate text-xl font-bold ${
