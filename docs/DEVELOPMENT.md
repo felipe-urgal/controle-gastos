@@ -78,3 +78,8 @@ Sem token, o fluxo continua funcionando para ativos aceitos publicamente pela br
 ## Política de documentação
 
 Mantenha somente documentação viva. Decisões concluídas, planos antigos e relatórios pontuais ficam no histórico Git, issues e PRs. Novos documentos devem existir apenas quando forem necessários para operar, desenvolver ou revisar o sistema no presente.
+
+## Layout mobile e guardrails de design
+
+- `pnpm test:e2e layout-smoke --project=chromium`: percorre as rotas autenticadas em 360 e 390 px e falha em rolagem horizontal, mais de um `h1` visível ou aumento de alvos de toque menores que 44×44 px. As listas `KNOWN_*` do spec só podem diminuir; `LAYOUT_SMOKE_REPORT=1` imprime o detalhe dos alvos pequenos.
+- `scripts/__tests__/design-ratchet.test.ts`: limites por arquivo para overlays `fixed inset-0` fora do `ModalShell` e cores hex literais. Ao migrar um arquivo, reduza ou remova a entrada.
