@@ -1,5 +1,6 @@
 'use client';
 
+import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import Link from 'next/link';
@@ -47,13 +48,13 @@ import type { ForecastData } from '@/app/types/forecast';
 import type { FinancialCommitment } from '@/app/types/financial-commitment';
 
 function displayMoney(amount: number, showValues: boolean, currency: string) {
-  return showValues ? formatCurrency(amount, currency) : '••••';
+  return showValues ? wrappableMoney(formatCurrency(amount, currency)) : '••••';
 }
 
 function signedMoney(amount: number, showValues: boolean, currency: string) {
   if (!showValues) return '••••';
   const sign = amount > 0 ? '+' : amount < 0 ? '-' : '';
-  return `${sign}${formatCurrency(Math.abs(amount), currency)}`;
+  return `${sign}${wrappableMoney(formatCurrency(Math.abs(amount), currency))}`;
 }
 
 function periodOffset(periodValue: string, offset: number) {
@@ -64,11 +65,13 @@ function periodOffset(periodValue: string, offset: number) {
 
 function monthLabel(periodValue: string) {
   const [year, month] = periodValue.split('-').map(Number);
-  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('pt-BR', {
+  const label = new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('pt-BR', {
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
   });
+  // Só a primeira letra: `capitalize` do CSS gerava "Outubro De 2026".
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 function compactMonthLabel(month: number, year: number) {
@@ -208,7 +211,7 @@ export default function OrbitDashboardV2() {
           >
             <FaChevronLeft aria-hidden="true" />
           </button>
-          <label className="relative min-h-11 min-w-[180px] cursor-pointer rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-center text-sm font-semibold capitalize focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
+          <label className="relative min-h-11 min-w-[180px] cursor-pointer rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
             {monthLabel(periodValue)}
             <span className="sr-only">Escolher mês do dashboard</span>
             <input
@@ -562,7 +565,7 @@ function NetWorthSummaryCard({
         <span className="block text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
           Patrimônio no fim de {compactMonthLabel(period.month, period.year)} · {currency}
         </span>
-        <strong className={`mt-1 block truncate text-xl font-extrabold ${summary.error ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+        <strong className={`mt-1 block tabular-nums text-xl font-extrabold ${summary.error ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
           {value}
         </strong>
         <span className="mt-1 block text-xs text-[var(--text-muted)]">
@@ -757,8 +760,8 @@ function MobileDashboardHeader({
   return (
     <section className="lg:hidden">
       <h1 className="sr-only">Dashboard financeiro</h1>
-      <div className="grid grid-cols-[minmax(0,1fr)_132px] gap-2">
-        <label className="relative flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold capitalize focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
+      <div className="grid grid-cols-[minmax(0,1fr)_116px] gap-2">
+        <label className="relative flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
           <FaCalendarAlt className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate">{monthLabel(periodValue)}</span>
           <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
@@ -1060,19 +1063,19 @@ function MobileBalanceCard({
       <div className="mt-4 grid grid-cols-3 divide-x divide-[var(--border)] border-t border-[var(--border)] pt-4">
         <div className="min-w-0 pr-2.5">
           <p className="text-xs text-[var(--text-muted)]">Receitas do mês</p>
-          <strong className="mt-1 block truncate text-[13px] font-extrabold text-[var(--income)] min-[360px]:text-[14px]">
+          <strong className="mt-1 block tabular-nums text-[13px] font-extrabold text-[var(--income)] min-[360px]:text-[14px]">
             {displayMoney(summary.income, showValues, currency)}
           </strong>
         </div>
         <div className="min-w-0 px-2.5">
           <p className="text-xs text-[var(--text-muted)]">Despesas do mês</p>
-          <strong className="mt-1 block truncate text-[13px] font-extrabold text-[var(--expense)] min-[360px]:text-[14px]">
+          <strong className="mt-1 block tabular-nums text-[13px] font-extrabold text-[var(--expense)] min-[360px]:text-[14px]">
             {displayMoney(summary.expense, showValues, currency)}
           </strong>
         </div>
         <div className="min-w-0 pl-2.5">
           <p className="text-xs text-[var(--text-muted)]">Saldo do mês</p>
-          <strong className={`mt-1 block truncate text-[13px] font-extrabold min-[360px]:text-[14px] ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
+          <strong className={`mt-1 block tabular-nums text-[13px] font-extrabold min-[360px]:text-[14px] ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
             {signedMoney(summary.balance, showValues, currency)}
           </strong>
         </div>
@@ -1941,7 +1944,7 @@ function MonthOverviewCard({
           <h2 className="text-lg font-bold">Visão do mês</h2>
           <p className="mt-1 text-sm text-[var(--text-muted)]">Seu dinheiro em {monthLabel(`${data.period.year}-${String(data.period.month).padStart(2, '0')}`)}.</p>
         </div>
-        <span className="inline-flex min-h-9 items-center rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold capitalize">
+        <span className="inline-flex min-h-9 items-center rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold">
           {monthLabel(`${data.period.year}-${String(data.period.month).padStart(2, '0')}`)}
         </span>
       </div>
@@ -2050,7 +2053,7 @@ function CategoriesCard({
     <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Principais categorias de gastos</h2>
-        <span className="hidden text-xs font-semibold capitalize text-[var(--text-muted)] sm:inline">{monthLabel(`${period.year}-${String(period.month).padStart(2, '0')}`)}</span>
+        <span className="hidden text-xs font-semibold text-[var(--text-muted)] sm:inline">{monthLabel(`${period.year}-${String(period.month).padStart(2, '0')}`)}</span>
       </div>
       <div className="mt-2 divide-y divide-[var(--border)]">
         {categories.length === 0 ? (

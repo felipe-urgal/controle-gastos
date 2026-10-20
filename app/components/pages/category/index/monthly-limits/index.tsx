@@ -1,5 +1,6 @@
 'use client';
 
+import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
@@ -681,7 +682,7 @@ function OverviewMetric({
         {loading ? (
           <div className="mt-2 h-6 w-28 animate-pulse rounded bg-[var(--skeleton)]" />
         ) : (
-          <strong className={`mt-1 block truncate text-xl font-bold ${tone}`}>{value}</strong>
+          <strong className={`mt-1 block tabular-nums text-xl font-bold ${tone}`}>{wrappableMoney(value)}</strong>
         )}
         <small className="mt-1 block truncate text-xs text-[var(--text-muted)]">{note}</small>
       </div>
