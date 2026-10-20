@@ -1349,7 +1349,7 @@ export default function TransactionForm({
                     onChange={handleAmountChange}
                     disabled={loading}
                     inputMode="numeric"
-                    className="!min-h-[76px] min-w-0 flex-1 !border-0 !bg-transparent !px-0 !py-0 text-[44px] font-black tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none min-[390px]:text-[50px]"
+                    className="!min-h-[76px] min-w-0 flex-1 !border-0 !bg-transparent !px-0 !py-0 text-[44px] font-black tracking-tight !text-[var(--foreground)] !outline-none focus-visible:!outline-none min-[360px]:text-[50px]"
                   />
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
                     <FaCalculator />

@@ -121,7 +121,7 @@ export default function MobileAccountShow({
           </button>
 
           {menuOpen && (
-            <div ref={menuRef} className="absolute right-0 top-12 z-30 w-48 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-elevated)]">
+            <div ref={menuRef} className="absolute right-0 top-12 z-[var(--z-popover)] w-48 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-elevated)]">
               <Link
                 href={editUrl}
                 onClick={() => setMenuOpen(false)}
@@ -190,7 +190,7 @@ export default function MobileAccountShow({
         </div>
 
         <strong
-          className={`relative z-[1] mt-6 block break-words text-[38px] font-extrabold leading-none tracking-tight min-[390px]:text-[40px] ${
+          className={`relative z-[1] mt-6 block break-words text-[38px] font-extrabold leading-none tracking-tight min-[360px]:text-[40px] ${
             displayedAmount < 0 ? 'text-[var(--expense)]' : 'text-white'
           }`}
         >
@@ -222,7 +222,7 @@ export default function MobileAccountShow({
               type="button"
               onClick={() => setTab(item.key)}
               aria-pressed={active}
-              className={`relative min-h-[60px] px-1 text-[14px] font-bold transition-colors min-[390px]:text-[15px] ${
+              className={`relative min-h-[60px] px-1 text-[14px] font-bold transition-colors min-[360px]:text-[15px] ${
                 active
                   ? 'text-[var(--orbit-primary)]'
                   : 'text-[var(--text-muted)]'
@@ -245,7 +245,7 @@ export default function MobileAccountShow({
           <section aria-labelledby="mobile-account-activity">
             <h2
               id="mobile-account-activity"
-              className="text-[25px] font-extrabold tracking-tight text-[var(--foreground)] min-[390px]:text-[26px]"
+              className="text-[25px] font-extrabold tracking-tight text-[var(--foreground)] min-[360px]:text-[26px]"
             >
               Atividade recente
             </h2>
@@ -285,7 +285,7 @@ export default function MobileAccountShow({
           <section aria-labelledby="mobile-account-about">
             <h2
               id="mobile-account-about"
-              className="text-[25px] font-extrabold tracking-tight text-[var(--foreground)] min-[390px]:text-[26px]"
+              className="text-[25px] font-extrabold tracking-tight text-[var(--foreground)] min-[360px]:text-[26px]"
             >
               Sobre a conta
             </h2>
@@ -449,7 +449,7 @@ function MobileTransactionRow({
       </div>
 
       <div className="flex items-center gap-2">
-        <strong className={`whitespace-nowrap text-[15px] font-extrabold min-[390px]:text-[16px] ${tone}`}>
+        <strong className={`whitespace-nowrap text-[15px] font-extrabold min-[360px]:text-[16px] ${tone}`}>
           {isIncome ? '+' : '-'}{amount}
         </strong>
         <FaChevronRight

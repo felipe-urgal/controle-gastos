@@ -408,7 +408,7 @@ export default function CategoryMonthlyLimits({
           </p>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-[180px_150px_auto_auto]">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[180px_150px_auto_auto]">
           <Input
             id="category-limit-period"
             type="month"

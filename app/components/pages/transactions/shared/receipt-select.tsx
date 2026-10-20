@@ -228,7 +228,7 @@ export default function ReceiptSelect({
           role="listbox"
           aria-label={ariaLabel}
           onKeyDown={handleMenuKeyDown}
-          className={`absolute left-0 right-0 z-[70] mt-1 max-h-[280px] overflow-y-auto rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface-raised)] p-1.5 shadow-[var(--shadow-surface)] [scrollbar-width:thin] ${menuClassName}`}
+          className={`absolute left-0 right-0 z-[var(--z-popover)] mt-1 max-h-[280px] overflow-y-auto rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface-raised)] p-1.5 shadow-[var(--shadow-surface)] [scrollbar-width:thin] ${menuClassName}`}
         >
           {groups.length
             ? groups.map((group) => (

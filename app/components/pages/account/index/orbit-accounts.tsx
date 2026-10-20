@@ -154,7 +154,7 @@ function MobileAccountsCenter({
             <FaEye className="text-[var(--text-muted)]" aria-hidden="true" />
           </div>
 
-          <strong className="mt-3 block break-words text-[36px] font-extrabold leading-none tracking-tight text-white min-[390px]:text-[38px]">
+          <strong className="mt-3 block break-words text-[36px] font-extrabold leading-none tracking-tight text-white min-[360px]:text-[38px]">
             {loading
               ? '—'
               : summaryCurrency && summaryBalance !== null
@@ -304,7 +304,7 @@ function MobileAccountsCenter({
                 </div>
 
                 <strong
-                  className={`mt-6 block break-words text-[37px] font-extrabold leading-none tracking-tight min-[390px]:text-[39px] ${
+                  className={`mt-6 block break-words text-[37px] font-extrabold leading-none tracking-tight min-[360px]:text-[39px] ${
                     getAccountPrimaryValue(selectedAccount) < 0 ? 'text-[var(--expense)]' : 'text-white'
                   }`}
                 >

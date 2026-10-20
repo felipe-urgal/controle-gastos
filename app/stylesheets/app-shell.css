@@ -29,32 +29,6 @@
       var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom) + var(--app-shell-focus-gap)
     );
   }
-
-  /*
-   * A bottom navigation pertence ao shell, não ao conteúdo modal.
-   * Drawers, sheets, dialogs e seus backdrops usam camadas >= 40/50 e precisam
-   * sempre ficar acima dela para não esconder ações no mobile.
-   */
-  .authenticated-shell > nav[aria-label='Navegação principal'] {
-    z-index: 30;
-  }
-
-  /*
-   * Em mobile, quando um overlay modal está ativo, a navegação de fundo sai da
-   * área interativa. Isso evita competição de stacking context no Safari/iOS e
-   * garante que CTAs no rodapé do sheet permaneçam visíveis e clicáveis.
-   */
-  .authenticated-shell:has(aside[aria-labelledby='transaction-detail-title'])
-    > nav[aria-label='Navegação principal'] {
-    visibility: hidden;
-    pointer-events: none;
-  }
-
-  .authenticated-shell :is(
-      aside[aria-labelledby='transaction-detail-title']
-    ) {
-    overscroll-behavior: contain;
-  }
 }
 
 @media (max-width: 767px) {

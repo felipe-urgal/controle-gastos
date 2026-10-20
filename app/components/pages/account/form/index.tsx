@@ -187,10 +187,10 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           >
             <FaArrowLeft aria-hidden="true" />
           </button>
-          <h1 className="truncate text-center text-[25px] font-extrabold tracking-tight text-[var(--foreground)] min-[390px]:text-[27px]">
+          <h1 className="truncate text-center text-[25px] font-extrabold tracking-tight text-[var(--foreground)] min-[360px]:text-[27px]">
             {isEditing ? 'Editar conta' : 'Nova conta'}
           </h1>
-          <span className="text-right text-base font-extrabold text-[var(--orbit-primary)] min-[390px]:text-lg">
+          <span className="text-right text-base font-extrabold text-[var(--orbit-primary)] min-[360px]:text-lg">
             {mobileStep}/3
           </span>
         </header>
@@ -210,7 +210,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               <span className="grid h-11 w-11 place-items-center rounded-full border border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-sm font-extrabold text-white shadow-[0_0_26px_color-mix(in_srgb,var(--orbit-primary)_42%,transparent)]">
                 {mobileStep > 1 ? <FaCheck aria-hidden="true" /> : '1'}
               </span>
-              <span className="mt-2 text-xs font-bold text-[var(--orbit-primary)] min-[390px]:text-sm">
+              <span className="mt-2 text-xs font-bold text-[var(--orbit-primary)] min-[360px]:text-sm">
                 Dados da conta
               </span>
             </div>
@@ -228,8 +228,8 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               <span
                 className={
                   mobileStep >= 2
-                    ? 'mt-2 text-xs font-bold text-[var(--orbit-primary)] min-[390px]:text-sm'
-                    : 'mt-2 text-xs font-semibold text-[var(--text-muted)] min-[390px]:text-sm'
+                    ? 'mt-2 text-xs font-bold text-[var(--orbit-primary)] min-[360px]:text-sm'
+                    : 'mt-2 text-xs font-semibold text-[var(--text-muted)] min-[360px]:text-sm'
                 }
               >
                 Configurações
@@ -249,8 +249,8 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               <span
                 className={
                   mobileStep === 3
-                    ? 'mt-2 text-xs font-bold text-[var(--orbit-primary)] min-[390px]:text-sm'
-                    : 'mt-2 text-xs font-semibold text-[var(--text-muted)] min-[390px]:text-sm'
+                    ? 'mt-2 text-xs font-bold text-[var(--orbit-primary)] min-[360px]:text-sm'
+                    : 'mt-2 text-xs font-semibold text-[var(--text-muted)] min-[360px]:text-sm'
                 }
               >
                 Revisão
@@ -273,7 +273,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
             <div>
               <h2
                 id="mobile-account-step-one"
-                className="text-[30px] font-extrabold leading-[1.12] tracking-tight text-[var(--foreground)] min-[390px]:text-[32px]"
+                className="text-[30px] font-extrabold leading-[1.12] tracking-tight text-[var(--foreground)] min-[360px]:text-[32px]"
               >
                 {isEditing ? 'Atualize sua conta' : 'Vamos criar sua conta'}
               </h2>
@@ -317,7 +317,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               <legend className="mb-3 text-[16px] font-bold text-[var(--text-muted)]">
                 Tipo de conta
               </legend>
-              <div className="grid gap-3 min-[390px]:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, type: 'CREDIT_DEBIT' })}
@@ -338,10 +338,10 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                   >
                     <FaWallet aria-hidden="true" />
                   </span>
-                  <span className="mt-5 block text-[17px] font-extrabold leading-tight text-[var(--foreground)] min-[390px]:text-lg">
+                  <span className="mt-5 block text-[17px] font-extrabold leading-tight text-[var(--foreground)] min-[360px]:text-lg">
                     Conta corrente
                   </span>
-                  <span className="mt-1.5 block text-[13px] leading-[1.45] text-[var(--text-muted)] min-[390px]:text-sm">
+                  <span className="mt-1.5 block text-[13px] leading-[1.45] text-[var(--text-muted)] min-[360px]:text-sm">
                     Para o seu dia a dia, com mais flexibilidade.
                   </span>
                   <span
@@ -378,10 +378,10 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                   >
                     <FaChartLine aria-hidden="true" />
                   </span>
-                  <span className="mt-5 block text-[17px] font-extrabold leading-tight text-[var(--foreground)] min-[390px]:text-lg">
+                  <span className="mt-5 block text-[17px] font-extrabold leading-tight text-[var(--foreground)] min-[360px]:text-lg">
                     Investimentos
                   </span>
-                  <span className="mt-1.5 block text-[13px] leading-[1.45] text-[var(--text-muted)] min-[390px]:text-sm">
+                  <span className="mt-1.5 block text-[13px] leading-[1.45] text-[var(--text-muted)] min-[360px]:text-sm">
                     Para fazer seu dinheiro crescer no longo prazo.
                   </span>
                   <span
@@ -418,10 +418,10 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                   >
                     <FaCreditCard aria-hidden="true" />
                   </span>
-                  <span className="mt-5 block text-[17px] font-extrabold leading-tight text-[var(--foreground)] min-[390px]:text-lg">
+                  <span className="mt-5 block text-[17px] font-extrabold leading-tight text-[var(--foreground)] min-[360px]:text-lg">
                     Cartão
                   </span>
-                  <span className="mt-1.5 block text-[13px] leading-[1.45] text-[var(--text-muted)] min-[390px]:text-sm">
+                  <span className="mt-1.5 block text-[13px] leading-[1.45] text-[var(--text-muted)] min-[360px]:text-sm">
                     Compras, limite e faturas em um único ciclo.
                   </span>
                   <span
@@ -444,7 +444,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               <legend className="mb-3 text-[16px] font-bold text-[var(--text-muted)]">
                 Moeda da conta
               </legend>
-              <div className="grid grid-cols-3 gap-2.5 min-[390px]:gap-3">
+              <div className="grid grid-cols-3 gap-2.5 min-[360px]:gap-3">
                 {[
                   { value: 'BRL', symbol: '🇧🇷' },
                   { value: 'USD', symbol: '🇺🇸' },
@@ -469,7 +469,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                   </button>
                 ))}
               </div>
-              <p className="mt-4 flex items-start gap-2 text-[13px] leading-relaxed text-[var(--text-muted)] min-[390px]:text-sm">
+              <p className="mt-4 flex items-start gap-2 text-[13px] leading-relaxed text-[var(--text-muted)] min-[360px]:text-sm">
                 <FaInfoCircle className="mt-0.5 shrink-0" aria-hidden="true" />
                 Você poderá alterar a moeda depois, se necessário.
               </p>

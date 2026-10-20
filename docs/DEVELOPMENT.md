@@ -84,3 +84,10 @@ Mantenha somente documentação viva. Decisões concluídas, planos antigos e re
 - `pnpm test:e2e layout-smoke --project=chromium`: percorre as rotas autenticadas em 360 e 390 px e falha em rolagem horizontal, mais de um `h1` visível ou aumento de alvos de toque menores que 44×44 px. As listas `KNOWN_*` do spec só podem diminuir; `LAYOUT_SMOKE_REPORT=1` imprime o detalhe dos alvos pequenos.
 - `scripts/__tests__/design-ratchet.test.ts`: limites por arquivo para overlays `fixed inset-0` fora do `ModalShell` e cores hex literais. Ao migrar um arquivo, reduza ou remova a entrada.
 - `VISUAL_REVIEW=1 SHOTS_DIR=/tmp/shots pnpm test:e2e visual-review --project=chromium`: gera capturas das telas principais a 360px (claro/escuro, com dados semeados) para revisão visual; não roda por padrão.
+
+## Design: breakpoints, camadas e tokens
+
+- **Breakpoints:** `sm` 640, `md` 768, `lg` 1024 (shell desktop: sidebar), `xl` 1280, `2xl` 1536. Mais um único ponto "compacto" de telefone: `min-[360px]:` / `max-[359px]:`. Nenhum outro `min-[Npx]`/`max-[Npx]` (teste em `scripts/__tests__/design-guardrails.test.ts`). `tailwind.config.js` não existe: o Tailwind v4 usa os padrões acima.
+- **Camadas (z-index):** use sempre os tokens de `globals.css`: `--z-popover` 20 < `--z-nav` 30 (bottom-nav) < `--z-header` 40 (topbar/sidebar/filtros) < `--z-sheet` 50 < `--z-detail` 60 < `--z-modal` 70 (`ModalShell`) < `--z-search` 80 < `--z-toast` 90. Ex.: `z-[var(--z-sheet)]`. `z-10`/`z-20`/`z-[1]` só para empilhamento local dentro de um componente.
+- **Cores de marca em duas camadas com papéis fixos:** `--primary*` é a identidade e a semântica financeira do produto (o shell **não** a redefine — teste em `orbit.test.ts`); `--orbit-*` é o acento da interface autenticada (navegação, botões de ação, foco). Receita/despesa usam `--income`/`--expense`; avisos usam `--warning`/`--warning-subtle`. Cores literais (hex/paleta Tailwind) só para dado escolhido pelo usuário (cor de conta/categoria).
+- **Overlays:** `ModalShell` (variantes `sheet` e `fullscreen-sheet`) e o atributo `data-overlay-hide-nav` (o shell oculta a bottom-nav sem conhecer telas específicas).

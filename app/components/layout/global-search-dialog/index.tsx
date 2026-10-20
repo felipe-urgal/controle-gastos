@@ -282,7 +282,7 @@ export default function GlobalSearchDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-start justify-center bg-[var(--overlay)] px-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-[2px] sm:px-4 sm:pt-[12vh]"
+      className="fixed inset-0 z-[var(--z-search)] flex items-start justify-center bg-[var(--overlay)] px-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-[2px] sm:px-4 sm:pt-[12vh]"
       onMouseDown={(event) => {
         if (event.currentTarget === event.target) onClose();
       }}

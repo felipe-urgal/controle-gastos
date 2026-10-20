@@ -55,14 +55,14 @@ export default function MobileTopbar({
 
   return (
     <header
-      className="orbit-navigation-surface sticky top-0 z-40 border-b border-[var(--border)] lg:hidden"
+      className="orbit-navigation-surface sticky top-0 z-[var(--z-header)] border-b border-[var(--border)] lg:hidden"
       style={{
         paddingTop: 'env(safe-area-inset-top)',
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
       }}
     >
-      <div className="flex min-h-[var(--app-mobile-topbar-height)] items-center gap-1.5 px-3 min-[390px]:gap-2 min-[390px]:px-4">
+      <div className="flex min-h-[var(--app-mobile-topbar-height)] items-center gap-1.5 px-3 min-[360px]:gap-2 min-[360px]:px-4">
         <Link
           href="/transacoes"
           aria-label="Controle de Gastos"
@@ -73,7 +73,7 @@ export default function MobileTopbar({
           </span>
           <span
             className={`truncate font-bold tracking-tight text-[var(--foreground)] ${
-              transactionsListActive ? 'text-sm min-[390px]:text-base' : 'text-base max-[389px]:sr-only'
+              transactionsListActive ? 'text-sm min-[360px]:text-base' : 'text-base max-[359px]:sr-only'
             }`}
           >
             Controle de Gastos

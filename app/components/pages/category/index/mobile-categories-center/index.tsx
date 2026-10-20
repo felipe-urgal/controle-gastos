@@ -300,7 +300,7 @@ export default function MobileCategoriesCenter({
         </div>
 
         <div className="relative z-[1] mt-7 flex items-end justify-between gap-4">
-          <strong className="min-w-0 break-words text-[30px] font-extrabold min-[360px]:text-[37px] leading-none tracking-tight text-white min-[390px]:text-[40px]">
+          <strong className="min-w-0 break-words text-[30px] font-extrabold min-[360px]:text-[37px] sm:text-[40px] leading-none tracking-tight text-white">
             {loading ? '—' : displayMoney(summary.budget, showValues, currency)}
           </strong>
           <span className="shrink-0 pb-1 text-[16px] font-bold text-white/70">
@@ -318,7 +318,7 @@ export default function MobileCategoriesCenter({
           />
         </div>
 
-        <div className="relative z-[1] mt-7 grid grid-cols-2 min-[390px]:grid-cols-[1fr_1fr_.82fr]">
+        <div className="relative z-[1] mt-7 grid grid-cols-2 sm:grid-cols-[1fr_1fr_.82fr]">
           <div className="flex min-w-0 items-center gap-3 border-r border-white/15 pr-3">
             <span className="hidden h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--warning)]/15 text-[var(--warning)] min-[360px]:grid">
               <FaArrowUp aria-hidden="true" />
@@ -331,7 +331,7 @@ export default function MobileCategoriesCenter({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 pl-3 min-[360px]:pl-4 min-[390px]:border-r min-[390px]:border-white/15 min-[390px]:pr-3">
+          <div className="flex items-center gap-3 pl-3 min-[360px]:pl-4 sm:border-r sm:border-white/15 sm:pr-3">
             <span className="hidden h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--income)]/15 text-[var(--income)] min-[360px]:grid">
               <FaArrowDown aria-hidden="true" />
             </span>
@@ -343,7 +343,7 @@ export default function MobileCategoriesCenter({
             </div>
           </div>
 
-          <div className="hidden self-center pl-4 text-right min-[390px]:block">
+          <div className="col-span-2 mt-3 flex items-center justify-between border-t border-white/10 pt-3 sm:col-span-1 sm:mt-0 sm:block sm:self-center sm:border-0 sm:pl-4 sm:pt-0 sm:text-right">
             <strong className="block text-sm text-white">
               {displayMoney(summary.committed, showValues, currency)}
             </strong>
@@ -628,7 +628,7 @@ export default function MobileCategoriesCenter({
 
       {(selectedExpense || selectedIncome) && (
         <div
-          className="fixed inset-0 z-50 flex items-end bg-[var(--overlay)] lg:hidden"
+          className="fixed inset-0 z-[var(--z-sheet)] flex items-end bg-[var(--overlay)] lg:hidden"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) closeSelectedCategory();
           }}

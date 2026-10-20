@@ -160,7 +160,7 @@ export default function MobileTransactionShow({
         }}
         aria-labelledby="mobile-transaction-title"
       >
-        <div className="pointer-events-none absolute bottom-4 right-5 hidden items-end gap-2 text-[var(--orbit-primary)] opacity-25 min-[390px]:flex" aria-hidden="true">
+        <div className="pointer-events-none absolute bottom-4 right-5 hidden items-end gap-2 text-[var(--orbit-primary)] opacity-25 min-[360px]:flex" aria-hidden="true">
           <span className="text-[58px] leading-none">{heroIcon}</span>
           <span className="mb-1 max-w-[72px] text-xs font-semibold uppercase leading-[1.45] tracking-[0.2em] text-white/55">
             Gastar bem também é planejar

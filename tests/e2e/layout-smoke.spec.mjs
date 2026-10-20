@@ -19,6 +19,8 @@ const VIEWPORTS = [
   { width: 360, height: 740 },
   { width: 390, height: 780 },
   { width: 768, height: 900 },
+  { width: 1024, height: 800 },
+  { width: 1280, height: 900 },
 ];
 const ROUTES = [
   '/dashboard',
