@@ -1,5 +1,5 @@
 // importing components
-import { Edit } from '@/app/components/pages/account';
+import Edit from '@/app/components/pages/account/edit';
 
 // importing metadata
 import type { Metadata } from "next";

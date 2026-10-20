@@ -1,7 +1,7 @@
 'use client';
 
 import { EditPage } from '@/app/components/base-pages';
-import { TransactionForm } from '@/app/components/pages/transactions';
+import TransactionForm from '@/app/components/pages/transactions/form';
 import TransferForm from '@/app/components/pages/transactions/transfer-form';
 import { useTransactions } from '@/app/hooks/transactions/transaction-edit';
 

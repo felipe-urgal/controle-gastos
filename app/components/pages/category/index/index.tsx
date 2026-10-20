@@ -1,7 +1,7 @@
 'use client';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { CategoryMonthlyLimits } from '@/app/components/pages/category';
+import CategoryMonthlyLimits from '@/app/components/pages/category/index/monthly-limits';
 import { useCategories } from '@/app/hooks/categories/category-index';
 
 export default function Index() {

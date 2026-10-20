@@ -166,3 +166,34 @@ export async function setUserActive({ email, isActive }) {
     prisma.user.update({ where: { email }, data: { isActive } }),
   );
 }
+
+/**
+ * Semeia `count` transações COMPLETED no mês corrente direto no banco (sem passar pelo rate limit
+ * da API). Cria uma conta e uma categoria de despesa. Retorna `{ accountId, categoryId }`.
+ */
+export async function seedBulkTransactions({ userId, count }) {
+  return withPrisma(async (prisma) => {
+    const account = await prisma.account.create({
+      data: { name: 'Conta volume', type: 'CREDIT_DEBIT', currency: 'BRL', color: '#22C55E', icon: 'wallet', isActive: true, userId },
+    });
+    const category = await prisma.category.create({
+      data: { name: 'Categoria volume', type: 'EXPENSE', color: '#EF4444', icon: 'tag', isActive: true, position: 0, userId },
+    });
+    const now = new Date();
+    await prisma.transaction.createMany({
+      data: Array.from({ length: count }, (_, index) => ({
+        amount: 1000 + index,
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        day: (index % 28) + 1,
+        type: 'EXPENSE',
+        status: 'COMPLETED',
+        description: `Lançamento de teste ${index}`,
+        accountId: account.id,
+        categoryId: category.id,
+        userId,
+      })),
+    });
+    return { accountId: account.id, categoryId: category.id };
+  });
+}

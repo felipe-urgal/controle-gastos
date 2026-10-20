@@ -98,3 +98,20 @@ Mantenha somente documentação viva. Decisões concluídas, planos antigos e re
 - **`IconButton` / `IconLink`**: só ícone, 44×44, `label` (aria-label) obrigatório. **`Chip` / `ChipRow`**: pílulas de filtro/aba com `aria-pressed` e esmaecimento nas bordas quando a linha rola.
 - **`Input`/`Select`**: 44px e 16px (a regra global de 16px em telas estreitas evita o zoom do iOS); `Input bare` e `FormContainer bare` para visuais próprios sem `!important` (guardrail proíbe modificadores `!` do Tailwind).
 - `node scripts/count-raw-controls.mjs` mede os controles crus (`<button>`/`<input>`/…) por módulo; `scripts/__tests__/raw-controls.test.ts` impede aumentá-los. Ao migrar para os primitivos, rode com `--write` para baixar o baseline.
+
+## Performance (baseline mobile)
+
+`PERF_BASELINE=1 pnpm test:e2e perf-baseline --project=chromium` mede, em 390px com CPU 4× mais lenta e rede 4G (150 ms, 9 Mbps), cache frio e 240 transações no mês: JS baixado, nós DOM, LCP e tarefas longas (TBT aproximado) por rota (`PERF_FILES=1` lista os arquivos JS). Referência (#885):
+
+| Rota | JS antes | JS depois | LCP | TBT~ |
+| --- | --- | --- | --- | --- |
+| /transacoes | 1341 KiB | 1083 KiB | ~1,05 s | 150–260 ms (240 itens, 1300 nós) |
+| /contas | 1341 KiB | 1124 KiB | ~1,2 s | 0 |
+| /categorias | 1436 KiB | 1174 KiB | ~1,1 s | 0 |
+| /dashboard | 1469–1814 KiB | ~1230–1310 KiB | ~1,35 s | 0 |
+
+- **Importe pelos módulos, não pelo barrel** (`pages/transactions/index.ts` etc.): o barrel arrastava formulário, edição e detalhe para a listagem e para as outras rotas do módulo (-16% a -19% de JS). As páginas em `app/(pages)` importam o componente direto.
+- `next/dynamic` só vale quando a medição mostra ganho: o modal de importação de investimentos (-2 KiB) e o painel de projeção do Dashboard (dentro do ruído de ±50 KiB por prefetch) não compensaram e ficaram estáticos.
+- Listas: paginadas (240 itens = ~1300 nós DOM, LCP ~1 s); virtualização não é necessária com esse volume.
+- `BackgroundParticles` só existe na splash e no 404; já usa 24 partículas com `prefers-reduced-motion` (desenho estático) e 50 em telas estreitas.
+- Nenhum arquivo de componente passa de 1200 linhas (`find app/components -name '*.tsx' | xargs wc -l | sort -rn | head`).
