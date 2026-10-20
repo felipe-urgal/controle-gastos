@@ -204,7 +204,7 @@ export default function RecurrencesCenter() {
 
             <section aria-labelledby="formal-recurrences-title">
               <div className="flex items-end justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <h2 id="formal-recurrences-title" className="text-xl font-bold text-[var(--foreground)]">
                     Recorrências ativas
                   </h2>
@@ -212,7 +212,7 @@ export default function RecurrencesCenter() {
                     Séries formais já cadastradas. Candidatos não entram nos totais até serem confirmados.
                   </p>
                 </div>
-                <span className="text-xs font-semibold text-[var(--text-muted)]">
+                <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-[var(--text-muted)]">
                   {data.formal.length} {data.formal.length === 1 ? 'série' : 'séries'}
                 </span>
               </div>

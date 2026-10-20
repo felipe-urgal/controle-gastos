@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FaMoon, FaPlus, FaSearch, FaSignOutAlt, FaSun, FaWallet } from 'react-icons/fa';
+import { FaFilter, FaMoon, FaPlus, FaSearch, FaSignOutAlt, FaSun, FaWallet } from 'react-icons/fa';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
 import OfflinePendingBadge from '@/app/components/pwa/offline-pending-badge';
@@ -91,7 +91,7 @@ export default function MobileTopbar({
               title="Buscar e filtrar"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
             >
-              <FaSearch aria-hidden="true" />
+              <FaFilter aria-hidden="true" />
             </button>
             <Link
               href="/transacoes/nova"

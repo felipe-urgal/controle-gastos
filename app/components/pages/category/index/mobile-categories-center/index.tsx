@@ -300,7 +300,7 @@ export default function MobileCategoriesCenter({
         </div>
 
         <div className="relative z-[1] mt-7 flex items-end justify-between gap-4">
-          <strong className="min-w-0 break-words text-[37px] font-extrabold leading-none tracking-tight text-white min-[390px]:text-[40px]">
+          <strong className="min-w-0 break-words text-[30px] font-extrabold min-[360px]:text-[37px] leading-none tracking-tight text-white min-[390px]:text-[40px]">
             {loading ? '—' : displayMoney(summary.budget, showValues, currency)}
           </strong>
           <span className="shrink-0 pb-1 text-[16px] font-bold text-white/70">
@@ -319,8 +319,8 @@ export default function MobileCategoriesCenter({
         </div>
 
         <div className="relative z-[1] mt-7 grid grid-cols-2 min-[390px]:grid-cols-[1fr_1fr_.82fr]">
-          <div className="flex items-center gap-3 border-r border-white/15 pr-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--warning)]/15 text-[var(--warning)]">
+          <div className="flex min-w-0 items-center gap-3 border-r border-white/15 pr-3">
+            <span className="hidden h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--warning)]/15 text-[var(--warning)] min-[360px]:grid">
               <FaArrowUp aria-hidden="true" />
             </span>
             <div className="min-w-0">
@@ -331,8 +331,8 @@ export default function MobileCategoriesCenter({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 pl-4 min-[390px]:border-r min-[390px]:border-white/15 min-[390px]:pr-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-400">
+          <div className="flex items-center gap-3 pl-3 min-[360px]:pl-4 min-[390px]:border-r min-[390px]:border-white/15 min-[390px]:pr-3">
+            <span className="hidden h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--income)]/15 text-[var(--income)] min-[360px]:grid">
               <FaArrowDown aria-hidden="true" />
             </span>
             <div className="min-w-0">

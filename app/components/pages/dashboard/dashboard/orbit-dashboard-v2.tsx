@@ -1132,7 +1132,7 @@ function MobileQuickActions() {
             {action.icon}
           </span>
           <span className="min-w-0 flex-1 leading-tight">{action.label}</span>
-          <FaChevronRight className="shrink-0 text-xs opacity-70" aria-hidden="true" />
+          <FaChevronRight className="hidden shrink-0 text-xs opacity-70 min-[380px]:block" aria-hidden="true" />
         </Link>
       ))}
     </section>
