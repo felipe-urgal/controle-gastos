@@ -22,7 +22,7 @@ export function lockBodyScroll() {
   };
 }
 
-export type ModalShellVariant = 'sheet' | 'fullscreen-sheet';
+export type ModalShellVariant = 'sheet' | 'fullscreen-sheet' | 'side-panel';
 
 export function ModalShell({
   title,
@@ -37,6 +37,7 @@ export function ModalShell({
   closeLabel = 'Fechar',
   variant = 'sheet',
   sectionClassName = '',
+  icon,
 }: {
   title: string;
   children: ReactNode;
@@ -56,16 +57,21 @@ export function ModalShell({
   /**
    * `sheet`: folha na base no mobile. `fullscreen-sheet`: ocupa a área útil
    * abaixo da topbar em telas pequenas (filtros, período, formulários longos).
-   * Em ≥ sm ambos viram diálogo centralizado.
+   * `side-panel`: painel lateral à direita em ≥ sm (detalhes); sheet na base no mobile.
+   * Em ≥ sm `sheet` e `fullscreen-sheet` viram diálogo centralizado.
    */
   variant?: ModalShellVariant;
   /** Classes extras no diálogo (ex.: sobrescrever tokens de cor do escopo). */
   sectionClassName?: string;
+  /** Ícone ao lado do título (decorativo). */
+  icon?: ReactNode;
 }) {
   const titleId = useId();
   const descriptionId = useId();
   const onCloseRef = useRef(onClose);
+  const pressedBackdrop = useRef(false);
   const fullscreen = variant === 'fullscreen-sheet';
+  const sidePanel = variant === 'side-panel';
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -84,14 +90,22 @@ export function ModalShell({
     : 'pt-[max(1rem,env(safe-area-inset-top))]';
   const sectionSize = fullscreen
     ? 'max-sm:h-full max-sm:rounded-none sm:max-h-[min(88dvh,820px)]'
-    : 'max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))]';
+    : sidePanel
+      ? 'max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))] sm:h-full sm:max-h-none sm:rounded-none sm:border-y-0 sm:border-r-0'
+      : 'max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))]';
 
   return (
     <div
       data-overlay-hide-nav={hideBottomNav || undefined}
-      className={`fixed inset-0 z-[var(--z-modal)] flex ${fullscreen ? 'items-stretch' : 'items-end'} justify-center bg-[var(--overlay)] ${fullscreen ? 'px-0' : 'px-3'} ${topInset} sm:items-center sm:p-5`}
+      className={`fixed inset-0 z-[var(--z-modal)] flex ${fullscreen ? 'items-stretch' : 'items-end'} justify-center bg-[var(--overlay)] ${fullscreen ? 'px-0' : 'px-3'} ${topInset} ${sidePanel ? 'sm:items-stretch sm:justify-end sm:p-0' : 'sm:items-center sm:p-5'}`}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) close();
+        pressedBackdrop.current = event.target === event.currentTarget;
+      }}
+      // Fecha no `click` (não no `mousedown`): desmontar durante o mousedown faz o navegador
+      // mover o foco para o body logo após `useModalFocus` devolvê-lo ao botão que abriu.
+      onClick={(event) => {
+        if (pressedBackdrop.current && event.target === event.currentTarget) close();
+        pressedBackdrop.current = false;
       }}
     >
       <section
@@ -102,10 +116,11 @@ export function ModalShell({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         aria-busy={closeDisabled || undefined}
-        className={`flex w-full ${maxWidthClass} ${sectionSize} flex-col overflow-hidden rounded-t-[22px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-elevated)] outline-none sm:rounded-[22px] ${sectionClassName}`}
+        className={`flex w-full ${maxWidthClass} ${sectionSize} flex-col overflow-hidden rounded-t-[22px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-elevated)] outline-none ${sidePanel ? '' : 'sm:rounded-[22px]'} ${sectionClassName}`}
       >
         <header className="flex shrink-0 items-start justify-between gap-4 px-5 pb-5 pt-5">
-          <div className="min-w-0">
+          {icon && <span className="mr-3 shrink-0" aria-hidden="true">{icon}</span>}
+          <div className="min-w-0 flex-1">
             {eyebrow && (
               <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">
                 {eyebrow}

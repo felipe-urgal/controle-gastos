@@ -1,5 +1,6 @@
 'use client';
 
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -1354,98 +1355,31 @@ function MobileImportDetail({
   ) => void;
   onClose: () => void;
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    const restoreFocus = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const dialog = dialogRef.current;
-    const focusables = () =>
-      Array.from(
-        dialog?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
-        ) ?? [],
-      );
-
-    const frame = window.requestAnimationFrame(() => {
-      focusables()[0]?.focus();
-    });
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-
-      const elements = focusables();
-      if (elements.length === 0) {
-        event.preventDefault();
-        return;
-      }
-
-      const first = elements[0];
-      const last = elements[elements.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      restoreFocus?.focus();
-    };
-  }, []);
-
   return (
-    <div className="fixed inset-0 z-[var(--z-sheet)] flex items-end bg-[var(--overlay)] p-0 lg:hidden">
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={`mobile-import-detail-${item.index}`}
-        className="max-h-[88vh] w-full overscroll-contain overflow-y-auto rounded-t-[var(--radius-xl)] bg-[var(--background)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl"
-      >
-        <div className="mb-3 flex justify-end">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            Fechar
-          </Button>
-        </div>
-        <ImportDetail
-          item={item}
-          accountId={accountId}
-          categories={categories}
-          merchants={merchants}
-          merchantOptionsUnavailable={merchantOptionsUnavailable}
-          merchantRetrying={merchantRetrying}
-          onRetryMerchants={onRetryMerchants}
-          merchantSearch={merchantSearch}
-          merchantSearchLoading={merchantSearchLoading}
-          onSearchMerchants={onSearchMerchants}
-          accountCurrency={accountCurrency}
-          showValues={showValues}
-          submitting={submitting}
-          onUpdate={onUpdate}
-          headingIdPrefix="mobile-import-detail"
-        />
-      </div>
-    </div>
+    <ModalShell
+      variant="fullscreen-sheet"
+      title="Revisar lançamento"
+      closeLabel="Fechar"
+      maxWidthClass="max-w-xl"
+      onClose={onClose}
+    >
+    <ImportDetail
+      item={item}
+      accountId={accountId}
+      categories={categories}
+      merchants={merchants}
+      merchantOptionsUnavailable={merchantOptionsUnavailable}
+      merchantRetrying={merchantRetrying}
+      onRetryMerchants={onRetryMerchants}
+      merchantSearch={merchantSearch}
+      merchantSearchLoading={merchantSearchLoading}
+      onSearchMerchants={onSearchMerchants}
+      accountCurrency={accountCurrency}
+      showValues={showValues}
+      submitting={submitting}
+      onUpdate={onUpdate}
+      headingIdPrefix="mobile-import-detail"
+    />
+    </ModalShell>
   );
 }
