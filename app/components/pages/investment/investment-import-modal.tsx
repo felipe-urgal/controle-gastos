@@ -120,6 +120,7 @@ export function InvestmentImportModal({
 
   return (
     <ModalShell
+      variant="fullscreen-sheet"
       title="Importar investimentos"
       description="CSV/XLSX da B3 ou nota de corretagem PDF da Nu Investimentos."
       onClose={onClose}

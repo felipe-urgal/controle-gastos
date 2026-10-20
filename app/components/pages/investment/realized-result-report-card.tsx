@@ -86,7 +86,7 @@ export function RealizedResultReportCard({
       ) : (
         <div className="mt-4 space-y-3">
           {report.pending.length > 0 && (
-            <div className="rounded-[14px] bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+            <div className="rounded-[14px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
               <strong className="block text-sm">{report.pending.length} pendência(s) na apuração</strong>
               <span className="mt-1 block">{report.pending[0]?.message}</span>
             </div>
@@ -133,7 +133,7 @@ export function RealizedResultReportCard({
                       <div className="mt-1 text-[var(--text-muted)]">
                         Líquido {showValues ? formatCurrency(sale.netProceedsCents, sale.currency) : '••••'} · custo {showValues ? formatCurrency(sale.allocatedCostCents, sale.currency) : '••••'}
                       </div>
-                      {sale.pending[0] && <div className="mt-1 text-amber-400">{sale.pending[0]}</div>}
+                      {sale.pending[0] && <div className="mt-1 text-[var(--warning)]">{sale.pending[0]}</div>}
                     </div>
                   ))}
                 </div>

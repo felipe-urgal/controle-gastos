@@ -138,7 +138,7 @@ export function TaxLossCarryforwardCard({
           <button
             type="button"
             onClick={() => setEditing((value) => !value)}
-            className="min-h-10 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
+            className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
           >
             {editing ? 'Cancelar ajuste' : 'Informar saldo inicial'}
           </button>
@@ -214,7 +214,7 @@ export function TaxLossCarryforwardCard({
           <button
             type="submit"
             disabled={saving}
-            className="min-h-10 rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-50"
+            className="min-h-11 rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-50"
           >
             {saving ? 'Salvando...' : 'Registrar ajuste'}
           </button>
@@ -232,7 +232,7 @@ export function TaxLossCarryforwardCard({
       ) : (
         <>
           {report.pending.length > 0 && (
-            <div className="mt-4 rounded-[14px] bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+            <div className="mt-4 rounded-[14px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
               <strong className="block text-sm">Apuração pendente</strong>
               <span className="mt-1 block">{report.pending[0]?.message}</span>
             </div>

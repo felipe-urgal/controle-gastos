@@ -178,7 +178,7 @@ export function FiscalPendingCenterCard() {
                             'rounded-full border px-2 py-0.5 text-xs font-bold ' +
                             (item.status === 'JUSTIFIED'
                               ? 'border-[var(--income)]/35 text-[var(--income)]'
-                              : 'border-amber-500/35 text-amber-400')
+                              : 'border-[var(--warning)]/35 text-[var(--warning)]')
                           }
                         >
                           {item.status === 'JUSTIFIED'
@@ -208,7 +208,7 @@ export function FiscalPendingCenterCard() {
                           setJustifying(item);
                           setJustification('');
                         }}
-                        className="min-h-9 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
+                        className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
                       >
                         Justificar
                       </button>
@@ -266,14 +266,14 @@ export function FiscalPendingCenterCard() {
             <button
               type="submit"
               disabled={saving}
-              className="min-h-10 rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-50"
+              className="min-h-11 rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-50"
             >
               {saving ? 'Salvando...' : 'Salvar justificativa'}
             </button>
             <button
               type="button"
               onClick={() => setJustifying(null)}
-              className="min-h-10 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
+              className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
               disabled={saving}
             >
               Cancelar

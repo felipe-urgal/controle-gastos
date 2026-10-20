@@ -107,6 +107,7 @@ function quantityLabel(value: string) {
   return value.replace('.', ',');
 }
 
+
 type AssetForm = {
   symbol: string;
   name: string;
@@ -567,7 +568,7 @@ export default function InvestmentsCenter() {
       <section className="mx-auto w-full max-w-6xl pb-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-[34px] font-extrabold tracking-tight text-[var(--foreground)]">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-[var(--foreground)]">
               Investimentos
             </h1>
             <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
@@ -1357,7 +1358,7 @@ function FiscalCostCard({
                   className={`rounded-full border px-2.5 py-1 text-xs font-bold ${
                     item.status === 'OK'
                       ? 'border-[var(--income)]/35 text-[var(--income)]'
-                      : 'border-amber-500/35 text-amber-400'
+                      : 'border-[var(--warning)]/35 text-[var(--warning)]'
                   }`}
                 >
                   {item.status === 'OK' ? 'Conciliado' : 'Pendente'}
@@ -1373,7 +1374,7 @@ function FiscalCostCard({
                     {quantityLabel(item.quantity)}
                   </strong>
                   {item.quantity !== item.economicQuantity && (
-                    <span className="mt-1 block text-xs text-amber-400">
+                    <span className="mt-1 block text-xs text-[var(--warning)]">
                       posição: {quantityLabel(item.economicQuantity)}
                     </span>
                   )}
@@ -1388,7 +1389,7 @@ function FiscalCostCard({
                       : '••••'}
                   </strong>
                   {item.status === 'PENDING' && (
-                    <span className="mt-1 block text-xs text-amber-400">
+                    <span className="mt-1 block text-xs text-[var(--warning)]">
                       valor parcial
                     </span>
                   )}
@@ -1432,7 +1433,7 @@ function FiscalCostCard({
               </div>
 
               {item.pending.length > 0 && (
-                <div className="mt-3 rounded-xl bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+                <div className="mt-3 rounded-xl bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
                   {item.pending[0]?.message}
                   {item.pending.length > 1
                     ? ` +${item.pending.length - 1} pendência(s).`
@@ -1443,7 +1444,7 @@ function FiscalCostCard({
               <button
                 type="button"
                 onClick={() => onAdjust(item.assetId)}
-                className="mt-3 min-h-10 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
+                className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
               >
                 {item.lastAdjustmentId ? 'Novo ajuste fiscal' : 'Informar custo fiscal'}
               </button>
@@ -1675,7 +1676,7 @@ function AssetsCard({
                   type="button"
                   onClick={() => onRemove(asset)}
                   aria-label={`Excluir ativo ${asset.symbol}`}
-                  className="grid h-10 w-10 place-items-center rounded-full text-[var(--expense)]"
+                  className="grid h-11 w-11 place-items-center rounded-full text-[var(--expense)]"
                 >
                   <FaTrash aria-hidden="true" />
                 </button>
@@ -1771,7 +1772,7 @@ function OperationRow({
         <button
           type="button"
           onClick={onClassify}
-          className="min-h-10 rounded-full border border-[var(--border)] px-3 text-xs font-bold text-[var(--foreground)]"
+          className="min-h-11 rounded-full border border-[var(--border)] px-3 text-xs font-bold text-[var(--foreground)]"
         >
           Fiscal
         </button>
@@ -1779,7 +1780,7 @@ function OperationRow({
           type="button"
           onClick={onRemove}
           aria-label="Excluir operação"
-          className="grid h-10 w-10 place-items-center rounded-full text-[var(--expense)]"
+          className="grid h-11 w-11 place-items-center rounded-full text-[var(--expense)]"
         >
           <FaTrash aria-hidden="true" />
         </button>
@@ -1906,7 +1907,7 @@ function InvestmentModal({
   onClose: () => void;
 }) {
   return (
-    <SharedModalShell title={title} onClose={onClose} maxWidthClass="max-w-2xl">
+    <SharedModalShell variant="fullscreen-sheet" title={title} onClose={onClose} maxWidthClass="max-w-2xl">
       {children}
     </SharedModalShell>
   );

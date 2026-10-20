@@ -102,20 +102,20 @@ export function AnnualTaxSupportReportCard({
           </select>
           <a
             href={'/api/investments/annual-tax-support/export?year=' + year + '&format=csv'}
-            className="inline-flex min-h-10 items-center rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
+            className="inline-flex min-h-11 items-center rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
           >
             Exportar CSV
           </a>
           <a
             href={'/api/investments/annual-tax-support/export?year=' + year + '&format=pdf'}
-            className="inline-flex min-h-10 items-center rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
+            className="inline-flex min-h-11 items-center rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
           >
             Exportar PDF
           </a>
         </div>
       </div>
 
-      <div className="mt-3 rounded-[12px] bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+      <div className="mt-3 rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
         Documento de apoio. Não substitui nem transmite a declaração oficial à
         Receita Federal.
       </div>
