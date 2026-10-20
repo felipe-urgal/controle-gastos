@@ -105,7 +105,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     const sizes: Record<ButtonSize, string> = {
       xs: isIconOnly
         ? 'p-2 min-h-11 min-w-11'
-        : 'px-3 py-2 text-sm gap-1.5 min-h-9',
+        : 'px-3 py-2 text-sm gap-1.5 min-h-9 pointer-coarse:min-h-11',
       sm: isIconOnly
         ? 'p-2.5 min-h-11 min-w-11'
         : 'px-4 py-2.5 text-sm gap-2 min-h-11',

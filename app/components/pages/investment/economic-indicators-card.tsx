@@ -104,7 +104,7 @@ export function EconomicIndicatorsCard() {
                 <strong className="mt-1 block text-lg text-[var(--foreground)]">
                   {formatPercent(indicator)}
                 </strong>
-                <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-muted)]">
+                <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
                   {indicator.periodLabel}
                   {' · '}
                   {referenceDateLabel(indicator.referenceDate)}
@@ -114,7 +114,7 @@ export function EconomicIndicatorsCard() {
             ))}
           </div>
 
-          <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-muted)]">
+          <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
             Fonte: Banco Central do Brasil · SGS · séries 13522, 1178 e 12
             {updatedAt ? ' · cache atualizado em ' + updatedAt : ''}
             {hasStaleData
