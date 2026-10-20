@@ -1,5 +1,7 @@
 'use client';
 
+import { ModalShell } from '@/app/components/overlays/modal-shell';
+import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
 import {
@@ -122,7 +124,7 @@ function stateFor(item: CategoryMonthlyLimitItem) {
 function barClass(item: CategoryMonthlyLimitItem) {
   const state = stateFor(item);
   if (state === 'danger') return 'bg-[var(--expense)]';
-  if (state === 'warn') return 'bg-[#ec4899]';
+  if (state === 'warn') return 'bg-[var(--warning)]';
   if (state === 'ok') return 'bg-[var(--orbit-primary)]';
   return 'bg-[var(--surface-subtle)]';
 }
@@ -130,7 +132,7 @@ function barClass(item: CategoryMonthlyLimitItem) {
 function percentageClass(item: CategoryMonthlyLimitItem) {
   const state = stateFor(item);
   if (state === 'danger') return 'text-[var(--expense)]';
-  if (state === 'warn') return 'text-[#ec4899]';
+  if (state === 'warn') return 'text-[var(--warning)]';
   if (state === 'ok') return 'text-[var(--orbit-primary)]';
   return 'text-[var(--text-muted)]';
 }
@@ -226,10 +228,6 @@ export default function MobileCategoriesCenter({
     setSelectedIncomeId(null);
     onCancelRemove();
   }, [mutationBusy, onCancelRemove]);
-  const filterDialogRef = useModalFocus<HTMLElement>(
-    filterOpen,
-    closeFilters,
-  );
   const categoryDialogRef = useModalFocus<HTMLElement>(
     Boolean(selectedExpense || selectedIncome),
     closeSelectedCategory,
@@ -321,7 +319,7 @@ export default function MobileCategoriesCenter({
 
         <div className="relative z-[1] mt-7 grid grid-cols-2 min-[390px]:grid-cols-[1fr_1fr_.82fr]">
           <div className="flex items-center gap-3 border-r border-white/15 pr-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#ec4899]/15 text-[#ec4899]">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--warning)]/15 text-[var(--warning)]">
               <FaArrowUp aria-hidden="true" />
             </span>
             <div className="min-w-0">
@@ -555,99 +553,76 @@ export default function MobileCategoriesCenter({
       )}
 
       {filterOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end bg-[var(--overlay)] lg:hidden"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeFilters();
-          }}
+        <ModalShell
+          title="Filtros"
+          description="Refine as categorias exibidas."
+          closeLabel="Fechar filtros"
+          maxWidthClass="max-w-[430px]"
+          onClose={closeFilters}
+          footer={
+            <button
+              type="button"
+              onClick={() => setFilterOpen(false)}
+              className="min-h-[56px] w-full rounded-full bg-[var(--orbit-primary)] px-4 text-base font-extrabold text-white"
+            >
+              Aplicar filtros
+            </button>
+          }
         >
-          <section
-            ref={filterDialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="mobile-category-filters-title"
-            tabIndex={-1}
-            className="w-full rounded-t-[28px] border-t border-[var(--border-strong)] bg-[var(--background)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-elevated)]">
-            <div className="mx-auto w-full max-w-[430px]">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 id="mobile-category-filters-title" className="text-xl font-extrabold text-[var(--foreground)]">Filtros</h2>
-                  <p className="mt-1 text-sm text-[var(--text-muted)]">Refine as categorias exibidas.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFilterOpen(false)}
-                  aria-label="Fechar filtros"
-                  className="grid h-11 w-11 place-items-center rounded-full bg-[var(--surface)] text-[var(--text-muted)]"
-                >
-                  <FaTimes aria-hidden="true" />
-                </button>
-              </div>
+      <MobileFilterGroup
+        label="Tipo"
+        options={[
+          ['all', 'Todas'],
+          ['expense', 'Despesas'],
+          ['income', 'Receitas'],
+        ]}
+        value={typeFilter}
+        onChange={(value) => onTypeFilterChange(value as CategoryTypeFilter)}
+      />
+      <MobileFilterGroup
+        label="Status"
+        options={[
+          ['all', 'Todos'],
+          ['critical', 'Críticas'],
+          ['ok', 'Dentro do limite'],
+          ['no-limit', 'Sem limite'],
+        ]}
+        value={statusFilter}
+        onChange={(value) => onStatusFilterChange(value as CategoryStatusFilter)}
+      />
+      <MobileFilterGroup
+        label="Limite"
+        options={[
+          ['all', 'Todos'],
+          ['with-limit', 'Com limite'],
+          ['no-limit', 'Sem limite'],
+        ]}
+        value={limitScope}
+        onChange={(value) => onLimitScopeChange(value as LimitScope)}
+      />
 
-              <MobileFilterGroup
-                label="Tipo"
-                options={[
-                  ['all', 'Todas'],
-                  ['expense', 'Despesas'],
-                  ['income', 'Receitas'],
-                ]}
-                value={typeFilter}
-                onChange={(value) => onTypeFilterChange(value as CategoryTypeFilter)}
-              />
-              <MobileFilterGroup
-                label="Status"
-                options={[
-                  ['all', 'Todos'],
-                  ['critical', 'Críticas'],
-                  ['ok', 'Dentro do limite'],
-                  ['no-limit', 'Sem limite'],
-                ]}
-                value={statusFilter}
-                onChange={(value) => onStatusFilterChange(value as CategoryStatusFilter)}
-              />
-              <MobileFilterGroup
-                label="Limite"
-                options={[
-                  ['all', 'Todos'],
-                  ['with-limit', 'Com limite'],
-                  ['no-limit', 'Sem limite'],
-                ]}
-                value={limitScope}
-                onChange={(value) => onLimitScopeChange(value as LimitScope)}
-              />
-
-              <fieldset className="mt-5">
-                <legend className="mb-2 text-sm font-bold text-[var(--text-muted)]">Moeda</legend>
-                <div className="grid grid-cols-3 gap-2">
-                  {currencyOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => onCurrencyChange(option.value as SupportedCurrency)}
-                      disabled={controlsDisabled}
-                      aria-pressed={currency === option.value}
-                      className={`min-h-11 rounded-[12px] border px-2 text-sm font-bold ${
-                        currency === option.value
-                          ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                          : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
-                      }`}
-                    >
-                      {option.value}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-
-              <button
-                type="button"
-                onClick={() => setFilterOpen(false)}
-                className="mt-6 min-h-[56px] w-full rounded-full bg-[var(--orbit-primary)] px-4 text-base font-extrabold text-white"
-              >
-                Aplicar filtros
-              </button>
-            </div>
-          </section>
+      <fieldset className="mt-5">
+        <legend className="mb-2 text-sm font-bold text-[var(--text-muted)]">Moeda</legend>
+        <div className="grid grid-cols-3 gap-2">
+          {currencyOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onCurrencyChange(option.value as SupportedCurrency)}
+              disabled={controlsDisabled}
+              aria-pressed={currency === option.value}
+              className={`min-h-11 rounded-[12px] border px-2 text-sm font-bold ${
+                currency === option.value
+                  ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+                  : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
+              }`}
+            >
+              {option.value}
+            </button>
+          ))}
         </div>
+      </fieldset>
+        </ModalShell>
       )}
 
       {(selectedExpense || selectedIncome) && (
@@ -672,7 +647,7 @@ export default function MobileCategoriesCenter({
                     className="grid h-14 w-14 shrink-0 place-items-center rounded-[16px] text-xl text-white"
                     style={{
                       backgroundColor:
-                        selectedExpense?.category.color || selectedIncome?.color || '#64748B',
+                        selectedExpense?.category.color || selectedIncome?.color || DEFAULT_CATEGORY_COLOR,
                     }}
                     aria-hidden="true"
                   >
@@ -804,13 +779,13 @@ function ExpenseCategoryCard({
       <div className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3">
         <span
           className="grid h-16 w-16 place-items-center rounded-full border border-white/10 text-[24px] text-white"
-          style={{ backgroundColor: `${item.category.color || '#64748B'}2b` }}
+          style={{ backgroundColor: `${item.category.color || DEFAULT_CATEGORY_COLOR}2b` }}
           aria-hidden="true"
         >
           <IconRenderer
             iconName={item.category.icon || 'tag'}
             size={25}
-            color={item.category.color || '#64748B'}
+            color={item.category.color || DEFAULT_CATEGORY_COLOR}
           />
         </span>
 

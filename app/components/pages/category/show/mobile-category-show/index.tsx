@@ -1,5 +1,6 @@
 'use client';
 
+import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Link from 'next/link';
@@ -143,7 +144,7 @@ export default function MobileCategoryShow({
         <div className="relative z-[1] flex items-start gap-4">
           <span
             className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[20px] text-[29px] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.14)]"
-            style={{ backgroundColor: category.color || '#64748B' }}
+            style={{ backgroundColor: category.color || DEFAULT_CATEGORY_COLOR }}
             aria-hidden="true"
           >
             <IconRenderer iconName={category.icon || 'tag'} size={29} />

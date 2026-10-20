@@ -8,10 +8,10 @@ export const metadata: Metadata = {
   title: "Categorias | Controle de Gastos",
   description: "Organize suas receitas e despesas",
   openGraph: {
-    url: "https://controle-gastos-pessoal.vercel.app/contas",
+    url: "https://controle-gastos-pessoal.vercel.app/categorias",
   },
   alternates: {
-    canonical: "https://controle-gastos-pessoal.vercel.app/contas",
+    canonical: "https://controle-gastos-pessoal.vercel.app/categorias",
   },
 };
 

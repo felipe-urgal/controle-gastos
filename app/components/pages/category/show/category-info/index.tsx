@@ -1,5 +1,6 @@
 'use client';
 
+import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { FaCalendarAlt } from 'react-icons/fa';
@@ -22,7 +23,7 @@ export default function CategoryInfo({ category, isDeleting }: CategoryInfoProps
           <div className="flex min-w-0 items-start gap-4">
             <span
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-white"
-              style={{ backgroundColor: category.color || '#64748B' }}
+              style={{ backgroundColor: category.color || DEFAULT_CATEGORY_COLOR }}
               aria-hidden="true"
             >
               <IconRenderer iconName={category.icon || 'tag'} size={20} />

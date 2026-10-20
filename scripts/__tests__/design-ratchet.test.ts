@@ -42,7 +42,7 @@ const OVERLAY_ALLOWED: Record<string, number> = {
   "app/components/navigation/dynamic-filters/index.tsx": 1,
   "app/components/feedback/splash-screen/index.tsx": 2,
   // Dívida de migração (#882):
-  "app/components/pages/category/index/mobile-categories-center/index.tsx": 2,
+  "app/components/pages/category/index/mobile-categories-center/index.tsx": 1,
   "app/components/pages/transactions/import/index.tsx": 1,
   "app/components/pages/transactions/index/orbit-transactions.tsx": 3,
   "app/components/pages/transactions/form/index.tsx": 1, // migrado no #902
@@ -54,10 +54,8 @@ const OVERLAY_ALLOWED: Record<string, number> = {
 const HEX_ALLOWED: Record<string, number> = {
   "app/components/ui/color-selector/index.tsx": 13,
   // Dívida de tokens (#880):
-  "app/components/pages/category/show/category-info/index.tsx": 1,
-  "app/components/pages/category/show/mobile-category-show/index.tsx": 2,
-  "app/components/pages/category/index/monthly-limits/index.tsx": 7,
-  "app/components/pages/category/index/mobile-categories-center/index.tsx": 8,
+  "app/components/pages/category/show/mobile-category-show/index.tsx": 1,
+  "app/components/pages/category/index/mobile-categories-center/index.tsx": 1,
   "app/components/pages/category/form/index.tsx": 9,
   "app/components/pages/net-worth/net-worth-page/index.tsx": 1,
   "app/components/pages/transactions/show/mobile-transaction-show/index.tsx": 3,
