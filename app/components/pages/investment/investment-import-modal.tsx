@@ -119,11 +119,13 @@ export function InvestmentImportModal({
   }
 
   return (
-    <ModalShell title="Importar investimentos" onClose={onClose} closeDisabled={working} maxWidthClass="max-w-3xl">
-      <p className="-mt-3 mb-4 text-xs text-[var(--text-muted)]">
-        CSV/XLSX da B3 ou nota de corretagem PDF da Nu Investimentos.
-      </p>
-
+    <ModalShell
+      title="Importar investimentos"
+      description="CSV/XLSX da B3 ou nota de corretagem PDF da Nu Investimentos."
+      onClose={onClose}
+      closeDisabled={working}
+      maxWidthClass="max-w-3xl"
+    >
       {error && (
         <p
           role="alert"

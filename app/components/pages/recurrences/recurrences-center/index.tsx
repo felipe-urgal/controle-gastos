@@ -438,12 +438,15 @@ function EditSeriesModal({
   }
 
   return (
-    <ModalShell title="Editar série" onClose={onClose} closeDisabled={saving} maxWidthClass="max-w-md">
-      <p className="-mt-3 text-sm text-[var(--text-muted)]">
-        A alteração afeta somente as ocorrências pendentes. Histórico concluído, frequência e datas são preservados.
-      </p>
-
-      <form onSubmit={submit} className="mt-5 space-y-4">
+    <ModalShell
+      title="Editar série"
+      eyebrow="Série recorrente"
+      description="A alteração afeta somente as ocorrências pendentes. Histórico concluído, frequência e datas são preservados."
+      onClose={onClose}
+      closeDisabled={saving}
+      maxWidthClass="max-w-md"
+    >
+      <form onSubmit={submit} className="space-y-4">
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
               Descrição
