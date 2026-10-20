@@ -1480,7 +1480,7 @@ export default function TransactionForm({
                       disabled={loading}
                       maxLength={100}
                       placeholder="Ex.: Supermercado, salário, aluguel..."
-                      className="mt-1 w-full min-w-0 bg-transparent text-base text-[var(--text-muted)] outline-none placeholder:text-[var(--text-subtle)]"
+                      className="mt-1 min-h-11 w-full min-w-0 bg-transparent text-base text-[var(--text-muted)] outline-none placeholder:text-[var(--text-subtle)]"
                     />
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
