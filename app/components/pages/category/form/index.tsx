@@ -1,5 +1,6 @@
 'use client';
 
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -54,6 +55,7 @@ const mobileIcons = [
 ];
 
 export default function CategoryForm({ category, isEditing }: CategoryFormProps) {
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const router = useRouter();
   const [formData, setFormData] = useState(() =>
     isEditing && category
@@ -140,7 +142,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
   }
 
   const mobileWizard = (
-    <form onSubmit={handleSubmit} className={orbitSelectionTokens + ' lg:hidden'}>
+    <form onSubmit={handleSubmit} className={orbitSelectionTokens}>
       <div className="mx-auto w-full max-w-[430px] pb-5">
         <header className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-1.5 pt-1">
           <button
@@ -485,9 +487,10 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
 
   return (
     <>
-      {mobileWizard}
+      {!isDesktop && mobileWizard}
 
-      <div className="hidden lg:block">
+      {isDesktop && (
+      <div>
         <FormContainer
           onSubmit={handleSubmit}
           error={submitError}
@@ -597,6 +600,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
           />
         </FormContainer>
       </div>
+      )}
     </>
   );
 }

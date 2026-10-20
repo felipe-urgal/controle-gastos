@@ -1,5 +1,7 @@
 'use client';
 
+import { useMediaQuery } from '@/app/hooks/use-media-query';
+import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { FormEvent, type ReactNode, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -124,7 +126,7 @@ function buildDistribution(items: CategoryMonthlyLimitItem[]) {
   const entries = primary.map((item) => ({
     id: item.category.id,
     name: item.category.name,
-    color: item.category.color || '#64748B',
+    color: item.category.color || DEFAULT_CATEGORY_COLOR,
     amount: item.realized,
     percentage: Math.round((item.realized / total) * 1000) / 10,
   }));
@@ -133,7 +135,7 @@ function buildDistribution(items: CategoryMonthlyLimitItem[]) {
     entries.push({
       id: 'other',
       name: 'Outros',
-      color: '#64748B',
+      color: DEFAULT_CATEGORY_COLOR,
       amount: restTotal,
       percentage: Math.round((restTotal / total) * 1000) / 10,
     });
@@ -159,6 +161,7 @@ export default function CategoryMonthlyLimits({
   search,
   onSearchChange,
 }: CategoryMonthlyLimitsProps) {
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const { user } = useAuth();
   const {
     items,
@@ -345,7 +348,8 @@ export default function CategoryMonthlyLimits({
 
   return (
     <>
-      <div className={orbitActionTokens + ' lg:hidden'}>
+      {!isDesktop && (
+      <div className={orbitActionTokens}>
         <MobileCategoriesCenter
           items={items}
           incomeCategories={incomeCategories}
@@ -385,11 +389,13 @@ export default function CategoryMonthlyLimits({
           onCancelRemove={() => setConfirmingRemoveId(null)}
         />
       </div>
+      )}
 
+      {isDesktop && (
       <section
         id="categories-overview"
         aria-labelledby="categories-title"
-        className={orbitActionTokens + ' hidden lg:block'}
+        className={orbitActionTokens}
       >
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
@@ -547,6 +553,7 @@ export default function CategoryMonthlyLimits({
       )}
 
       </section>
+      )}
 
       {editingItem && (
         <LimitEditorModal
@@ -901,7 +908,7 @@ function ExpenseCategoryRow({
       <button type="button" onClick={onSelect} className="flex min-w-0 items-center gap-2.5 text-left">
         <span
           className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] text-white"
-          style={{ backgroundColor: item.category.color || '#64748B' }}
+          style={{ backgroundColor: item.category.color || DEFAULT_CATEGORY_COLOR }}
           aria-hidden="true"
         >
           <IconRenderer iconName={item.category.icon || 'tag'} size={14} />
@@ -967,7 +974,7 @@ function IncomeCategoryRow({ category }: { category: CategoryModel }) {
       <div className="flex min-w-0 items-center gap-2.5">
         <span
           className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] text-white"
-          style={{ backgroundColor: category.color || '#64748B' }}
+          style={{ backgroundColor: category.color || DEFAULT_CATEGORY_COLOR }}
           aria-hidden="true"
         >
           <IconRenderer iconName={category.icon || 'tag'} size={14} />
@@ -1101,7 +1108,7 @@ function CriticalCategories({
                 <div className="grid grid-cols-[36px_minmax(0,1fr)_auto_14px] items-center gap-2.5">
                   <span
                     className="grid h-9 w-9 place-items-center rounded-[9px] text-white"
-                    style={{ backgroundColor: item.category.color || '#64748B' }}
+                    style={{ backgroundColor: item.category.color || DEFAULT_CATEGORY_COLOR }}
                     aria-hidden="true"
                   >
                     <IconRenderer iconName={item.category.icon || 'tag'} size={14} />
@@ -1161,7 +1168,7 @@ function CategoryContext({
       <div className="mt-3 flex items-start gap-3">
         <span
           className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] text-white"
-          style={{ backgroundColor: item.category.color || '#64748B' }}
+          style={{ backgroundColor: item.category.color || DEFAULT_CATEGORY_COLOR }}
           aria-hidden="true"
         >
           <IconRenderer iconName={item.category.icon || 'tag'} size={17} />
@@ -1294,7 +1301,7 @@ function LimitAdministration({
                 <div className="flex min-w-0 items-center gap-2.5">
                   <span
                     className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] text-white"
-                    style={{ backgroundColor: item.category.color || '#64748B' }}
+                    style={{ backgroundColor: item.category.color || DEFAULT_CATEGORY_COLOR }}
                     aria-hidden="true"
                   >
                     <IconRenderer iconName={item.category.icon || 'tag'} size={14} />
