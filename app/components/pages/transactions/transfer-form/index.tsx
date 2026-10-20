@@ -359,7 +359,7 @@ export default function TransferForm({
                 <button
                   type="button"
                   aria-pressed="true"
-                  className="flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-[10px] border-l border-[var(--border)] bg-[var(--orbit-primary-subtle)] px-1.5 text-[11px] font-bold text-[var(--orbit-primary)] ring-1 ring-inset ring-[var(--orbit-primary)] min-[360px]:gap-2 min-[360px]:px-2 min-[360px]:text-sm"
+                  className="flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-[10px] border-l border-[var(--border)] bg-[var(--orbit-primary-subtle)] px-1.5 text-xs font-bold text-[var(--orbit-primary)] ring-1 ring-inset ring-[var(--orbit-primary)] min-[360px]:gap-2 min-[360px]:px-2 min-[360px]:text-sm"
                 >
                   <FaExchangeAlt aria-hidden="true" /> <span className="truncate">Transferência</span>
                 </button>
@@ -659,7 +659,7 @@ export default function TransferForm({
                 >
                   <span className="h-2 w-2 rounded-full bg-[var(--orbit-primary)]" aria-hidden="true" />
                   <span className="truncate">{selectedStatusLabel}</span>
-                  <FaChevronRight className="ml-auto rotate-90 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+                  <FaChevronRight className="ml-auto rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
                 </ReceiptSelect>
                 <div className="flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
                   <FaCalendarAlt aria-hidden="true" /> Única

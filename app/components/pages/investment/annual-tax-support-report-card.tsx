@@ -541,7 +541,7 @@ function Row({
         <span className="font-semibold text-[var(--foreground)]">{value}</span>
       </div>
       <p className="mt-1 leading-relaxed text-[var(--text-muted)]">{detail}</p>
-      <span className="mt-1 block text-[11px] font-semibold text-[var(--text-muted)]">
+      <span className="mt-1 block text-xs font-semibold text-[var(--text-muted)]">
         {status}
       </span>
     </div>

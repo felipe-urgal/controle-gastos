@@ -56,7 +56,7 @@ export default function OfflinePendingBadge({ className = '' }: { className?: st
       <FaCloudUploadAlt aria-hidden="true" />
       <span
         aria-hidden="true"
-        className="absolute right-1 top-1 min-w-4 rounded-full bg-[var(--warning)] px-1 text-center text-[10px] font-bold leading-4 text-white"
+        className="absolute right-1 top-1 min-w-4 rounded-full bg-[var(--warning)] px-1 text-center text-xs font-bold leading-4 text-white"
       >
         {count}
       </span>

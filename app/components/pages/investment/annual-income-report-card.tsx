@@ -157,11 +157,11 @@ export function AnnualIncomeReportCard({
                         <strong className="text-sm text-[var(--foreground)]">
                           {item.symbol}
                         </strong>
-                        <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]">
+                        <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">
                           {incomeLabels[item.incomeType]}
                         </span>
                         {item.pending.length > 0 && (
-                          <span className="rounded-full border border-amber-500/35 px-2 py-0.5 text-[11px] font-bold text-amber-400">
+                          <span className="rounded-full border border-amber-500/35 px-2 py-0.5 text-xs font-bold text-amber-400">
                             Revisar
                           </span>
                         )}
