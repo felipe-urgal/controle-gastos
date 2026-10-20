@@ -208,7 +208,7 @@ export function PayrollAnnualReconciliationSection({
                         </div>
                         <span
                           className={
-                            'rounded-full px-2 py-1 text-[11px] font-semibold ' +
+                            'rounded-full px-2 py-1 text-xs font-semibold ' +
                             statusClass(component.status)
                           }
                         >
@@ -270,7 +270,7 @@ export function PayrollAnnualReconciliationSection({
                                   </span>
                                 </div>
                                 {source.rubrics.length > 0 && (
-                                  <div className="mt-2 space-y-1 text-[11px] text-[var(--text-muted)]">
+                                  <div className="mt-2 space-y-1 text-xs text-[var(--text-muted)]">
                                     {source.rubrics.map((rubric, index) => (
                                       <p
                                         key={

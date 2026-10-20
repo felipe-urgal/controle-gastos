@@ -1373,7 +1373,7 @@ function FiscalCostCard({
                     {quantityLabel(item.quantity)}
                   </strong>
                   {item.quantity !== item.economicQuantity && (
-                    <span className="mt-1 block text-[11px] text-amber-400">
+                    <span className="mt-1 block text-xs text-amber-400">
                       posição: {quantityLabel(item.economicQuantity)}
                     </span>
                   )}
@@ -1388,7 +1388,7 @@ function FiscalCostCard({
                       : '••••'}
                   </strong>
                   {item.status === 'PENDING' && (
-                    <span className="mt-1 block text-[11px] text-amber-400">
+                    <span className="mt-1 block text-xs text-amber-400">
                       valor parcial
                     </span>
                   )}
@@ -1540,7 +1540,7 @@ function PositionsCard({
                         : '••••'}
                   </strong>
                   {position.quote && (
-                    <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-muted)]">
+                    <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
                       {showValues
                         ? `${formatCurrency(
                             position.quote.priceCents,
@@ -1748,7 +1748,7 @@ function OperationRow({
           {quantityLabel(operation.quantity)} un.
         </span>
         {operation.fiscalEvent && (
-          <span className="mt-1 block truncate text-[11px] text-[var(--text-muted)]">
+          <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
             Fiscal: {fiscalEventLabel(operation.fiscalEvent.type)}
             {operation.fiscalEvent.classificationSource === 'USER'
               ? ' · revisado'

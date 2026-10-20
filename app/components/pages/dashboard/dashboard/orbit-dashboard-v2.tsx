@@ -676,7 +676,7 @@ function FinancialInsightsCard({
             Orçamento e categorias usam o mês selecionado; projeções usam a referência atual.
           </p>
         </div>
-        <span className="rounded-full border border-[var(--border)] px-2 py-1 text-[10px] font-semibold text-[var(--text-muted)]">
+        <span className="rounded-full border border-[var(--border)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
           {currency}
         </span>
       </div>
@@ -709,7 +709,7 @@ function FinancialInsightsCard({
                   </span>
                 </span>
                 {insight.href && (
-                  <FaChevronRight className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+                  <FaChevronRight className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
                 )}
               </>
             );
@@ -757,7 +757,7 @@ function MobileDashboardHeader({
         <label className="relative flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold capitalize focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
           <FaCalendarAlt className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate">{monthLabel(periodValue)}</span>
-          <FaChevronDown className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+          <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
           <span className="sr-only">Escolher mês do dashboard</span>
           <input
             type="month"
@@ -957,10 +957,10 @@ function MobileSafeToSpendCard({
     <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="mobile-safe-to-spend-title">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">Próximos 30 dias</p>
+          <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">Próximos 30 dias</p>
           <h2 id="mobile-safe-to-spend-title" className="mt-1 text-sm font-bold">Disponível para gastar</h2>
         </div>
-        <span className="text-[10px] text-[var(--text-muted)]">até {horizonLabel}</span>
+        <span className="text-xs text-[var(--text-muted)]">até {horizonLabel}</span>
       </div>
 
       {error ? (
@@ -1011,7 +1011,7 @@ function MobileBalanceCard({
 }) {
   return (
     <section className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="mobile-balance-title">
-      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">
         Hoje · {dashboardLogicalDateLabel(asOf)}
       </p>
       <p id="mobile-balance-title" className="mt-1 flex items-center gap-2 text-sm text-[var(--text-muted)]">
@@ -1035,28 +1035,28 @@ function MobileBalanceCard({
               ? 'Nenhuma conta corrente ativa'
               : `${cashAccounts.length} ${cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}`}
           </strong>
-          <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">
+          <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
             Investimentos ficam no patrimônio e não entram neste saldo.
           </span>
         </span>
-        <FaChevronRight className="shrink-0 text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+        <FaChevronRight className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
       </Link>
 
       <div className="mt-4 grid grid-cols-3 divide-x divide-[var(--border)] border-t border-[var(--border)] pt-4">
         <div className="min-w-0 pr-2.5">
-          <p className="text-[10px] text-[var(--text-muted)]">Receitas do mês</p>
+          <p className="text-xs text-[var(--text-muted)]">Receitas do mês</p>
           <strong className="mt-1 block truncate text-[13px] font-extrabold text-[var(--income)] min-[360px]:text-[14px]">
             {displayMoney(summary.income, showValues, currency)}
           </strong>
         </div>
         <div className="min-w-0 px-2.5">
-          <p className="text-[10px] text-[var(--text-muted)]">Despesas do mês</p>
+          <p className="text-xs text-[var(--text-muted)]">Despesas do mês</p>
           <strong className="mt-1 block truncate text-[13px] font-extrabold text-[var(--expense)] min-[360px]:text-[14px]">
             {displayMoney(summary.expense, showValues, currency)}
           </strong>
         </div>
         <div className="min-w-0 pl-2.5">
-          <p className="text-[10px] text-[var(--text-muted)]">Saldo do mês</p>
+          <p className="text-xs text-[var(--text-muted)]">Saldo do mês</p>
           <strong className={`mt-1 block truncate text-[13px] font-extrabold min-[360px]:text-[14px] ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
             {signedMoney(summary.balance, showValues, currency)}
           </strong>
@@ -1165,10 +1165,10 @@ function MobileUpcomingCard({
           {groupCommitments(items, 2).map((group) => (
             <section key={group.direction} aria-label={group.label}>
               <div className="mb-1 flex items-center justify-between gap-2">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
                   {group.label}
                 </h3>
-                <span className="text-[10px] text-[var(--text-muted)]">
+                <span className="text-xs text-[var(--text-muted)]">
                   {group.items.length}
                 </span>
               </div>
@@ -1181,15 +1181,15 @@ function MobileUpcomingCard({
                   >
                     <span className="grid h-10 w-10 place-content-center rounded-[9px] border border-[var(--border)] text-center">
                       <strong className="text-xs leading-none">{String(item.date.day).padStart(2, '0')}</strong>
-                      <span className="mt-1 text-[8px] uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
+                      <span className="mt-1 text-xs uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
                     </span>
                     <span className="min-w-0">
                       <strong className="block truncate text-xs">{item.title}</strong>
-                      <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
+                      <span className="mt-1 block text-xs text-[var(--text-muted)]">
                         {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
                       </span>
                     </span>
-                    <span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
+                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
                       {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
                     </span>
                   </Link>
@@ -1236,7 +1236,7 @@ function MobileCategoriesCard({
                 <span className="truncate text-sm font-semibold">{category.name}</span>
               </span>
               <strong className="text-right text-sm">{displayMoney(category.realized, showValues, currency)}</strong>
-              <FaChevronRight className="text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+              <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
             </Link>
           ))
         )}
@@ -1297,7 +1297,7 @@ function MobileRecentTransactionsCard({
                   </span>
                   <span className="min-w-0">
                     <strong className="block truncate text-xs">{transaction.description}</strong>
-                    <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">
+                    <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
                       {transactionDateLabel(transaction)}
                       {isTransfer && transaction.counterpartAccount ? ` · para ${transaction.counterpartAccount.name}` : ''}
                       {isCardPayment ? ' · Pagamento de fatura' : ''}
@@ -1308,7 +1308,7 @@ function MobileRecentTransactionsCard({
                 <strong className={`shrink-0 text-xs ${tone}`}>
                   {showValues ? `${isIncome ? '+' : isTransfer || isCardPayment ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
                 </strong>
-                <FaChevronRight className="text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </Link>
             );
           })
@@ -1418,7 +1418,7 @@ function AccountsCard({
               </span>
               <span className="flex shrink-0 items-center gap-2 text-xs font-semibold">
                 {displayMoney(account.balance, showValues, account.currency)}
-                <FaChevronRight className="text-[9px] text-[var(--text-muted)]" aria-hidden="true" />
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </span>
             </Link>
           ))
@@ -1545,7 +1545,7 @@ function PlanningMetric({
 }) {
   return (
     <div className="rounded-[10px] bg-[var(--surface-raised)] p-3">
-      <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
+      <p className="text-xs text-[var(--text-muted)]">{label}</p>
       <strong className={`mt-1 block text-sm ${danger ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
         {value}
       </strong>
@@ -1670,7 +1670,7 @@ function MobileFinancialGoalsCard({
           >
             <span className="min-w-0">
               <strong className="block truncate text-sm">{goal.name}</strong>
-              <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
+              <span className="mt-1 block text-xs text-[var(--text-muted)]">
                 {displayMoney(goal.currentAmount, showValues, currency)} de {displayMoney(goal.targetAmount, showValues, currency)}
               </span>
             </span>
@@ -1678,7 +1678,7 @@ function MobileFinancialGoalsCard({
               <strong className="block text-xs text-[var(--orbit-primary)]">
                 {goal.percentage.toLocaleString('pt-BR')}%
               </strong>
-              <span className="mt-1 block text-[10px] text-[var(--text-muted)]">
+              <span className="mt-1 block text-xs text-[var(--text-muted)]">
                 falta {displayMoney(goal.remainingAmount, showValues, currency)}
               </span>
             </span>
@@ -1742,7 +1742,7 @@ function CreditCardsCard({
                     {usage}% do limite em uso
                   </p>
                 </div>
-                <FaChevronRight className="text-[10px] text-[var(--text-muted)]" aria-hidden="true" />
+                <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
@@ -1812,7 +1812,7 @@ function MobileCreditCardsCard({
             </span>
             <span className="min-w-0">
               <strong className="block truncate text-sm">{card.name}</strong>
-              <span className="mt-1 block truncate text-[11px] text-[var(--text-muted)]">
+              <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
                 Disponível {displayMoney(card.availableLimit, showValues, currency)}
               </span>
             </span>
@@ -1823,7 +1823,7 @@ function MobileCreditCardsCard({
                   : 'Sem fatura'}
               </strong>
               {card.nextStatement && (
-                <span className="mt-1 block text-[10px] text-[var(--text-muted)]">
+                <span className="mt-1 block text-xs text-[var(--text-muted)]">
                   vence {dashboardLogicalDateLabel(card.nextStatement.dueDate)}
                 </span>
               )}
@@ -1871,10 +1871,10 @@ function UpcomingCard({
             {groupCommitments(items, 2).map((group) => (
               <section key={group.direction} aria-label={group.label}>
                 <div className="mb-1 flex items-center justify-between gap-2">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
                     {group.label}
                   </h3>
-                  <span className="text-[10px] text-[var(--text-muted)]">
+                  <span className="text-xs text-[var(--text-muted)]">
                     {group.items.length}
                   </span>
                 </div>
@@ -1883,7 +1883,7 @@ function UpcomingCard({
                     <Link key={item.id} href={item.href} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
                       <span className="grid h-[43px] w-[43px] place-content-center rounded-[9px] border border-[var(--border-strong)] text-center">
                         <strong className="text-sm leading-none">{String(item.date.day).padStart(2, '0')}</strong>
-                        <span className="mt-1 text-[9px] font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
+                        <span className="mt-1 text-xs font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
                       </span>
                       <div className="min-w-0">
                         <p className="truncate text-xs font-bold">{item.title}</p>
@@ -1891,7 +1891,7 @@ function UpcomingCard({
                           {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
                         </p>
                       </div>
-                      <span className={`rounded-[8px] px-2.5 py-1.5 text-[10px] font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
+                      <span className={`rounded-[8px] px-2.5 py-1.5 text-xs font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
                         {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
                       </span>
                     </Link>
@@ -2162,7 +2162,7 @@ function ProjectedBalanceCard({
     <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-lg font-bold">Disponível para gastar</h2>
-        <span className="rounded-full border border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)] px-2.5 py-1 text-[10px] font-semibold text-[var(--orbit-primary)]">Cálculo conservador</span>
+        <span className="rounded-full border border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)] px-2.5 py-1 text-xs font-semibold text-[var(--orbit-primary)]">Cálculo conservador</span>
         <FaQuestionCircle className="ml-auto text-xs text-[var(--text-muted)]" aria-hidden="true" />
       </div>
 
@@ -2198,7 +2198,7 @@ function ProjectedBalanceCard({
               {safeToSpend ? displayMoney(safeToSpend.safeToSpend, showValues, currency) : '—'}
             </strong>
           </div>
-          <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
             Receitas futuras não são antecipadas; metas e dívidas só entram quando já viram compromisso concreto.
           </p>
         </div>

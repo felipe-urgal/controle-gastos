@@ -152,23 +152,23 @@ export function InvestmentTaxPaymentReconciliationSection({
                     <strong className="text-xs text-[var(--foreground)]">
                       DARF {item.code}
                     </strong>
-                    <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-[11px] text-[var(--text-muted)]">
+                    <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs text-[var(--text-muted)]">
                       {String(item.competenceMonth).padStart(2, '0')}/{item.competenceYear}
                     </span>
                     <span
                       className={
-                        'rounded-full px-2 py-1 text-[11px] font-semibold ' +
+                        'rounded-full px-2 py-1 text-xs font-semibold ' +
                         statusClass(item.status)
                       }
                     >
                       {statusLabel(item.status)}
                     </span>
                   </div>
-                  <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
                     Pago em {dateLabel(item.paidDate)} · {item.assetType} · {item.currency}
                   </p>
                   {item.receiptReference ? (
-                    <p className="mt-1 text-[11px] text-[var(--text-subtle)]">
+                    <p className="mt-1 text-xs text-[var(--text-subtle)]">
                       Comprovante: {item.receiptReference}
                     </p>
                   ) : null}
@@ -179,7 +179,7 @@ export function InvestmentTaxPaymentReconciliationSection({
               </div>
 
               {item.reason ? (
-                <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
                   {item.reason}
                 </p>
               ) : null}

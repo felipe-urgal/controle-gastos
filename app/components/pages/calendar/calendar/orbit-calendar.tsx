@@ -340,7 +340,7 @@ function CalendarSummary({
             key={metric.key}
             className="rounded-[15px] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4"
           >
-            <p className="flex items-center gap-2 text-[10px] font-semibold text-[var(--text-muted)] sm:text-xs">
+            <p className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)] sm:text-xs">
               <Icon aria-hidden="true" /> {metric.label}
             </p>
             {isLoading ? (
@@ -377,7 +377,7 @@ function CalendarSummary({
       })}
 
       <article className="rounded-[15px] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4">
-        <p className="flex items-center gap-2 text-[10px] font-semibold text-[var(--text-muted)] sm:text-xs">
+        <p className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)] sm:text-xs">
           <FaCalendarCheck aria-hidden="true" /> Compromissos do período
         </p>
         <strong className="mt-2 block text-lg font-bold text-[var(--foreground)] sm:text-[23px]">
@@ -442,7 +442,7 @@ function MonthNavigator({
         {compactWeekDays.map((day, index) => (
           <span
             key={`${day}-${index}`}
-            className="py-1 text-center text-[10px] font-semibold text-[var(--text-muted)]"
+            className="py-1 text-center text-xs font-semibold text-[var(--text-muted)]"
           >
             {day}
           </span>
@@ -456,7 +456,7 @@ function MonthNavigator({
         selectedDate={selectedDate}
         onDayClick={onDayClick}
       />
-      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-[var(--border)] pt-3 text-[11px] text-[var(--text-muted)]">
+      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-[var(--border)] pt-3 text-xs text-[var(--text-muted)]">
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--income)]" />Receita</span>
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--expense)]" />Despesa</span>
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rotate-45 bg-[var(--orbit-primary)]" />Transferência</span>
@@ -607,7 +607,7 @@ function TimelineEvent({
         className={`absolute left-[-17px] top-[21px] h-[9px] w-[9px] rounded-full border-2 border-[var(--surface)] sm:left-[-21px] sm:top-[23px] ${marker}`}
         aria-hidden="true"
       />
-      <span className={`text-[10px] font-semibold sm:text-xs ${isOverdue ? 'text-[var(--expense)]' : 'text-[var(--text-muted)]'}`}>
+      <span className={`text-xs font-semibold sm:text-xs ${isOverdue ? 'text-[var(--expense)]' : 'text-[var(--text-muted)]'}`}>
         {eventStatusLabel(event)}
       </span>
       <span
@@ -705,7 +705,7 @@ function CommitmentsAgenda({
                   <strong className="block text-base text-[var(--foreground)]">
                     {String(date.getDate()).padStart(2, '0')}
                   </strong>
-                  <small className={`text-[10px] uppercase ${isOverdue ? 'font-bold text-[var(--expense)]' : 'text-[var(--text-muted)]'}`}>
+                  <small className={`text-xs uppercase ${isOverdue ? 'font-bold text-[var(--expense)]' : 'text-[var(--text-muted)]'}`}>
                     {isOverdue
                       ? 'venc.'
                       : date

@@ -676,7 +676,7 @@ function OverviewMetric({
         ) : (
           <strong className={`mt-1 block truncate text-xl font-bold ${tone}`}>{value}</strong>
         )}
-        <small className="mt-1 block truncate text-[11px] text-[var(--text-muted)]">{note}</small>
+        <small className="mt-1 block truncate text-xs text-[var(--text-muted)]">{note}</small>
       </div>
     </article>
   );
@@ -818,7 +818,7 @@ function CategoryTable({
       ) : (
         <div className="mt-3 min-h-0 flex-1 overflow-auto [scrollbar-width:thin]">
           <div className="min-w-[860px]">
-            <div className="sticky top-0 z-10 grid grid-cols-[1.55fr_.65fr_1fr_1.05fr_.8fr_.9fr_.9fr_48px] items-center gap-3 border-y border-[var(--border)] bg-[var(--surface)] px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--text-subtle)]">
+            <div className="sticky top-0 z-10 grid grid-cols-[1.55fr_.65fr_1fr_1.05fr_.8fr_.9fr_.9fr_48px] items-center gap-3 border-y border-[var(--border)] bg-[var(--surface)] px-2 py-2 text-xs font-semibold uppercase tracking-[0.05em] text-[var(--text-subtle)]">
               <span>Categoria</span>
               <span>Tipo</span>
               <span>Status</span>
@@ -910,20 +910,20 @@ function ExpenseCategoryRow({
           <div className="flex min-w-0 items-center gap-1.5">
             <p className="truncate text-sm font-semibold text-[var(--foreground)]">{item.category.name}</p>
             {!item.category.isActive && (
-              <span className="shrink-0 rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+              <span className="shrink-0 rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">
                 Inativa
               </span>
             )}
           </div>
-          <small className="text-[11px] text-[var(--text-muted)]">Despesa</small>
+          <small className="text-xs text-[var(--text-muted)]">Despesa</small>
         </div>
       </button>
 
-      <span className="w-fit rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-[10px] font-semibold text-[var(--text-muted)]">
+      <span className="w-fit rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
         Despesa
       </span>
 
-      <span className={`w-fit rounded-full border px-2 py-1 text-[10px] font-semibold ${stateBadgeClass(state)}`}>
+      <span className={`w-fit rounded-full border px-2 py-1 text-xs font-semibold ${stateBadgeClass(state)}`}>
         {stateLabel(state)}
       </span>
 
@@ -976,15 +976,15 @@ function IncomeCategoryRow({ category }: { category: CategoryModel }) {
           <div className="flex min-w-0 items-center gap-1.5">
             <p className="truncate text-sm font-semibold text-[var(--foreground)]">{category.name}</p>
             {!category.isActive && (
-              <span className="shrink-0 rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+              <span className="shrink-0 rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">
                 Inativa
               </span>
             )}
           </div>
-          <small className="text-[11px] text-[var(--income)]">Receita</small>
+          <small className="text-xs text-[var(--income)]">Receita</small>
         </div>
       </div>
-      <span className="w-fit rounded-full border border-[var(--income)]/20 bg-[var(--primary-subtle)] px-2 py-1 text-[10px] font-semibold text-[var(--income)]">Receita</span>
+      <span className="w-fit rounded-full border border-[var(--income)]/20 bg-[var(--primary-subtle)] px-2 py-1 text-xs font-semibold text-[var(--income)]">Receita</span>
       <span className="text-xs text-[var(--text-muted)]">Fora do orçamento</span>
       <span className="text-xs text-[var(--text-muted)]">—</span>
       <span className="text-xs text-[var(--text-muted)]">—</span>
@@ -1025,7 +1025,7 @@ function DistributionCard({
         >
           <div className="absolute inset-[23px] grid place-content-center rounded-full bg-[var(--surface)] text-center">
             <strong className="text-sm text-[var(--foreground)]">{displayMoney(realizedTotal, showValues, currency)}</strong>
-            <span className="mt-1 text-[10px] text-[var(--text-muted)]">Total no mês</span>
+            <span className="mt-1 text-xs text-[var(--text-muted)]">Total no mês</span>
           </div>
         </div>
 
@@ -1238,7 +1238,7 @@ function ContextMetric({
 }) {
   return (
     <div className="rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] p-2.5">
-      <dt className="text-[10px] text-[var(--text-muted)]">{label}</dt>
+      <dt className="text-xs text-[var(--text-muted)]">{label}</dt>
       <dd className={`mt-1 text-xs font-bold sm:text-sm ${className}`}>{value}</dd>
     </div>
   );

@@ -228,7 +228,7 @@ export function InvestmentTaxControlCard({
             >
               <option value="BRL">BRL</option>
             </select>
-            <span className="mt-1 block text-[11px] font-normal text-[var(--text-subtle)]">
+            <span className="mt-1 block text-xs font-normal text-[var(--text-subtle)]">
               USD/EUR exigem tratamento fiscal próprio para investimentos no exterior.
             </span>
           </label>
@@ -482,7 +482,7 @@ function Metric({
 }) {
   return (
     <span className="min-w-[100px] sm:text-right">
-      <span className="block text-[11px] text-[var(--text-muted)]">{label}</span>
+      <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="text-[var(--foreground)]">
         {showValues ? formatCurrency(amount, currency) : '••••'}
       </strong>

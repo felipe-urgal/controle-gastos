@@ -170,12 +170,12 @@ export function FiscalPendingCenterCard() {
                         <strong className="text-sm text-[var(--foreground)]">
                           {item.title}
                         </strong>
-                        <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]">
+                        <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">
                           {categoryLabels[item.category]}
                         </span>
                         <span
                           className={
-                            'rounded-full border px-2 py-0.5 text-[11px] font-bold ' +
+                            'rounded-full border px-2 py-0.5 text-xs font-bold ' +
                             (item.status === 'JUSTIFIED'
                               ? 'border-[var(--income)]/35 text-[var(--income)]'
                               : 'border-amber-500/35 text-amber-400')

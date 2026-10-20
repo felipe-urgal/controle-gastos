@@ -288,7 +288,7 @@ export default function MobileCategoriesCenter({
           <label className="relative inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-2 px-1 text-xs font-semibold text-white/70">
             <FaCalendarAlt className="text-[15px]" aria-hidden="true" />
             {monthLabel(periodValue)}
-            <FaChevronRight className="text-[10px]" aria-hidden="true" />
+            <FaChevronRight className="text-xs" aria-hidden="true" />
             <input
               type="month"
               value={periodValue}
@@ -348,12 +348,12 @@ export default function MobileCategoriesCenter({
             <strong className="block text-sm text-white">
               {displayMoney(summary.committed, showValues, currency)}
             </strong>
-            <span className="text-[11px] text-white/60">comprometido</span>
+            <span className="text-xs text-white/60">comprometido</span>
           </div>
         </div>
         <div className="relative z-[1] mt-4 grid grid-cols-2 gap-2">
           <div className="rounded-[12px] bg-white/5 px-3 py-2">
-            <span className="block text-[11px] text-white/60">Receita esperada</span>
+            <span className="block text-xs text-white/60">Receita esperada</span>
             <strong className="mt-1 block text-sm text-white">
               {displayMoney(summary.expectedIncome, showValues, currency)}
             </strong>
@@ -819,11 +819,11 @@ function ExpenseCategoryCard({
             <strong className="truncate text-[18px] font-extrabold text-[var(--foreground)]">
               {item.category.name}
             </strong>
-            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
+            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
               Despesa
             </span>
             {!item.category.isActive && (
-              <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
+              <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
                 Inativa
               </span>
             )}
@@ -887,11 +887,11 @@ function IncomeCategoryCard({
             <strong className="truncate text-[18px] font-extrabold text-[var(--foreground)]">
               {category.name}
             </strong>
-            <span className="inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400">
+            <span className="inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400">
               Receita · Fora do orçamento
             </span>
             {!category.isActive && (
-              <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
+              <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
                 Inativa
               </span>
             )}
@@ -959,7 +959,7 @@ function SheetMetric({
 }) {
   return (
     <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3">
-      <dt className="text-[10px] text-[var(--text-muted)]">{label}</dt>
+      <dt className="text-xs text-[var(--text-muted)]">{label}</dt>
       <dd className={`mt-1 truncate text-sm font-extrabold ${className}`}>{value}</dd>
     </div>
   );

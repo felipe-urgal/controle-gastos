@@ -493,7 +493,7 @@ export function ForeignInvestmentAnnualTaxCard({
                         type="button"
                         onClick={() => void removeForeignTaxCredit(item.id)}
                         disabled={removingCreditId !== ''}
-                        className="inline-flex min-h-8 items-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-[11px] font-bold disabled:opacity-40"
+                        className="inline-flex min-h-8 items-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
                       >
                         <FaTrash aria-hidden="true" />
                         {removingCreditId === item.id ? 'Excluindo...' : 'Excluir'}
@@ -554,7 +554,7 @@ export function ForeignInvestmentAnnualTaxCard({
             </details>
           )}
 
-          <p className="mt-4 text-[11px] leading-relaxed text-[var(--text-subtle)]">
+          <p className="mt-4 text-xs leading-relaxed text-[var(--text-subtle)]">
             Compras usam PTAX de compra para formar custo em reais; vendas e
             rendimentos usam a conversão aplicável ao fato gerador. Imposto pago
             no exterior usa PTAX de compra na data do pagamento, é limitado ao

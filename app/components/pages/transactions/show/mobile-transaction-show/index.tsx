@@ -162,7 +162,7 @@ export default function MobileTransactionShow({
       >
         <div className="pointer-events-none absolute bottom-4 right-5 hidden items-end gap-2 text-[var(--orbit-primary)] opacity-25 min-[390px]:flex" aria-hidden="true">
           <span className="text-[58px] leading-none">{heroIcon}</span>
-          <span className="mb-1 max-w-[72px] text-[8px] font-semibold uppercase leading-[1.45] tracking-[0.2em] text-white/55">
+          <span className="mb-1 max-w-[72px] text-xs font-semibold uppercase leading-[1.45] tracking-[0.2em] text-white/55">
             Gastar bem também é planejar
           </span>
         </div>
@@ -180,13 +180,13 @@ export default function MobileTransactionShow({
               {transaction.description || 'Sem descrição'}
             </h2>
             <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm text-white/70">
-              <FaWallet className="shrink-0 text-[10px]" aria-hidden="true" />
+              <FaWallet className="shrink-0 text-xs" aria-hidden="true" />
               <span className="truncate">{transaction.account.name}</span>
             </p>
           </div>
 
-          <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${status.color}`}>
-            <span className="text-[10px]" aria-hidden="true">{statusIcon}</span>
+          <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${status.color}`}>
+            <span className="text-xs" aria-hidden="true">{statusIcon}</span>
             {status.label}
           </span>
         </div>
@@ -260,7 +260,7 @@ export default function MobileTransactionShow({
         <MobileInfoRow
           label="Moeda"
           value={transaction.account.currency}
-          icon={<span className="text-[9px] font-bold">{transaction.account.currency}</span>}
+          icon={<span className="text-xs font-bold">{transaction.account.currency}</span>}
         />
         {isTransfer ? (
           <MobileInfoRow

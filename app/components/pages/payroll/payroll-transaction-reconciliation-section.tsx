@@ -331,7 +331,7 @@ export function PayrollTransactionReconciliationSection({
                 </div>
 
                 <div className="text-left sm:text-right">
-                  <span className="block text-[11px] text-[var(--text-muted)]">
+                  <span className="block text-xs text-[var(--text-muted)]">
                     Líquido esperado
                   </span>
                   <strong className="text-sm text-[var(--foreground)]">
@@ -380,7 +380,7 @@ export function PayrollTransactionReconciliationSection({
                           showValues={showValues}
                         />
                         {candidate.evidence?.explanation && (
-                          <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                          <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
                             {candidate.evidence.explanation}
                           </p>
                         )}
