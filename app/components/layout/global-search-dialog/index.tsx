@@ -282,7 +282,7 @@ export default function GlobalSearchDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-start justify-center bg-[var(--overlay)] px-3 pt-[max(5rem,env(safe-area-inset-top))] backdrop-blur-[2px] sm:px-4 sm:pt-[12vh]"
+      className="fixed inset-0 z-[80] flex items-start justify-center bg-[var(--overlay)] px-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-[2px] sm:px-4 sm:pt-[12vh]"
       onMouseDown={(event) => {
         if (event.currentTarget === event.target) onClose();
       }}
@@ -354,6 +354,9 @@ export default function GlobalSearchDialog({
               placeholder="Buscar páginas, ações, transações e mais"
               className="w-full bg-transparent text-base text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)] sm:text-lg"
               autoComplete="off"
+              type="search"
+              enterKeyHint="search"
+              inputMode="search"
             />
           </div>
           <button
@@ -374,7 +377,7 @@ export default function GlobalSearchDialog({
 
         <div
           id="global-search-results"
-          className="max-h-[min(68vh,560px)] overflow-y-auto p-3 sm:p-4"
+          className="max-h-[min(60dvh,560px)] overflow-y-auto overscroll-contain p-3 sm:max-h-[min(68vh,560px)] sm:p-4"
           aria-label="Resultados da busca global"
         >
           <div className="space-y-4">
