@@ -2,6 +2,7 @@
 
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import Link from 'next/link';
+import { Input } from '@/app/components/ui';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -99,19 +100,19 @@ export default function MobileMoreMenu({
       </div>
     </section>
 
-    <label className="mt-5 flex min-h-12 items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3 focus-within:border-[var(--primary)]/55 focus-within:ring-2 focus-within:ring-[var(--primary)]/15">
-      <FaSearch className="shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
-      <span className="sr-only">Filtrar funcionalidades</span>
-      <input
+    <div className="mt-5">
+      <Input
         ref={searchRef}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         aria-label="Filtrar funcionalidades"
         placeholder="Buscar uma funcionalidade"
-        className="min-w-0 flex-1 bg-transparent text-base text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)]"
+        icon={<FaSearch />}
         autoComplete="off"
+        type="search"
+        enterKeyHint="search"
       />
-    </label>
+    </div>
 
     <nav className="mt-5 space-y-5" aria-label="Todas as funcionalidades">
       {groups.map((group) => (

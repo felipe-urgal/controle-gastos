@@ -112,7 +112,7 @@ export default function ForgotPasswordPage() {
       footer={
         <>
           Não tem uma conta?{' '}
-          <Link className="font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]" href="/signup">
+          <Link className="inline-flex min-h-11 items-center font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]" href="/signup">
             Criar conta
           </Link>
         </>

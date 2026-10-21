@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { IconButton } from '@/app/components/ui';
 import { usePathname } from 'next/navigation';
 import {
   FaMoon,
@@ -169,15 +170,13 @@ export default function AppSidebar({
             </span>
           </Link>
 
-          <button
-            type="button"
-            onClick={() => void logout()}
-            aria-label="Sair da conta"
+          <IconButton
+            label="Sair da conta"
             title="Sair"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--expense)] transition-colors hover:bg-[var(--danger-subtle)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-          >
-            <FaSignOutAlt aria-hidden="true" />
-          </button>
+            tone="danger"
+            icon={<FaSignOutAlt />}
+            onClick={() => void logout()}
+          />
         </div>
       </div>
     </aside>

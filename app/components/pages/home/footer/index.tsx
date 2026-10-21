@@ -17,16 +17,16 @@ export default function Footer() {
           </div>
         </div>
 
-        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium text-[var(--text-muted)]" aria-label="Links do rodapé">
+        <nav className="flex flex-wrap items-center gap-x-5 text-sm font-medium text-[var(--text-muted)]" aria-label="Links do rodapé">
           <Link
             href="/login"
-            className="rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)] hover:text-[var(--foreground)]"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)] hover:text-[var(--foreground)]"
           >
             Entrar
           </Link>
           <Link
             href="/signup"
-            className="rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)] hover:text-[var(--foreground)]"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)] hover:text-[var(--foreground)]"
           >
             Criar conta
           </Link>

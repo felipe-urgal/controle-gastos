@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useVisualViewportInset } from '@/app/hooks/use-visual-viewport-inset';
 import {
   FaSearch,
   FaTimes,
@@ -83,6 +84,7 @@ export default function GlobalSearchDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const keyboardInset = useVisualViewportInset();
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const navigatingRef = useRef(false);
@@ -282,7 +284,7 @@ export default function GlobalSearchDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[var(--z-search)] flex items-start justify-center bg-[var(--overlay)] px-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-[2px] sm:px-4 sm:pt-[12vh]"
+      className="fixed inset-0 z-[var(--z-search)] flex items-start justify-center bg-[var(--overlay)] backdrop-blur-[2px] sm:px-4 sm:pt-[12vh]"
       onMouseDown={(event) => {
         if (event.currentTarget === event.target) onClose();
       }}
@@ -311,7 +313,7 @@ export default function GlobalSearchDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="global-search-title"
-        className="w-full max-w-2xl overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] shadow-2xl"
+        className="flex w-full flex-col overflow-hidden border-[var(--border)] bg-[var(--surface)] pt-[env(safe-area-inset-top)] shadow-2xl max-sm:h-dvh max-sm:max-w-none sm:max-w-2xl sm:rounded-[18px] sm:border sm:pt-0"
       >
         <header className="flex items-center gap-3 border-b border-[var(--border)] p-3 sm:p-4">
           <FaSearch className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
@@ -352,7 +354,7 @@ export default function GlobalSearchDialog({
               onKeyDown={onKeyDown}
               aria-label="Buscar em páginas, transações, contas, categorias e regras"
               placeholder="Buscar páginas, ações, transações e mais"
-              className="w-full bg-transparent text-base text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)] sm:text-lg"
+              className="min-h-11 w-full bg-transparent text-base text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)] sm:text-lg"
               autoComplete="off"
               type="search"
               enterKeyHint="search"
@@ -377,7 +379,8 @@ export default function GlobalSearchDialog({
 
         <div
           id="global-search-results"
-          className="max-h-[min(60dvh,560px)] overflow-y-auto overscroll-contain p-3 sm:max-h-[min(68vh,560px)] sm:p-4"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:max-h-[min(68vh,560px)] sm:flex-none sm:p-4"
+          style={{ paddingBottom: keyboardInset > 0 ? keyboardInset + 12 : undefined }}
           aria-label="Resultados da busca global"
         >
           <div className="space-y-4">
