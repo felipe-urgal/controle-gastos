@@ -17,7 +17,7 @@ import {
 import { MdShowChart } from 'react-icons/md';
 
 import ReconciliationPanel from '@/app/components/pages/account/show/reconciliation-panel';
-import { IconRenderer } from '@/app/components/ui';
+import { Button, IconRenderer } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { getAccountPrimaryValue } from '@/app/lib/accounts/account-presentation';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -92,7 +92,7 @@ export default function MobileAccountShow({
 
   return (
     <div
-      className={`mx-auto w-full max-w-[430px] pb-5 transition-opacity duration-150 ${
+      className={`mx-auto w-full max-w-3xl pb-5 transition-opacity duration-150 ${
         isDeleting ? 'pointer-events-none opacity-50' : ''
       }`}
     >
@@ -110,16 +110,15 @@ export default function MobileAccountShow({
         </h1>
 
         <div className="relative">
-          <button
+          <Button
             ref={menuButtonRef}
-            type="button"
+            variant="ghost"
             aria-label="Mais ações"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((current) => !current)}
-            className="grid h-11 w-11 place-items-center rounded-full text-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-          >
-            <FaEllipsisV aria-hidden="true" />
-          </button>
+            icon={<FaEllipsisV aria-hidden="true" />}
+            className="rounded-full text-lg"
+          />
 
           {menuOpen && (
             <div ref={menuRef} className="absolute right-0 top-12 z-[var(--z-popover)] w-48 overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-elevated)]">
@@ -148,7 +147,7 @@ export default function MobileAccountShow({
       </header>
 
       <section
-        className="relative overflow-hidden rounded-[26px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_42%,var(--surface))_0%,color-mix(in_srgb,#312e81_40%,var(--surface))_54%,color-mix(in_srgb,#111827_90%,var(--surface))_100%)] p-5 shadow-[0_20px_44px_color-mix(in_srgb,var(--orbit-primary)_20%,transparent)]"
+        className="relative overflow-hidden rounded-[26px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_42%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_30%,black)_54%,color-mix(in_srgb,var(--surface)_40%,black)_100%)] p-5 shadow-[0_20px_44px_color-mix(in_srgb,var(--orbit-primary)_20%,transparent)]"
         aria-label="Resumo da conta"
       >
         <MdShowChart
@@ -159,7 +158,7 @@ export default function MobileAccountShow({
         <div className="relative z-[1] flex items-start gap-4">
           <span
             className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[19px] text-2xl text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.14)]"
-            style={{ backgroundColor: account.color || '#7C3AED' }}
+            style={{ backgroundColor: account.color || 'var(--orbit-primary)' }}
             aria-hidden="true"
           >
             <IconRenderer iconName={account.icon || 'wallet'} size={30} />
@@ -316,13 +315,9 @@ export default function MobileAccountShow({
             </dl>
           </section>
 
-          <Link
-            href={editUrl}
-            className="flex min-h-[62px] w-full items-center justify-center gap-3 rounded-full bg-[linear-gradient(90deg,#7c3aed_0%,#8b5cf6_52%,#7c3aed_100%)] px-5 text-[18px] font-extrabold text-white shadow-[0_16px_36px_rgba(124,58,237,.32)]"
-          >
-            <FaPen aria-hidden="true" />
+          <Button as="a" href={editUrl} pill size="cta" fullWidth icon={<FaPen aria-hidden="true" />}>
             Editar conta
-          </Link>
+          </Button>
         </div>
       )}
 
