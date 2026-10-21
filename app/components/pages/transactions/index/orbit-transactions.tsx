@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaFileImport, FaFilter, FaPlus, FaWallet } from 'react-icons/fa';
 
+import { IconButton } from '@/app/components/ui';
 import { ProtectedRoute } from '@/app/components/layout';
 import type { FilterField } from '@/app/components/navigation/dynamic-filters';
 
@@ -357,15 +358,13 @@ export default function OrbitTransactions() {
         
                   <div className="flex items-center justify-end gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <div className="inline-flex shrink-0 items-center gap-1.5">
-                      <button
-                        type="button"
+                      <IconButton
+                        label="Mês anterior"
+                        icon={<FaChevronLeft />}
                         onClick={() => movePeriod(-1)}
                         disabled={loading}
-                        aria-label="Mês anterior"
-                        className="grid h-11 w-11 sm:h-9 sm:w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
-                      >
-                        <FaChevronLeft aria-hidden="true" />
-                      </button>
+                        className="border border-[var(--border)] bg-[var(--surface)]"
+                      />
                       <button
                         type="button"
                         onClick={() => setPeriodOpen(true)}
@@ -375,15 +374,13 @@ export default function OrbitTransactions() {
                       >
                         <FaCalendarAlt aria-hidden="true" /> {formatPeriod(month, year)}
                       </button>
-                      <button
-                        type="button"
+                      <IconButton
+                        label="Próximo mês"
+                        icon={<FaChevronRight />}
                         onClick={() => movePeriod(1)}
                         disabled={loading}
-                        aria-label="Próximo mês"
-                        className="grid h-11 w-11 sm:h-9 sm:w-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] disabled:opacity-50"
-                      >
-                        <FaChevronRight aria-hidden="true" />
-                      </button>
+                        className="border border-[var(--border)] bg-[var(--surface)]"
+                      />
                     </div>
         
                     <button
