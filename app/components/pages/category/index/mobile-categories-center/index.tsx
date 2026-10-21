@@ -1,7 +1,6 @@
 'use client';
 
 import { pageTitleClassName } from '@/app/components/base-pages/page-title';
-import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import Link from 'next/link';
@@ -20,9 +19,21 @@ import {
   FaTag,
 } from 'react-icons/fa';
 
-import { IconRenderer } from '@/app/components/ui';
+import { Button, Chip, IconButton, IconRenderer, Input } from '@/app/components/ui';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
-import { formatCurrency } from '@/app/lib/currency/format-currency';
+import {
+  CategorySkeleton,
+  ExpenseCategoryCard,
+  IncomeCategoryCard,
+  MobileFilterGroup,
+  SheetMetric,
+} from '@/app/components/pages/category/index/mobile-categories-center/mobile-categories-cards';
+import {
+  displayMoney,
+  monthLabel,
+  stateFor,
+  usagePercentage,
+} from '@/app/components/pages/category/index/mobile-categories-center/mobile-categories-helpers';
 import type {
   CategoryMonthlyLimitItem,
   CategoryMonthlyLimitListResponse,
@@ -80,61 +91,6 @@ interface MobileCategoriesCenterProps {
   removingCategoryId: string | null;
   mutationBusy: boolean;
   onCancelRemove: () => void;
-}
-
-function displayMoney(
-  amount: number | null,
-  showValues: boolean,
-  currency: SupportedCurrency | string,
-) {
-  if (amount === null) return '—';
-  return showValues ? wrappableMoney(formatCurrency(amount, currency)) : '••••';
-}
-
-function monthLabel(periodValue: string) {
-  const [year, month] = periodValue.split('-').map(Number);
-  if (!year || !month) return periodValue;
-  const date = new Date(year, month - 1, 1);
-  const label = new Intl.DateTimeFormat('pt-BR', {
-    month: 'short',
-    year: 'numeric',
-  }).format(date);
-  return label.replace('.', '');
-}
-
-function usagePercentage(item: CategoryMonthlyLimitItem) {
-  if (item.limit?.amount === 0 && item.isOverBudget) return 101;
-  return item.planningPercentage ?? 0;
-}
-
-function usageLabel(item: CategoryMonthlyLimitItem) {
-  if (!item.limit) return '—';
-  if (item.limit.amount === 0 && item.isOverBudget) return 'Excedido';
-  return `${(item.planningPercentage ?? 0).toLocaleString('pt-BR')}%`;
-}
-
-function stateFor(item: CategoryMonthlyLimitItem) {
-  if (!item.limit) return 'info' as const;
-  if (item.isOverBudget) return 'danger' as const;
-  const percentage = usagePercentage(item);
-  if (percentage >= 80) return 'warn' as const;
-  return 'ok' as const;
-}
-
-function barClass(item: CategoryMonthlyLimitItem) {
-  const state = stateFor(item);
-  if (state === 'danger') return 'bg-[var(--expense)]';
-  if (state === 'warn') return 'bg-[var(--warning)]';
-  if (state === 'ok') return 'bg-[var(--orbit-primary)]';
-  return 'bg-[var(--surface-subtle)]';
-}
-
-function percentageClass(item: CategoryMonthlyLimitItem) {
-  const state = stateFor(item);
-  if (state === 'danger') return 'text-[var(--expense)]';
-  if (state === 'warn') return 'text-[var(--warning)]';
-  if (state === 'ok') return 'text-[var(--orbit-primary)]';
-  return 'text-[var(--text-muted)]';
 }
 
 export default function MobileCategoriesCenter({
@@ -232,7 +188,7 @@ export default function MobileCategoriesCenter({
   const safePercentage = Math.max(0, Math.min(100, budgetPercentage));
 
   return (
-    <section className="mx-auto w-full max-w-[430px] pb-3">
+    <section className="w-full pb-3">
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className={pageTitleClassName}>
@@ -245,7 +201,7 @@ export default function MobileCategoriesCenter({
         <Link
           href="/categorias/nova"
           aria-label="Nova categoria"
-          className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-[17px] border border-[var(--orbit-primary)]/60 bg-[linear-gradient(145deg,#5b21b6_0%,#7c3aed_100%)] text-[22px] text-white shadow-[0_14px_32px_rgba(124,58,237,.28)]"
+          className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-[17px] border border-[var(--orbit-primary)]/60 bg-[linear-gradient(145deg,var(--orbit-primary-hover),var(--orbit-primary))] text-[22px] text-[var(--orbit-on-primary)] shadow-[var(--shadow-soft)]"
         >
           <FaPlus aria-hidden="true" />
         </Link>
@@ -261,7 +217,7 @@ export default function MobileCategoriesCenter({
       )}
 
       <section
-        className="relative mt-6 overflow-hidden rounded-[26px] border border-[var(--orbit-primary)]/70 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_45%,var(--surface))_0%,color-mix(in_srgb,#312e81_42%,var(--surface))_48%,color-mix(in_srgb,#111827_90%,var(--surface))_100%)] p-5 shadow-[0_20px_44px_color-mix(in_srgb,var(--orbit-primary)_18%,transparent)]"
+        className="relative mt-6 overflow-hidden rounded-[26px] border border-[var(--orbit-primary)]/70 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_45%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_14%,var(--surface))_48%,var(--surface-raised)_100%)] p-5 shadow-[0_20px_44px_color-mix(in_srgb,var(--orbit-primary)_18%,transparent)]"
         aria-label={`Resumo do orçamento em ${currency}`}
       >
         <div
@@ -274,11 +230,11 @@ export default function MobileCategoriesCenter({
             <FaChartPie aria-hidden="true" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-[21px] font-extrabold text-white">Orçamento mensal</h2>
-            <p className="mt-0.5 text-sm text-white/65">Seu limite para viver bem</p>
+            <h2 className="text-[21px] font-extrabold text-[var(--foreground)]">Orçamento mensal</h2>
+            <p className="mt-0.5 text-sm text-[var(--text-muted)]">Seu limite para viver bem</p>
           </div>
 
-          <label className="relative inline-flex min-h-11 basis-full cursor-pointer items-center gap-2 px-1 text-xs font-semibold text-white/70 sm:min-h-9 sm:shrink-0 sm:basis-auto">
+          <label className="relative inline-flex min-h-11 basis-full cursor-pointer items-center gap-2 px-1 text-xs font-semibold text-[var(--text-muted)] sm:min-h-9 sm:shrink-0 sm:basis-auto">
             <FaCalendarAlt className="text-[15px]" aria-hidden="true" />
             {monthLabel(periodValue)}
             <FaChevronRight className="text-xs" aria-hidden="true" />
@@ -293,11 +249,11 @@ export default function MobileCategoriesCenter({
           </label>
         </div>
 
-        <div className="relative z-[1] mt-7 flex items-end justify-between gap-4">
-          <strong className="min-w-0 break-words text-[30px] font-extrabold min-[360px]:text-[37px] sm:text-[40px] leading-none tracking-tight text-white">
+        <div className="relative z-[1] mt-7 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+          <strong className="min-w-0 break-words text-[28px] font-extrabold min-[360px]:text-[32px] sm:text-[40px] leading-none tracking-tight text-[var(--foreground)]">
             {loading ? '—' : displayMoney(summary.budget, showValues, currency)}
           </strong>
-          <span className="shrink-0 pb-1 text-[16px] font-bold text-white/70">
+          <span className="shrink-0 pb-1 text-[16px] font-bold text-[var(--text-muted)]">
             <strong className="text-[21px] text-[var(--orbit-primary)]">
               {budgetPercentage.toLocaleString('pt-BR')}%
             </strong>{' '}
@@ -305,61 +261,68 @@ export default function MobileCategoriesCenter({
           </span>
         </div>
 
-        <div className="relative z-[1] mt-4 h-3 overflow-hidden rounded-full bg-white/10">
+        <div
+          role="progressbar"
+          aria-label="Orçamento mensal utilizado"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(safePercentage)}
+          className="relative z-[1] mt-4 h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]"
+        >
           <div
-            className="h-full rounded-full bg-[linear-gradient(90deg,#7c3aed_0%,#a855f7_100%)]"
+            className="h-full rounded-full bg-[var(--orbit-primary)]"
             style={{ width: `${safePercentage}%` }}
           />
         </div>
 
         <div className="relative z-[1] mt-7 grid grid-cols-2 sm:grid-cols-[1fr_1fr_.82fr]">
-          <div className="flex min-w-0 items-center gap-3 border-r border-white/15 pr-3">
+          <div className="flex min-w-0 items-center gap-3 border-r border-[var(--border)] pr-3">
             <span className="hidden h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--warning)]/15 text-[var(--warning)] min-[360px]:grid">
               <FaArrowUp aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <strong className="block tabular-nums text-[18px] font-extrabold text-white">
+              <strong className="block tabular-nums text-[18px] font-extrabold text-[var(--foreground)]">
                 {displayMoney(summary.realized, showValues, currency)}
               </strong>
-              <span className="mt-1 block text-sm text-white/60">Realizado</span>
+              <span className="mt-1 block text-sm text-[var(--text-muted)]">Realizado</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 pl-3 min-[360px]:pl-4 sm:border-r sm:border-white/15 sm:pr-3">
+          <div className="flex items-center gap-3 pl-3 min-[360px]:pl-4 sm:border-r sm:border-[var(--border)] sm:pr-3">
             <span className="hidden h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--income)]/15 text-[var(--income)] min-[360px]:grid">
               <FaArrowDown aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <strong className="block tabular-nums text-[18px] font-extrabold text-white">
+              <strong className="block tabular-nums text-[18px] font-extrabold text-[var(--foreground)]">
                 {displayMoney(summary.available, showValues, currency)}
               </strong>
-              <span className="mt-1 block text-sm text-white/60">Disponível</span>
+              <span className="mt-1 block text-sm text-[var(--text-muted)]">Disponível</span>
             </div>
           </div>
 
-          <div className="col-span-2 mt-3 flex items-center justify-between border-t border-white/10 pt-3 sm:col-span-1 sm:mt-0 sm:block sm:self-center sm:border-0 sm:pl-4 sm:pt-0 sm:text-right">
-            <strong className="block text-sm text-white">
+          <div className="col-span-2 mt-3 flex items-center justify-between border-t border-[var(--border)] pt-3 sm:col-span-1 sm:mt-0 sm:block sm:self-center sm:border-0 sm:pl-4 sm:pt-0 sm:text-right">
+            <strong className="block text-sm text-[var(--foreground)]">
               {displayMoney(summary.committed, showValues, currency)}
             </strong>
-            <span className="text-xs text-white/60">comprometido</span>
+            <span className="text-xs text-[var(--text-muted)]">comprometido</span>
           </div>
         </div>
         <div className="relative z-[1] mt-4 grid grid-cols-2 gap-2">
-          <div className="rounded-[12px] bg-white/5 px-3 py-2">
-            <span className="block text-xs text-white/60">Receita esperada</span>
-            <strong className="mt-1 block text-sm text-white">
+          <div className="rounded-[12px] bg-[var(--surface-subtle)] px-3 py-2">
+            <span className="block text-xs text-[var(--text-muted)]">Receita esperada</span>
+            <strong className="mt-1 block text-sm text-[var(--foreground)]">
               {displayMoney(summary.expectedIncome, showValues, currency)}
             </strong>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            className="col-span-2"
             onClick={onCopyPreviousMonth}
             disabled={controlsDisabled || copying}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-white/15 bg-white/5 px-3 text-sm font-bold text-white disabled:opacity-50"
+            icon={<FaCopy aria-hidden="true" />}
           >
-            <FaCopy aria-hidden="true" />
             {copying ? 'Copiando...' : 'Copiar mês anterior'}
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -398,21 +361,20 @@ export default function MobileCategoriesCenter({
         <div className="mt-5">
           <label className="flex min-h-[58px] items-center gap-3 rounded-[16px] border border-[var(--border-strong)] bg-[var(--surface)] px-4">
             <FaSearch className="shrink-0 text-[19px] text-[var(--text-muted)]" aria-hidden="true" />
-            <input
+            <Input
+              bare
               value={search}
               onChange={(event) => onSearchChange(event.currentTarget.value)}
               placeholder="Buscar categorias"
               aria-label="Buscar categorias"
-              className="min-w-0 flex-1 bg-transparent text-[16px] text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)]"
+              className="min-h-11 text-[16px] placeholder:text-[var(--text-subtle)]"
             />
-            <button
-              type="button"
+            <IconButton
+              label="Filtrar categorias"
+              icon={<FaFilter />}
               onClick={() => setFilterOpen(true)}
-              aria-label="Filtrar categorias"
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[15px] text-[var(--text-subtle)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
-            >
-              <FaFilter aria-hidden="true" />
-            </button>
+              className="rounded-full text-[15px]"
+            />
           </label>
 
           <div className="mt-5 space-y-3">
@@ -552,16 +514,11 @@ export default function MobileCategoriesCenter({
           title="Filtros"
           description="Refine as categorias exibidas."
           closeLabel="Fechar filtros"
-          maxWidthClass="max-w-[430px]"
           onClose={closeFilters}
           footer={
-            <button
-              type="button"
-              onClick={() => setFilterOpen(false)}
-              className="min-h-[56px] w-full rounded-full bg-[var(--orbit-primary)] px-4 text-base font-extrabold text-white"
-            >
+            <Button size="cta" pill fullWidth onClick={() => setFilterOpen(false)}>
               Aplicar filtros
-            </button>
+            </Button>
           }
         >
       <MobileFilterGroup
@@ -600,20 +557,15 @@ export default function MobileCategoriesCenter({
         <legend className="mb-2 text-sm font-bold text-[var(--text-muted)]">Moeda</legend>
         <div className="grid grid-cols-3 gap-2">
           {currencyOptions.map((option) => (
-            <button
+            <Chip
               key={option.value}
-              type="button"
-              onClick={() => onCurrencyChange(option.value as SupportedCurrency)}
+              selected={currency === option.value}
               disabled={controlsDisabled}
-              aria-pressed={currency === option.value}
-              className={`min-h-11 rounded-[12px] border px-2 text-sm font-bold ${
-                currency === option.value
-                  ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                  : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
-              }`}
+              onClick={() => onCurrencyChange(option.value as SupportedCurrency)}
+              className="w-full"
             >
               {option.value}
-            </button>
+            </Chip>
           ))}
         </div>
       </fieldset>
@@ -625,8 +577,7 @@ export default function MobileCategoriesCenter({
           title={selectedExpense?.category.name || selectedIncome?.name || ''}
           description={selectedExpense ? 'Despesa' : 'Receita · Fora do orçamento'}
           closeLabel="Fechar resumo da categoria"
-          maxWidthClass="max-w-[430px]"
-          onClose={closeSelectedCategory}
+                    onClose={closeSelectedCategory}
           closeDisabled={mutationBusy}
           icon={
             <span
@@ -657,14 +608,9 @@ export default function MobileCategoriesCenter({
           </dl>
 
           <div className="mt-5 grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => onEditLimit(selectedExpense)}
-              disabled={mutationBusy}
-              className="min-h-[52px] rounded-[14px] border border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] px-3 text-sm font-bold text-[var(--orbit-primary)] disabled:opacity-50"
-            >
+            <Button variant="outline" onClick={() => onEditLimit(selectedExpense)} disabled={mutationBusy}>
               {selectedExpense.limit ? 'Editar limite' : 'Definir limite'}
-            </button>
+            </Button>
             <Link
               href={`/transacoes?categoryId=${encodeURIComponent(selectedExpense.category.id)}`}
               className="flex min-h-[52px] items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-bold text-[var(--foreground)]"
@@ -682,18 +628,19 @@ export default function MobileCategoriesCenter({
           </Link>
 
           {selectedExpense.limit && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              fullWidth
+              className="mt-2.5 text-[var(--expense)]"
               onClick={() => void onRemoveLimit(selectedExpense)}
               disabled={mutationBusy && removingCategoryId !== selectedExpense.category.id}
-              className="mt-2.5 min-h-[48px] w-full rounded-[14px] text-sm font-bold text-[var(--expense)] disabled:opacity-50"
             >
               {removingCategoryId === selectedExpense.category.id
                 ? 'Removendo...'
                 : confirmingRemoveId === selectedExpense.category.id
                   ? 'Confirmar remoção do limite'
                   : 'Remover limite'}
-            </button>
+            </Button>
           )}
         </>
       )}
@@ -717,188 +664,5 @@ export default function MobileCategoriesCenter({
         </ModalShell>
       )}
     </section>
-  );
-}
-
-function ExpenseCategoryCard({
-  item,
-  currency,
-  showValues,
-  onOpen,
-}: {
-  item: CategoryMonthlyLimitItem;
-  currency: SupportedCurrency;
-  showValues: boolean;
-  onOpen: () => void;
-}) {
-  const percentage = usagePercentage(item);
-
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="w-full rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 text-left transition-colors hover:bg-[var(--surface-hover)]"
-    >
-      <div className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3">
-        <span
-          className="grid h-16 w-16 place-items-center rounded-full border border-white/10 text-[24px] text-white"
-          style={{ backgroundColor: `${item.category.color || DEFAULT_CATEGORY_COLOR}2b` }}
-          aria-hidden="true"
-        >
-          <IconRenderer
-            iconName={item.category.icon || 'tag'}
-            size={25}
-            color={item.category.color || DEFAULT_CATEGORY_COLOR}
-          />
-        </span>
-
-        <div className="min-w-0">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <strong className="truncate text-[18px] font-extrabold text-[var(--foreground)]">
-              {item.category.name}
-            </strong>
-            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
-              Despesa
-            </span>
-            {!item.category.isActive && (
-              <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
-                Inativa
-              </span>
-            )}
-          </div>
-
-          <p className="mt-3 text-[16px] font-bold text-[var(--foreground)]">
-            {displayMoney(item.consumption, showValues, currency)}
-            <span className="font-medium text-[var(--text-muted)]">
-              {' '}/ {displayMoney(item.limit?.amount ?? null, showValues, currency)}
-            </span>
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <strong className={`text-[18px] font-extrabold ${percentageClass(item)}`}>
-            {usageLabel(item)}
-          </strong>
-          <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
-        </div>
-      </div>
-
-      <div className="ml-[76px] mt-4 h-2.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
-        {item.limit && (
-          <div
-            className={`h-full rounded-full ${barClass(item)}`}
-            style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
-          />
-        )}
-      </div>
-    </button>
-  );
-}
-
-function IncomeCategoryCard({
-  category,
-  onOpen,
-}: {
-  category: CategoryModel;
-  onOpen: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="w-full rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 text-left transition-colors hover:bg-[var(--surface-hover)]"
-    >
-      <div className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3">
-        <span
-          className="grid h-16 w-16 place-items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[24px]"
-          aria-hidden="true"
-        >
-          <IconRenderer
-            iconName={category.icon || 'income-up'}
-            size={25}
-            color={category.color || '#34d399'}
-          />
-        </span>
-
-        <div className="min-w-0">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <strong className="truncate text-[18px] font-extrabold text-[var(--foreground)]">
-              {category.name}
-            </strong>
-            <span className="inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400">
-              Receita · Fora do orçamento
-            </span>
-            {!category.isActive && (
-              <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
-                Inativa
-              </span>
-            )}
-          </div>
-          {category.description && (
-            <p className="mt-2 truncate text-sm text-[var(--text-muted)]">{category.description}</p>
-          )}
-        </div>
-
-        <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
-      </div>
-    </button>
-  );
-}
-
-function CategorySkeleton() {
-  return (
-    <div className="h-[130px] animate-pulse rounded-[20px] border border-[var(--border)] bg-[var(--surface)]" />
-  );
-}
-
-function MobileFilterGroup({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: Array<[string, string]>;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <fieldset className="mt-5">
-      <legend className="mb-2 text-sm font-bold text-[var(--text-muted)]">{label}</legend>
-      <div className="flex flex-wrap gap-2">
-        {options.map(([optionValue, optionLabel]) => (
-          <button
-            key={optionValue}
-            type="button"
-            onClick={() => onChange(optionValue)}
-            aria-pressed={value === optionValue}
-            className={`min-h-10 rounded-full border px-3 text-sm font-semibold ${
-              value === optionValue
-                ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
-            }`}
-          >
-            {optionLabel}
-          </button>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
-function SheetMetric({
-  label,
-  value,
-  className = 'text-[var(--foreground)]',
-}: {
-  label: string;
-  value: string;
-  className?: string;
-}) {
-  return (
-    <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3">
-      <dt className="text-xs text-[var(--text-muted)]">{label}</dt>
-      <dd className={`mt-1 tabular-nums text-sm font-extrabold ${className}`}>{value}</dd>
-    </div>
   );
 }

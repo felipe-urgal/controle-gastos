@@ -33,4 +33,11 @@ describe("metadata das páginas", () => {
 
     expect(mismatches).toEqual([]);
   });
+
+  it("rotas autenticadas (home) são noindex e não herdam o canonical da raiz", () => {
+    const layout = readFileSync(join(PAGES, "(home)/layout.tsx"), "utf8");
+
+    expect(layout).toMatch(/robots:\s*\{\s*index:\s*false/);
+    expect(layout).toMatch(/canonical:\s*null/);
+  });
 });

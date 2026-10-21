@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { FaCopy, FaPlus } from 'react-icons/fa';
 
 import MobileCategoriesCenter from '@/app/components/pages/category/index/mobile-categories-center';
-import { Input, Select } from '@/app/components/ui';
+import { Button, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context/auth-context';
 import { useCategoryMonthlyLimits } from '@/app/hooks/categories/category-monthly-limits';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
@@ -303,15 +303,14 @@ export default function CategoryMonthlyLimits({
             }}
             disabled={controlsDisabled}
           />
-          <button
-            type="button"
+          <Button
+            variant="outline"
             onClick={() => void copyPreviousMonth()}
             disabled={controlsDisabled}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)] disabled:opacity-50"
+            icon={<FaCopy aria-hidden="true" />}
           >
-            <FaCopy aria-hidden="true" />
             {copying ? 'Copiando...' : 'Copiar mês anterior'}
-          </button>
+          </Button>
           <Link
             href="/categorias/nova"
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-4 text-sm font-bold text-[var(--orbit-on-primary)] transition-colors hover:bg-[var(--orbit-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
