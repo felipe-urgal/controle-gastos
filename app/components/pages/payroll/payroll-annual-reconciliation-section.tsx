@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { FaRedo } from 'react-icons/fa';
 
+import { Button, Select } from '@/app/components/ui';
+
 import { useAuth } from '@/app/context/auth-context';
 import { lastClosedPayrollYear } from '@/app/lib/payroll/payroll-date';
 import {
@@ -93,31 +95,27 @@ export function PayrollAnnualReconciliationSection({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <select
-            value={year}
-            disabled={loading}
-            onChange={(event) => {
-              setLoading(true);
-              setYear(Number(event.target.value));
-            }}
-            className="ds-control min-h-11 px-3 text-sm"
-            aria-label="Ano da conciliação"
-          >
-            {years.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
+          <div className="min-w-28">
+            <Select
+              ariaLabel="Ano da conciliação"
+              value={year}
+              disabled={loading}
+              onChange={(value) => {
+                setLoading(true);
+                setYear(Number(value));
+              }}
+              options={years.map((item) => ({ value: item, label: String(item) }))}
+            />
+          </div>
+          <Button
+            variant="outline"
+            pill
             disabled={loading}
             onClick={() => void refresh()}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
+            icon={<FaRedo aria-hidden="true" />}
           >
-            <FaRedo aria-hidden="true" />
             Atualizar
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -127,13 +125,9 @@ export function PayrollAnnualReconciliationSection({
           className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
           <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => void refresh()}
-            className="min-h-11 rounded-full border border-current px-3 text-xs font-bold"
-          >
+          <Button variant="outline" size="sm" pill onClick={() => void refresh()}>
             Tentar novamente
-          </button>
+          </Button>
         </div>
       )}
 
