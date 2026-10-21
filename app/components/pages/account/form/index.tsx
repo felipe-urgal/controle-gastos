@@ -7,8 +7,7 @@ import { useState } from 'react';
 import { FaArrowLeft, FaArrowRight, FaChartLine, FaCheck, FaCreditCard, FaInfoCircle, FaPalette, FaTimes, FaWallet } from 'react-icons/fa';
 
 import { FormActions, FormContainer } from '@/app/components/forms';
-import { ActiveToggle, ColorIconSelector, Input, RadioGroup } from '@/app/components/ui';
-import IconRenderer, { ICON_MAP } from '@/app/components/ui/icon-renderer';
+import { ActiveToggle, Button, ColorIconSelector, IconButton, IconRenderer, Input, RadioGroup } from '@/app/components/ui';
 import {
   ACCOUNT_DESCRIPTION_MAX_LENGTH,
   ACCOUNT_NAME_MAX_LENGTH,
@@ -21,40 +20,14 @@ import { AccountType } from '@/app/types/account';
 const orbitSelectionTokens =
   '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
 
-const mobileColors = [
-  '#7C3AED',
-  '#3B82F6',
-  '#10B981',
-  '#F59E0B',
-  '#EF4444',
-  '#EC4899',
-  '#6B7280',
-];
-
-const mobilePrimaryIcons = [
-  'wallet',
-  'bank',
-  'credit-card',
-  'coins',
-  'piggy-bank',
-  'chart-line',
-  'money-check',
-  'university',
-];
-
 export default function AccountForm({ account, isEditing }: AccountFormProps) {
   const { formData, setFormData, submitError, setSubmitError, isSubmitting, handleSubmit, handleRedirect } =
     useAccountForm({ account, isEditing });
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const [mobileStepError, setMobileStepError] = useState<string | null>(null);
-  const [showAllMobileIcons, setShowAllMobileIcons] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   const loading = isSubmitting;
-  const allMobileIcons = Object.keys(ICON_MAP);
-  const mobileIconOptions = showAllMobileIcons
-    ? allMobileIcons
-    : Array.from(new Set([formData.icon, ...mobilePrimaryIcons])).slice(0, 8);
   const mobileTypeLabel =
     formData.type === 'INVESTMENT'
       ? 'Investimentos'
@@ -84,17 +57,15 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
 
   const mobileWizard = (
     <form onSubmit={handleSubmit} className={orbitSelectionTokens}>
-      <div className="mx-auto w-full max-w-[430px] pb-4">
+      <div className="mx-auto w-full max-w-3xl pb-4">
         <header className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 pt-1">
-          <button
-            type="button"
+          <IconButton
+            label="Voltar"
+            icon={<FaArrowLeft />}
             onClick={goBackMobile}
             disabled={loading}
-            aria-label="Voltar"
-            className="grid h-11 w-11 place-items-center rounded-full text-lg text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
-          >
-            <FaArrowLeft aria-hidden="true" />
-          </button>
+            className="rounded-full text-lg text-[var(--foreground)]"
+          />
           <h1 className={`text-center ${appBarTitleClassName}`}>
             {isEditing ? 'Editar conta' : 'Nova conta'}
           </h1>
@@ -205,18 +176,15 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               placeholder="Minha conta"
               rightIcon={
                 formData.name ? (
-                  <button
-                    type="button"
+                  <IconButton
+                    label="Limpar nome"
+                    icon={<FaTimes />}
                     onClick={() => {
                       setFormData({ ...formData, name: '' });
                       setMobileStepError(null);
                     }}
                     disabled={loading}
-                    aria-label="Limpar nome"
-                    className="text-[var(--text-muted)]"
-                  >
-                    <FaTimes aria-hidden="true" />
-                  </button>
+                  />
                 ) : undefined
               }
             />
@@ -426,23 +394,20 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
             )}
 
             <div className="space-y-4 pb-2 pt-1">
-              <button
-                type="button"
+              <Button
+                size="cta"
+                pill
+                fullWidth
                 onClick={goToMobileStep2}
                 disabled={loading}
-                className="flex min-h-[60px] w-full items-center justify-center gap-3 rounded-full bg-[linear-gradient(90deg,#7c3aed_0%,#8b5cf6_52%,#7c3aed_100%)] px-5 text-[18px] font-extrabold text-white shadow-[0_16px_36px_rgba(124,58,237,.32)] disabled:opacity-50"
+                icon={<FaArrowRight />}
+                iconPosition="right"
               >
                 Continuar
-                <FaArrowRight aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                onClick={handleRedirect}
-                disabled={loading}
-                className="min-h-12 w-full text-[16px] font-semibold text-[var(--text-muted)]"
-              >
+              </Button>
+              <Button variant="ghost" size="lg" fullWidth onClick={handleRedirect} disabled={loading}>
                 Cancelar
-              </button>
+              </Button>
             </div>
           </section>
         )}
@@ -452,7 +417,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
             <div>
               <h2
                 id="mobile-account-step-two"
-                className="text-[34px] font-extrabold leading-tight tracking-tight text-[var(--foreground)]"
+                className="text-3xl font-extrabold leading-tight tracking-tight text-[var(--foreground)]"
               >
                 Personalize sua conta
               </h2>
@@ -482,81 +447,15 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
               </div>
             </article>
 
-            <fieldset>
-              <legend className="mb-3 text-base font-bold text-[var(--text-muted)]">
-                Cor da conta
-              </legend>
-              <div className="flex flex-wrap gap-3">
-                {mobileColors.map((color) => {
-                  const selected = formData.color.toUpperCase() === color.toUpperCase();
-                  return (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, color })}
-                      disabled={loading}
-                      aria-label={'Selecionar cor ' + color}
-                      aria-pressed={selected}
-                      className={
-                        selected
-                          ? 'grid h-12 w-12 place-items-center rounded-full ring-2 ring-[var(--orbit-primary)] ring-offset-2 ring-offset-[var(--background)]'
-                          : 'grid h-12 w-12 place-items-center rounded-full'
-                      }
-                      style={{ backgroundColor: color }}
-                    >
-                      {selected && <FaCheck className="text-white" aria-hidden="true" />}
-                    </button>
-                  );
-                })}
-                <label className="relative grid h-12 w-12 cursor-pointer place-items-center rounded-full border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--text-muted)]">
-                  <FaPalette aria-hidden="true" />
-                  <span className="sr-only">Escolher cor personalizada</span>
-                  <input
-                    type="color"
-                    value={formData.color}
-                    onChange={(event) => setFormData({ ...formData, color: event.target.value })}
-                    disabled={loading}
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                    aria-label="Escolher cor personalizada"
-                  />
-                </label>
-              </div>
-            </fieldset>
-
-            <fieldset>
-              <legend className="mb-3 text-base font-bold text-[var(--text-muted)]">
-                Ícone da conta
-              </legend>
-              <div className="grid grid-cols-4 gap-3">
-                {mobileIconOptions.map((iconKey) => {
-                  const selected = formData.icon === iconKey;
-                  return (
-                    <button
-                      key={iconKey}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, icon: iconKey })}
-                      disabled={loading}
-                      aria-label={'Selecionar ícone ' + (ICON_MAP[iconKey]?.label ?? iconKey)}
-                      aria-pressed={selected}
-                      className={
-                        selected
-                          ? 'relative grid aspect-square min-h-14 place-items-center rounded-[14px] border-2 border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-xl text-[var(--orbit-primary)]'
-                          : 'grid aspect-square min-h-14 place-items-center rounded-[14px] border border-[var(--border)] bg-[var(--surface)] text-xl text-[var(--text-muted)]'
-                      }
-                    >
-                      <IconRenderer iconName={iconKey} size={23} />
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAllMobileIcons((current) => !current)}
-                className="mt-3 min-h-11 text-sm font-bold text-[var(--orbit-primary)]"
-              >
-                {showAllMobileIcons ? 'Mostrar menos ícones' : 'Ver todos os ícones'}
-              </button>
-            </fieldset>
+            <div className={orbitSelectionTokens}>
+              <ColorIconSelector
+                color={formData.color}
+                icon={formData.icon}
+                onColorChange={(color) => setFormData({ ...formData, color })}
+                onIconChange={(icon) => setFormData({ ...formData, icon })}
+                disabled={loading}
+              />
+            </div>
 
             <Input
               label="Descrição (opcional)"
@@ -583,23 +482,19 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
             )}
 
             <div className="grid grid-cols-2 gap-3 pb-2">
-              <button
-                type="button"
-                onClick={() => setMobileStep(1)}
-                disabled={loading}
-                className="min-h-[54px] rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-4 text-base font-bold text-[var(--foreground)]"
-              >
+              <Button variant="outline" pill size="cta" onClick={() => setMobileStep(1)} disabled={loading}>
                 Voltar
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                pill
+                size="cta"
                 onClick={() => setMobileStep(3)}
                 disabled={loading}
-                className="flex min-h-[54px] items-center justify-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-base font-extrabold text-white"
+                icon={<FaArrowRight />}
+                iconPosition="right"
               >
                 Continuar
-                <FaArrowRight aria-hidden="true" />
-              </button>
+              </Button>
             </div>
           </section>
         )}
@@ -609,7 +504,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
             <div>
               <h2
                 id="mobile-account-step-three"
-                className="text-[34px] font-extrabold leading-tight tracking-tight text-[var(--foreground)]"
+                className="text-3xl font-extrabold leading-tight tracking-tight text-[var(--foreground)]"
               >
                 Revise sua conta
               </h2>
@@ -624,7 +519,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                 background:
                   'linear-gradient(135deg, ' +
                   formData.color +
-                  '66 0%, #251744 48%, #10151b 100%)',
+                  '66 0%, color-mix(in srgb, var(--orbit-primary) 20%, black) 48%, color-mix(in srgb, var(--surface) 40%, black) 100%)',
               }}
             >
               <div className="flex items-center gap-4">
@@ -704,19 +599,10 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
             </div>
 
             <div className="grid grid-cols-[.8fr_1.2fr] gap-3 pb-2">
-              <button
-                type="button"
-                onClick={() => setMobileStep(2)}
-                disabled={loading}
-                className="min-h-[56px] rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-4 text-base font-bold text-[var(--foreground)]"
-              >
+              <Button variant="outline" pill size="cta" onClick={() => setMobileStep(2)} disabled={loading}>
                 Voltar
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="min-h-[56px] rounded-full bg-[linear-gradient(90deg,#7c3aed_0%,#8b5cf6_50%,#7c3aed_100%)] px-4 text-base font-extrabold text-white shadow-[0_14px_32px_rgba(124,58,237,.28)] disabled:opacity-50"
-              >
+              </Button>
+              <Button type="submit" pill size="cta" disabled={loading}>
                 {loading
                   ? isEditing
                     ? 'Salvando...'
@@ -724,7 +610,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
                   : isEditing
                     ? 'Salvar alterações'
                     : 'Criar conta'}
-              </button>
+              </Button>
             </div>
           </section>
         )}

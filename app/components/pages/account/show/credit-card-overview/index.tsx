@@ -1,7 +1,7 @@
 'use client';
 
 import { ShowBelow } from '@/app/components/ui';
-import { Button } from '@/app/components/ui';
+import { Button, Input, Select } from '@/app/components/ui';
 import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -201,17 +201,18 @@ export default function CreditCardOverview({
     return (
       <div className="ds-panel p-6">
         <p className="font-semibold text-[var(--expense)]">{error || 'Não foi possível carregar o cartão.'}</p>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          pill
+          className="mt-4"
           onClick={() => {
             setLoading(true);
             setError(null);
             void load();
           }}
-          className="mt-4 min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold text-[var(--foreground)]"
         >
           Tentar novamente
-        </button>
+        </Button>
       </div>
     );
   }
@@ -222,7 +223,7 @@ export default function CreditCardOverview({
       : 0;
 
   return (
-    <div className={`mx-auto w-full max-w-5xl space-y-5 transition-opacity ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
+    <div className={`mx-auto w-full max-w-6xl space-y-5 transition-opacity ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
       <div className="flex items-center justify-between gap-3">
         <Link
@@ -245,7 +246,7 @@ export default function CreditCardOverview({
       </div>
       </ShowBelow>
 
-      <section className="overflow-hidden rounded-[24px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_46%,var(--surface))_0%,#24133f_48%,#10151b_100%)] p-5 text-white shadow-[0_18px_42px_color-mix(in_srgb,var(--orbit-primary)_20%,transparent)] sm:p-6">
+      <section className="overflow-hidden rounded-[24px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_46%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_20%,black)_48%,color-mix(in_srgb,var(--surface)_40%,black)_100%)] p-5 text-white shadow-[0_18px_42px_color-mix(in_srgb,var(--orbit-primary)_20%,transparent)] sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
             <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[16px] bg-white/10 text-2xl">
@@ -366,13 +367,9 @@ export default function CreditCardOverview({
           <FaPen aria-hidden="true" />
           Editar cartão
         </Link>
-        <button
-          type="button"
-          onClick={onDeleteRequest}
-          className="min-h-12 rounded-full border border-[var(--expense)]/30 bg-[var(--danger-subtle)] px-4 font-bold text-[var(--expense)]"
-        >
+        <Button variant="danger" pill size="lg" onClick={onDeleteRequest}>
           Excluir cartão
-        </button>
+        </Button>
       </div>
 
       {payingStatement && (
@@ -384,63 +381,57 @@ export default function CreditCardOverview({
           maxWidthClass="max-w-md"
           footer={
     <div className="grid grid-cols-2 gap-3">
-      <button type="button" onClick={closePayment} disabled={isPaying} className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold text-[var(--foreground)]">
+      <Button variant="outline" pill size="lg" onClick={closePayment} disabled={isPaying}>
         Cancelar
-      </button>
-      <button type="button" onClick={() => void payStatement()} disabled={isPaying || loadingPaymentAccounts || Boolean(paymentAccountsError) || !sourceAccountId} className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50">
+      </Button>
+      <Button pill size="lg" onClick={() => void payStatement()} disabled={isPaying || loadingPaymentAccounts || Boolean(paymentAccountsError) || !sourceAccountId}>
         {isPaying ? 'Pagando...' : 'Confirmar'}
-      </button>
+      </Button>
     </div>
           }
         >
         <div className="mt-5 space-y-4">
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold text-[var(--foreground)]">Conta pagadora</span>
-            <select
-              value={sourceAccountId}
-              onChange={(event) => {
-                setSourceAccountId(event.target.value);
-                setPaymentKey(globalThis.crypto.randomUUID());
-              }}
-              disabled={isPaying || loadingPaymentAccounts}
-              className="ds-control min-h-12 w-full px-3"
-            >
-              <option value="">Selecione</option>
-              {paymentAccounts.map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>
-                  {candidate.name} · {candidate.currency}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Select
+            label="Conta pagadora"
+            value={sourceAccountId}
+            onChange={(value) => {
+              setSourceAccountId(String(value));
+              setPaymentKey(globalThis.crypto.randomUUID());
+            }}
+            disabled={isPaying || loadingPaymentAccounts}
+            placeholder="Selecione"
+            options={paymentAccounts.map((candidate) => ({
+              value: candidate.id,
+              label: `${candidate.name} · ${candidate.currency}`,
+            }))}
+          />
 
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold text-[var(--foreground)]">Data do pagamento</span>
-            <input
-              type="date"
-              value={paymentDate}
-              min={logicalIso(payingStatement.closingDate)}
-              max={localIsoDate()}
-              onChange={(event) => {
-                setPaymentDate(event.target.value);
-                setPaymentKey(globalThis.crypto.randomUUID());
-              }}
-              disabled={isPaying}
-              className="ds-control min-h-12 w-full px-3"
-            />
-          </label>
+          <Input
+            label="Data do pagamento"
+            type="date"
+            value={paymentDate}
+            min={logicalIso(payingStatement.closingDate)}
+            max={localIsoDate()}
+            onChange={(event) => {
+              setPaymentDate(event.target.value);
+              setPaymentKey(globalThis.crypto.randomUUID());
+            }}
+            disabled={isPaying}
+          />
 
           {paymentAccountsError ? (
             <div className="rounded-[12px] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] p-3 text-sm">
               <p className="font-semibold text-[var(--expense)]">{paymentAccountsError}</p>
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                pill
+                size="sm"
+                className="mt-2"
                 onClick={() => void loadPaymentAccounts()}
                 disabled={loadingPaymentAccounts}
-                className="mt-2 min-h-9 rounded-full border border-[var(--border-strong)] px-3 font-bold text-[var(--foreground)]"
               >
                 {loadingPaymentAccounts ? 'Carregando...' : 'Tentar novamente'}
-              </button>
+              </Button>
             </div>
           ) : paymentAccounts.length === 0 && !loadingPaymentAccounts ? (
             <p className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">

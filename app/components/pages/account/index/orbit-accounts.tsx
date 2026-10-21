@@ -21,7 +21,7 @@ import {
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Pagination } from '@/app/components/navigation';
-import { Button, IconRenderer, Input, Chip, ChipRow } from '@/app/components/ui';
+import { Button, Chip, ChipRow, IconButton, IconRenderer, Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
 import {
@@ -133,7 +133,7 @@ function MobileAccountsCenter({
 
       <section
         aria-label="Resumo das contas no mobile"
-        className="relative overflow-hidden rounded-[22px] border border-[var(--orbit-primary)]/55 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--orbit-primary)_34%,var(--surface))_0%,color-mix(in_srgb,#312e81_42%,var(--surface))_58%,color-mix(in_srgb,#111827_88%,var(--surface))_100%)] p-[18px] shadow-[var(--shadow-surface)]"
+        className="relative overflow-hidden rounded-[22px] border border-[var(--orbit-primary)]/55 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--orbit-primary)_34%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_30%,black)_58%,color-mix(in_srgb,var(--surface)_40%,black)_100%)] p-[18px] shadow-[var(--shadow-surface)]"
       >
         <svg
           viewBox="0 0 180 90"
@@ -246,37 +246,37 @@ function MobileAccountsCenter({
                     className="pointer-events-none absolute inset-y-5 -right-7 w-16 rounded-[24px] border border-[var(--orbit-primary)]/30 bg-[linear-gradient(215deg,color-mix(in_srgb,var(--orbit-primary)_20%,var(--surface))_0%,var(--surface)_100%)] opacity-60"
                     aria-hidden="true"
                   />
-                  <button
-                    type="button"
-                    onClick={() => moveSelection(-1)}
-                    aria-label="Conta anterior"
-                    className="absolute left-1 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-[var(--orbit-primary)]/45 bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] text-[var(--foreground)] shadow-[var(--shadow-surface)] backdrop-blur focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-                  >
-                    <FaChevronLeft aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveSelection(1)}
-                    aria-label="Próxima conta"
-                    className="absolute right-1 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-[var(--orbit-primary)]/45 bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] text-[var(--foreground)] shadow-[var(--shadow-surface)] backdrop-blur focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-                  >
-                    <FaChevronRight aria-hidden="true" />
-                  </button>
+                  <div className="absolute left-1 top-1/2 z-20 -translate-y-1/2">
+                    <IconButton
+                      label="Conta anterior"
+                      icon={<FaChevronLeft />}
+                      onClick={() => moveSelection(-1)}
+                      className="rounded-full border border-[var(--orbit-primary)]/45 bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] text-[var(--foreground)] shadow-[var(--shadow-surface)] backdrop-blur"
+                    />
+                  </div>
+                  <div className="absolute right-1 top-1/2 z-20 -translate-y-1/2">
+                    <IconButton
+                      label="Próxima conta"
+                      icon={<FaChevronRight />}
+                      onClick={() => moveSelection(1)}
+                      className="rounded-full border border-[var(--orbit-primary)]/45 bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] text-[var(--foreground)] shadow-[var(--shadow-surface)] backdrop-blur"
+                    />
+                  </div>
                 </>
               )}
 
-              <article className="relative z-10 rounded-[26px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_52%,var(--surface))_0%,color-mix(in_srgb,#312e81_44%,var(--surface))_48%,color-mix(in_srgb,#111827_86%,var(--surface))_100%)] p-5 shadow-[0_20px_44px_color-mix(in_srgb,var(--orbit-primary)_22%,transparent)]">
+              <article className="relative z-10 rounded-[26px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_52%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_30%,black)_48%,color-mix(in_srgb,var(--surface)_40%,black)_100%)] p-5 shadow-[0_20px_44px_color-mix(in_srgb,var(--orbit-primary)_22%,transparent)]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-4">
                     <span
                       className="grid h-[64px] w-[64px] shrink-0 place-items-center rounded-[17px] text-2xl text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.14)]"
-                      style={{ backgroundColor: selectedAccount.color || '#64748B' }}
+                      style={{ backgroundColor: selectedAccount.color || 'var(--text-muted)' }}
                       aria-hidden="true"
                     >
                       <IconRenderer iconName={selectedAccount.icon || 'wallet'} size={27} />
                     </span>
                     <div className="min-w-0">
-                      <h3 className="truncate text-[23px] font-extrabold text-white">
+                      <h3 className="line-clamp-2 break-words text-[23px] font-extrabold text-white">
                         {selectedAccount.name}
                       </h3>
                       <p className="mt-0.5 truncate text-base text-white/70">
@@ -347,7 +347,7 @@ function MobileAccountsCenter({
 
             {accounts.length > 1 && (
               <div
-                className="mt-3 flex justify-center gap-1"
+                className="mt-1 flex max-w-full justify-start overflow-x-auto [scrollbar-width:none] sm:justify-center [&::-webkit-scrollbar]:hidden"
                 aria-label="Posição da conta selecionada"
               >
                 {accounts.map((account) => (
@@ -357,7 +357,7 @@ function MobileAccountsCenter({
                     onClick={() => setSelectedId(account.id)}
                     aria-label={`Selecionar conta ${account.name}`}
                     aria-pressed={account.id === selectedAccount.id}
-                    className="grid h-8 w-6 place-items-center"
+                    className="grid h-11 w-11 shrink-0 place-items-center"
                   >
                     <span
                       className={`block h-2.5 w-2.5 rounded-full transition-colors ${
@@ -400,13 +400,13 @@ function MobileAccountsCenter({
               >
                 <span
                   className="grid h-12 w-12 shrink-0 place-items-center rounded-[13px] text-white"
-                  style={{ backgroundColor: account.color || '#64748B' }}
+                  style={{ backgroundColor: account.color || 'var(--text-muted)' }}
                   aria-hidden="true"
                 >
                   <IconRenderer iconName={account.icon || 'wallet'} size={21} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-bold">{account.name}</p>
+                  <p className="line-clamp-2 break-words text-base font-bold">{account.name}</p>
                   <p className="mt-0.5 truncate text-sm text-[var(--text-muted)]">
                     {typeLabels[account.type]}
                   </p>
@@ -851,13 +851,13 @@ function AccountRow({
       <div className="flex min-w-0 items-center gap-3">
         <span
           className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] text-white"
-          style={{ backgroundColor: account.color || '#64748B' }}
+          style={{ backgroundColor: account.color || 'var(--text-muted)' }}
           aria-hidden="true"
         >
           <IconRenderer iconName={account.icon || 'wallet'} size={18} />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold sm:text-base">{account.name}</p>
+          <p className="line-clamp-2 break-words text-sm font-bold sm:text-base">{account.name}</p>
           <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
             {typeLabels[account.type]} · {account.currency}
           </p>
@@ -923,7 +923,7 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
         <div className="flex min-w-0 items-center gap-3">
           <span
             className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] text-white"
-            style={{ backgroundColor: account.color || '#64748B' }}
+            style={{ backgroundColor: account.color || 'var(--text-muted)' }}
             aria-hidden="true"
           >
             <IconRenderer iconName={account.icon || 'wallet'} size={20} />

@@ -51,7 +51,7 @@ export default function AccountInfo({
           <div className="flex min-w-0 items-start gap-4">
             <span
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-white"
-              style={{ backgroundColor: account.color || '#64748B' }}
+              style={{ backgroundColor: account.color || 'var(--text-muted)' }}
               aria-hidden="true"
             >
               <IconRenderer iconName={account.icon || 'wallet'} size={20} />
