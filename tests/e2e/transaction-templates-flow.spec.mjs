@@ -204,6 +204,9 @@ test('modelos: criar, editar, favoritar, usar com confirmação, salvar origem e
     await page.setViewportSize({ width, height: 760 });
     await page.goto('/modelos');
     await expectNoHorizontalOverflow(page);
+    // No mobile o formulário abre em sheet de tela cheia a partir de "Novo modelo".
+    await page.getByRole('button', { name: 'Novo modelo', exact: true }).click();
+    await expectNoHorizontalOverflow(page);
     const saveButton = page.getByRole('button', {
       name: 'Salvar modelo',
       exact: true,
@@ -211,6 +214,7 @@ test('modelos: criar, editar, favoritar, usar com confirmação, salvar origem e
     const box = await saveButton.boundingBox();
     expect(box).not.toBeNull();
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect(saveButton).toBeInViewport({ ratio: 1 });
   }
 
   await page.setViewportSize({ width: 1280, height: 800 });

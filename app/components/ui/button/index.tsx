@@ -73,7 +73,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
   ) => {
     const baseClasses = `
       relative inline-flex items-center justify-center overflow-hidden
-      ${pill ? 'rounded-full' : 'rounded-[var(--radius-md)]'} border border-transparent
+      ${pill ? 'rounded-full' : 'rounded-[var(--radius-md)]'} border
       font-semibold leading-none
       transition-[background-color,border-color,color,box-shadow,transform]
       duration-150 ease-out
@@ -85,26 +85,26 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
 
     const variantMap: Record<ButtonVariant, string> = {
       primary:
-        'bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary-hover)] shadow-sm',
+        'border-transparent bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary-hover)] shadow-sm',
       // Ação principal da interface autenticada (acento --orbit-*; `primary` é a identidade do produto).
       accent:
-        'bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] hover:bg-[var(--orbit-primary-hover)] shadow-sm',
+        'border-transparent bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] hover:bg-[var(--orbit-primary-hover)] shadow-sm',
       secondary:
         'bg-[var(--surface-raised)] text-[var(--foreground)] border-[var(--border)] hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)]',
       success:
-        'bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary-hover)]',
+        'border-transparent bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary-hover)]',
       danger:
-        'bg-[var(--danger)] text-[var(--on-danger)] hover:bg-[var(--danger-hover)]',
+        'border-transparent bg-[var(--danger)] text-[var(--on-danger)] hover:bg-[var(--danger-hover)]',
       warning:
-        'bg-[var(--warning)] text-[var(--on-warning)] hover:brightness-95',
+        'border-transparent bg-[var(--warning)] text-[var(--on-warning)] hover:brightness-95',
       info:
-        'bg-[var(--info)] text-[var(--on-info)] hover:brightness-95',
+        'border-transparent bg-[var(--info)] text-[var(--on-info)] hover:brightness-95',
       outline:
         'bg-transparent text-[var(--foreground)] border-[var(--border-strong)] hover:bg-[var(--surface-hover)]',
       ghost:
-        'bg-transparent text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]',
+        'border-transparent bg-transparent text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]',
       link:
-        'bg-transparent text-[var(--primary)] hover:text-[var(--primary-hover)] hover:underline underline-offset-4',
+        'border-transparent bg-transparent text-[var(--primary)] hover:text-[var(--primary-hover)] hover:underline underline-offset-4',
     };
 
     const isIconOnly = Boolean(icon && !children);

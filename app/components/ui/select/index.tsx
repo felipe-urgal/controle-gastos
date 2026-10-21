@@ -6,6 +6,7 @@ import { FaChevronDown } from 'react-icons/fa';
 type Option = {
   value: string | number;
   label: string;
+  disabled?: boolean;
 };
 
 type Group = {
@@ -69,7 +70,7 @@ export default function Select({
         <select
           id={selectId}
           aria-label={
-            label ? undefined : ariaLabel ?? placeholder ?? 'Selecionar opção'
+            ariaLabel ?? (label ? undefined : placeholder ?? 'Selecionar opção')
           }
           value={value ?? ''}
           onChange={(event) => onChange(event.target.value)}
@@ -86,14 +87,14 @@ export default function Select({
             ? (options as Group[]).map((group) => (
                 <optgroup key={group.label} label={group.label}>
                   {group.options.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option key={option.value} value={option.value} disabled={option.disabled}>
                       {option.label}
                     </option>
                   ))}
                 </optgroup>
               ))
             : (options as Option[]).map((option) => (
-                <option key={option.value} value={option.value}>
+                <option key={option.value} value={option.value} disabled={option.disabled}>
                   {option.label}
                 </option>
               ))}

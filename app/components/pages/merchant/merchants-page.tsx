@@ -1,7 +1,6 @@
 'use client';
 
-import { PageContainer } from '@/app/components/base-pages';
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import {
   useCallback,
@@ -16,9 +15,10 @@ import {
   FaTrash,
 } from 'react-icons/fa';
 
+import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import Pagination from '@/app/components/navigation/pagination';
-import { Button, Input } from '@/app/components/ui';
+import { Button, Input, Select } from '@/app/components/ui';
 import { useDebounce } from '@/app/hooks/use-debounce';
 import { merchantAliasService } from '@/app/services/merchant-alias-service';
 import { merchantService } from '@/app/services/merchant-service';
@@ -485,22 +485,16 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
   return (
     <ProtectedRoute>
       <PageContainer>
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--orbit-primary)]">
-              Organização
+        <PageTitle
+          eyebrow="Organização"
+          title="Estabelecimentos"
+          description="Padronize onde suas transações aconteceram sem alterar a descrição original."
+          actions={
+            <p className="text-sm text-[var(--text-muted)]">
+              {merchantTotal} cadastrado(s)
             </p>
-            <h1 className={`mt-1 ${pageTitleClassName}`}>
-              Estabelecimentos
-            </h1>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Padronize onde suas transações aconteceram sem alterar a descrição original.
-            </p>
-          </div>
-          <p className="text-sm text-[var(--text-muted)]">
-            {merchantTotal} cadastrado(s)
-          </p>
-        </header>
+          }
+        />
 
         <section
           className="ds-panel mt-4 p-4 sm:p-5"
@@ -520,15 +514,12 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
           </div>
 
           {merchantError ? (
-            <div
-              role="alert"
-              className="mt-4 rounded-[var(--radius-md)] border border-[var(--danger)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
-            >
-              {merchantError}
+            <div className="mt-4">
+              <Alert variant="error" message={merchantError} />
             </div>
           ) : null}
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <Input
               label="Nome"
               value={name}
@@ -628,7 +619,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
               ) : null}
             </div>
 
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
               <Input
                 label="Buscar estabelecimento"
                 value={aliasMerchantQuery}
@@ -648,66 +639,51 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                 }}
               />
 
-              <label className="space-y-1 text-sm font-medium text-[var(--foreground)]">
-                Estabelecimento
-                <select
-                  aria-label="Estabelecimento do alias"
-                  value={aliasMerchantId}
-                  onChange={(event) => {
-                    const id = event.target.value;
-                    setAliasMerchantId(id);
-                    const selected = merchantOptions.find(
-                      (option) => option.id === id,
-                    );
-                    setAliasSelectedMerchant(
-                      selected
-                        ? {
-                            id: selected.id,
-                            name: selected.name,
-                            isActive: selected.isActive,
-                          }
-                        : null,
-                    );
-                    setAliasPreview(null);
-                  }}
-                  disabled={aliasSaving || aliasOptionsLoading}
-                  className="min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                >
-                  <option value="">
-                    {aliasOptionsLoading ? 'Buscando...' : 'Selecione'}
-                  </option>
-                  {merchantOptions.map((item) => (
-                    <option
-                      key={item.id}
-                      value={item.id}
-                      disabled={!item.isActive}
-                    >
-                      {item.name}
-                      {item.isActive ? '' : ' (inativo)'}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <Select
+                label="Estabelecimento"
+                ariaLabel="Estabelecimento do alias"
+                value={aliasMerchantId}
+                onChange={(value) => {
+                  const id = String(value);
+                  setAliasMerchantId(id);
+                  const selected = merchantOptions.find(
+                    (option) => option.id === id,
+                  );
+                  setAliasSelectedMerchant(
+                    selected
+                      ? {
+                          id: selected.id,
+                          name: selected.name,
+                          isActive: selected.isActive,
+                        }
+                      : null,
+                  );
+                  setAliasPreview(null);
+                }}
+                disabled={aliasSaving || aliasOptionsLoading}
+                placeholder={aliasOptionsLoading ? 'Buscando...' : 'Selecione'}
+                options={merchantOptions.map((item) => ({
+                  value: item.id,
+                  label: `${item.name}${item.isActive ? '' : ' (inativo)'}`,
+                  disabled: !item.isActive,
+                }))}
+              />
 
-              <label className="space-y-1 text-sm font-medium text-[var(--foreground)]">
-                Operador
-                <select
-                  aria-label="Operador do alias"
-                  value={aliasOperator}
-                  onChange={(event) => {
-                    setAliasOperator(
-                      event.target.value as MerchantAliasOperator,
-                    );
-                    setAliasPreview(null);
-                  }}
-                  disabled={aliasSaving}
-                  className="min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                >
-                  <option value="EQUALS">Igual a</option>
-                  <option value="STARTS_WITH">Começa com</option>
-                  <option value="CONTAINS">Contém</option>
-                </select>
-              </label>
+              <Select
+                label="Operador"
+                ariaLabel="Operador do alias"
+                value={aliasOperator}
+                onChange={(value) => {
+                  setAliasOperator(value as MerchantAliasOperator);
+                  setAliasPreview(null);
+                }}
+                disabled={aliasSaving}
+                options={[
+                  { value: 'EQUALS', label: 'Igual a' },
+                  { value: 'STARTS_WITH', label: 'Começa com' },
+                  { value: 'CONTAINS', label: 'Contém' },
+                ]}
+              />
 
               <Input
                 label="Padrão"
@@ -721,11 +697,12 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                 }}
               />
 
-              <label className="space-y-1 text-sm font-medium text-[var(--foreground)]">
-                Prioridade
-                <input
+              <div>
+                <Input
+                  label="Prioridade"
                   aria-label="Prioridade do alias"
                   type="number"
+                  inputMode="numeric"
                   min={0}
                   max={1000}
                   value={aliasPriority}
@@ -739,12 +716,11 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                     );
                     setAliasPreview(null);
                   }}
-                  className="min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
                 />
-                <span className="block text-xs font-normal text-[var(--text-muted)]">
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
                   Menor valor tem preferência após operador e especificidade.
-                </span>
-              </label>
+                </p>
+              </div>
 
               <Input
                 label="Testar contra descrição"
@@ -862,7 +838,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
             ) : null}
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Input
               aria-label="Buscar aliases por padrão"
               placeholder="Buscar padrão"
@@ -973,7 +949,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
             >
               Seus estabelecimentos
             </h2>
-            <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
               <Input
                 aria-label="Buscar estabelecimentos"
                 placeholder="Buscar por nome"
@@ -985,26 +961,22 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                   setMerchantError(null);
                 }}
               />
-              <label className="space-y-1 text-sm font-medium text-[var(--foreground)]">
-                Status
-                <select
-                  aria-label="Filtrar estabelecimentos por status"
-                  value={merchantStatus}
-                  onChange={(event) => {
-                    setMerchantStatus(
-                      event.target.value as MerchantStatusFilter,
-                    );
-                    setMerchantPage(1);
-                    setMerchantLoading(true);
-                    setMerchantError(null);
-                  }}
-                  className="min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                >
-                  <option value="all">Todos</option>
-                  <option value="active">Ativos</option>
-                  <option value="inactive">Inativos</option>
-                </select>
-              </label>
+              <Select
+                label="Status"
+                ariaLabel="Filtrar estabelecimentos por status"
+                value={merchantStatus}
+                onChange={(value) => {
+                  setMerchantStatus(value as MerchantStatusFilter);
+                  setMerchantPage(1);
+                  setMerchantLoading(true);
+                  setMerchantError(null);
+                }}
+                options={[
+                  { value: 'all', label: 'Todos' },
+                  { value: 'active', label: 'Ativos' },
+                  { value: 'inactive', label: 'Inativos' },
+                ]}
+              />
             </div>
           </div>
 
