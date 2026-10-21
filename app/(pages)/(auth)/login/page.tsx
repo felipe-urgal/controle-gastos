@@ -236,7 +236,7 @@ export default function LoginPage() {
         mfaStep ? undefined : (
           <>
             Ainda não tem conta?{' '}
-            <Link className="font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]" href="/signup">
+            <Link className="inline-flex min-h-11 items-center font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]" href="/signup">
               Criar conta
             </Link>
           </>
@@ -413,7 +413,7 @@ export default function LoginPage() {
           <div className="flex justify-end">
             <Link
               href="/forgot-password"
-              className="rounded text-sm font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]"
+              className="inline-flex min-h-11 items-center rounded text-sm font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]"
             >
               Esqueceu a senha?
             </Link>

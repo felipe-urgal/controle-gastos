@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { FaCopy, FaKey, FaTrash } from 'react-icons/fa';
 
-import { Button, Input } from '@/app/components/ui';
+import { Button, Input, Select } from '@/app/components/ui';
 import { mcpService } from '@/app/services/mcp-service';
 import type {
   McpAccessTokenSummary,
@@ -219,22 +219,18 @@ export default function McpAccessPanel({
               disabled={saving}
               required
             />
-            <label className="block">
-              <span className="ds-label mb-2 block">Validade</span>
-              <select
-                value={expiresInDays}
-                onChange={(event) =>
-                  setExpiresInDays(Number(event.target.value) as McpCreateTokenInput['expiresInDays'])
-                }
-                className="ds-control min-h-11 w-full px-3"
-                disabled={saving}
-              >
-                <option value={30}>30 dias</option>
-                <option value={90}>90 dias</option>
-                <option value={180}>180 dias</option>
-                <option value={365}>365 dias</option>
-              </select>
-            </label>
+            <Select
+              label="Validade"
+              value={expiresInDays}
+              onChange={(value) => setExpiresInDays(Number(value) as McpCreateTokenInput['expiresInDays'])}
+              options={[
+                { value: 30, label: '30 dias' },
+                { value: 90, label: '90 dias' },
+                { value: 180, label: '180 dias' },
+                { value: 365, label: '365 dias' },
+              ]}
+              disabled={saving}
+            />
           </div>
 
           <Input

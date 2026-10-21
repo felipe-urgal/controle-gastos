@@ -19,7 +19,7 @@ export default function HomeClient() {
           <Link
             href="/"
             aria-label="Controle de Gastos — início"
-            className="flex min-w-0 items-center gap-3 rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]"
+            className="flex min-h-11 min-w-11 items-center gap-3 rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]"
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] text-[var(--on-primary)]">
               <FaWallet aria-hidden="true" />

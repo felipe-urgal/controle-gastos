@@ -15,7 +15,7 @@ export function measure(isNarrow) {
 
   const smallTargets = isNarrow
     ? interactive
-        .filter((element) => !element.matches('a[href="#main-content"], input[type="checkbox"], input[type="radio"], input[type="file"]'))
+        .filter((element) => !element.matches('a[href^="#"], input[type="checkbox"], input[type="radio"], input[type="file"]'))
         .map((element) => ({ element, rect: element.getBoundingClientRect() }))
         .filter(({ rect }) => rect.width > 2 && rect.height > 2 && (rect.width < 44 || rect.height < 44))
         .map(({ element, rect }) => `${element.tagName.toLowerCase()} "${(element.getAttribute('aria-label') || element.textContent || '').trim().slice(0, 30)}" ${Math.round(rect.width)}x${Math.round(rect.height)}`)

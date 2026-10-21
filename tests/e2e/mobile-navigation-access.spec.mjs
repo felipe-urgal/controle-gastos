@@ -122,7 +122,7 @@ test('busca global encontra módulos e ações sem remover a busca de dados', as
   );
   await input.fill('invest');
 
-  const investments = dialog.getByRole('option').filter({ hasText: 'Investimentos' });
+  const investments = dialog.getByRole('button').filter({ hasText: 'Investimentos' });
   await expect(investments).toHaveCount(1);
   await investments.click();
   await expect(page).toHaveURL(/\/investimentos$/);

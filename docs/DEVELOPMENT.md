@@ -84,6 +84,8 @@ Mantenha somente documentação viva. Decisões concluídas, planos antigos e re
 - `pnpm test:e2e layout-smoke --project=chromium`: percorre as rotas autenticadas em 360 e 390 px e falha em rolagem horizontal, mais de um `h1` visível ou aumento de alvos de toque menores que 44×44 px. As listas `KNOWN_*` do spec só podem diminuir; `LAYOUT_SMOKE_REPORT=1` imprime o detalhe dos alvos pequenos.
 - `scripts/__tests__/design-ratchet.test.ts`: limites por arquivo para overlays `fixed inset-0` fora do `ModalShell` e cores hex literais. Ao migrar um arquivo, reduza ou remova a entrada.
 - `VISUAL_REVIEW=1 SHOTS_DIR=/tmp/shots pnpm test:e2e visual-review --project=chromium`: gera capturas das telas principais a 360px (claro/escuro, com dados semeados) para revisão visual; não roda por padrão.
+- **Teclado virtual:** formulários longos e telas de autenticação usam `useVisualViewportInset` (`scroll-padding-bottom` no `<html>` enquanto o teclado está aberto); a busca global é uma sheet de tela cheia no mobile (`h-dvh`) e reserva o inset do teclado no fim da lista. Ao adicionar um formulário mobile, teste com a viewport reduzida (ver `shell-visual`, teste "360×640 com teclado aberto").
+- Specs `*-visual` (`pnpm test:e2e <modulo>-visual --project=chromium`): larguras 320–1280 × claro/escuro × `showValues`, usando `tests/e2e/support/layout-measure.mjs` (overflow, alvos < 44 px, campos < 16 px, texto < 12 px). Rodam no push para a `main`, não nos PRs; `SHOTS_DIR=/tmp/shots` grava as capturas.
 
 ## Design: breakpoints, camadas e tokens
 

@@ -15,6 +15,7 @@ export default function BackgroundParticles() {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const particleCount = reduceMotion ? 24 : window.innerWidth < 768 ? 50 : 100;
     let animationFrame = 0;
+    let handleVisibility: (() => void) | undefined;
 
     const resizeCanvas = () => {
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -81,10 +82,22 @@ export default function BackgroundParticles() {
       };
 
       animationFrame = requestAnimationFrame(animate);
+
+      // Pausa a animação com a aba oculta (economiza CPU/bateria no mobile).
+      handleVisibility = () => {
+        if (document.hidden) {
+          cancelAnimationFrame(animationFrame);
+          animationFrame = 0;
+        } else if (!animationFrame) {
+          animationFrame = requestAnimationFrame(animate);
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibility);
     }
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      if (handleVisibility) document.removeEventListener("visibilitychange", handleVisibility);
       if (animationFrame) cancelAnimationFrame(animationFrame);
     };
   }, []);
