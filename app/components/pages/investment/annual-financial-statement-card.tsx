@@ -13,6 +13,7 @@ import type {
   AnnualFinancialTaxStatementPreview,
   AnnualStatementReconciliationStatus,
 } from '@/app/types/investment';
+import { Button, Input, Select } from '@/app/components/ui';
 
 type PreviewEnvelope = {
   fileName: string;
@@ -272,19 +273,13 @@ export function AnnualFinancialStatementCard({
             Use o informe de banco/corretora como checkpoint externo para conferir posições, custo fiscal e rendimentos.
           </p>
         </div>
-        <select
+        <Select
+          ariaLabel="Ano dos informes financeiros"
           value={year}
-          onChange={(event) => void changeYear(Number(event.target.value))}
-          className="ds-control min-h-10 px-3 text-sm"
+          onChange={(value) => void changeYear(Number(value))}
+          options={years.map((item) => ({ value: item, label: String(item) }))}
           disabled={loading || working}
-          aria-label="Ano dos informes financeiros"
-        >
-          {years.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
+        />
       </div>
 
       {error && (
@@ -314,15 +309,10 @@ export function AnnualFinancialStatementCard({
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 className="ds-control min-h-11 w-full px-3 py-2"
               />
-              <button
-                type="button"
-                disabled={!file || working}
-                onClick={analyze}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-extrabold text-white disabled:opacity-40"
-              >
+              <Button size="sm" pill fullWidth onClick={analyze} disabled={!file || working}>
                 <FaFileImport aria-hidden="true" />
                 {working ? 'Analisando...' : 'Analisar informe'}
-              </button>
+              </Button>
             </div>
           ) : preview.requiresOcr ? (
             <div className="mt-4 space-y-3">
@@ -330,13 +320,9 @@ export function AnnualFinancialStatementCard({
                 <strong className="text-[var(--foreground)]">OCR/revisão necessária</strong>
                 <p className="mt-1">{preview.warnings[0]}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setPreview(null)}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] text-xs font-bold"
-              >
+              <Button variant="outline" size="sm" pill fullWidth onClick={() => setPreview(null)}>
                 <FaRedo aria-hidden="true" /> Escolher outro PDF
-              </button>
+              </Button>
             </div>
           ) : preview.statement ? (
             <div className="mt-4 space-y-3">
@@ -409,26 +395,16 @@ export function AnnualFinancialStatementCard({
               )}
 
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  disabled={working}
-                  onClick={() => setPreview(null)}
-                  className="min-h-11 rounded-full border border-[var(--border-strong)] text-xs font-bold"
-                >
+                <Button variant="outline" size="sm" pill onClick={() => setPreview(null)} disabled={working}>
                   Voltar
-                </button>
-                <button
-                  type="button"
-                  disabled={
+                </Button>
+                <Button size="sm" pill onClick={confirmImport} disabled={
                     working ||
                     preview.statement.duplicate ||
                     preview.statement.errors.length > 0
-                  }
-                  onClick={confirmImport}
-                  className="min-h-11 rounded-full bg-[var(--orbit-primary)] text-xs font-extrabold text-white disabled:opacity-40"
-                >
+                  }>
                   {working ? 'Importando...' : 'Confirmar informe'}
-                </button>
+                </Button>
               </div>
             </div>
           ) : null}
@@ -556,38 +532,29 @@ export function AnnualFinancialStatementCard({
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {position.internalAssetId && (
-                            <button
-                              type="button"
-                              onClick={() => onInspectAsset(position.internalAssetId!)}
-                              className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
-                            >
+                            <Button variant="outline" size="sm" pill onClick={() => onInspectAsset(position.internalAssetId!)}>
                               Ver histórico
-                            </button>
+                            </Button>
                           )}
                           {position.canApplyBaseline &&
                             position.statementId &&
                             position.positionIndex !== null &&
                             position.symbol && (
-                              <button
-                                type="button"
-                                disabled={
-                                  baselineKey ===
-                                  position.statementId + ':' + position.positionIndex
-                                }
-                                onClick={() =>
+                              <Button variant="secondary" size="sm" pill onClick={() =>
                                   setPendingBaseline({
                                     statementId: position.statementId!,
                                     positionIndex: position.positionIndex!,
                                     symbol: position.symbol!,
                                   })
-                                }
-                                className="min-h-11 rounded-full bg-[var(--foreground)] px-3 text-xs font-bold text-[var(--background)] disabled:opacity-40"
-                              >
+                                } disabled={
+                                  baselineKey ===
+                                  position.statementId + ':' + position.positionIndex
+                                }>
                                 {baselineKey ===
                                 position.statementId + ':' + position.positionIndex
                                   ? 'Aplicando...'
                                   : 'Usar como baseline fiscal'}
-                              </button>
+                              </Button>
                             )}
                         </div>
                       </div>
@@ -639,13 +606,9 @@ export function AnnualFinancialStatementCard({
                           </p>
                         )}
                         {income.internalAssetId && (
-                          <button
-                            type="button"
-                            onClick={() => onInspectAsset(income.internalAssetId!)}
-                            className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
-                          >
+                          <Button variant="outline" size="sm" pill className="mt-3" onClick={() => onInspectAsset(income.internalAssetId!)}>
                             Ver pagamentos/histórico
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </details>
@@ -706,50 +669,27 @@ export function AnnualFinancialStatementCard({
                               <div className="mt-3 rounded-[12px] bg-[var(--surface-raised)] p-3">
                                 {withholdingDraft?.index === index ? (
                                   <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
-                                    <label className="text-xs font-semibold text-[var(--text-muted)]">
-                                      Data/competência exata do IRRF
-                                      <input
-                                        type="date"
-                                        value={withholdingDraft.date}
-                                        min={`${year}-01-01`}
-                                        max={`${year}-12-31`}
-                                        onChange={(event) =>
+                                    <Input label="Data/competência exata do IRRF" type="date" value={withholdingDraft.date} onChange={(event) =>
                                           setWithholdingDraft({
                                             index,
                                             date: event.target.value,
                                           })
-                                        }
-                                        className="ds-control mt-1 min-h-11 w-full px-3 text-sm"
-                                      />
-                                    </label>
-                                    <button
-                                      type="button"
-                                      disabled={withholdingSaving}
-                                      onClick={() => void registerWithholding(item, index)}
-                                      className="min-h-11 rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-50"
-                                    >
+                                        } min={`${year}-01-01`} max={`${year}-12-31`} />
+                                    <Button variant="secondary" size="sm" pill onClick={() => void registerWithholding(item, index)} disabled={withholdingSaving}>
                                       {withholdingSaving ? 'Registrando...' : 'Registrar IRRF'}
-                                    </button>
+                                    </Button>
                                   </div>
                                 ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => setWithholdingDraft({ index, date: '' })}
-                                    className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
-                                  >
+                                  <Button variant="outline" size="sm" pill onClick={() => setWithholdingDraft({ index, date: '' })}>
                                     Registrar/corrigir IRRF
-                                  </button>
+                                  </Button>
                                 )}
                               </div>
                             )}
                           {item.internalAssetId && (
-                            <button
-                              type="button"
-                              onClick={() => onInspectAsset(item.internalAssetId!)}
-                              className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
-                            >
+                            <Button variant="outline" size="sm" pill className="mt-3" onClick={() => onInspectAsset(item.internalAssetId!)}>
                               Revisar ativo
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </details>

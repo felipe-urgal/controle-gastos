@@ -10,6 +10,7 @@ import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import { investmentService } from '@/app/services/investment-service';
 import type { ForeignInvestmentAnnualTaxReport } from '@/app/types/investment';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+import { Button, Input, Select } from '@/app/components/ui';
 
 function money(value: number | null, showValues: boolean) {
   if (!showValues) return '••••';
@@ -203,31 +204,20 @@ export function ForeignInvestmentAnnualTaxCard({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <select
+          <Select
+            ariaLabel="Ano da apuração de investimentos no exterior"
             value={year}
-            onChange={(event) => void changeYear(Number(event.target.value))}
-            className="ds-control min-h-10 px-3 text-sm"
+            onChange={(value) => void changeYear(Number(value))}
+            options={years.map((item) => ({ value: item, label: String(item) }))}
             disabled={loading || refreshing}
-            aria-label="Ano da apuração de investimentos no exterior"
-          >
-            {years.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => void refreshPtax()}
-            disabled={loading || refreshing}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-50"
-          >
+          />
+          <Button variant="outline" size="sm" pill onClick={() => void refreshPtax()} disabled={loading || refreshing}>
             <FaSyncAlt
               aria-hidden="true"
               className={refreshing ? 'animate-spin' : undefined}
             />
             {refreshing ? 'Atualizando...' : 'Atualizar PTAX'}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -333,119 +323,76 @@ export function ForeignInvestmentAnnualTaxCard({
             </summary>
 
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <label className="text-xs font-semibold text-[var(--text-muted)] lg:col-span-2">
-                Rendimento ou venda
-                <select
+              <div className="lg:col-span-2">
+                <Select
+                  label="Rendimento ou venda"
                   value={creditEvent}
-                  onChange={(event) => setCreditEvent(event.target.value)}
-                  className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
+                  onChange={(value) => setCreditEvent(String(value))}
+                  placeholder="Selecione..."
+                  options={[
+                    ...report.incomes
+                      .filter(
+                        (item) =>
+                          item.incomeType === 'DIVIDEND' ||
+                          item.incomeType === 'INTEREST',
+                      )
+                      .map((item) => ({
+                        value: 'INCOME:' + item.eventId,
+                        label: `${item.symbol} · ${item.incomeType} · ${item.date}`,
+                      })),
+                    ...report.sales.map((item) => ({
+                      value: 'SALE:' + item.eventId,
+                      label: `${item.symbol} · venda · ${item.date}`,
+                    })),
+                  ]}
                   disabled={savingCredit}
-                >
-                  <option value="">Selecione...</option>
-                  {report.incomes
-                    .filter(
-                      (item) =>
-                        item.incomeType === 'DIVIDEND' ||
-                        item.incomeType === 'INTEREST',
-                    )
-                    .map((item) => (
-                      <option
-                        key={'INCOME:' + item.eventId}
-                        value={'INCOME:' + item.eventId}
-                      >
-                        {item.symbol} · {item.incomeType} · {item.date}
-                      </option>
-                    ))}
-                  {report.sales.map((item) => (
-                    <option
-                      key={'SALE:' + item.eventId}
-                      value={'SALE:' + item.eventId}
-                    >
-                      {item.symbol} · venda · {item.date}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                />
+              </div>
 
-              <label className="text-xs font-semibold text-[var(--text-muted)]">
-                País (ISO 2)
-                <input
-                  value={creditCountry}
-                  onChange={(event) =>
+              <Input label="País (ISO 2)" value={creditCountry} onChange={(event) =>
                     setCreditCountry(event.target.value.toUpperCase().slice(0, 2))
-                  }
-                  className="ds-control mt-1 min-h-10 w-full px-3 text-sm uppercase"
-                  placeholder="US"
-                  disabled={savingCredit}
-                />
-              </label>
+                  } placeholder="US" disabled={savingCredit} className="uppercase" />
 
-              <label className="text-xs font-semibold text-[var(--text-muted)]">
-                Valor pago
-                <input
-                  value={creditAmount}
-                  onChange={(event) => setCreditAmount(event.target.value)}
-                  className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  disabled={savingCredit}
-                />
-              </label>
+              <Input
+                label="Valor pago"
+                value={creditAmount}
+                onChange={(event) => setCreditAmount(event.target.value)}
+                placeholder="0,00"
+                inputMode="decimal"
+                disabled={savingCredit}
+              />
 
-              <label className="text-xs font-semibold text-[var(--text-muted)]">
-                Moeda
-                <select
-                  value={creditCurrency}
-                  onChange={(event) =>
-                    setCreditCurrency(event.target.value as SupportedCurrency)
-                  }
-                  className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-                  disabled={savingCredit}
-                >
-                  <option value="BRL">BRL</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                </select>
-              </label>
+              <Select
+                label="Moeda"
+                value={creditCurrency}
+                onChange={(value) => setCreditCurrency(value as SupportedCurrency)}
+                options={[{ value: 'BRL', label: 'BRL' }, { value: 'USD', label: 'USD' }, { value: 'EUR', label: 'EUR' }]}
+                disabled={savingCredit}
+              />
 
-              <label className="text-xs font-semibold text-[var(--text-muted)]">
-                Data do pagamento
-                <input
-                  type="date"
-                  value={creditDate}
-                  onChange={(event) => setCreditDate(event.target.value)}
-                  className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-                  disabled={savingCredit}
-                />
-              </label>
+              <Input
+                label="Data do pagamento"
+                type="date"
+                value={creditDate}
+                onChange={(event) => setCreditDate(event.target.value)}
+                disabled={savingCredit}
+              />
 
-              <label className="text-xs font-semibold text-[var(--text-muted)]">
-                Base da compensação
-                <select
-                  value={creditBasis}
-                  onChange={(event) =>
-                    setCreditBasis(
-                      event.target.value as 'TREATY' | 'RECIPROCITY',
-                    )
-                  }
-                  className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-                  disabled={savingCredit}
-                >
-                  <option value="RECIPROCITY">Reciprocidade</option>
-                  <option value="TREATY">Acordo/tratado</option>
-                </select>
-              </label>
+              <Select label="Base da compensação" value={creditBasis} onChange={(value) => setCreditBasis(
+                      value as 'TREATY' | 'RECIPROCITY',
+                    )} options={[{ value: 'RECIPROCITY', label: 'Reciprocidade' }, { value: 'TREATY', label: 'Acordo/tratado' }]} disabled={savingCredit} />
 
-              <label className="text-xs font-semibold text-[var(--text-muted)] sm:col-span-2">
-                Nota opcional
-                <input
+              <div className="sm:col-span-2">
+
+                <Input
+                  label="Nota opcional"
                   value={creditNote}
                   onChange={(event) => setCreditNote(event.target.value)}
-                  className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-                  maxLength={500}
                   disabled={savingCredit}
+                  maxLength={500}
                 />
-              </label>
+
+              </div>
 
               <label className="flex items-start gap-2 text-xs text-[var(--text-muted)] lg:col-span-3">
                 <input
@@ -462,14 +409,9 @@ export function ForeignInvestmentAnnualTaxCard({
               </label>
 
               <div className="lg:col-span-3">
-                <button
-                  type="button"
-                  onClick={() => void createForeignTaxCredit()}
-                  disabled={savingCredit || !creditNonRefundable}
-                  className="inline-flex min-h-11 items-center rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-40"
-                >
+                <Button variant="secondary" size="sm" pill onClick={() => void createForeignTaxCredit()} disabled={savingCredit || !creditNonRefundable}>
                   {savingCredit ? 'Registrando...' : 'Registrar imposto pago'}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -489,15 +431,10 @@ export function ForeignInvestmentAnnualTaxCard({
                           Pago em {item.paidDate} · {item.eligibilityBasis === 'TREATY' ? 'tratado' : 'reciprocidade'} · {item.status}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => void removeForeignTaxCredit(item.id)}
-                        disabled={removingCreditId !== ''}
-                        className="inline-flex min-h-8 items-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
-                      >
+                      <Button variant="outline" size="sm" pill onClick={() => void removeForeignTaxCredit(item.id)} disabled={removingCreditId !== ''}>
                         <FaTrash aria-hidden="true" />
                         {removingCreditId === item.id ? 'Excluindo...' : 'Excluir'}
-                      </button>
+                      </Button>
                     </div>
                     <div className="mt-2 grid gap-1 text-[var(--text-muted)] sm:grid-cols-2 lg:grid-cols-5">
                       <span>

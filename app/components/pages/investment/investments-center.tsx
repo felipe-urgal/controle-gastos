@@ -1,36 +1,43 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { PageContainer } from '@/app/components/base-pages';
 import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaFileImport, FaPlus, FaSyncAlt } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
-import { AnnualIncomeReportCard } from '@/app/components/pages/investment/annual-income-report-card';
 import { InvestmentFiscalYearProvider } from '@/app/components/pages/investment/investment-fiscal-year-context';
-import { AnnualFinancialStatementCard } from '@/app/components/pages/investment/annual-financial-statement-card';
-import { AnnualTaxSupportReportCard } from '@/app/components/pages/investment/annual-tax-support-report-card';
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
-import { FiscalPendingCenterCard } from '@/app/components/pages/investment/fiscal-pending-center-card';
-import { FiscalYearEndSnapshotCard } from '@/app/components/pages/investment/fiscal-year-end-snapshot-card';
-import { ForeignInvestmentAnnualTaxCard } from '@/app/components/pages/investment/foreign-investment-annual-tax-card';
-import { InvestmentTaxControlCard } from '@/app/components/pages/investment/investment-tax-control-card';
-import { RealizedResultReportCard } from '@/app/components/pages/investment/realized-result-report-card';
-import { TaxLossCarryforwardCard } from '@/app/components/pages/investment/tax-loss-carryforward-card';
-import { InvestmentImportModal } from '@/app/components/pages/investment/investment-import-modal';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { Input, Chip, ChipRow } from '@/app/components/ui';
+import { Button, Chip, ChipRow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
-import { currencyOptions } from '@/app/lib/constants/account.constants';
-import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 
 import { investmentService, type InvestmentAssetInput } from '@/app/services/investment-service';
-import type { SupportedCurrency } from '@/app/types/financial-summary';
-import type { InvestmentAsset, InvestmentAssetType, InvestmentFiscalEventType, InvestmentTaxLocation, InvestmentIncome, InvestmentOperation, InvestmentOperationType, InvestmentPortfolio } from '@/app/types/investment';
-import { AssetForm, FiscalCostForm, OperationForm, assetTypes, dateLabel, emptyAsset, emptyFiscalCost, emptyOperation, fiscalEventTypes, quantityLabel, today } from '@/app/components/pages/investment/investments-helpers';
-import { AssetsCard, FiscalCostCard, IncomeRow, IncomesCard, InvestmentModal, ModalActions, OperationRow, OperationsCard, PositionsCard, SelectField, TotalsCard } from '@/app/components/pages/investment/investment-cards';
+import type { InvestmentAsset, InvestmentFiscalEventType, InvestmentIncome, InvestmentOperation, InvestmentPortfolio } from '@/app/types/investment';
+import { AssetForm, FiscalCostForm, OperationForm, emptyAsset, emptyFiscalCost, emptyOperation, today } from '@/app/components/pages/investment/investments-helpers';
+import { AssetModal, DeleteConfirmModal, FiscalClassificationModal, FiscalCostModal, HistoryModal, OperationModal } from '@/app/components/pages/investment/investment-modals';
+import { AssetsCard, FiscalCostCard, IncomesCard, OperationsCard, PositionsCard, TotalsCard } from '@/app/components/pages/investment/investment-cards';
+
+
+// Áreas Fiscal/Informes e o modal de importação só carregam quando usados (dados já são sob demanda).
+function cardFallback() {
+  return function CardFallback() {
+    return <div className="h-40 animate-pulse rounded-[18px] bg-[var(--skeleton)]" aria-hidden="true" />;
+  };
+}
+const AnnualIncomeReportCard = dynamic(() => import('@/app/components/pages/investment/annual-income-report-card').then((m) => m.AnnualIncomeReportCard), { ssr: false, loading: cardFallback() });
+const AnnualFinancialStatementCard = dynamic(() => import('@/app/components/pages/investment/annual-financial-statement-card').then((m) => m.AnnualFinancialStatementCard), { ssr: false, loading: cardFallback() });
+const AnnualTaxSupportReportCard = dynamic(() => import('@/app/components/pages/investment/annual-tax-support-report-card').then((m) => m.AnnualTaxSupportReportCard), { ssr: false, loading: cardFallback() });
+const FiscalPendingCenterCard = dynamic(() => import('@/app/components/pages/investment/fiscal-pending-center-card').then((m) => m.FiscalPendingCenterCard), { ssr: false, loading: cardFallback() });
+const FiscalYearEndSnapshotCard = dynamic(() => import('@/app/components/pages/investment/fiscal-year-end-snapshot-card').then((m) => m.FiscalYearEndSnapshotCard), { ssr: false, loading: cardFallback() });
+const ForeignInvestmentAnnualTaxCard = dynamic(() => import('@/app/components/pages/investment/foreign-investment-annual-tax-card').then((m) => m.ForeignInvestmentAnnualTaxCard), { ssr: false, loading: cardFallback() });
+const InvestmentTaxControlCard = dynamic(() => import('@/app/components/pages/investment/investment-tax-control-card').then((m) => m.InvestmentTaxControlCard), { ssr: false, loading: cardFallback() });
+const RealizedResultReportCard = dynamic(() => import('@/app/components/pages/investment/realized-result-report-card').then((m) => m.RealizedResultReportCard), { ssr: false, loading: cardFallback() });
+const TaxLossCarryforwardCard = dynamic(() => import('@/app/components/pages/investment/tax-loss-carryforward-card').then((m) => m.TaxLossCarryforwardCard), { ssr: false, loading: cardFallback() });
+const InvestmentImportModal = dynamic(() => import('@/app/components/pages/investment/investment-import-modal').then((m) => m.InvestmentImportModal), { ssr: false });
 
 export default function InvestmentsCenter() {
   const { user } = useAuth();
@@ -442,46 +449,40 @@ export default function InvestmentsCenter() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              pill
+              icon={<FaSyncAlt className={refreshingQuotes ? 'animate-spin' : undefined} aria-hidden="true" />}
               onClick={refreshQuotes}
               disabled={!hasQuoteablePositions || refreshingQuotes}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold disabled:opacity-40"
             >
-              <FaSyncAlt
-                className={refreshingQuotes ? 'animate-spin' : undefined}
-                aria-hidden="true"
-              />
               {refreshingQuotes ? 'Atualizando...' : 'Atualizar cotações'}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="outline"
+              pill
+              icon={<FaFileImport aria-hidden="true" />}
               onClick={() => setImportModal(true)}
               disabled={!portfolio?.accounts.some(
                 (account) => account.isActive && account.currency === 'BRL',
               )}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold disabled:opacity-40"
             >
-              <FaFileImport aria-hidden="true" /> Importar
-            </button>
-            <button
-              type="button"
-              onClick={() => setAssetModal(true)}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold"
-            >
-              <FaPlus aria-hidden="true" /> Novo ativo
-            </button>
-            <button
-              type="button"
+              Importar
+            </Button>
+            <Button variant="outline" pill icon={<FaPlus aria-hidden="true" />} onClick={() => setAssetModal(true)}>
+              Novo ativo
+            </Button>
+            <Button
+              pill
+              icon={<FaPlus aria-hidden="true" />}
               onClick={openOperationModal}
               disabled={
                 !portfolio?.accounts.some((account) => account.isActive) ||
                 !portfolio?.assets.length
               }
-              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-sm font-extrabold text-white disabled:opacity-40"
             >
-              <FaPlus aria-hidden="true" /> Nova operação
-            </button>
+              Nova operação
+            </Button>
           </div>
         </header>
 
@@ -597,38 +598,12 @@ export default function InvestmentsCenter() {
         )}
 
         {pendingDelete && (
-          <InvestmentModal
-            title={
-              pendingDelete.kind === 'OPERATION'
-                ? 'Excluir operação'
-                : 'Excluir ativo'
-            }
-            onClose={() => setPendingDelete(null)}
-          >
-            <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-              {pendingDelete.kind === 'OPERATION'
-                ? `A operação de ${pendingDelete.value.asset.symbol} será removida. A posição, o custo fiscal, resultados realizados e pendências derivadas serão recalculados. A exclusão será bloqueada se romper a posição posterior ou houver vínculo fiscal protegido.`
-                : `O ativo ${pendingDelete.value.symbol} será removido somente se não possuir operações ou proventos históricos.`}
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setPendingDelete(null)}
-                disabled={saving}
-                className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => void confirmDelete()}
-                disabled={saving}
-                className="min-h-12 rounded-full bg-[var(--expense)] px-4 font-extrabold text-white disabled:opacity-50"
-              >
-                {saving ? 'Excluindo...' : 'Excluir'}
-              </button>
-            </div>
-          </InvestmentModal>
+          <DeleteConfirmModal
+            pendingDelete={pendingDelete}
+            saving={saving}
+            onCancel={() => setPendingDelete(null)}
+            onConfirm={() => void confirmDelete()}
+          />
         )}
 
         {importModal && portfolio && (
@@ -641,480 +616,69 @@ export default function InvestmentsCenter() {
         )}
 
         {assetModal && (
-          <InvestmentModal title="Novo ativo" onClose={() => setAssetModal(false)}>
-            <form onSubmit={handleAssetSubmit} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input
-                  label="Código"
-                  value={assetForm.symbol}
-                  onChange={(event) =>
-                    setAssetForm({ ...assetForm, symbol: event.target.value })
-                  }
-                  maxLength={24}
-                  required
-                  placeholder="PETR4"
-                  disabled={saving}
-                />
-                <Input
-                  label="Nome opcional"
-                  value={assetForm.name}
-                  onChange={(event) =>
-                    setAssetForm({ ...assetForm, name: event.target.value })
-                  }
-                  maxLength={120}
-                  placeholder="Petrobras PN"
-                  disabled={saving}
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <SelectField
-                  label="Tipo"
-                  value={assetForm.type}
-                  disabled={saving}
-                  onChange={(value) =>
-                    setAssetForm({
-                      ...assetForm,
-                      type: value as InvestmentAssetType,
-                    })
-                  }
-                  options={assetTypes}
-                />
-                <SelectField
-                  label="Moeda"
-                  value={assetForm.currency}
-                  disabled={saving}
-                  onChange={(value) => {
-                    const currency = value as SupportedCurrency;
-                    setAssetForm({
-                      ...assetForm,
-                      currency,
-                      taxLocation: currency === 'BRL' ? 'BRAZIL' : 'ABROAD',
-                    });
-                  }}
-                  options={currencyOptions}
-                />
-                <SelectField
-                  label="Local fiscal"
-                  value={assetForm.taxLocation}
-                  disabled={saving}
-                  onChange={(value) =>
-                    setAssetForm({
-                      ...assetForm,
-                      taxLocation: value as InvestmentTaxLocation,
-                    })
-                  }
-                  options={[
-                    { value: 'BRAZIL', label: 'Brasil' },
-                    { value: 'ABROAD', label: 'Exterior' },
-                  ]}
-                />
-                <Input
-                  label="Mercado opcional"
-                  value={assetForm.market}
-                  onChange={(event) =>
-                    setAssetForm({ ...assetForm, market: event.target.value })
-                  }
-                  maxLength={40}
-                  placeholder="B3"
-                  disabled={saving}
-                />
-              </div>
-              <ModalActions
-                saving={saving}
-                onClose={() => setAssetModal(false)}
-                submitLabel="Criar ativo"
-              />
-            </form>
-          </InvestmentModal>
+          <AssetModal
+            assetForm={assetForm}
+            setAssetForm={setAssetForm}
+            saving={saving}
+            onSubmit={handleAssetSubmit}
+            onClose={() => setAssetModal(false)}
+          />
         )}
 
         {operationModal && portfolio && (
-          <InvestmentModal
-            title="Nova operação"
+          <OperationModal
+            portfolio={portfolio}
+            operationForm={operationForm}
+            setOperationForm={setOperationForm}
+            compatibleAssets={compatibleAssets}
+            saving={saving}
+            onSubmit={handleOperationSubmit}
             onClose={() => setOperationModal(false)}
-          >
-            <form onSubmit={handleOperationSubmit} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <SelectField
-                  label="Operação"
-                  value={operationForm.type}
-                  disabled={saving}
-                  onChange={(value) =>
-                    setOperationForm({
-                      ...operationForm,
-                      type: value as InvestmentOperationType,
-                    })
-                  }
-                  options={[
-                    { value: 'BUY', label: 'Compra' },
-                    { value: 'SELL', label: 'Venda' },
-                  ]}
-                />
-                <SelectField
-                  label="Conta"
-                  value={operationForm.accountId}
-                  disabled={saving}
-                  onChange={(value) => {
-                    const account = portfolio.accounts.find(
-                      (item) => item.id === value,
-                    );
-                    const firstAsset = portfolio.assets.find(
-                      (asset) => asset.currency === account?.currency,
-                    );
-                    setOperationForm({
-                      ...operationForm,
-                      accountId: value,
-                      assetId: firstAsset?.id ?? '',
-                    });
-                  }}
-                  options={portfolio.accounts
-                    .filter((account) => account.isActive)
-                    .map((account) => ({
-                      value: account.id,
-                      label: `${account.name} · ${account.currency}`,
-                    }))}
-                />
-              </div>
-              <SelectField
-                label="Ativo"
-                value={operationForm.assetId}
-                disabled={saving}
-                onChange={(value) =>
-                  setOperationForm({ ...operationForm, assetId: value })
-                }
-                options={compatibleAssets.map((asset) => ({
-                  value: asset.id,
-                  label: `${asset.symbol} · ${asset.currency}`,
-                }))}
-              />
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Input
-                  label="Quantidade"
-                  value={operationForm.quantity}
-                  onChange={(event) =>
-                    setOperationForm({
-                      ...operationForm,
-                      quantity: event.target.value,
-                    })
-                  }
-                  inputMode="decimal"
-                  required
-                  placeholder="10,125"
-                  disabled={saving}
-                />
-                <Input
-                  label="Preço unitário"
-                  value={operationForm.unitPrice}
-                  onChange={(event) =>
-                    setOperationForm({
-                      ...operationForm,
-                      unitPrice: event.target.value,
-                    })
-                  }
-                  inputMode="decimal"
-                  required
-                  placeholder="35,90"
-                  disabled={saving}
-                />
-                <Input
-                  label="Taxas"
-                  value={operationForm.fees}
-                  onChange={(event) =>
-                    setOperationForm({
-                      ...operationForm,
-                      fees: event.target.value,
-                    })
-                  }
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  disabled={saving}
-                />
-              </div>
-              <Input
-                label="Data"
-                type="date"
-                value={operationForm.date}
-                onChange={(event) =>
-                  setOperationForm({ ...operationForm, date: event.target.value })
-                }
-                required
-                disabled={saving}
-              />
-              <Input
-                label="Observação"
-                value={operationForm.note}
-                onChange={(event) =>
-                  setOperationForm({ ...operationForm, note: event.target.value })
-                }
-                multiline
-                rows={3}
-                maxLength={500}
-                disabled={saving}
-              />
-              <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                Esta operação altera somente a posição do ativo. Nenhuma transação financeira é criada automaticamente.
-              </p>
-              <ModalActions
-                saving={saving}
-                onClose={() => setOperationModal(false)}
-                submitLabel="Registrar"
-              />
-            </form>
-          </InvestmentModal>
+          />
         )}
 
         {fiscalCostModal && portfolio && (
-          <InvestmentModal
-            title={`Ajustar custo fiscal · ${
-              portfolio.assets.find((asset) => asset.id === fiscalCostForm.assetId)
-                ?.symbol ?? ''
-            }`}
+          <FiscalCostModal
+            portfolio={portfolio}
+            fiscalCostForm={fiscalCostForm}
+            setFiscalCostForm={setFiscalCostForm}
+            showValues={showValues}
+            saving={saving}
+            onSubmit={handleFiscalCostSubmit}
             onClose={() => setFiscalCostModal(false)}
-          >
-            <form onSubmit={handleFiscalCostSubmit} className="space-y-4">
-              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-                Informe uma base fiscal conhecida para este ativo. O ajuste é
-                auditável, não altera a operação original e não usa cotação de
-                mercado para preencher custo ausente.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input
-                  label="Quantidade fiscal"
-                  value={fiscalCostForm.quantity}
-                  onChange={(event) =>
-                    setFiscalCostForm({
-                      ...fiscalCostForm,
-                      quantity: event.target.value,
-                    })
-                  }
-                  inputMode="decimal"
-                  required
-                  placeholder="2100"
-                  disabled={saving}
-                />
-                <Input
-                  label="Custo fiscal total"
-                  value={fiscalCostForm.costBasis}
-                  onChange={(event) =>
-                    setFiscalCostForm({
-                      ...fiscalCostForm,
-                      costBasis: event.target.value,
-                    })
-                  }
-                  inputMode="decimal"
-                  required
-                  placeholder="R$ 20.000,00"
-                  disabled={saving}
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input
-                  label="Data-base"
-                  type="date"
-                  value={fiscalCostForm.date}
-                  onChange={(event) =>
-                    setFiscalCostForm({
-                      ...fiscalCostForm,
-                      date: event.target.value,
-                    })
-                  }
-                  required
-                  disabled={saving}
-                />
-                <Input
-                  label="Instituição de origem"
-                  value={fiscalCostForm.sourceInstitution}
-                  onChange={(event) =>
-                    setFiscalCostForm({
-                      ...fiscalCostForm,
-                      sourceInstitution: event.target.value,
-                    })
-                  }
-                  maxLength={120}
-                  placeholder="Ex.: Rico"
-                  disabled={saving}
-                />
-              </div>
-              <Input
-                label="Motivo do ajuste"
-                value={fiscalCostForm.reason}
-                onChange={(event) =>
-                  setFiscalCostForm({
-                    ...fiscalCostForm,
-                    reason: event.target.value,
-                  })
-                }
-                maxLength={500}
-                required
-                placeholder="Ex.: custo fiscal herdado antes da transferência de custódia"
-                disabled={saving}
-              />
-
-              {portfolio.fiscalCostAdjustments.some(
-                (item) => item.assetId === fiscalCostForm.assetId,
-              ) && (
-                <div className="rounded-[14px] border border-[var(--border)] p-3">
-                  <h3 className="text-sm font-bold text-[var(--foreground)]">
-                    Ajustes anteriores
-                  </h3>
-                  <div className="mt-2 space-y-2">
-                    {portfolio.fiscalCostAdjustments
-                      .filter((item) => item.assetId === fiscalCostForm.assetId)
-                      .map((item) => (
-                        <div
-                          key={item.id}
-                          className="text-xs leading-relaxed text-[var(--text-muted)]"
-                        >
-                          <strong className="text-[var(--foreground)]">
-                            {dateLabel(item.date)} · {quantityLabel(item.quantity)} un.
-                          </strong>
-                          {' · '}
-                          {showValues
-                            ? formatCurrency(
-                                item.costBasisCents,
-                                portfolio.assets.find(
-                                  (asset) => asset.id === item.assetId,
-                                )?.currency ?? 'BRL',
-                              )
-                            : '••••'}
-                          {' · '}
-                          {item.reason}
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-
-              <ModalActions
-                saving={saving}
-                onClose={() => setFiscalCostModal(false)}
-                submitLabel="Registrar ajuste"
-              />
-            </form>
-          </InvestmentModal>
+          />
         )}
 
         {fiscalOperation && (
-          <InvestmentModal
-            title={`Classificação fiscal · ${fiscalOperation.asset.symbol}`}
+          <FiscalClassificationModal
+            fiscalOperation={fiscalOperation}
+            fiscalType={fiscalType}
+            setFiscalType={setFiscalType}
+            fiscalSourceInstitution={fiscalSourceInstitution}
+            setFiscalSourceInstitution={setFiscalSourceInstitution}
+            fiscalDestinationInstitution={fiscalDestinationInstitution}
+            setFiscalDestinationInstitution={setFiscalDestinationInstitution}
+            fiscalNote={fiscalNote}
+            setFiscalNote={setFiscalNote}
+            saving={saving}
+            onSubmit={handleFiscalSubmit}
             onClose={() => setFiscalOperation(null)}
-          >
-            <form onSubmit={handleFiscalSubmit} className="space-y-4">
-              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-                A operação original é preservada. Esta classificação informa
-                como ela deve ser tratada fiscalmente.
-              </p>
-              <SelectField
-                label="Evento fiscal"
-                value={fiscalType}
-                disabled={saving}
-                onChange={(value) =>
-                  setFiscalType(value as InvestmentFiscalEventType)
-                }
-                options={fiscalEventTypes}
-              />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input
-                  label="Instituição de origem"
-                  value={fiscalSourceInstitution}
-                  onChange={(event) =>
-                    setFiscalSourceInstitution(event.target.value)
-                  }
-                  maxLength={120}
-                  placeholder="Ex.: Rico"
-                  disabled={saving}
-                />
-                <Input
-                  label="Instituição de destino"
-                  value={fiscalDestinationInstitution}
-                  onChange={(event) =>
-                    setFiscalDestinationInstitution(event.target.value)
-                  }
-                  maxLength={120}
-                  placeholder="Ex.: Nubank Investimentos"
-                  disabled={saving}
-                />
-              </div>
-              <Input
-                label="Motivo / observação"
-                value={fiscalNote}
-                onChange={(event) => setFiscalNote(event.target.value)}
-                maxLength={500}
-                placeholder="Ex.: transferência de custódia entre corretoras"
-                disabled={saving}
-              />
-              <ModalActions
-                saving={saving}
-                onClose={() => setFiscalOperation(null)}
-                submitLabel="Salvar classificação"
-              />
-            </form>
-          </InvestmentModal>
+          />
         )}
 
         {historyAsset && (
-          <InvestmentModal
-            title={`Histórico · ${historyAsset.symbol}`}
+          <HistoryModal
+            historyAsset={historyAsset}
+            historyLoading={historyLoading}
+            historyError={historyError}
+            historyOperations={historyOperations}
+            historyIncomes={historyIncomes}
+            showValues={showValues}
+            onRetry={retryHistory}
             onClose={closeHistory}
-          >
-            {historyLoading ? (
-              <PageLoading />
-            ) : historyError ? (
-              <div>
-                <p role="alert" className="text-sm text-[var(--expense)]">
-                  {historyError}
-                </p>
-                <button
-                  type="button"
-                  onClick={retryHistory}
-                  className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold"
-                >
-                  Tentar novamente
-                </button>
-              </div>
-            ) : historyOperations.length === 0 && historyIncomes.length === 0 ? (
-              <p className="text-sm text-[var(--text-muted)]">
-                Nenhum histórico registrado para este ativo.
-              </p>
-            ) : (
-              <div className="space-y-5">
-                {historyIncomes.length > 0 && (
-                  <div>
-                    <h3 className="mb-2 text-sm font-bold text-[var(--foreground)]">
-                      Proventos
-                    </h3>
-                    <div className="divide-y divide-[var(--border)]">
-                      {historyIncomes.map((income) => (
-                        <IncomeRow
-                          key={income.id}
-                          income={income}
-                          showValues={showValues}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {historyOperations.length > 0 && (
-                  <div>
-                    <h3 className="mb-2 text-sm font-bold text-[var(--foreground)]">
-                      Operações
-                    </h3>
-                    <div className="divide-y divide-[var(--border)]">
-                      {historyOperations.map((operation) => (
-                        <OperationRow
-                          key={operation.id}
-                          operation={operation}
-                          showValues={showValues}
-                          onRemove={() => removeOperation(operation)}
-                          onClassify={() => openFiscalModal(operation)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </InvestmentModal>
+            onRemoveOperation={removeOperation}
+            onClassify={openFiscalModal}
+          />
         )}
       </PageContainer>
       </InvestmentFiscalYearProvider>

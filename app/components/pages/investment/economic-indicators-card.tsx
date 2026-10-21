@@ -92,7 +92,7 @@ export function EconomicIndicatorsCard() {
         </p>
       ) : (
         <>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {snapshot.indicators.map((indicator) => (
               <div
                 key={indicator.key}

@@ -10,6 +10,7 @@ import {
   type InvestmentImportPreview,
 } from '@/app/services/investment-service';
 import type { InvestmentAccountOption } from '@/app/types/investment';
+import { Button, Select } from '@/app/components/ui';
 
 type Props = {
   accounts: InvestmentAccountOption[];
@@ -138,26 +139,19 @@ export function InvestmentImportModal({
 
       {!preview ? (
         <div className="mt-5 space-y-4">
-          <label>
-            <span className="ds-label mb-2 block">Conta de investimento</span>
-            <select
-              value={accountId}
-              onChange={(event) => setAccountId(event.target.value)}
-              disabled={working}
-              className="ds-control min-h-11 w-full px-3"
-            >
-              <option value="" disabled>
-                Selecione
-              </option>
-              {accounts
-                .filter((account) => account.isActive)
-                .map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name} · {account.currency}
-                  </option>
-                ))}
-            </select>
-          </label>
+          <Select
+            label="Conta de investimento"
+            value={accountId}
+            onChange={(value) => setAccountId(String(value))}
+            placeholder="Selecione"
+            options={accounts
+              .filter((account) => account.isActive)
+              .map((account) => ({
+                value: account.id,
+                label: `${account.name} · ${account.currency}`,
+              }))}
+            disabled={working}
+          />
 
           <label>
             <span className="ds-label mb-2 block">Arquivo</span>
@@ -178,15 +172,10 @@ export function InvestmentImportModal({
             criados em BRL/B3. Registros já importados são ignorados.
           </p>
 
-          <button
-            type="button"
-            onClick={generatePreview}
-            disabled={!file || !accountId || working}
-            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 font-extrabold text-white disabled:opacity-40"
-          >
+          <Button size="cta" pill fullWidth onClick={generatePreview} disabled={!file || !accountId || working}>
             <FaFileImport aria-hidden="true" />
             {working ? 'Analisando...' : 'Analisar arquivo'}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="mt-5 space-y-4">
@@ -196,7 +185,7 @@ export function InvestmentImportModal({
             </div>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Summary label="Registros" value={preview.summary.total} />
             <Summary label="Novos" value={preview.summary.valid} />
             <Summary label="Duplicados" value={preview.summary.duplicates} />
@@ -301,27 +290,17 @@ export function InvestmentImportModal({
           </p>
 
           <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              disabled={working}
-              onClick={() => {
+            <Button variant="outline" size="cta" pill onClick={() => {
                 setPreview(null);
                 setError('');
-              }}
-              className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
-            >
+              }} disabled={working}>
               Voltar
-            </button>
-            <button
-              type="button"
-              disabled={working || preview.summary.valid === 0}
-              onClick={confirmImport}
-              className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-40"
-            >
+            </Button>
+            <Button size="cta" pill onClick={confirmImport} disabled={working || preview.summary.valid === 0}>
               {working
                 ? 'Importando...'
                 : `Importar ${preview.summary.valid} registro(s)`}
-            </button>
+            </Button>
           </div>
         </div>
       )}

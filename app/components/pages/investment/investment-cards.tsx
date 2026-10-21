@@ -1,12 +1,42 @@
 'use client';
 
-import { FaChartLine, FaHistory, FaTrash } from 'react-icons/fa';
+import { useState, type ReactNode } from 'react';
+import { FaChartLine, FaChevronDown, FaHistory, FaTrash } from 'react-icons/fa';
+import { Button, IconButton, Select } from '@/app/components/ui';
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ModalShell as SharedModalShell } from '@/app/components/overlays/modal-shell';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { groupInvestmentIncomesByAsset } from '@/app/lib/investments/investment-income-summary';
 import { SupportedCurrency } from '@/app/types/financial-summary';
 import { InvestmentAsset, InvestmentIncome, InvestmentOperation, InvestmentPortfolio } from '@/app/types/investment';
 import { dateLabel, fiscalEventLabel, operationLabel, quantityLabel, quoteDateLabel, typeLabel } from '@/app/components/pages/investment/investments-helpers';
+
+/**
+ * Cartão com cabeçalho recolhível: aberto a partir de 640 px; no mobile começa recolhido para
+ * manter a carteira (totais e posições) em destaque. O cabeçalho é o `summary` (alvo ≥44 px).
+ */
+export function CollapsibleCard({ header, children }: { header: ReactNode; children: ReactNode }) {
+  const wide = useMediaQuery('(min-width: 640px)');
+  const [override, setOverride] = useState<boolean | null>(null);
+  const open = override ?? wide;
+
+  return (
+    <details
+      open={open}
+      onToggle={(event) => setOverride(event.currentTarget.open)}
+      className="group rounded-[18px] border border-[var(--border)] bg-[var(--surface)]"
+    >
+      <summary className="flex min-h-11 cursor-pointer list-none items-start justify-between gap-3 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:p-5 [&::-webkit-details-marker]:hidden">
+        <div className="min-w-0 flex-1">{header}</div>
+        <FaChevronDown
+          className="mt-1.5 shrink-0 text-xs text-[var(--text-muted)] transition-transform group-open:rotate-180"
+          aria-hidden="true"
+        />
+      </summary>
+      <div className="px-4 pb-4 sm:px-5 sm:pb-5">{children}</div>
+    </details>
+  );
+}
 
 export function TotalsCard({
   totals,
@@ -32,7 +62,7 @@ export function TotalsCard({
           Nenhuma posição aberta.
         </p>
       ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {entries.map(([currency, amount]) => (
             <div
               key={currency}
@@ -41,7 +71,7 @@ export function TotalsCard({
               <span className="text-xs font-semibold text-[var(--text-muted)]">
                 {currency}
               </span>
-              <strong className="mt-1 block text-xl text-[var(--foreground)]">
+              <strong className="mt-1 block text-2xl font-black tabular-nums text-[var(--foreground)] sm:text-3xl">
                 {showValues ? formatCurrency(amount, currency) : '••••'}
               </strong>
             </div>
@@ -182,13 +212,15 @@ export function FiscalCostCard({
                 </div>
               )}
 
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="sm"
+                pill
+                className="mt-3"
                 onClick={() => onAdjust(item.assetId)}
-                className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
               >
                 {item.lastAdjustmentId ? 'Novo ajuste fiscal' : 'Informar custo fiscal'}
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -267,11 +299,11 @@ export function PositionsCard({
                       : '••••'}
                   </strong>
                 </span>
-                <span className="rounded-xl bg-[var(--surface-raised)] p-3">
+                <span className="order-first col-span-2 rounded-xl bg-[var(--surface-raised)] p-3 sm:order-last sm:col-span-1">
                   <span className="block text-xs text-[var(--text-muted)]">
                     Valor de mercado
                   </span>
-                  <strong className="mt-1 block">
+                  <strong className="mt-1 block text-base tabular-nums">
                     {position.marketValueCents === null
                       ? 'Sem cotação'
                       : showValues
@@ -318,7 +350,8 @@ export function IncomesCard({
   const byAsset = groupInvestmentIncomesByAsset(incomes);
 
   return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <CollapsibleCard
+      header={
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">Proventos</h2>
@@ -339,6 +372,8 @@ export function IncomesCard({
           </div>
         )}
       </div>
+      }
+    >
 
       {byAsset.length === 0 ? (
         <p className="mt-4 text-sm text-[var(--text-muted)]">
@@ -368,7 +403,7 @@ export function IncomesCard({
             ))}
         </div>
       )}
-    </article>
+    </CollapsibleCard>
   );
 }
 
@@ -382,8 +417,7 @@ export function AssetsCard({
   onRemove: (asset: InvestmentAsset) => void;
 }) {
   return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-      <h2 className="text-lg font-bold text-[var(--foreground)]">Ativos</h2>
+    <CollapsibleCard header={<h2 className="text-lg font-bold text-[var(--foreground)]">Ativos</h2>}>
       {assets.length === 0 ? (
         <p className="mt-4 text-sm text-[var(--text-muted)]">
           Cadastre um ativo para começar.
@@ -398,7 +432,7 @@ export function AssetsCard({
               <button
                 type="button"
                 onClick={() => onHistory(asset.id)}
-                className="min-w-0 flex-1 text-left"
+                className="min-h-11 min-w-0 flex-1 text-left"
               >
                 <strong className="block truncate text-sm text-[var(--foreground)]">
                   {asset.symbol}
@@ -413,20 +447,19 @@ export function AssetsCard({
                 {asset.operationCount} op.
               </span>
               {asset.operationCount === 0 && (
-                <button
-                  type="button"
+                <IconButton
+                  tone="danger"
+                  label={`Excluir ativo ${asset.symbol}`}
+                  icon={<FaTrash />}
+                  className="rounded-full"
                   onClick={() => onRemove(asset)}
-                  aria-label={`Excluir ativo ${asset.symbol}`}
-                  className="grid h-11 w-11 place-items-center rounded-full text-[var(--expense)]"
-                >
-                  <FaTrash aria-hidden="true" />
-                </button>
+                />
               )}
             </div>
           ))}
         </div>
       )}
-    </article>
+    </CollapsibleCard>
   );
 }
 
@@ -442,11 +475,14 @@ export function OperationsCard({
   onClassify: (operation: InvestmentOperation) => void;
 }) {
   return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-      <div className="flex items-center gap-2">
-        <FaHistory className="text-[var(--orbit-primary)]" aria-hidden="true" />
-        <h2 className="text-lg font-bold text-[var(--foreground)]">Operações</h2>
-      </div>
+    <CollapsibleCard
+      header={
+        <div className="flex items-center gap-2">
+          <FaHistory className="text-[var(--orbit-primary)]" aria-hidden="true" />
+          <h2 className="text-lg font-bold text-[var(--foreground)]">Operações</h2>
+        </div>
+      }
+    >
       {operations.length === 0 ? (
         <p className="mt-4 text-sm text-[var(--text-muted)]">
           Nenhuma operação registrada.
@@ -464,7 +500,7 @@ export function OperationsCard({
           ))}
         </div>
       )}
-    </article>
+    </CollapsibleCard>
   );
 }
 
@@ -510,21 +546,16 @@ export function OperationRow({
         <span className="text-xs text-[var(--text-muted)]">por unidade</span>
       </span>
       <span className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={onClassify}
-          className="min-h-11 rounded-full border border-[var(--border)] px-3 text-xs font-bold text-[var(--foreground)]"
-        >
+        <Button variant="outline" size="sm" pill onClick={onClassify}>
           Fiscal
-        </button>
-        <button
-          type="button"
+        </Button>
+        <IconButton
+          tone="danger"
+          label="Excluir operação"
+          icon={<FaTrash />}
+          className="rounded-full"
           onClick={onRemove}
-          aria-label="Excluir operação"
-          className="grid h-11 w-11 place-items-center rounded-full text-[var(--expense)]"
-        >
-          <FaTrash aria-hidden="true" />
-        </button>
+        />
       </span>
     </div>
   );
@@ -586,25 +617,15 @@ export function SelectField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label>
-      <span className="ds-label mb-2 block">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="ds-control min-h-11 w-full px-3"
-        disabled={disabled}
-        required
-      >
-        <option value="" disabled>
-          Selecione
-        </option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Select
+      label={label}
+      value={value}
+      onChange={(next) => onChange(String(next))}
+      options={options}
+      placeholder="Selecione"
+      disabled={disabled}
+      required
+    />
   );
 }
 
@@ -619,21 +640,12 @@ export function ModalActions({
 }) {
   return (
     <div className="grid grid-cols-2 gap-3 pt-2">
-      <button
-        type="button"
-        onClick={onClose}
-        disabled={saving}
-        className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
-      >
+      <Button type="button" variant="outline" size="cta" pill onClick={onClose} disabled={saving} fullWidth>
         Cancelar
-      </button>
-      <button
-        type="submit"
-        disabled={saving}
-        className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50"
-      >
-        {saving ? 'Salvando...' : submitLabel}
-      </button>
+      </Button>
+      <Button type="submit" size="cta" pill disabled={saving} isLoading={saving} loadingText="Salvando..." fullWidth>
+        {submitLabel}
+      </Button>
     </div>
   );
 }
