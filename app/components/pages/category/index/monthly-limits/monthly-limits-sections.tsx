@@ -6,7 +6,7 @@ import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { FormEvent, ReactNode, useCallback } from 'react';
 import { FaBell, FaChartBar, FaChartPie, FaCheck, FaChevronRight, FaCog, FaEllipsisH, FaExclamationTriangle, FaList, FaPencilAlt, FaPlus, FaSearch, FaTrashAlt, FaWallet } from 'react-icons/fa';
-import { Button, IconRenderer, Input, Select } from '@/app/components/ui';
+import { Button, Chip, IconButton, IconRenderer, Input, Select } from '@/app/components/ui';
 import { CategoryMonthlyLimitItem } from '@/app/types/category-monthly-limit';
 import { CategoryModel } from '@/app/types/category';
 import { SupportedCurrency } from '@/app/types/financial-summary';
@@ -146,20 +146,10 @@ export function PageSectionTabs({
       {tabs.map((tab) => {
         const selected = active === tab.key;
         return (
-          <button
-            key={tab.key}
-            type="button"
-            aria-pressed={selected}
-            onClick={() => onJump(tab.key, tab.target)}
-            className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-[10px] border px-3.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-              selected
-                ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
-            }`}
-          >
+          <Chip key={tab.key} selected={selected} onClick={() => onJump(tab.key, tab.target)}>
             {tab.icon}
             {tab.label}
-          </button>
+          </Chip>
         );
       })}
     </nav>
@@ -306,18 +296,9 @@ export function FilterToggle({
   children: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={`min-h-10 rounded-[9px] border px-3 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-        active
-          ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-          : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
-      }`}
-    >
+    <Chip selected={active} onClick={onClick}>
       {children}
-    </button>
+    </Chip>
   );
 }
 
@@ -377,7 +358,19 @@ export function ExpenseCategoryRow({
           <strong className={`w-12 shrink-0 text-xs ${stateTextClass(state)}`}>
             {categoryUsageLabel(item)}
           </strong>
-          <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+          <div
+            {...(item.limit
+              ? {
+                  role: 'progressbar',
+                  'aria-label': `Uso do limite de ${item.category.name}`,
+                  'aria-valuemin': 0,
+                  'aria-valuemax': 100,
+                  'aria-valuenow': Math.round(Math.min(100, Math.max(0, percentage))),
+                  'aria-valuetext': categoryUsageLabel(item),
+                }
+              : { 'aria-hidden': true })}
+            className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]"
+          >
             {item.limit && (
               <div
                 className={`h-full rounded-full ${stateBarClass(state)}`}
@@ -394,14 +387,12 @@ export function ExpenseCategoryRow({
         {displayMoney(item.remaining, showValues, currency)}
       </span>
 
-      <button
-        type="button"
+      <IconButton
+        label={`Abrir detalhes de ${item.category.name}`}
+        icon={<FaEllipsisH />}
         onClick={onSelect}
-        aria-label={`Abrir detalhes de ${item.category.name}`}
-        className="grid h-8 w-8 place-items-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-      >
-        <FaEllipsisH aria-hidden="true" />
-      </button>
+        className="border border-[var(--border)] bg-[var(--surface-raised)]"
+      />
     </div>
   );
 }
@@ -514,13 +505,9 @@ export function CriticalCategories({
           <FaExclamationTriangle className={items.length ? 'text-[var(--expense)]' : 'text-[var(--text-muted)]'} aria-hidden="true" />
           Categorias críticas
         </h2>
-        <button
-          type="button"
-          onClick={onShowAll}
-          className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 py-2 text-xs font-semibold text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
-        >
+        <Button variant="outline" size="sm" onClick={onShowAll}>
           Ver todas ({items.length})
-        </button>
+        </Button>
       </div>
 
       {items.length === 0 ? (

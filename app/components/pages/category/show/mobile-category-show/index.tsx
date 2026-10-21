@@ -19,7 +19,7 @@ import {
   FaTrash,
 } from 'react-icons/fa';
 
-import { IconRenderer } from '@/app/components/ui';
+import { Button, IconButton, IconLink, IconRenderer } from '@/app/components/ui';
 import { typeConfig } from '@/app/lib/constants/category.constants';
 import type { CategoryModel } from '@/app/types/category';
 
@@ -75,34 +75,31 @@ export default function MobileCategoryShow({
 
   return (
     <div
-      className={`mx-auto w-full max-w-[430px] pb-5 transition-opacity duration-150 ${
+      className={`mx-auto w-full max-w-xl pb-5 transition-opacity duration-150 ${
         isDeleting ? 'pointer-events-none opacity-50' : ''
       }`}
     >
       <header className="relative grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 pb-5">
-        <Link
+        <IconLink
           href={backUrl}
-          aria-label="Voltar para categorias"
-          className="grid h-11 w-11 place-items-center rounded-full text-lg text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          <FaArrowLeft aria-hidden="true" />
-        </Link>
+          label="Voltar para categorias"
+          icon={<FaArrowLeft />}
+          className="rounded-full text-lg text-[var(--foreground)]"
+        />
 
         <h1 className={`text-center ${appBarTitleClassName}`}>
           {category.name}
         </h1>
 
         <div ref={menuRef} className="relative">
-          <button
-            type="button"
-            aria-label="Mais ações"
+          <IconButton
+            label="Mais ações"
+            icon={<FaEllipsisV />}
             aria-expanded={menuOpen}
             aria-haspopup="menu"
             onClick={() => setMenuOpen((current) => !current)}
-            className="grid h-11 w-11 place-items-center rounded-full text-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-          >
-            <FaEllipsisV aria-hidden="true" />
-          </button>
+            className="rounded-full text-lg"
+          />
 
           {menuOpen && (
             <div
@@ -138,13 +135,13 @@ export default function MobileCategoryShow({
       >
         <div
           className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full opacity-20 blur-2xl"
-          style={{ backgroundColor: category.color || '#7C3AED' }}
+          style={{ backgroundColor: category.color || DEFAULT_CATEGORY_COLOR }}
           aria-hidden="true"
         />
 
         <div className="relative z-[1] flex items-start gap-4">
           <span
-            className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[20px] text-[29px] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.14)]"
+            className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[20px] text-[29px] text-white shadow-[inset_0_0_0_1px_var(--border)]"
             style={{ backgroundColor: category.color || DEFAULT_CATEGORY_COLOR }}
             aria-hidden="true"
           >
@@ -275,13 +272,9 @@ export default function MobileCategoryShow({
             </Link>
           </section>
 
-          <Link
-            href={editUrl}
-            className="flex min-h-[60px] w-full items-center justify-center gap-3 rounded-full bg-[linear-gradient(90deg,#7c3aed_0%,#8b5cf6_52%,#7c3aed_100%)] px-5 text-[17px] font-extrabold text-white shadow-[0_16px_36px_rgba(124,58,237,.30)]"
-          >
-            <FaPen aria-hidden="true" />
+          <Button as="a" href={editUrl} size="cta" fullWidth pill icon={<FaPen aria-hidden="true" />}>
             Editar categoria
-          </Link>
+          </Button>
         </div>
       )}
 

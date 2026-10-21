@@ -14,29 +14,19 @@ import {
 } from 'react-icons/fa';
 
 import { FormActions, FormContainer } from '@/app/components/forms';
-import { ActiveToggle, ColorIconSelector, Input, RadioGroup } from '@/app/components/ui';
+import { ActiveToggle, Button, ColorIconSelector, IconButton, Input, RadioGroup } from '@/app/components/ui';
 import IconRenderer from '@/app/components/ui/icon-renderer';
 import {
   CATEGORY_DESCRIPTION_MAX_LENGTH,
   CATEGORY_NAME_MAX_LENGTH,
 } from '@/app/lib/categories/category-limits';
+import { CATEGORY_COLOR_PALETTE } from '@/app/lib/categories/default-color';
 import { categoryTypeOptions } from '@/app/lib/constants/category.constants';
 import { CategoryFormProps } from '@/app/lib/interface/category.interface';
 import { CategoryType } from '@/app/types/category';
 
 const orbitSelectionTokens =
   '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
-
-const mobileColors = [
-  '#EF4444',
-  '#F97316',
-  '#FBBF24',
-  '#34D399',
-  '#3B82F6',
-  '#7C3AED',
-  '#A855F7',
-  '#EC4899',
-];
 
 const mobileIcons = [
   'food',
@@ -60,7 +50,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
 
   const loading = isSubmitting;
   const mobileColorOptions = Array.from(
-    new Set([formData.color, ...mobileColors]),
+    new Set([formData.color, ...CATEGORY_COLOR_PALETTE]),
   ).slice(0, 8);
   const mobileIconOptions = Array.from(
     new Set([formData.icon, ...mobileIcons]),
@@ -89,17 +79,15 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
 
   const mobileWizard = (
     <form onSubmit={handleSubmit} className={orbitSelectionTokens}>
-      <div className="mx-auto w-full max-w-[430px] pb-5">
+      <div className="mx-auto w-full max-w-xl pb-5">
         <header className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-1.5 pt-1">
-          <button
-            type="button"
+          <IconButton
+            label="Voltar"
+            icon={<FaArrowLeft />}
             onClick={goBackMobile}
             disabled={loading}
-            aria-label="Voltar"
-            className="grid h-11 w-11 place-items-center rounded-full text-lg text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
-          >
-            <FaArrowLeft aria-hidden="true" />
-          </button>
+            className="rounded-full text-lg text-[var(--foreground)]"
+          />
           <h1 className={`text-left ${appBarTitleClassName}`}>
             {isEditing ? 'Editar categoria' : 'Nova categoria'}
           </h1>
@@ -275,15 +263,16 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
             </fieldset>
 
             <div className="mt-auto pt-10">
-              <button
-                type="button"
+              <Button
+                size="cta"
+                fullWidth
                 onClick={goToMobileStep2}
                 disabled={loading}
-                className="flex min-h-[55px] w-full items-center justify-center gap-3 rounded-[10px] bg-[linear-gradient(90deg,#6d28d9_0%,#8b5cf6_52%,#7c3aed_100%)] px-5 text-[18px] font-extrabold text-white shadow-[0_16px_36px_rgba(124,58,237,.30)] disabled:opacity-50"
+                icon={<FaArrowRight aria-hidden="true" />}
+                iconPosition="right"
               >
                 Continuar
-                <FaArrowRight aria-hidden="true" />
-              </button>
+              </Button>
 
               <div className="mt-12 flex items-center justify-center gap-3" aria-hidden="true">
                 <span className="h-3.5 w-3.5 rounded-full bg-[var(--orbit-primary)]" />
@@ -325,14 +314,14 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                       disabled={loading}
                       aria-label={`Selecionar cor ${color}`}
                       aria-pressed={selected}
-                      className={`grid h-10 w-10 place-items-center rounded-full border-2 transition-transform ${
+                      className={`grid h-11 w-11 place-items-center rounded-full border-2 transition-transform ${
                         selected
                           ? 'scale-110 border-[var(--foreground)]'
                           : 'border-transparent'
                       }`}
                     >
                       <span
-                        className="h-8 w-8 rounded-full shadow-[inset_0_0_0_1px_rgba(255,255,255,.12)]"
+                        className="h-8 w-8 rounded-full shadow-[inset_0_0_0_1px_var(--border)]"
                         style={{ backgroundColor: color }}
                         aria-hidden="true"
                       />
@@ -397,19 +386,15 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
 
             <div className="mt-auto pt-10">
               <div className="grid grid-cols-[.9fr_1.4fr] gap-3">
-              <button
-                type="button"
+              <Button
+                size="cta"
+                variant="secondary"
                 onClick={() => setMobileStep(1)}
                 disabled={loading}
-                className="min-h-[58px] rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface)] px-4 text-[16px] font-bold text-[var(--text-muted)] disabled:opacity-50"
               >
                 Voltar
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="min-h-[58px] rounded-[12px] bg-[linear-gradient(90deg,#6d28d9_0%,#8b5cf6_52%,#7c3aed_100%)] px-4 text-[16px] font-extrabold text-white shadow-[0_16px_36px_rgba(124,58,237,.30)] disabled:opacity-50"
-              >
+              </Button>
+              <Button size="cta" type="submit" disabled={loading}>
                 {loading
                   ? isEditing
                     ? 'Salvando...'
@@ -417,7 +402,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
                   : isEditing
                     ? 'Salvar alterações'
                     : 'Criar categoria'}
-              </button>
+              </Button>
               </div>
 
               <div className="mt-10 flex items-center justify-center gap-3" aria-hidden="true">

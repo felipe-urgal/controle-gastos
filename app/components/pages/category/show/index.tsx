@@ -21,6 +21,7 @@ export default function Show({ id }: { id: string }) {
     <ShowPage
       entity={category}
       entityName="categoria"
+      titleFallback="Detalhes da categoria"
       loading={loading}
       editUrl={`/categorias/alterar/${id}`}
       backUrl={handleBack}
