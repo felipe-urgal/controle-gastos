@@ -4,7 +4,8 @@ import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { PageEmpty, PageLoading } from '@/app/components/feedback';
+import { PageEmpty, PageError, PageLoading } from '@/app/components/feedback';
+import { Button, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { financialCommitmentsService } from '@/app/services/financial-commitments-service';
@@ -80,62 +81,60 @@ export default function FinancialCommitmentsPage() {
         description="Acompanhe separadamente valores a pagar, a receber, vencidos e marcos de planejamento."
         actions={
           <>
-          <select
-            aria-label="Horizonte"
-            value={days}
-            onChange={(event) => {
-              beginReload();
-              setDays(Number(event.target.value) as 7 | 30 | 60 | 90);
-            }}
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
-          >
-            <option value={7}>7 dias</option>
-            <option value={30}>30 dias</option>
-            <option value={60}>60 dias</option>
-            <option value={90}>90 dias</option>
-          </select>
-          <select
-            aria-label="Moeda"
-            value={currency}
-            onChange={(event) => {
-              beginReload();
-              setCurrency(event.target.value as SupportedCurrency);
-            }}
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
-          >
-            <option value="BRL">BRL</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-          </select>
-          <button
-            type="button"
+          <div className="w-32">
+            <Select
+              ariaLabel="Horizonte"
+              value={days}
+              onChange={(value) => {
+                beginReload();
+                setDays(Number(value) as 7 | 30 | 60 | 90);
+              }}
+              options={[
+                { value: 7, label: '7 dias' },
+                { value: 30, label: '30 dias' },
+                { value: 60, label: '60 dias' },
+                { value: 90, label: '90 dias' },
+              ]}
+            />
+          </div>
+          <div className="w-28">
+            <Select
+              ariaLabel="Moeda"
+              value={currency}
+              onChange={(value) => {
+                beginReload();
+                setCurrency(value as SupportedCurrency);
+              }}
+              options={[
+                { value: 'BRL', label: 'BRL' },
+                { value: 'USD', label: 'USD' },
+                { value: 'EUR', label: 'EUR' },
+              ]}
+            />
+          </div>
+          <Button
+            variant="outline"
             onClick={() => {
               beginReload();
               setRequestKey((value) => value + 1);
             }}
             disabled={loading}
-            className="min-h-11 rounded-xl border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-50"
           >
             {loading ? 'Atualizando…' : 'Atualizar'}
-          </button>
+          </Button>
           </>
         }
       />
 
       {error && (
-        <div role="alert" className="mt-5 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-4">
-          <p className="text-sm font-semibold text-[var(--expense)]">{error}</p>
-          <button
-            type="button"
-            onClick={() => {
-              beginReload();
-              setRequestKey((value) => value + 1);
-            }}
-            className="mt-3 min-h-11 rounded-xl border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)]"
-          >
-            Tentar novamente
-          </button>
-        </div>
+        <PageError
+          message={error}
+          buttonText="Tentar novamente"
+          onRetry={() => {
+            beginReload();
+            setRequestKey((value) => value + 1);
+          }}
+        />
       )}
 
       {loading && !data ? (
@@ -198,7 +197,7 @@ export default function FinancialCommitmentsPage() {
                     <span className="min-w-0">
                       <strong className="block truncate text-sm">{item.title}</strong>
                       {item.accountName && (
-                        <small className="text-[var(--text-muted)]">{item.accountName}</small>
+                        <small className="text-xs text-[var(--text-muted)]">{item.accountName}</small>
                       )}
                     </span>
                     <strong className="text-sm">

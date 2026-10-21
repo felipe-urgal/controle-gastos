@@ -1,7 +1,8 @@
 'use client';
 
-import { ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Button, Input, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
+import { PageError } from '@/app/components/feedback';
 import {
   useEffect,
   useMemo,
@@ -190,7 +191,7 @@ function MetricDifference({
       <strong className="block">
         {displayMoney(metric.difference, currency, showValues)}
       </strong>
-      <small className="text-[var(--text-muted)]">
+      <small className="text-xs text-[var(--text-muted)]">
         {metricTrend(metric)} · {metricPercentage(metric)}
       </small>
     </div>
@@ -452,34 +453,18 @@ export default function FinancialComparisonPage() {
         aria-label="Atalhos de comparação"
         className="mt-5 flex flex-wrap gap-2"
       >
-        <button
-          type="button"
-          onClick={() => applyPreset('previous')}
-          className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold"
-        >
+        <Button variant="outline" size="sm" onClick={() => applyPreset('previous')}>
           Mês anterior × atual
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset('year-over-year')}
-          className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold"
-        >
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => applyPreset('year-over-year')}>
           Mesmo mês ano anterior
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset('ytd')}
-          className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold"
-        >
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => applyPreset('ytd')}>
           YTD × YTD anterior
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset('closed-year')}
-          className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold"
-        >
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => applyPreset('closed-year')}>
           Anos fechados
-        </button>
+        </Button>
       </section>
 
       <section className="mt-3 grid gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 lg:grid-cols-[1fr_auto_1fr_auto]">
@@ -487,7 +472,7 @@ export default function FinancialComparisonPage() {
           <legend className="mb-2 text-sm font-bold">
             Período A · baseline
           </legend>
-          <input
+          <Input
             aria-label="Início período A"
             type="month"
             max={maxMonth}
@@ -495,9 +480,8 @@ export default function FinancialComparisonPage() {
             onChange={(event) =>
               updateFilter('aFrom', event.target.value)
             }
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
           />
-          <input
+          <Input
             aria-label="Fim período A"
             type="month"
             max={maxMonth}
@@ -505,26 +489,20 @@ export default function FinancialComparisonPage() {
             onChange={(event) =>
               updateFilter('aTo', event.target.value)
             }
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
           />
         </fieldset>
 
         <div className="flex items-end">
-          <button
-            type="button"
-            onClick={swapPeriods}
-            className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold"
-            aria-label="Inverter períodos A e B"
-          >
+          <Button variant="outline" size="sm" onClick={swapPeriods} aria-label="Inverter períodos A e B">
             Inverter A ↔ B
-          </button>
+          </Button>
         </div>
 
         <fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <legend className="mb-2 text-sm font-bold">
             Período B · comparação
           </legend>
-          <input
+          <Input
             aria-label="Início período B"
             type="month"
             max={maxMonth}
@@ -532,9 +510,8 @@ export default function FinancialComparisonPage() {
             onChange={(event) =>
               updateFilter('bFrom', event.target.value)
             }
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
           />
-          <input
+          <Input
             aria-label="Fim período B"
             type="month"
             max={maxMonth}
@@ -542,28 +519,21 @@ export default function FinancialComparisonPage() {
             onChange={(event) =>
               updateFilter('bTo', event.target.value)
             }
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
           />
         </fieldset>
 
-        <label className="grid content-end gap-2 text-sm font-bold">
-          Moeda
-          <select
-            aria-label="Moeda"
+        <div className="content-end">
+          <Select
+            label="Moeda"
             value={filters.currency}
-            onChange={(event) =>
-              updateFilter(
-                'currency',
-                event.target.value as SupportedCurrency,
-              )
-            }
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
-          >
-            <option>BRL</option>
-            <option>USD</option>
-            <option>EUR</option>
-          </select>
-        </label>
+            onChange={(value) => updateFilter('currency', value as SupportedCurrency)}
+            options={[
+              { value: 'BRL', label: 'BRL' },
+              { value: 'USD', label: 'USD' },
+              { value: 'EUR', label: 'EUR' },
+            ]}
+          />
+        </div>
       </section>
 
       {showLoading && (
@@ -576,24 +546,19 @@ export default function FinancialComparisonPage() {
       )}
 
       {!showLoading && hasCurrentError && (
-        <div
-          role="alert"
-          className="mt-5 rounded-xl border border-[var(--danger)] bg-[var(--danger-subtle)] p-4 text-[var(--expense)]"
-        >
-          <p>{currentError}</p>
-          {!validationError && (
-            <button
-              type="button"
-              onClick={() => {
-                setFailure(null);
-                setRetryNonce((value) => value + 1);
-              }}
-              className="mt-3 min-h-11 rounded-lg border border-current px-4 text-sm font-bold"
-            >
-              Tentar novamente
-            </button>
-          )}
-        </div>
+        <PageError
+          title={validationError ? 'Revise os períodos' : 'Erro ao comparar'}
+          message={currentError ?? undefined}
+          buttonText={validationError ? undefined : 'Tentar novamente'}
+          onRetry={
+            validationError
+              ? undefined
+              : () => {
+                  setFailure(null);
+                  setRetryNonce((value) => value + 1);
+                }
+          }
+        />
       )}
 
       {!showLoading &&
@@ -623,7 +588,7 @@ export default function FinancialComparisonPage() {
             <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
               <ShowFrom breakpoint="md">
               <div>
-                <div className="grid grid-cols-[1.4fr_1fr_1fr_1.2fr] gap-2 border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-2 border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">
                   <span>Métrica</span>
                   <span>
                     A · {formatRange(data.a.range)} ({data.a.months}{' '}
@@ -638,7 +603,7 @@ export default function FinancialComparisonPage() {
                 {totalRows.map((row) => (
                   <div
                     key={row.label}
-                    className="grid grid-cols-[1.4fr_1fr_1fr_1.2fr] gap-2 border-b border-[var(--border)] px-4 py-4 last:border-0"
+                    className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-2 border-b border-[var(--border)] px-4 py-4 last:border-0"
                   >
                     <strong className="text-sm">{row.label}</strong>
                     <span>
@@ -732,7 +697,7 @@ export default function FinancialComparisonPage() {
                     <h3 className="text-sm font-bold">{row.label}</h3>
                     <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <small className="text-[var(--text-muted)]">
+                        <small className="text-xs text-[var(--text-muted)]">
                           A
                         </small>
                         <strong className="block">
@@ -744,7 +709,7 @@ export default function FinancialComparisonPage() {
                         </strong>
                       </div>
                       <div>
-                        <small className="text-[var(--text-muted)]">
+                        <small className="text-xs text-[var(--text-muted)]">
                           B
                         </small>
                         <strong className="block">
@@ -790,7 +755,7 @@ export default function FinancialComparisonPage() {
                 ) : (
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     <div>
-                      <small className="text-[var(--text-muted)]">
+                      <small className="text-xs text-[var(--text-muted)]">
                         A · {formatLogicalDate(data.a.netWorthAsOf)}
                       </small>
                       <strong className="block">
@@ -802,7 +767,7 @@ export default function FinancialComparisonPage() {
                       </strong>
                     </div>
                     <div>
-                      <small className="text-[var(--text-muted)]">
+                      <small className="text-xs text-[var(--text-muted)]">
                         B · {formatLogicalDate(data.b.netWorthAsOf)}
                       </small>
                       <strong className="block">
@@ -814,7 +779,7 @@ export default function FinancialComparisonPage() {
                       </strong>
                     </div>
                     <div>
-                      <small className="text-[var(--text-muted)]">
+                      <small className="text-xs text-[var(--text-muted)]">
                         Diferença
                       </small>
                       <MetricDifference
@@ -864,7 +829,7 @@ export default function FinancialComparisonPage() {
                     {data.categories.map((category) => (
                       <div
                         key={category.id}
-                        className="grid grid-cols-[minmax(140px,1.4fr)_1fr_1fr_1.2fr] gap-2 rounded-xl border border-[var(--border)] px-4 py-3"
+                        className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-2 rounded-xl border border-[var(--border)] px-4 py-3"
                       >
                         <strong className="truncate text-sm">
                           {category.name}
@@ -878,7 +843,7 @@ export default function FinancialComparisonPage() {
                             )}
                           </span>
                           {!data.coverage.sameLength && (
-                            <small className="text-[var(--text-muted)]">
+                            <small className="text-xs text-[var(--text-muted)]">
                               média{' '}
                               {displayMoney(
                                 category.a.averageMonthlyAmount,
@@ -898,7 +863,7 @@ export default function FinancialComparisonPage() {
                             )}
                           </span>
                           {!data.coverage.sameLength && (
-                            <small className="text-[var(--text-muted)]">
+                            <small className="text-xs text-[var(--text-muted)]">
                               média{' '}
                               {displayMoney(
                                 category.b.averageMonthlyAmount,
@@ -910,7 +875,7 @@ export default function FinancialComparisonPage() {
                           )}
                         </div>
                         <div>
-                          <small className="block text-[var(--text-muted)]">
+                          <small className="text-xs block text-[var(--text-muted)]">
                             {data.coverage.sameLength
                               ? 'Diferença total'
                               : 'Diferença da média mensal'}
@@ -985,7 +950,7 @@ export default function FinancialComparisonPage() {
                           </div>
                         </dl>
                         <div className="mt-3">
-                          <small className="block text-[var(--text-muted)]">
+                          <small className="text-xs block text-[var(--text-muted)]">
                             {data.coverage.sameLength
                               ? 'Diferença total'
                               : 'Diferença da média mensal'}

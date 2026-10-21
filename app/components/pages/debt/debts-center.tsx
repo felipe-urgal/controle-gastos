@@ -1,7 +1,6 @@
 'use client';
 
-import { PageContainer } from '@/app/components/base-pages';
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FaArchive,
@@ -14,7 +13,8 @@ import {
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { Input, Chip, ChipRow } from '@/app/components/ui';
+import { Alert, PageEmpty } from '@/app/components/feedback';
+import { Button, Chip, ChipRow, IconButton, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -444,23 +444,21 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className={pageTitleClassName}>Dívidas</h1>
-            <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
-              Passivos manuais, separados das contas e sem alterar saldos financeiros.
-            </p>
-          </div>
-          <button type="button" onClick={openCreate} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-5 text-sm font-bold text-white">
-            <FaPlus aria-hidden="true" />
-            Nova dívida
-          </button>
-        </header>
+        <PageTitle
+          eyebrow="Planejamento"
+          title="Dívidas"
+          description="Passivos manuais, separados das contas e sem alterar saldos financeiros."
+          actions={
+            <Button pill icon={<FaPlus aria-hidden="true" />} onClick={openCreate}>
+              Nova dívida
+            </Button>
+          }
+        />
 
         {error && (
-          <p role="alert" className="mt-4 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-4 text-sm text-[var(--expense)]">
-            {error}
-          </p>
+          <div className="mt-4">
+            <Alert variant="error" message={error} />
+          </div>
         )}
 
         <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -489,17 +487,17 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
 
         <section className="mt-4">
           {loading ? (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="h-64 animate-pulse rounded-2xl bg-[var(--skeleton)]" />
               <div className="h-64 animate-pulse rounded-2xl bg-[var(--skeleton)]" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] p-8 text-center">
-              <strong className="text-[var(--foreground)]">Nenhuma dívida neste filtro</strong>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">Cadastre passivos que você quer acompanhar manualmente.</p>
-            </div>
+            <PageEmpty
+              title="Nenhuma dívida neste filtro"
+              description="Cadastre passivos que você quer acompanhar manualmente."
+            />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {filtered.map((debt) => (
                 <DebtCard
                   key={debt.id}
@@ -542,7 +540,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
               <Input label="Novo saldo devedor" value={newBalance} onChange={(event) => setNewBalance(event.target.value)} inputMode="decimal" required disabled={adjustmentSaving} />
               <Input label="Motivo do ajuste" value={adjustmentDescription} onChange={(event) => setAdjustmentDescription(event.target.value)} maxLength={255} disabled={adjustmentSaving} placeholder="Ex.: correção do saldo após renegociação" />
               <p className="text-xs text-[var(--text-muted)]">Ajuste manual corrige o passivo e não avança parcelas nem cria transação financeira.</p>
-              {adjustmentError && <p role="alert" className="text-sm font-semibold text-[var(--expense)]">{adjustmentError}</p>}
+              {adjustmentError && <Alert variant="error" message={adjustmentError} />}
               <ModalActions saving={adjustmentSaving} onClose={() => setAdjusting(null)} submitLabel="Registrar ajuste" />
             </form>
           </ModalShell>
@@ -587,11 +585,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
                 Registrar o pagamento reduz somente este passivo. Nenhuma transação financeira é criada automaticamente.
                 Em dívida parcelada, uma parcela paga avança o próximo vencimento mensal.
               </p>
-              {paymentError && (
-                <p role="alert" className="text-sm font-semibold text-[var(--expense)]">
-                  {paymentError}
-                </p>
-              )}
+              {paymentError && <Alert variant="error" message={paymentError} />}
               <ModalActions
                 saving={paymentSaving}
                 onClose={() => setPaying(null)}
@@ -638,14 +632,16 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
               </div>
             )}
             {historyDebt.adjustmentHistory?.hasMore && !historyLoading && (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                pill
+                fullWidth
+                className="mt-4"
                 onClick={() => void loadMoreHistory()}
                 disabled={historyMoreLoading}
-                className="mt-4 min-h-11 w-full rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold disabled:opacity-50"
               >
                 {historyMoreLoading ? 'Carregando...' : 'Carregar mais'}
-              </button>
+              </Button>
             )}
           </ModalShell>
         )}
@@ -662,26 +658,16 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
                 : 'A exclusão só é permitida quando não existe histórico além do saldo inicial.'}
             </p>
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirming(null)}
-                disabled={confirmSaving}
-                className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
-              >
+              <Button variant="outline" pill size="lg" onClick={() => setConfirming(null)} disabled={confirmSaving}>
                 Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => void confirmDebtAction()}
-                disabled={confirmSaving}
-                className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50"
-              >
+              </Button>
+              <Button pill size="lg" onClick={() => void confirmDebtAction()} disabled={confirmSaving}>
                 {confirmSaving
                   ? 'Salvando...'
                   : confirming.kind === 'ARCHIVE'
                     ? 'Arquivar'
                     : 'Excluir'}
-              </button>
+              </Button>
             </div>
           </ModalShell>
         )}
@@ -729,14 +715,12 @@ function DebtCard({
           )}
         </div>
         {debt.status === 'ACTIVE' && (
-          <button
-            type="button"
+          <IconButton
+            label="Editar dívida"
+            icon={<FaEdit />}
             onClick={onEdit}
-            aria-label="Editar dívida"
-            className="grid h-11 w-11 place-items-center rounded-full border border-[var(--border)] text-[var(--text-muted)]"
-          >
-            <FaEdit aria-hidden="true" />
-          </button>
+            className="rounded-full border border-[var(--border)]"
+          />
         )}
       </div>
 
@@ -744,7 +728,7 @@ function DebtCard({
         <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
           Saldo devedor
         </span>
-        <strong className="mt-1 block text-3xl font-extrabold text-[var(--foreground)]">
+        <strong className="mt-1 block break-words text-3xl font-extrabold tabular-nums text-[var(--foreground)]">
           {showValues ? formatCurrency(debt.balance, debt.currency) : '••••'}
         </strong>
       </div>
@@ -777,71 +761,40 @@ function DebtCard({
       ) : null}
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onHistory}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-3 text-sm font-semibold"
-        >
-          <FaHistory aria-hidden="true" /> Histórico
-        </button>
+        <Button variant="outline" size="sm" pill icon={<FaHistory aria-hidden="true" />} onClick={onHistory}>
+          Histórico
+        </Button>
 
         {debt.status === 'ACTIVE' && (
           <>
-            <button
-              type="button"
-              onClick={onAdjust}
-              className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-sm font-semibold"
-            >
+            <Button variant="outline" size="sm" pill onClick={onAdjust}>
               Ajustar saldo
-            </button>
-            <button
-              type="button"
-              onClick={onPay}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-3 text-sm font-bold text-white"
-            >
-              <FaCheck aria-hidden="true" /> Registrar pagamento
-            </button>
+            </Button>
+            <Button size="sm" pill icon={<FaCheck aria-hidden="true" />} onClick={onPay}>
+              Registrar pagamento
+            </Button>
           </>
         )}
 
         {debt.status === 'PAID' && (
           <>
-            <button
-              type="button"
-              onClick={onAdjust}
-              className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-sm font-semibold"
-            >
+            <Button variant="outline" size="sm" pill onClick={onAdjust}>
               Reabrir com ajuste
-            </button>
-            <button
-              type="button"
-              onClick={onArchive}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-3 text-sm font-semibold text-[var(--text-muted)]"
-            >
-              <FaArchive aria-hidden="true" /> Arquivar
-            </button>
+            </Button>
+            <Button variant="outline" size="sm" pill icon={<FaArchive aria-hidden="true" />} onClick={onArchive}>
+              Arquivar
+            </Button>
           </>
         )}
 
         {debt.status === 'ARCHIVED' && (
-          <button
-            type="button"
-            onClick={onRestore}
-            className="min-h-11 rounded-full border border-[var(--orbit-primary)] px-3 text-sm font-bold text-[var(--orbit-primary)]"
-          >
+          <Button variant="outline" size="sm" pill onClick={onRestore}>
             Restaurar
-          </button>
+          </Button>
         )}
 
         {debt.status !== 'ARCHIVED' && debt.adjustmentCount <= 1 && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="grid h-11 w-11 place-items-center rounded-full text-[var(--expense)]"
-            aria-label="Excluir dívida"
-          >
-            <FaTrash aria-hidden="true" />
-          </button>
+          <IconButton label="Excluir dívida" icon={<FaTrash />} tone="danger" onClick={onRemove} className="rounded-full" />
         )}
       </div>
     </article>
@@ -873,12 +826,13 @@ function DebtFormModal({
         {!editing && (
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="Saldo devedor" value={form.balance} onChange={(event) => onChange({ ...form, balance: event.target.value })} inputMode="decimal" required disabled={saving} placeholder="25000,00" />
-            <label>
-              <span className="ds-label mb-2 block">Moeda</span>
-              <select value={form.currency} onChange={(event) => onChange({ ...form, currency: event.target.value as SupportedCurrency })} className="ds-control min-h-11 w-full px-3" disabled={saving}>
-                {currencyOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
+            <Select
+              label="Moeda"
+              value={form.currency}
+              onChange={(value) => onChange({ ...form, currency: value as SupportedCurrency })}
+              options={currencyOptions.map((option) => ({ value: option.value, label: option.label }))}
+              disabled={saving}
+            />
           </div>
         )}
 
@@ -897,7 +851,7 @@ function DebtFormModal({
         <p className="text-xs leading-relaxed text-[var(--text-muted)]">
           Dívidas são passivos independentes. O cronograma, quando usado, é mensal e exige parcela, próximo vencimento e quantidade restante. Criar ou editar não movimenta contas.
         </p>
-        {error && <p role="alert" className="text-sm font-semibold text-[var(--expense)]">{error}</p>}
+        {error && <Alert variant="error" message={error} />}
         <ModalActions saving={saving} onClose={onClose} submitLabel={editing ? 'Salvar' : 'Criar dívida'} />
       </form>
     </ModalShell>
@@ -907,10 +861,12 @@ function DebtFormModal({
 function ModalActions({ saving, onClose, submitLabel }: { saving: boolean; onClose: () => void; submitLabel: string }) {
   return (
     <div className="grid grid-cols-2 gap-3 pt-2">
-      <button type="button" onClick={onClose} disabled={saving} className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold">Cancelar</button>
-      <button type="submit" disabled={saving} className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50">
+      <Button variant="outline" pill size="lg" onClick={onClose} disabled={saving}>
+        Cancelar
+      </Button>
+      <Button type="submit" pill size="lg" disabled={saving}>
         {saving ? 'Salvando...' : submitLabel}
-      </button>
+      </Button>
     </div>
   );
 }
