@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { FaMagic, FaRedo, FaStop } from 'react-icons/fa';
+import { Button } from '@/app/components/ui';
 
 import { buildFinancialContext } from '@/app/lib/local-ai/financial-context';
 import { explainFinancialContext } from '@/app/lib/local-ai/local-assistant-runtime';
@@ -181,14 +182,9 @@ export function LocalFinancialAssistantCard({
               style={{ width: `${Math.max(3, progress * 100)}%` }}
             />
           </div>
-          <button
-            type="button"
-            onClick={cancel}
-            className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
-          >
-            <FaStop aria-hidden="true" />
+          <Button variant="outline" size="sm" className="mt-3" icon={<FaStop aria-hidden="true" />} onClick={cancel}>
             Cancelar
-          </button>
+          </Button>
         </div>
       )}
 
@@ -215,25 +211,14 @@ export function LocalFinancialAssistantCard({
 
       {state !== 'loading' && (
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
+          <Button
+            size="sm"
             onClick={() => void explainMonth()}
-            disabled={
-              support !== 'supported' ||
-              !showValues ||
-              !contextReady
-            }
-            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={support !== 'supported' || !showValues || !contextReady}
+            icon={state === 'ready' || state === 'error' ? <FaRedo aria-hidden="true" /> : <FaMagic aria-hidden="true" />}
           >
-            {state === 'ready' || state === 'error' ? (
-              <FaRedo aria-hidden="true" />
-            ) : (
-              <FaMagic aria-hidden="true" />
-            )}
-            {state === 'ready' || state === 'error'
-              ? 'Gerar novamente'
-              : 'Explique meu mês'}
-          </button>
+            {state === 'ready' || state === 'error' ? 'Gerar novamente' : 'Explique meu mês'}
+          </Button>
           <p className="max-w-xl text-xs leading-relaxed text-[var(--text-muted)]">
             O primeiro uso baixa o modelo local e exibe o progresso. Os artefatos
             do modelo podem ficar em cache no navegador; nenhuma API de IA paga é

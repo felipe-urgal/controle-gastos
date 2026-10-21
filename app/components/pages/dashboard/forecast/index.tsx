@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { Select } from '@/app/components/ui';
+import { Button, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useForecast } from '@/app/hooks/dashboard/use-forecast';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
@@ -119,20 +119,17 @@ export default function ForecastPanel({
               </legend>
               <div className="flex rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-1">
                 {horizonOptions.map((option) => (
-                  <button
+                  <Button
                     key={option}
-                    type="button"
+                    variant={days === option ? 'secondary' : 'ghost'}
+                    size="sm"
                     aria-pressed={days === option}
                     onClick={() => setDays(option)}
                     disabled={loading}
-                    className={`min-h-11 flex-1 rounded-[var(--radius-md)] px-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-                      days === option
-                        ? 'bg-[var(--surface)] text-[var(--orbit-primary)] shadow-sm'
-                        : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'
-                    }`}
+                    className="flex-1"
                   >
                     {option}d
-                  </button>
+                  </Button>
                 ))}
               </div>
             </fieldset>

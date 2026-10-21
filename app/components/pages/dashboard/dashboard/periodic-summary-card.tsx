@@ -1,6 +1,7 @@
 'use client';
 
 import { FaCalendarWeek } from 'react-icons/fa';
+import { Button } from '@/app/components/ui';
 
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { PeriodicFinancialSummaryState } from '@/app/types/periodic-financial-summary';
@@ -39,13 +40,9 @@ export function PeriodicSummaryCard({
       <section className="ds-panel p-4 sm:p-5" role="alert">
         <p className="text-sm text-[var(--expense)]">{error}</p>
         {onRetry && (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="mt-2 text-sm font-semibold text-[var(--orbit-primary)] underline"
-          >
+          <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
             Tentar novamente
-          </button>
+          </Button>
         )}
       </section>
     );

@@ -4,14 +4,13 @@ import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
 
-import { LocalFinancialAssistantCard } from '@/app/components/pages/dashboard/dashboard/local-financial-assistant-card';
-import { PeriodicSummaryCard } from '@/app/components/pages/dashboard/dashboard/periodic-summary-card';
-import { Select } from '@/app/components/ui';
+import { Button, IconButton, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useDashboardHome } from '@/app/hooks/dashboard/use-dashboard-home';
 import { usePeriodicSummary } from '@/app/hooks/dashboard/use-periodic-summary';
@@ -22,8 +21,29 @@ import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 import { commitmentCountWithinTenDays, currentDateLabel, dashboardLogicalDateLabel, monthLabel, periodOffset, sectionState } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { MobileDashboardHeader, MobileDashboardHome } from '@/app/components/pages/dashboard/dashboard/mobile-dashboard';
-import { AccountsCard, CategoriesCard, CreditCardsCard, CurrentCashCard, FinancialGoalsCard, ForecastDialog, MonthOverviewCard, MonthlyPlanningCard, ProjectedBalanceCard, RecentTransactionsCard, UpcomingCard } from '@/app/components/pages/dashboard/dashboard/desktop-cards';
-import { FinancialInsightsCard, NetWorthSummaryCard } from '@/app/components/pages/dashboard/dashboard/insight-cards';
+import { AccountsCard } from '@/app/components/pages/dashboard/dashboard/cards/accounts-card';
+import { CurrentCashCard } from '@/app/components/pages/dashboard/dashboard/cards/current-cash-card';
+import { UpcomingCard } from '@/app/components/pages/dashboard/dashboard/cards/upcoming-card';
+
+// Cards abaixo da dobra (desktop) e o diálogo de projeção carregam sob demanda; os três cards
+// de cima ficam no bundle inicial para não atrasar o LCP.
+function cardFallback(height: number) {
+  return function CardFallback() {
+    return <div aria-hidden="true" style={{ minHeight: height }} className="animate-pulse rounded-[14px] bg-[var(--skeleton)]" />;
+  };
+}
+const CreditCardsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/credit-cards-card').then((m) => m.CreditCardsCard), { ssr: false, loading: cardFallback(160) });
+const FinancialGoalsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/financial-goals-card').then((m) => m.FinancialGoalsCard), { ssr: false, loading: cardFallback(160) });
+const MonthlyPlanningCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/monthly-planning-card').then((m) => m.MonthlyPlanningCard), { ssr: false, loading: cardFallback(200) });
+const MonthOverviewCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/month-overview-card').then((m) => m.MonthOverviewCard), { ssr: false, loading: cardFallback(252) });
+const CategoriesCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/categories-card').then((m) => m.CategoriesCard), { ssr: false, loading: cardFallback(252) });
+const RecentTransactionsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/recent-transactions-card').then((m) => m.RecentTransactionsCard), { ssr: false, loading: cardFallback(244) });
+const ProjectedBalanceCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/projected-balance-card').then((m) => m.ProjectedBalanceCard), { ssr: false, loading: cardFallback(244) });
+const ForecastDialog = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/forecast-dialog').then((m) => m.ForecastDialog), { ssr: false });
+const FinancialInsightsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/insight-cards').then((m) => m.FinancialInsightsCard), { ssr: false, loading: cardFallback(220) });
+const NetWorthSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/insight-cards').then((m) => m.NetWorthSummaryCard), { ssr: false, loading: cardFallback(180) });
+const LocalFinancialAssistantCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/local-financial-assistant-card').then((m) => m.LocalFinancialAssistantCard), { ssr: false, loading: cardFallback(180) });
+const PeriodicSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/periodic-summary-card').then((m) => m.PeriodicSummaryCard), { ssr: false, loading: cardFallback(140) });
 
 export default function OrbitDashboardV2() {
   const { user } = useAuth();
@@ -51,16 +71,14 @@ export default function OrbitDashboardV2() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
+          <IconButton
+            label="Mês anterior"
+            icon={<FaChevronLeft />}
             onClick={() => setPeriodValue(periodOffset(periodValue, -1))}
             disabled={loading}
-            aria-label="Mês anterior"
-            className="grid min-h-11 min-w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
-          >
-            <FaChevronLeft aria-hidden="true" />
-          </button>
-          <label className="relative min-h-11 min-w-[180px] cursor-pointer rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
+            className="border border-[var(--border)] bg-[var(--surface)]"
+          />
+          <label className="relative min-h-11 flex min-h-11 min-w-[180px] cursor-pointer items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
             {monthLabel(periodValue)}
             <span className="sr-only">Escolher mês do dashboard</span>
             <input
@@ -70,18 +88,16 @@ export default function OrbitDashboardV2() {
               max="2100-12"
               onChange={(event) => event.currentTarget.value && setPeriodValue(event.currentTarget.value)}
               disabled={loading}
-              className="absolute inset-0 cursor-pointer opacity-0"
+              className="absolute -inset-px cursor-pointer opacity-0"
             />
           </label>
-          <button
-            type="button"
+          <IconButton
+            label="Próximo mês"
+            icon={<FaChevronRight />}
             onClick={() => setPeriodValue(periodOffset(periodValue, 1))}
             disabled={loading}
-            aria-label="Próximo mês"
-            className="grid min-h-11 min-w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
-          >
-            <FaChevronRight aria-hidden="true" />
-          </button>
+            className="border border-[var(--border)] bg-[var(--surface)]"
+          />
           <div className="w-full sm:w-[145px]">
             <Select
               ariaLabel="Moeda"
@@ -108,9 +124,9 @@ export default function OrbitDashboardV2() {
       {error && (
         <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3">
           <p className="text-sm text-[var(--expense)]">{error}</p>
-          <button type="button" onClick={retry} className="min-h-10 rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold">
+          <Button type="button" size="sm" variant="outline" onClick={retry}>
             Tentar novamente
-          </button>
+          </Button>
         </div>
       )}
 
@@ -182,9 +198,9 @@ function DashboardHome({
           <p className="text-xs text-[var(--foreground)]">
             Parte do Dashboard está indisponível. Os valores conhecidos continuam visíveis sem transformar falha em zero.
           </p>
-          <button type="button" onClick={onRetry} className="min-h-11 sm:min-h-9 rounded-[9px] border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-semibold">
+          <Button type="button" size="sm" variant="outline" onClick={onRetry}>
             Tentar novamente
-          </button>
+          </Button>
         </div>
       )}
       {home.scope.selectedPeriodRelation !== 'CURRENT' && (
@@ -205,12 +221,13 @@ function DashboardHome({
           netWorth={netWorth}
           insights={insights}
           onOpenForecast={() => setForecastOpen(true)}
+          onRetry={onRetry}
         />
       )}
 
       {isDesktop && (
         <>
-        <section className="grid gap-[14px] xl:grid-cols-[1.95fr_1fr_1.22fr]">
+        <section className="grid gap-[14px] xl:grid-cols-[minmax(0,1.95fr)_minmax(0,1fr)_minmax(0,1.22fr)]">
           <CurrentCashCard
             accounts={cashAccounts}
             total={availableNow}
@@ -226,6 +243,7 @@ function DashboardHome({
             currency={data.currency}
             loading={commitments.loading}
             error={commitments.error}
+            onRetry={onRetry}
           />
         </section>
 
@@ -290,7 +308,7 @@ function DashboardHome({
           />
         </div>
 
-        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
+        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
           <MonthOverviewCard
             data={data}
             showValues={showValues}
@@ -300,13 +318,14 @@ function DashboardHome({
           <CategoriesCard categories={topCategories} showValues={showValues} currency={data.currency} period={data.period} />
         </section>
 
-        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[1.36fr_1fr]">
+        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1.36fr)_minmax(0,1fr)]">
           <RecentTransactionsCard
             items={recentTransactions.data ?? []}
             loading={recentTransactions.loading}
             error={recentTransactions.error}
             showValues={showValues}
             currency={data.currency}
+            onRetry={onRetry}
           />
           <ProjectedBalanceCard
             safeToSpend={forecast.data?.safeToSpend ?? null}
@@ -318,6 +337,7 @@ function DashboardHome({
             horizonEnd={forecast.data?.horizonEnd ?? null}
             onOpen={() => setForecastOpen(true)}
             enabled={Boolean(forecast.data) && !forecast.loading}
+            onRetry={onRetry}
           />
         </section>
         </>
@@ -360,16 +380,16 @@ function DashboardLoading() {
       </div>
 
       <div className="hidden space-y-[14px] lg:block">
-        <div className="grid gap-[14px] xl:grid-cols-[1.95fr_1fr_1.22fr]">
+        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1.95fr)_minmax(0,1fr)_minmax(0,1.22fr)]">
           <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
           <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
           <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
-        <div className="grid gap-[14px] xl:grid-cols-[1.15fr_1fr]">
+        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
           <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
           <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
-        <div className="grid gap-[14px] xl:grid-cols-[1.36fr_1fr]">
+        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1.36fr)_minmax(0,1fr)]">
           <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
           <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
