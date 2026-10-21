@@ -19,6 +19,7 @@ import {
 
 import { FormContainer } from '@/app/components/forms';
 import { Button, Input, RadioGroup } from '@/app/components/ui';
+import { useVisualViewportInset } from '@/app/hooks/use-visual-viewport-inset';
 import ReceiptSelect from '@/app/components/pages/transactions/shared/receipt-select';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import {
@@ -293,6 +294,12 @@ export default function TransferForm({
   const availableStatusOptions = transferId
     ? transferStatusOptions
     : transferStatusOptions.filter((option) => option.value !== 'CANCELLED');
+  // Com o teclado aberto a navegação inferior fica atrás dele: o rodapé cola no topo do teclado.
+  const keyboardInset = useVisualViewportInset();
+  const stickyFooterStyle = {
+    bottom: keyboardInset > 0 ? `${keyboardInset}px` : 'calc(var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom))',
+  };
+
   const selectedStatusLabel =
     availableStatusOptions.find((option) => option.value === status)?.label ?? status;
 
@@ -345,29 +352,27 @@ export default function TransferForm({
           {mobileStep === 1 && (
             <div className="space-y-4">
               <div className="grid grid-cols-3 overflow-hidden rounded-[14px] border border-[var(--border-strong)] bg-[var(--surface)] p-1" aria-label="Tipo da transação">
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
                   onClick={() => onSelectTransactionType?.('EXPENSE')}
                   disabled={loading || Boolean(transferId) || !onSelectTransactionType}
-                  className="flex min-h-12 min-w-0 items-center justify-center gap-1.5 px-2 text-xs font-bold text-[var(--text-muted)] disabled:opacity-35 min-[360px]:gap-2 min-[360px]:text-sm"
+                  icon={<FaArrowDown aria-hidden="true" />}
+                  className="min-w-0 px-2"
                 >
-                  <FaArrowDown aria-hidden="true" /> <span className="truncate">Despesa</span>
-                </button>
-                <button
-                  type="button"
+                  <span className="truncate">Despesa</span>
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={() => onSelectTransactionType?.('INCOME')}
                   disabled={loading || Boolean(transferId) || !onSelectTransactionType}
-                  className="flex min-h-12 min-w-0 items-center justify-center gap-1.5 border-l border-[var(--border)] px-2 text-xs font-bold text-[var(--text-muted)] disabled:opacity-35 min-[360px]:gap-2 min-[360px]:text-sm"
+                  icon={<FaArrowUp aria-hidden="true" />}
+                  className="min-w-0 px-2"
                 >
-                  <FaArrowUp aria-hidden="true" /> <span className="truncate">Receita</span>
-                </button>
-                <button
-                  type="button"
-                  aria-pressed="true"
-                  className="flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-[10px] border-l border-[var(--border)] bg-[var(--orbit-primary-subtle)] px-1.5 text-xs font-bold text-[var(--orbit-primary)] ring-1 ring-inset ring-[var(--orbit-primary)] min-[360px]:gap-2 min-[360px]:px-2 min-[360px]:text-sm"
-                >
-                  <FaExchangeAlt aria-hidden="true" /> <span className="truncate">Transferência</span>
-                </button>
+                  <span className="truncate">Receita</span>
+                </Button>
+                <Button variant="primary" aria-pressed="true" icon={<FaExchangeAlt aria-hidden="true" />} className="min-w-0 px-1.5">
+                  <span className="truncate">Transferência</span>
+                </Button>
               </div>
 
               <div
@@ -478,7 +483,8 @@ export default function TransferForm({
                   </span>
                   <span className="min-w-0">
                     <label htmlFor="mobile-transfer-description" className="block text-sm font-bold text-[var(--foreground)]">Descrição</label>
-                    <input
+                    <Input
+                      bare
                       id="mobile-transfer-description"
                       aria-label="Descrição"
                       value={description}
@@ -486,8 +492,9 @@ export default function TransferForm({
                       disabled={loading}
                       minLength={2}
                       maxLength={255}
+                      enterKeyHint="next"
                       placeholder="Ex.: Reserva, ajuste entre contas..."
-                      className="mt-1 w-full min-w-0 bg-transparent text-sm text-[var(--text-muted)] outline-none placeholder:text-[var(--text-subtle)]"
+                      className="mt-1 text-sm text-[var(--text-muted)] placeholder:text-[var(--text-subtle)]"
                     />
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
@@ -510,7 +517,7 @@ export default function TransferForm({
                 </button>
               </div>
 
-              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1">
+              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>Cancelar</Button>
                 <Button size="cta" type="button" onClick={advanceMobileTransferStep} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
                   Continuar
@@ -544,7 +551,7 @@ export default function TransferForm({
                 disabled={loading}
               />
 
-              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1">
+              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(1)} disabled={loading} fullWidth>Voltar</Button>
                 <Button size="cta" type="button" onClick={() => setMobileStep(3)} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
                   Continuar
@@ -572,7 +579,7 @@ export default function TransferForm({
                 </dl>
               </div>
 
-              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-1">
+              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(2)} disabled={loading} fullWidth>Voltar</Button>
                 <Button size="cta"
                   type="button"
@@ -609,29 +616,25 @@ export default function TransferForm({
               className="mx-auto grid max-w-[520px] grid-cols-3 overflow-hidden rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
               aria-label="Tipo da transação"
             >
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() => onSelectTransactionType?.('EXPENSE')}
                 disabled={loading || Boolean(transferId) || !onSelectTransactionType}
-                className="flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-40"
+                icon={<FaArrowDown aria-hidden="true" />}
               >
-                <FaArrowDown aria-hidden="true" /> Despesa
-              </button>
-              <button
-                type="button"
+                Despesa
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => onSelectTransactionType?.('INCOME')}
                 disabled={loading || Boolean(transferId) || !onSelectTransactionType}
-                className="flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-40"
+                icon={<FaArrowUp aria-hidden="true" />}
               >
-                <FaArrowUp aria-hidden="true" /> Receita
-              </button>
-              <button
-                type="button"
-                aria-pressed="true"
-                className="flex min-h-10 items-center justify-center gap-2 rounded-[9px] bg-[var(--orbit-primary)] px-3 text-sm font-bold text-[var(--orbit-on-primary)] shadow-sm"
-              >
-                <FaExchangeAlt aria-hidden="true" /> Transferência
-              </button>
+                Receita
+              </Button>
+              <Button variant="primary" aria-pressed="true" icon={<FaExchangeAlt aria-hidden="true" />}>
+                Transferência
+              </Button>
             </div>
 
             <div className="mt-6 grid items-center gap-5 lg:grid-cols-[minmax(0,1fr)_210px]">
@@ -735,7 +738,8 @@ export default function TransferForm({
               <div className="grid min-h-[44px] grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
                 <FaFileAlt className="text-[var(--text-muted)]" aria-hidden="true" />
                 <label htmlFor="transfer-description" className="text-[var(--text-muted)]">Descrição</label>
-                <input
+                <Input
+                  bare
                   id="transfer-description"
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
@@ -743,8 +747,9 @@ export default function TransferForm({
                   required
                   minLength={2}
                   maxLength={255}
+                  enterKeyHint="next"
                   placeholder="Adicionar descrição"
-                  className="min-w-0 bg-transparent text-right font-medium text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)]"
+                  className="text-right font-medium placeholder:text-[var(--text-subtle)]"
                 />
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </div>

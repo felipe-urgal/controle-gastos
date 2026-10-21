@@ -458,7 +458,7 @@ export default function New({
           <p className="font-bold">Revisar lançamento pendente</p>
           <p className="mt-1">Motivo: {reviewingQueueItem.lastError || reviewingQueueItem.errorCode || 'Rejeição pelo servidor'}</p>
           <p className="mt-1">Confira conta, categoria, tags e estabelecimento. Alterar os dados cria uma nova tentativa com outra chave; o lançamento não será enviado automaticamente.</p>
-          <button type="button" onClick={() => { setReviewingQueueItem(null); setInitialValues(undefined); setFormRevision((current) => current + 1); }} className="mt-3 rounded-full border border-[var(--border-strong)] px-3 py-2 font-semibold">Cancelar revisão</button>
+          <Button variant="outline" size="xs" pill className="mt-3" onClick={() => { setReviewingQueueItem(null); setInitialValues(undefined); setFormRevision((current) => current + 1); }}>Cancelar revisão</Button>
         </section>
       )}
 
@@ -508,13 +508,9 @@ export default function New({
                   Continuar rascunho
                 </Button>
               )}
-              <button
-                type="button"
-                onClick={discardOfflineDraft}
-                className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold text-[var(--foreground)]"
-              >
+              <Button variant="outline" size="sm" pill onClick={discardOfflineDraft}>
                 Descartar
-              </button>
+              </Button>
             </div>
           </div>
         </section>

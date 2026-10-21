@@ -7,7 +7,7 @@ import { PageHeader } from '@/app/components/base-pages';
 import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 
-import { Button } from '@/app/components/ui';
+import { Button, Chip, ChipRow, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 
 import { accountService } from '@/app/services/account-service';
@@ -497,21 +497,15 @@ export default function TransactionImportPage() {
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <label className="space-y-2 text-sm font-medium text-[var(--foreground)]">
-                  Conta
-                  <select
-                    value={accountId}
-                    onChange={(event) => setAccountId(event.target.value)}
-                    disabled={loadingRelations || submitting}
-                    className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-[var(--foreground)]"
-                    required
-                  >
-                    <option value="">Selecione</option>
-                    {accounts.map((item) => (
-                      <option key={item.id} value={item.id}>{item.name} · {item.currency}</option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="Conta"
+                  value={accountId}
+                  onChange={(value) => setAccountId(String(value))}
+                  disabled={loadingRelations || submitting}
+                  required
+                  placeholder="Selecione"
+                  options={accounts.map((item) => ({ value: item.id, label: `${item.name} · ${item.currency}` }))}
+                />
 
                 <label className="space-y-2 text-sm font-medium text-[var(--foreground)]">
                   Arquivo
@@ -527,22 +521,22 @@ export default function TransactionImportPage() {
               </div>
 
               {file?.name.toLowerCase().endsWith('.qif') && (
-                <label className="mt-4 block max-w-sm text-sm font-medium text-[var(--foreground)]">
-                  Formato de data QIF
-                  <select
+                <div className="mt-4 max-w-sm">
+                  <Select
+                    label="Formato de data QIF"
                     value={qifDateOrder}
-                    onChange={(event) => setQifDateOrder(event.target.value as '' | QifDateOrder)}
+                    onChange={(value) => setQifDateOrder(value as '' | QifDateOrder)}
                     disabled={submitting}
-                    className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                  >
-                    <option value="">Detectar pelo arquivo</option>
-                    <option value="MDY">MM/DD — mês/dia</option>
-                    <option value="DMY">DD/MM — dia/mês</option>
-                  </select>
-                  <span className="mt-1 block text-xs font-normal text-[var(--text-muted)]">
+                    placeholder="Detectar pelo arquivo"
+                    options={[
+                      { value: 'MDY', label: 'MM/DD — mês/dia' },
+                      { value: 'DMY', label: 'DD/MM — dia/mês' },
+                    ]}
+                  />
+                  <p className="mt-1 text-xs font-normal text-[var(--text-muted)]">
                     Se todas as datas forem ambíguas, escolha a convenção explicitamente.
-                  </span>
-                </label>
+                  </p>
+                </div>
               )}
             </div>
 
@@ -647,31 +641,25 @@ export default function TransactionImportPage() {
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:items-start">
             <div className="ds-panel overflow-hidden">
               <div className="space-y-3 border-b border-[var(--border)] p-4 sm:p-5">
-                <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Filtrar itens da importação">
+                <ChipRow label="Filtrar itens da importação">
                   {inboxFilters.map((option) => {
                     const count = option.value === 'all' ? items.length : stateCounts[option.value];
                     return (
-                      <button
+                      <Chip
                         key={option.value}
-                        type="button"
-                        aria-pressed={filter === option.value}
+                        selected={filter === option.value}
                         onClick={() => {
                           setFilter(option.value);
                           setActiveIndex(null);
                           setMobileDetailOpen(false);
                           setConfirmMerchantConflictBulk(false);
                         }}
-                        className={`min-h-11 shrink-0 rounded-full border px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-                          filter === option.value
-                            ? 'border-[var(--orbit-primary)] bg-[var(--surface-subtle)] text-[var(--orbit-primary)]'
-                            : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--foreground)]'
-                        }`}
                       >
                         {option.label} · {count}
-                      </button>
+                      </Chip>
                     );
                   })}
-                </div>
+                </ChipRow>
 
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="outline" size="sm" onClick={selectResolvedVisibleItems} disabled={submitting}>
@@ -694,22 +682,19 @@ export default function TransactionImportPage() {
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                  <label className="min-w-0 flex-1 text-sm font-medium text-[var(--foreground)]">
-                    Categoria em lote para selecionadas visíveis
-                    <select
+                  <div className="min-w-0 flex-1">
+                    <Select
+                      label="Categoria em lote para selecionadas visíveis"
                       value={bulkCategoryId}
-                      onChange={(event) => setBulkCategoryId(event.target.value)}
+                      onChange={(value) => setBulkCategoryId(String(value))}
                       disabled={submitting || categoryLoadError.length > 0}
-                      className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                    >
-                      <option value="">Selecione uma categoria</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name} · {category.type === 'INCOME' ? 'Receita' : 'Despesa'}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      placeholder="Selecione uma categoria"
+                      options={categories.map((category) => ({
+                        value: category.id,
+                        label: `${category.name} · ${category.type === 'INCOME' ? 'Receita' : 'Despesa'}`,
+                      }))}
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
@@ -724,21 +709,18 @@ export default function TransactionImportPage() {
                   A categoria em lote só é aplicada a itens selecionados, válidos e do mesmo tipo. Conflitos entre regras permanecem para revisão individual.
                 </p>
 
-                <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Buscar na revisão
-                  <input
-                    type="search"
-                    value={search}
-                    onChange={(event) => {
-                      setSearch(event.target.value);
-                      setActiveIndex(null);
-                      setMobileDetailOpen(false);
-                      setConfirmMerchantConflictBulk(false);
-                    }}
-                    placeholder="Descrição, data, origem ou regra"
-                    className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)]"
-                  />
-                </label>
+                <Input
+                  label="Buscar na revisão"
+                  type="search"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setActiveIndex(null);
+                    setMobileDetailOpen(false);
+                    setConfirmMerchantConflictBulk(false);
+                  }}
+                  placeholder="Descrição, data, origem ou regra"
+                />
               </div>
 
               {visibleItems.length === 0 ? (

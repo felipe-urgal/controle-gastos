@@ -1,7 +1,7 @@
 'use client';
 
 import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronLeft, FaChevronRight, FaCreditCard, FaExchangeAlt, FaFilter } from 'react-icons/fa';
-import { IconRenderer } from '@/app/components/ui';
+import { Button, Chip, ChipRow, IconButton, IconRenderer } from '@/app/components/ui';
 import { isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
@@ -55,15 +55,13 @@ export function MobileTransactionsPrototype2({
   return (
     <div className="space-y-4 pb-3">
       <section className="grid grid-cols-[44px_minmax(0,1fr)_44px] gap-2">
-        <button
-          type="button"
+        <IconButton
+          label="Mês anterior"
+          icon={<FaChevronLeft />}
           onClick={() => onMovePeriod(-1)}
           disabled={loading}
-          aria-label="Mês anterior"
-          className="grid h-11 w-11 place-items-center rounded-[11px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] disabled:opacity-50"
-        >
-          <FaChevronLeft aria-hidden="true" />
-        </button>
+          className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]"
+        />
         <button
           type="button"
           onClick={onOpenPeriod}
@@ -73,15 +71,13 @@ export function MobileTransactionsPrototype2({
           <span className="truncate">{monthTitle(month, year)}</span>
           <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
         </button>
-        <button
-          type="button"
+        <IconButton
+          label="Próximo mês"
+          icon={<FaChevronRight />}
           onClick={() => onMovePeriod(1)}
           disabled={loading}
-          aria-label="Próximo mês"
-          className="grid h-11 w-11 place-items-center rounded-[11px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] disabled:opacity-50"
-        >
-          <FaChevronRight aria-hidden="true" />
-        </button>
+          className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]"
+        />
       </section>
 
       <section
@@ -98,7 +94,7 @@ export function MobileTransactionsPrototype2({
           </span>
           <div className="min-w-0">
             <p className="text-sm text-[var(--text-muted)]">Saldo do mês</p>
-            <strong className={`mt-1 block text-[30px] font-black tracking-tight ${
+            <strong className={`mt-1 block text-3xl font-black tracking-tight ${
               summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
             }`}>
               {displayMoney(summary.balance, showValues, summary.currency)}
@@ -134,43 +130,32 @@ export function MobileTransactionsPrototype2({
       </section>
 
       <div>
-        <div className="flex flex-wrap gap-2" aria-label="Filtros rápidos">
+        <ChipRow label="Filtros rápidos">
           {([
             ['all', 'Todas'],
             ['income', 'Receitas'],
             ['expense', 'Despesas'],
             ['pending', 'Pendentes'],
-          ] as Array<[MobileQuickFilter, string]>).map(([value, label]) => {
-            const active = quickFilter === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={active}
-                onClick={() => onQuickFilterChange(value)}
-                className={`min-h-11 flex-1 rounded-full border px-2 text-xs font-semibold transition-colors sm:min-h-9 ${
-                  active
-                    ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-white'
-                    : 'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]'
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-        <button
-          type="button"
+          ] as Array<[MobileQuickFilter, string]>).map(([value, label]) => (
+            <Chip key={value} selected={quickFilter === value} onClick={() => onQuickFilterChange(value)}>
+              {label}
+            </Chip>
+          ))}
+        </ChipRow>
+        <Button
+          variant="outline"
+          fullWidth
+          className="mt-2"
+          icon={<FaFilter aria-hidden="true" />}
           onClick={onOpenFilters}
-          className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
         >
-          <FaFilter aria-hidden="true" /> Filtros
+          Filtros
           {activeFiltersCount > 0 && (
-            <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-0.5 text-xs font-bold text-[var(--orbit-primary)]">
+            <span className="ml-2 rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-0.5 text-xs font-bold text-[var(--orbit-primary)]">
               {activeFiltersCount}
             </span>
           )}
-        </button>
+        </Button>
       </div>
 
       <MobileUpcomingPreview
@@ -211,9 +196,9 @@ export function MobileUpcomingPreview({
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-bold min-[360px]:text-base">Próximos lançamentos</h2>
         {items.length > 0 && (
-          <button type="button" onClick={onViewAll} className="text-xs font-semibold text-[var(--orbit-primary)]">
+          <Button variant="link" size="xs" onClick={onViewAll}>
             Ver todos
-          </button>
+          </Button>
         )}
       </div>
 
@@ -310,13 +295,9 @@ export function MobileActivityFeed({
         );
       })}
       {hasMore && (
-        <button
-          type="button"
-          onClick={onLoadMore}
-          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
-        >
-          Carregar mais transações <FaChevronDown aria-hidden="true" />
-        </button>
+        <Button variant="secondary" fullWidth onClick={onLoadMore} icon={<FaChevronDown aria-hidden="true" />} iconPosition="right">
+          Carregar mais transações
+        </Button>
       )}
     </section>
   );

@@ -153,13 +153,15 @@ concurrency:
 
 jobs:
   browser:
-    name: ${{ matrix.browser }}
+    name: ${{ matrix.browser }}${{ matrix.shard && format(' ({0})', matrix.shard) || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
       fail-fast: false
+      # PR: chromium em 3 shards paralelos (o spec roda com workers: 1) e webkit só no smoke de layout.
+      # Manual: suíte completa, sem shards.
       matrix:
-        browser: ${{ fromJSON(github.event_name == 'pull_request' && '["chromium","webkit"]' || '["chromium","firefox","webkit"]') }}
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"browser":"chromium","shard":"1/3"},{"browser":"chromium","shard":"2/3"},{"browser":"chromium","shard":"3/3"},{"browser":"webkit","shard":""}]' || '[{"browser":"chromium","shard":""},{"browser":"firefox","shard":""},{"browser":"webkit","shard":""}]') }}
     services:
       postgres:
         image: postgres:17-alpine
@@ -198,6 +200,17 @@ jobs:
           corepack enable
           corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
 
+      - name: Resolve pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tests/e2e/pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+
       - name: Install application dependencies
         run: pnpm install --frozen-lockfile
 
@@ -209,6 +222,13 @@ jobs:
 
       - name: Build production app
         run: pnpm build
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('tests/e2e/pnpm-lock.yaml') }}
 
       - name: Install Playwright browser
         run: pnpm --dir tests/e2e --ignore-workspace exec playwright install --with-deps ${{ matrix.browser }}
@@ -228,6 +248,8 @@ jobs:
 
       - name: Run PR E2E
         if: github.event_name == 'pull_request' && matrix.browser == 'chromium'
+        env:
+          SHARD: ${{ matrix.shard }}
         run: >-
           pnpm test:e2e
           tests/e2e/layout-smoke.spec.mjs
@@ -273,6 +295,7 @@ jobs:
           tests/e2e/mfa-flow.spec.mjs
           tests/e2e/auth-lifecycle.spec.mjs
           --project=${{ matrix.browser }}
+          ${SHARD:+--shard=$SHARD}
 
       - name: Run full E2E
         if: github.event_name == 'workflow_dispatch'
@@ -282,7 +305,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-e2e-${{ matrix.browser }}
+          name: playwright-e2e-${{ matrix.browser }}${{ matrix.shard && format('-{0}', strategy.job-index) || '' }}
           path: |
             playwright-report
             test-results

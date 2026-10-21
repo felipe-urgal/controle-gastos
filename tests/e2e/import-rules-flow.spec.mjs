@@ -171,13 +171,12 @@ test('preview aplica sugestão, override manual prevalece e confirmação persis
   });
   await expect(createRuleButton).toBeVisible();
   await createRuleButton.click();
+  // Mesmo padrão com outro resultado só bloqueia quando a precedência é ambígua; aqui a regra nova
+  // (limitada à conta) é mais específica, então não há conflito e a criação segue habilitada.
   await expect(
-    detail.getByText(
-      `Já existe uma regra com o mesmo padrão e outro resultado: ${ruleName}`,
-      { exact: true },
-    ),
-  ).toBeVisible();
-  await expect(detail.getByRole('button', { name: 'Criar regra', exact: true })).toBeDisabled();
+    detail.getByText(/Já existe uma regra com o mesmo padrão e outro resultado/),
+  ).toHaveCount(0);
+  await expect(detail.getByRole('button', { name: 'Criar regra', exact: true })).toBeEnabled();
 
   const confirmButton = page.getByRole('button', { name: 'Confirmar 1', exact: true });
   await expect(confirmButton).toBeEnabled();
@@ -321,7 +320,7 @@ test('correção manual aprende categoria e estabelecimento apenas quando solici
     name: 'Criar regra com esta classificação',
   });
   await expect(ruleForm).toBeVisible();
-  const generatedRuleName = await ruleForm.getByLabel('Nome da regra', { exact: true }).inputValue();
+  const generatedRuleName = await ruleForm.getByLabel(/^Nome da regra/).inputValue();
   expect(generatedRuleName).toContain(description);
 
   await ruleForm.getByRole('button', { name: 'Criar regra', exact: true }).click();
@@ -346,7 +345,7 @@ test('correção manual aprende categoria e estabelecimento apenas quando solici
   await expect(secondDetail).toBeVisible();
   await expect(secondDetail.getByText(generatedRuleName, { exact: true })).toBeVisible();
   await expect(secondDetail.getByLabel('Categoria', { exact: true })).toHaveValue(relations.categoryId);
-  await expect(secondDetail.getByText(merchantName, { exact: true })).toBeVisible();
+  await expect(secondDetail.getByRole('definition').filter({ hasText: merchantName })).toBeVisible();
   await expect(secondDetail.getByLabel('Estabelecimento', { exact: true })).toHaveValue(relations.merchantId);
   await expect(secondDetail.getByText('Pronta', { exact: true })).toBeVisible();
 });
