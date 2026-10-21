@@ -20,5 +20,10 @@
 - Envio de verificação: 3/h por destinatário, independente de IP; resend também limita IP (10/h) e IP+e-mail (3/h).
 - Forgot: a UI segue o 429/`Retry-After` do servidor.
 
+## Entrega de e-mail (Resend)
+- Variáveis em produção: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` e `NEXT_PUBLIC_SITE_URL` (esta entra no link do e-mail). Sem `RESEND_FROM_EMAIL` nenhum e-mail sai.
+- O remetente de teste `onboarding@resend.dev` só entrega para o e-mail dono da conta Resend (403 para os demais). Para usuários reais é preciso verificar um domínio no Resend e usar um remetente dele.
+- A resposta pública é sempre genérica (202/200), então a tela não revela falha de envio. O motivo fica no log: `auth_signup_verification_delivery_failed` e `password_reset_delivery_failed` trazem `reason` (`RESEND_FROM_EMAIL_NOT_CONFIGURED`, `NEXT_PUBLIC_SITE_URL_NOT_CONFIGURED`, `RESEND_API_KEY_NOT_CONFIGURED`, `AUTH_EMAIL_DELIVERY_FAILED`, `UNKNOWN`) e, para recusa do provedor, `providerError`/`providerStatus`. Nunca e-mail nem texto livre.
+
 ## Observabilidade (eventos `logEvent`, sem e-mail/segredos)
 `auth_signup_accepted`, `auth_signup_verification_delivery_failed`, `auth_verification_email_rate_limited`, `auth_resend_verification_requested`, `password_reset_requested`, `password_reset_delivery_failed`, `password_reset_succeeded`, `password_reset_rate_limited`, `auth_login_rate_limited`. Alertar quando a taxa de `*_delivery_failed` subir em relação aos pedidos aceitos.

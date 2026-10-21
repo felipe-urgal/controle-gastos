@@ -1,6 +1,7 @@
 'use client';
 
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
+import { ProtectedRoute } from '@/app/components/layout';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -137,6 +138,7 @@ export default function MonthlyClosingPage() {
     retrospective.summary.expense === 0;
 
   return (
+    <ProtectedRoute>
     <PageContainer>
       <PageTitle
         eyebrow="Revisão mensal"
@@ -607,5 +609,6 @@ export default function MonthlyClosingPage() {
         </div>
       )}
     </PageContainer>
+    </ProtectedRoute>
   );
 }
