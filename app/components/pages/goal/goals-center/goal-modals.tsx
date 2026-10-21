@@ -2,7 +2,8 @@
 
 import { FaArchive, FaArrowDown, FaArrowUp, FaPen, FaTrash } from 'react-icons/fa';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { Input } from '@/app/components/ui';
+import { Alert } from '@/app/components/feedback';
+import { Button, IconButton, Input, Select } from '@/app/components/ui';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { AccountModel } from '@/app/types/account';
@@ -76,27 +77,19 @@ export function GoalFormModal({
             disabled={saving}
           />
 
-          <label className="block">
-            <span className="ds-label mb-2 block">Moeda</span>
-            <select
-              value={form.currency}
-              onChange={(event) =>
-                onChange({
-                  ...form,
-                  currency: event.target.value as SupportedCurrency,
-                  accountId: '',
-                })
-              }
-              disabled={saving}
-              className="ds-control min-h-11 w-full px-3"
-            >
-              {currencyOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Select
+            label="Moeda"
+            value={form.currency}
+            onChange={(value) =>
+              onChange({
+                ...form,
+                currency: value as SupportedCurrency,
+                accountId: '',
+              })
+            }
+            options={currencyOptions.map((option) => ({ value: option.value, label: option.label }))}
+            disabled={saving}
+          />
         </div>
 
         <Input
@@ -109,35 +102,36 @@ export function GoalFormModal({
           disabled={saving}
         />
 
-        <label className="block">
-          <span className="ds-label mb-2 block">Conta de referência opcional</span>
-          <select
+        <div>
+          <Select
+            label="Conta de referência opcional"
             value={form.accountId}
-            onChange={(event) =>
-              onChange({ ...form, accountId: event.target.value })
-            }
+            onChange={(value) => onChange({ ...form, accountId: String(value) })}
+            options={[
+              { value: '', label: 'Sem vínculo com conta' },
+              ...(historicalLinkedAccount
+                ? [
+                    {
+                      value: historicalLinkedAccount.id,
+                      label: `${historicalLinkedAccount.name} · ${historicalLinkedAccount.currency}${
+                        !historicalLinkedAccount.isActive ? ' · inativa (vínculo atual)' : ' · vínculo atual'
+                      }`,
+                    },
+                  ]
+                : []),
+              ...compatibleAccounts.map((account) => ({
+                value: account.id,
+                label: `${account.name} · ${account.currency}`,
+              })),
+            ]}
             disabled={saving || accountsUnavailable}
-            className="ds-control min-h-11 w-full px-3 disabled:opacity-60"
-          >
-            <option value="">Sem vínculo com conta</option>
-            {historicalLinkedAccount && (
-              <option value={historicalLinkedAccount.id}>
-                {historicalLinkedAccount.name} · {historicalLinkedAccount.currency}
-                {!historicalLinkedAccount.isActive ? ' · inativa (vínculo atual)' : ' · vínculo atual'}
-              </option>
-            )}
-            {compatibleAccounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name} · {account.currency}
-              </option>
-            ))}
-          </select>
+          />
           <span className="mt-1.5 block text-xs text-[var(--text-muted)]">
             {accountsUnavailable
               ? 'Contas indisponíveis agora. A meta pode ser salva sem alterar o vínculo atual.'
               : 'Somente contas ativas da mesma moeda; cartão de crédito não é elegível. O vínculo não movimenta saldo.'}
           </span>
-        </label>
+        </div>
 
         <Input
           label="Descrição"
@@ -152,28 +146,15 @@ export function GoalFormModal({
           placeholder="Contexto opcional para esta meta"
         />
 
-        {error && (
-          <p role="alert" className="text-sm font-semibold text-[var(--expense)]">
-            {error}
-          </p>
-        )}
+        {error && <Alert variant="error" message={error} />}
 
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold text-[var(--foreground)]"
-          >
+          <Button variant="outline" pill size="lg" onClick={onClose} disabled={saving}>
             Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50"
-          >
+          </Button>
+          <Button type="submit" pill size="lg" disabled={saving}>
             {saving ? 'Salvando...' : editing ? 'Salvar' : 'Criar meta'}
-          </button>
+          </Button>
         </div>
       </form>
     </ModalShell>
@@ -250,32 +231,19 @@ export function GoalEntryModal({
           financeira será criada.
         </p>
 
-        {error && (
-          <p role="alert" className="text-sm font-semibold text-[var(--expense)]">
-            {error}
-          </p>
-        )}
+        {error && <Alert variant="error" message={error} />}
 
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold text-[var(--foreground)]"
-          >
+          <Button variant="outline" pill size="lg" onClick={onClose} disabled={saving}>
             Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50"
-          >
+          </Button>
+          <Button type="submit" pill size="lg" disabled={saving}>
             {saving
               ? 'Salvando...'
               : contribution
                 ? 'Registrar contribuição'
                 : 'Registrar retirada'}
-          </button>
+          </Button>
         </div>
       </form>
     </ModalShell>
@@ -363,14 +331,9 @@ export function GoalDetailModal({
             )}
 
             {goal.entryHistory?.hasMore && (
-              <button
-                type="button"
-                onClick={onLoadMore}
-                disabled={loadingMore}
-                className="mt-4 min-h-11 w-full rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold disabled:opacity-50"
-              >
+              <Button variant="outline" pill fullWidth className="mt-4" onClick={onLoadMore} disabled={loadingMore}>
                 {loadingMore ? 'Carregando...' : 'Carregar mais'}
-              </button>
+              </Button>
             )}
           </section>
         </div>
@@ -398,22 +361,12 @@ export function SimpleConfirmModal({
     <ModalShell title={title} onClose={onClose} closeDisabled={loading}>
       <p className="text-sm leading-relaxed text-[var(--text-muted)]">{message}</p>
       <div className="mt-6 grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={loading}
-          className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold text-[var(--foreground)]"
-        >
+        <Button variant="outline" pill size="lg" onClick={onClose} disabled={loading}>
           Cancelar
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={loading}
-          className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-50"
-        >
+        </Button>
+        <Button pill size="lg" onClick={onConfirm} disabled={loading}>
           {loading ? 'Salvando...' : confirmLabel}
-        </button>
+        </Button>
       </div>
     </ModalShell>
   );
@@ -474,14 +427,7 @@ export function GoalCard({
         </button>
 
         {goal.status !== 'ARCHIVED' && (
-          <button
-            type="button"
-            onClick={onEdit}
-            aria-label={`Editar ${goal.name}`}
-            className="grid h-11 w-11 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
-          >
-            <FaPen aria-hidden="true" />
-          </button>
+          <IconButton label={`Editar ${goal.name}`} icon={<FaPen />} onClick={onEdit} className="rounded-full" />
         )}
       </div>
 
@@ -491,7 +437,7 @@ export function GoalCard({
             <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
               Progresso
             </span>
-            <strong className="mt-1 block text-2xl font-extrabold text-[var(--foreground)]">
+            <strong className="mt-1 block break-words text-2xl font-extrabold tabular-nums text-[var(--foreground)]">
               {money(goal.currentAmount)}
             </strong>
           </div>
@@ -539,74 +485,39 @@ export function GoalCard({
       <div className="mt-5 grid grid-cols-2 gap-2">
         {goal.status === 'ACTIVE' && (
           <>
-            <button
-              type="button"
-              onClick={onContribution}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--orbit-primary)] px-3 text-sm font-bold text-white"
-            >
-              <FaArrowUp aria-hidden="true" />
+            <Button size="sm" pill icon={<FaArrowUp aria-hidden="true" />} onClick={onContribution}>
               Contribuir
-            </button>
-            <button
-              type="button"
-              onClick={onWithdrawal}
-              disabled={goal.currentAmount <= 0}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-sm font-bold text-[var(--foreground)] disabled:opacity-45"
-            >
-              <FaArrowDown aria-hidden="true" />
+            </Button>
+            <Button variant="outline" size="sm" pill icon={<FaArrowDown aria-hidden="true" />} onClick={onWithdrawal} disabled={goal.currentAmount <= 0}>
               Retirar
-            </button>
-            <button
-              type="button"
-              onClick={onArchive}
-              className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold text-[var(--text-muted)]"
-            >
-              <FaArchive aria-hidden="true" />
+            </Button>
+            <Button variant="ghost" size="sm" pill className="col-span-2" icon={<FaArchive aria-hidden="true" />} onClick={onArchive}>
               Arquivar meta
-            </button>
+            </Button>
           </>
         )}
 
         {goal.status === 'COMPLETED' && (
           <>
-            <button
-              type="button"
-              onClick={onWithdrawal}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-sm font-bold text-[var(--foreground)]"
-            >
-              <FaArrowDown aria-hidden="true" />
+            <Button variant="outline" size="sm" pill icon={<FaArrowDown aria-hidden="true" />} onClick={onWithdrawal}>
               Retirar
-            </button>
-            <button
-              type="button"
-              onClick={onArchive}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--border)] px-3 text-sm font-bold text-[var(--text-muted)]"
-            >
-              <FaArchive aria-hidden="true" />
+            </Button>
+            <Button variant="outline" size="sm" pill icon={<FaArchive aria-hidden="true" />} onClick={onArchive}>
               Arquivar
-            </button>
+            </Button>
           </>
         )}
 
         {goal.status === 'ARCHIVED' && (
-          <button
-            type="button"
-            onClick={onReactivate}
-            className="col-span-2 min-h-11 rounded-full border border-[var(--orbit-primary)] px-3 text-sm font-bold text-[var(--orbit-primary)]"
-          >
+          <Button variant="outline" size="sm" pill className="col-span-2" onClick={onReactivate}>
             Reativar meta
-          </button>
+          </Button>
         )}
 
         {goal.entryCount === 0 && (
-          <button
-            type="button"
-            onClick={onDelete}
-            className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold text-[var(--expense)]"
-          >
-            <FaTrash aria-hidden="true" />
+          <Button variant="ghost" size="sm" pill className="col-span-2 text-[var(--expense)]" icon={<FaTrash aria-hidden="true" />} onClick={onDelete}>
             Excluir meta sem histórico
-          </button>
+          </Button>
         )}
       </div>
     </article>

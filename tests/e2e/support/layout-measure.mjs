@@ -41,7 +41,27 @@ export function measure(isNarrow) {
     }
   }
 
+  // Conteúdo cortado: um ancestral com overflow oculto pode esconder o estouro (o `scrollWidth` do
+  // documento não acusa). Procura elementos que passam da borda direita fora de áreas rolantes.
+  const clipped = [];
+  const scrolls = (element) => {
+    for (let node = element.parentElement; node && node !== document.body; node = node.parentElement) {
+      if (/(auto|scroll)/.test(getComputedStyle(node).overflowX)) return true;
+    }
+    return false;
+  };
+  for (const element of document.body.querySelectorAll('article, section, li, p, strong, h2, h3, button, a, input, select, dd, dt, span')) {
+    if (!visible(element) || element.closest('.sr-only, [aria-hidden="true"], svg, nav[aria-label="Navegação principal"]')) continue;
+    const style = getComputedStyle(element);
+    if (style.position === 'fixed' || scrolls(element)) continue;
+    const rect = element.getBoundingClientRect();
+    if (rect.width > 2 && rect.right > window.innerWidth + 1) {
+      clipped.push(`${element.tagName.toLowerCase()} "${(element.getAttribute('aria-label') || element.textContent || '').trim().slice(0, 30)}" +${Math.round(rect.right - window.innerWidth)}px`);
+    }
+  }
+
   return {
+    clipped: clipped.slice(0, 6),
     overflow: doc.scrollWidth - doc.clientWidth,
     smallTargets,
     smallInputs,

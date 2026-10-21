@@ -1,13 +1,13 @@
 'use client';
 
-import { PageContainer } from '@/app/components/base-pages';
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaBullseye, FaCalendarAlt, FaCheckCircle, FaPlus } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
 
-import { Chip, ChipRow } from '@/app/components/ui';
+import { Alert, PageEmpty } from '@/app/components/feedback';
+import { Button, Chip, ChipRow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
@@ -362,41 +362,29 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className={pageTitleClassName}>
-              Metas
-            </h1>
-            <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
-              Acompanhe objetivos sem misturar planejamento com saldo financeiro.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-5 font-bold text-white"
-          >
-            <FaPlus aria-hidden="true" />
-            Nova meta
-          </button>
-        </header>
+        <PageTitle
+          eyebrow="Planejamento"
+          title="Metas"
+          description="Acompanhe objetivos sem misturar planejamento com saldo financeiro."
+          actions={
+            <Button pill icon={<FaPlus aria-hidden="true" />} onClick={openCreate}>
+              Nova meta
+            </Button>
+          }
+        />
 
         {error && (
-          <p
-            role="alert"
-            className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
-          >
-            {error}
-          </p>
+          <div className="mt-4">
+            <Alert variant="error" message={error} />
+          </div>
         )}
         {accountError && (
-          <p
-            role="status"
-            className="mt-4 rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]"
-          >
-            Metas continuam disponíveis, mas o vínculo opcional com contas está temporariamente indisponível.
-          </p>
+          <div className="mt-4">
+            <Alert
+              variant="info"
+              message="Metas continuam disponíveis, mas o vínculo opcional com contas está temporariamente indisponível."
+            />
+          </div>
         )}
 
         <section className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
@@ -432,26 +420,18 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
 
         <div className="mt-5">
           {loading ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               <GoalSkeleton />
               <GoalSkeleton />
               <GoalSkeleton />
             </div>
           ) : filteredGoals.length === 0 ? (
-            <div className="ds-panel p-8 text-center">
-              <FaBullseye
-                className="mx-auto text-3xl text-[var(--orbit-primary)]"
-                aria-hidden="true"
-              />
-              <h2 className="mt-4 text-xl font-bold text-[var(--foreground)]">
-                Nenhuma meta nesta visão
-              </h2>
-              <p className="mt-2 text-sm text-[var(--text-muted)]">
-                Crie uma meta ou altere o filtro para acompanhar outros objetivos.
-              </p>
-            </div>
+            <PageEmpty
+              title="Nenhuma meta nesta visão"
+              description="Crie uma meta ou altere o filtro para acompanhar outros objetivos."
+            />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filteredGoals.map((goal) => (
                 <GoalCard
                   key={goal.id}

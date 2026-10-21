@@ -4,6 +4,8 @@ import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
+import { PageError } from '@/app/components/feedback';
+import { Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { monthlyClosingService } from '@/app/services/monthly-closing-service';
@@ -142,28 +144,23 @@ export default function MonthlyClosingPage() {
         description="Retrospectiva calculada a partir dos dados financeiros atuais. Alterações retroativas podem mudar esta revisão."
         actions={
           <>
-          <input
-            aria-label="Período do fechamento"
-            type="month"
-            max={periodValue(currentYear, currentMonth)}
-            value={periodValue(year, month)}
-            onChange={(event) => handlePeriod(event.target.value)}
-            className="ds-control min-h-11 bg-[var(--surface)] px-3 text-[var(--foreground)]"
-          />
-          <select
-            aria-label="Moeda"
-            value={currency}
-            onChange={(event) =>
-              setCurrency(event.target.value as SupportedCurrency)
-            }
-            className="ds-control min-h-11 bg-[var(--surface)] px-3 text-[var(--foreground)]"
-          >
-            {CURRENCIES.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+          <div className="w-44">
+            <Input
+              aria-label="Período do fechamento"
+              type="month"
+              max={periodValue(currentYear, currentMonth)}
+              value={periodValue(year, month)}
+              onChange={(event) => handlePeriod(event.target.value)}
+            />
+          </div>
+          <div className="w-28">
+            <Select
+              ariaLabel="Moeda"
+              value={currency}
+              onChange={(value) => setCurrency(value as SupportedCurrency)}
+              options={CURRENCIES.map((item) => ({ value: item, label: item }))}
+            />
+          </div>
           </>
         }
       />
@@ -178,19 +175,7 @@ export default function MonthlyClosingPage() {
       )}
 
       {error && (
-        <div
-          role="alert"
-          className="mt-5 rounded-xl border border-[var(--danger)] bg-[var(--danger-subtle)] p-4 text-[var(--expense)]"
-        >
-          <p>{error}</p>
-          <button
-            type="button"
-            onClick={retry}
-            className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-current px-4 text-sm font-bold"
-          >
-            Tentar novamente
-          </button>
-        </div>
+        <PageError message={error} buttonText="Tentar novamente" onRetry={retry} />
       )}
 
       {data && (
@@ -545,7 +530,7 @@ export default function MonthlyClosingPage() {
                     Nenhuma despesa realizada no período.
                   </p>
                 ) : (
-                  <div className="mt-4 grid gap-2">
+                  <div className="mt-4 grid grid-cols-1 gap-2">
                     {retrospective.topCategories.map((category) => (
                       <Link
                         key={category.id}
