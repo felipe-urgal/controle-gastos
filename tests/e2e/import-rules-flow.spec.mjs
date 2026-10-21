@@ -171,13 +171,12 @@ test('preview aplica sugestão, override manual prevalece e confirmação persis
   });
   await expect(createRuleButton).toBeVisible();
   await createRuleButton.click();
+  // Mesmo padrão com outro resultado só bloqueia quando a precedência é ambígua; aqui a regra nova
+  // (limitada à conta) é mais específica, então não há conflito e a criação segue habilitada.
   await expect(
-    detail.getByText(
-      `Já existe uma regra com o mesmo padrão e outro resultado: ${ruleName}`,
-      { exact: true },
-    ),
-  ).toBeVisible();
-  await expect(detail.getByRole('button', { name: 'Criar regra', exact: true })).toBeDisabled();
+    detail.getByText(/Já existe uma regra com o mesmo padrão e outro resultado/),
+  ).toHaveCount(0);
+  await expect(detail.getByRole('button', { name: 'Criar regra', exact: true })).toBeEnabled();
 
   const confirmButton = page.getByRole('button', { name: 'Confirmar 1', exact: true });
   await expect(confirmButton).toBeEnabled();

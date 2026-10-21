@@ -227,7 +227,20 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 </ReceiptSelect>
 
                 {renderAllocationEditor()}
-              {renderTagEditor('mobile')}
+              <details className="group" open={(formData.tagIds?.length ?? 0) > 0 || undefined}>
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+                  <span className="inline-flex items-center gap-2">
+                    <FaTag aria-hidden="true" /> Adicionar tags
+                    {(formData.tagIds?.length ?? 0) > 0 && (
+                      <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-0.5 text-xs font-bold text-[var(--orbit-primary)]">
+                        {formData.tagIds?.length}
+                      </span>
+                    )}
+                  </span>
+                  <FaChevronRight className="text-xs text-[var(--text-muted)] transition-transform group-open:rotate-90" aria-hidden="true" />
+                </summary>
+                <div className="mt-2">{renderTagEditor('mobile')}</div>
+              </details>
 
                 <label className={`relative grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 ${isFixedDate ? '' : 'cursor-pointer'}`}>
                   <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
