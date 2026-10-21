@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { FaLink, FaRedo, FaUnlink } from 'react-icons/fa';
 
+import { Button, Input, Select } from '@/app/components/ui';
+
 import { useAuth } from '@/app/context/auth-context';
 import { logicalDateParts } from '@/app/lib/payroll/payroll-date';
 import {
@@ -206,74 +208,57 @@ export function PayrollTransactionReconciliationSection({
             servem apenas para ordenar e explicar candidatos.
           </p>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          pill
           onClick={() => void retry()}
           disabled={loading}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
+          icon={<FaRedo aria-hidden="true" />}
         >
-          <FaRedo aria-hidden="true" />
           Atualizar
-        </button>
+        </Button>
       </div>
 
       <div className="mt-4 grid gap-2 md:grid-cols-[120px_180px_minmax(0,1fr)_auto]">
-        <label className="text-xs font-semibold text-[var(--foreground)]">
-          Ano
-          <select
-            aria-label="Ano da conciliação bancária"
+        <div>
+          <span className="ds-label mb-2 block">Ano</span>
+          <Select
+            ariaLabel="Ano da conciliação bancária"
             value={year}
-            onChange={(event) => changeYear(Number(event.target.value))}
-            className="ds-control mt-1 min-h-11 w-full px-3"
-          >
-            {years.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="text-xs font-semibold text-[var(--foreground)]">
-          Status
-          <select
-            aria-label="Status da conciliação bancária"
-            value={status}
-            onChange={(event) =>
-              changeStatus(
-                event.target.value as '' | PayrollReconciliationStatus,
-              )
-            }
-            className="ds-control mt-1 min-h-11 w-full px-3"
-          >
-            {statusOptions.map((option) => (
-              <option key={option.value || 'all'} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="text-xs font-semibold text-[var(--foreground)]">
-          Fonte pagadora
-          <input
-            value={employerDraft}
-            onChange={(event) => setEmployerDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') applyEmployerFilter();
-            }}
-            placeholder="Nome ou CNPJ"
-            className="ds-control mt-1 min-h-11 w-full px-3"
+            onChange={(value) => changeYear(Number(value))}
+            options={years.map((item) => ({ value: item, label: String(item) }))}
           />
-        </label>
+        </div>
 
-        <button
-          type="button"
-          onClick={applyEmployerFilter}
-          className="min-h-11 self-end rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)]"
-        >
+        <div>
+          <span className="ds-label mb-2 block">Status</span>
+          <Select
+            ariaLabel="Status da conciliação bancária"
+            value={status}
+            onChange={(value) =>
+              changeStatus(String(value) as '' | PayrollReconciliationStatus)
+            }
+            options={statusOptions.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+          />
+        </div>
+
+        <Input
+          label="Fonte pagadora"
+          value={employerDraft}
+          onChange={(event) => setEmployerDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') applyEmployerFilter();
+          }}
+          placeholder="Nome ou CNPJ"
+          enterKeyHint="search"
+        />
+
+        <Button pill className="self-end" onClick={applyEmployerFilter}>
           Filtrar
-        </button>
+        </Button>
       </div>
 
       {error && (
@@ -282,13 +267,9 @@ export function PayrollTransactionReconciliationSection({
           className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
           <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => void retry()}
-            className="min-h-11 rounded-full border border-current px-3 text-xs font-bold"
-          >
+          <Button variant="outline" size="sm" pill onClick={() => void retry()}>
             Tentar novamente
-          </button>
+          </Button>
         </div>
       )}
 
@@ -352,17 +333,18 @@ export function PayrollTransactionReconciliationSection({
                     transaction={item.matchedTransaction}
                     showValues={showValues}
                   />
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    pill
+                    className="mt-3"
                     disabled={workingKey === item.documentId + ':unlink'}
                     onClick={() => void unlink(item.documentId)}
-                    className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
+                    icon={<FaUnlink aria-hidden="true" />}
                   >
-                    <FaUnlink aria-hidden="true" />
                     {workingKey === item.documentId + ':unlink'
                       ? 'Desfazendo...'
                       : 'Desfazer vínculo'}
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -384,17 +366,15 @@ export function PayrollTransactionReconciliationSection({
                             {candidate.evidence.explanation}
                           </p>
                         )}
-                        <button
-                          type="button"
+                        <Button
+                          pill
+                          className="mt-3"
                           disabled={workingKey !== ''}
-                          onClick={() =>
-                            void link(item.documentId, candidate.id)
-                          }
-                          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--foreground)] px-3 text-xs font-bold text-[var(--background)] disabled:opacity-40"
+                          onClick={() => void link(item.documentId, candidate.id)}
+                          icon={<FaLink aria-hidden="true" />}
                         >
-                          <FaLink aria-hidden="true" />
                           {workingKey === key ? 'Vinculando...' : 'Vincular'}
-                        </button>
+                        </Button>
                       </div>
                     );
                   })}
@@ -407,31 +387,31 @@ export function PayrollTransactionReconciliationSection({
 
       {!loading && (page > 1 || result.pageInfo.hasMore) && (
         <div className="mt-4 flex items-center justify-between gap-3">
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            pill
             disabled={page <= 1}
             onClick={() => {
               setLoading(true);
               setPage((current) => Math.max(1, current - 1));
             }}
-            className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
           >
             Anterior
-          </button>
+          </Button>
           <span className="text-xs text-[var(--text-muted)]">
             Página {page}
           </span>
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            pill
             disabled={!result.pageInfo.hasMore}
             onClick={() => {
               setLoading(true);
               setPage((current) => current + 1);
             }}
-            className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
           >
             Próxima
-          </button>
+          </Button>
         </div>
       )}
     </section>

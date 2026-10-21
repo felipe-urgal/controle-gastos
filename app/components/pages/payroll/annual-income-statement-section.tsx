@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { FaFileImport, FaRedo } from 'react-icons/fa';
 
+import { Button, Select } from '@/app/components/ui';
+import { usePayrollConfirmation } from '@/app/components/pages/payroll/use-payroll-confirmation';
+
 import { useAuth } from '@/app/context/auth-context';
 import { lastClosedPayrollYear } from '@/app/lib/payroll/payroll-date';
 import {
@@ -23,6 +26,8 @@ export function AnnualIncomeStatementSection({
   onChanged?: () => void | Promise<void>;
 }) {
   const { user } = useAuth();
+  const { confirm: askConfirmation, modal: confirmationModal } =
+    usePayrollConfirmation();
   const showValues = user?.showValues !== false;
   const lastClosedYear = lastClosedPayrollYear();
   const [year, setYear] = useState(lastClosedYear);
@@ -117,14 +122,17 @@ export function AnnualIncomeStatementSection({
     }
   }
 
-  async function archiveStatement(id: string) {
-    if (
-      !window.confirm(
+  function archiveStatement(id: string) {
+    askConfirmation({
+      title: 'Arquivar informe',
+      message:
         'Arquivar este informe? Ele deixará de participar da conciliação anual, mas continuará no histórico.',
-      )
-    ) {
-      return;
-    }
+      confirmText: 'Arquivar',
+      onConfirm: () => runArchiveStatement(id),
+    });
+  }
+
+  async function runArchiveStatement(id: string) {
     setWorking(true);
     setActionError('');
     setFeedback('');
@@ -215,15 +223,16 @@ export function AnnualIncomeStatementSection({
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 className="ds-control min-h-11 w-full px-3 py-2"
               />
-              <button
-                type="button"
+              <Button
+                size="lg"
+                pill
+                fullWidth
                 disabled={!file || working}
                 onClick={() => void analyze()}
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 font-extrabold text-white disabled:opacity-40"
+                icon={<FaFileImport aria-hidden="true" />}
               >
-                <FaFileImport aria-hidden="true" />
                 {working ? 'Analisando...' : 'Analisar informe'}
-              </button>
+              </Button>
             </div>
           ) : preview.requiresOcr ? (
             <div className="mt-5 space-y-4">
@@ -233,13 +242,15 @@ export function AnnualIncomeStatementSection({
                   {preview.warnings[0]}
                 </p>
               </div>
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                pill
+                fullWidth
                 onClick={() => setPreview(null)}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] font-bold"
+                icon={<FaRedo aria-hidden="true" />}
               >
-                <FaRedo aria-hidden="true" /> Escolher outro PDF
-              </button>
+                Escolher outro PDF
+              </Button>
             </div>
           ) : preview.statement ? (
             <div className="mt-5 space-y-4">
@@ -343,26 +354,25 @@ export function AnnualIncomeStatementSection({
                       Escolha o informe vigente que esta versão substitui. O
                       anterior permanecerá no histórico.
                     </p>
-                    <select
-                      value={supersedesId}
-                      onChange={(event) => setSupersedesId(event.target.value)}
-                      className="ds-control mt-3 min-h-11 w-full px-3"
-                    >
-                      <option value="">Importar como informe adicional</option>
-                      {preview.replacementCandidates.map((candidate) => (
-                        <option key={candidate.id} value={candidate.id}>
-                          Versão de{' '}
-                          {new Date(candidate.createdAt).toLocaleDateString(
-                            'pt-BR',
-                          )}{' '}
-                          · tributável{' '}
-                          {payrollMoney(
-                            candidate.taxableIncomeCents,
-                            showValues,
-                          )}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="mt-3">
+                      <Select
+                        ariaLabel="Informe substituído"
+                        value={supersedesId}
+                        onChange={(value) => setSupersedesId(String(value))}
+                        placeholder="Importar como informe adicional"
+                        options={preview.replacementCandidates.map(
+                          (candidate) => ({
+                            value: candidate.id,
+                            label: `Versão de ${new Date(
+                              candidate.createdAt,
+                            ).toLocaleDateString('pt-BR')} · tributável ${payrollMoney(
+                              candidate.taxableIncomeCents,
+                              showValues,
+                            )}`,
+                          }),
+                        )}
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -373,26 +383,27 @@ export function AnnualIncomeStatementSection({
               )}
 
               <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  size="lg"
+                  pill
                   disabled={working}
                   onClick={() => setPreview(null)}
-                  className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
                 >
                   Voltar
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  size="lg"
+                  pill
                   disabled={
                     working ||
                     preview.statement.duplicate ||
                     preview.statement.errors.length > 0
                   }
                   onClick={() => void confirm()}
-                  className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-40"
                 >
                   {working ? 'Importando...' : 'Confirmar informe'}
-                </button>
+                </Button>
               </div>
             </div>
           ) : null}
@@ -408,22 +419,21 @@ export function AnnualIncomeStatementSection({
                 Histórico paginado por ano-calendário.
               </p>
             </div>
-            <select
-              aria-label="Ano dos informes importados"
-              value={year}
-              onChange={(event) => {
-                setListLoading(true);
-                setPage(1);
-                setYear(Number(event.target.value));
-              }}
-              className="ds-control min-h-11 px-3 text-sm"
-            >
-              {years.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
+            <div className="min-w-28">
+              <Select
+                ariaLabel="Ano dos informes importados"
+                value={year}
+                onChange={(value) => {
+                  setListLoading(true);
+                  setPage(1);
+                  setYear(Number(value));
+                }}
+                options={years.map((item) => ({
+                  value: item,
+                  label: String(item),
+                }))}
+              />
+            </div>
           </div>
 
           {loadError && (
@@ -432,13 +442,9 @@ export function AnnualIncomeStatementSection({
               className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
             >
               <span>{loadError}</span>
-              <button
-                type="button"
-                onClick={() => void retryList()}
-                className="min-h-11 rounded-full border border-current px-3 font-bold"
-              >
+              <Button variant="outline" size="sm" pill onClick={() => void retryList()}>
                 Atualizar lista
-              </button>
+              </Button>
             </div>
           )}
 
@@ -487,16 +493,15 @@ export function AnnualIncomeStatementSection({
                         )}
                       </strong>
                       {statement.lifecycleStatus === 'ACTIVE' && (
-                        <button
-                          type="button"
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          pill
                           disabled={working}
-                          onClick={() =>
-                            void archiveStatement(statement.id)
-                          }
-                          className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
+                          onClick={() => archiveStatement(statement.id)}
                         >
                           Arquivar
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -521,35 +526,36 @@ export function AnnualIncomeStatementSection({
           {!listLoading &&
             (page > 1 || result.pageInfo.hasMore) && (
               <div className="mt-3 flex items-center justify-between gap-3">
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  pill
                   disabled={page <= 1}
                   onClick={() => {
                     setListLoading(true);
                     setPage((current) => Math.max(1, current - 1));
                   }}
-                  className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
                 >
                   Anterior
-                </button>
+                </Button>
                 <span className="text-xs text-[var(--text-muted)]">
                   Página {page}
                 </span>
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  pill
                   disabled={!result.pageInfo.hasMore}
                   onClick={() => {
                     setListLoading(true);
                     setPage((current) => current + 1);
                   }}
-                  className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
                 >
                   Próxima
-                </button>
+                </Button>
               </div>
             )}
         </div>
       </div>
+      {confirmationModal}
     </section>
   );
 }

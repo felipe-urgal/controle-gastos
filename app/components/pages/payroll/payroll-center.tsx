@@ -2,9 +2,20 @@
 
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useEffect, useMemo, useState } from 'react';
-import { FaFileImport, FaRedo } from 'react-icons/fa';
+import { FaChevronRight, FaFileImport, FaRedo } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
+import { Button, Select } from '@/app/components/ui';
+import { usePayrollConfirmation } from '@/app/components/pages/payroll/use-payroll-confirmation';
+import {
+  DocumentHistoryPanel,
+  MonthlySummaryPanel,
+} from '@/app/components/pages/payroll/payroll-monthly-panels';
+import {
+  Metric,
+  TabButton,
+  typeLabel,
+} from '@/app/components/pages/payroll/payroll-shared';
 import { AnnualIncomeStatementSection } from '@/app/components/pages/payroll/annual-income-statement-section';
 import { PayrollAdvanceReconciliationSection } from '@/app/components/pages/payroll/payroll-advance-reconciliation-section';
 import { PayrollAnnualReconciliationSection } from '@/app/components/pages/payroll/payroll-annual-reconciliation-section';
@@ -12,10 +23,8 @@ import { PayrollTransactionReconciliationSection } from '@/app/components/pages/
 import { useAuth } from '@/app/context/auth-context';
 import { logicalDateParts } from '@/app/lib/payroll/payroll-date';
 import {
-  importedDocumentStatusLabel,
   payrollMoney,
   payrollPaymentTypeLabel,
-  payrollSummaryMoney,
 } from '@/app/lib/payroll/payroll-presentation';
 import { payrollService } from '@/app/services/payroll-service';
 import type {
@@ -36,12 +45,6 @@ const monthlyPaymentTypes: PayrollPaymentType[] = [
   'OTHER',
 ];
 
-function typeLabel(type: 'PAYROLL_ADVANCE' | 'MONTHLY_PAYSLIP') {
-  return type === 'PAYROLL_ADVANCE'
-    ? 'Adiantamento salarial'
-    : 'Folha / pagamento';
-}
-
 const emptyDocuments: PayrollPage<StoredPayrollDocument> = {
   items: [],
   pageInfo: { page: 1, limit: 8, hasMore: false },
@@ -54,6 +57,8 @@ const emptySummaries: PayrollPage<PayrollSummary> = {
 
 export default function PayrollCenter() {
   const { user } = useAuth();
+  const { confirm: askConfirmation, modal: confirmationModal } =
+    usePayrollConfirmation();
   const showValues = user?.showValues !== false;
   const currentYear = logicalDateParts().year;
 
@@ -249,15 +254,17 @@ export default function PayrollCenter() {
     }
   }
 
-  async function archiveDocument(id: string) {
-    if (
-      !window.confirm(
+  function archiveDocument(id: string) {
+    askConfirmation({
+      title: 'Arquivar versão',
+      message:
         'Arquivar esta versão? Ela deixará de participar dos cálculos e conciliações, mas continuará no histórico.',
-      )
-    ) {
-      return;
-    }
+      confirmText: 'Arquivar',
+      onConfirm: () => runArchiveDocument(id),
+    });
+  }
 
+  async function runArchiveDocument(id: string) {
     setWorking(true);
     setActionError('');
     setFeedback('');
@@ -371,23 +378,18 @@ export default function PayrollCenter() {
                       ausentes.
                     </p>
                   </div>
-                  <label className="text-xs font-semibold text-[var(--foreground)]">
-                    Ano exibido
-                    <select
-                      aria-label="Ano dos rendimentos mensais"
+                  <div className="min-w-28">
+                    <span className="ds-label mb-2 block">Ano exibido</span>
+                    <Select
+                      ariaLabel="Ano dos rendimentos mensais"
                       value={monthlyYear}
-                      onChange={(event) =>
-                        changeMonthlyYear(Number(event.target.value))
-                      }
-                      className="ds-control mt-1 min-h-11 px-3"
-                    >
-                      {years.map((year) => (
-                        <option key={year} value={year}>
-                          {year}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      onChange={(value) => changeMonthlyYear(Number(value))}
+                      options={years.map((year) => ({
+                        value: year,
+                        label: String(year),
+                      }))}
+                    />
+                  </div>
                 </div>
 
                 {feedback && (
@@ -419,15 +421,16 @@ export default function PayrollCenter() {
                       }
                       className="ds-control min-h-11 w-full px-3 py-2"
                     />
-                    <button
-                      type="button"
+                    <Button
+                      size="lg"
+                      pill
+                      fullWidth
                       disabled={!file || working}
                       onClick={() => void generatePreview()}
-                      className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 font-extrabold text-white disabled:opacity-40"
+                      icon={<FaFileImport aria-hidden="true" />}
                     >
-                      <FaFileImport aria-hidden="true" />
                       {working ? 'Analisando...' : 'Analisar PDF'}
-                    </button>
+                    </Button>
                   </div>
                 ) : preview.requiresOcr ? (
                   <div className="mt-5 space-y-4">
@@ -437,16 +440,18 @@ export default function PayrollCenter() {
                         {preview.warnings[0]}
                       </p>
                     </div>
-                    <button
-                      type="button"
+                    <Button
+                      variant="outline"
+                      pill
+                      fullWidth
                       onClick={() => {
                         setPreview(null);
                         setSupersedesId('');
                       }}
-                      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[var(--border-strong)] font-bold"
+                      icon={<FaRedo aria-hidden="true" />}
                     >
-                      <FaRedo aria-hidden="true" /> Escolher outro PDF
-                    </button>
+                      Escolher outro PDF
+                    </Button>
                   </div>
                 ) : preview.document ? (
                   <div className="mt-5 space-y-4">
@@ -466,34 +471,25 @@ export default function PayrollCenter() {
                     </div>
 
                     <div className="rounded-[14px] border border-[var(--border)] p-4">
-                      <label
-                        className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
-                        htmlFor="payroll-payment-type"
-                      >
-                        Classificação do pagamento
-                      </label>
-                      <select
+                      <Select
                         id="payroll-payment-type"
+                        label="Classificação do pagamento"
                         value={paymentType}
-                        onChange={(event) =>
-                          setPaymentType(
-                            event.target.value as PayrollPaymentType,
-                          )
+                        onChange={(value) =>
+                          setPaymentType(String(value) as PayrollPaymentType)
                         }
                         disabled={
                           preview.document.documentType === 'PAYROLL_ADVANCE'
                         }
-                        className="ds-control mt-2 min-h-11 w-full px-3 disabled:opacity-60"
-                      >
-                        {(preview.document.documentType === 'PAYROLL_ADVANCE'
+                        options={(preview.document.documentType ===
+                        'PAYROLL_ADVANCE'
                           ? (['ADVANCE'] as PayrollPaymentType[])
                           : monthlyPaymentTypes
-                        ).map((type) => (
-                          <option key={type} value={type}>
-                            {payrollPaymentTypeLabel(type)}
-                          </option>
-                        ))}
-                      </select>
+                        ).map((type) => ({
+                          value: type,
+                          label: payrollPaymentTypeLabel(type),
+                        }))}
+                      />
                       <p className="mt-2 text-xs text-[var(--text-muted)]">
                         Detectado como{' '}
                         <strong>
@@ -577,31 +573,27 @@ export default function PayrollCenter() {
                             Escolha explicitamente a versão ativa substituída. A
                             anterior continua no histórico.
                           </p>
-                          <select
-                            value={supersedesId}
-                            onChange={(event) =>
-                              setSupersedesId(event.target.value)
-                            }
-                            className="ds-control mt-3 min-h-11 w-full px-3"
-                          >
-                            <option value="">
-                              Importar como documento adicional
-                            </option>
-                            {preview.replacementCandidates.map((candidate) => (
-                              <option key={candidate.id} value={candidate.id}>
-                                {payrollPaymentTypeLabel(candidate.paymentType)} ·
-                                versão de{' '}
-                                {new Date(
-                                  candidate.createdAt,
-                                ).toLocaleDateString('pt-BR')}{' '}
-                                · líquido{' '}
-                                {payrollMoney(
-                                  candidate.netPaidCents,
-                                  showValues,
-                                )}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="mt-3">
+                            <Select
+                              ariaLabel="Versão substituída"
+                              value={supersedesId}
+                              onChange={(value) => setSupersedesId(String(value))}
+                              placeholder="Importar como documento adicional"
+                              options={preview.replacementCandidates.map(
+                                (candidate) => ({
+                                  value: candidate.id,
+                                  label: `${payrollPaymentTypeLabel(
+                                    candidate.paymentType,
+                                  )} · versão de ${new Date(
+                                    candidate.createdAt,
+                                  ).toLocaleDateString('pt-BR')} · líquido ${payrollMoney(
+                                    candidate.netPaidCents,
+                                    showValues,
+                                  )}`,
+                                }),
+                              )}
+                            />
+                          </div>
                         </div>
                       )}
 
@@ -613,10 +605,15 @@ export default function PayrollCenter() {
                       )}
 
                     {rubrics.length > 0 && (
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-bold text-[var(--foreground)]">
-                          Rubricas
-                        </h3>
+                      <details className="group rounded-[14px] border border-[var(--border)]">
+                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[14px] px-4 text-sm font-bold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+                          <span>Rubricas ({rubrics.length})</span>
+                          <FaChevronRight
+                            className="shrink-0 text-xs text-[var(--text-muted)] transition-transform group-open:rotate-90"
+                            aria-hidden="true"
+                          />
+                        </summary>
+                        <div className="space-y-2 p-3 pt-0">
                         <div className="grid gap-2 sm:grid-cols-2">
                           {rubrics.map((rubric, index) => (
                             <article
@@ -655,24 +652,27 @@ export default function PayrollCenter() {
                             </article>
                           ))}
                         </div>
-                      </div>
+                        </div>
+                      </details>
                     )}
 
                     <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        pill
                         disabled={working}
                         onClick={() => {
                           setPreview(null);
                           setPaymentType('REGULAR');
                           setSupersedesId('');
                         }}
-                        className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
                       >
                         Voltar
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        size="lg"
+                        pill
                         disabled={
                           working ||
                           (preview.document.duplicate &&
@@ -680,10 +680,9 @@ export default function PayrollCenter() {
                           preview.document.errors.length > 0
                         }
                         onClick={() => void confirmImport()}
-                        className="min-h-12 rounded-full bg-[var(--orbit-primary)] font-extrabold text-white disabled:opacity-40"
                       >
                         {working ? 'Importando...' : 'Confirmar importação'}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ) : null}
@@ -721,7 +720,7 @@ export default function PayrollCenter() {
                 working={working}
                 showValues={showValues}
                 onRetry={() => void retryDocuments()}
-                onArchive={(id) => void archiveDocument(id)}
+                onArchive={(id) => archiveDocument(id)}
                 onPrevious={() => {
                   setDocumentsLoading(true);
                   setDocumentPage((current) => Math.max(1, current - 1));
@@ -753,393 +752,8 @@ export default function PayrollCenter() {
             </div>
           )}
         </div>
+        {confirmationModal}
       </PageContainer>
     </ProtectedRoute>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-current={active ? 'page' : undefined}
-      onClick={onClick}
-      className={
-        'min-h-11 rounded-[10px] px-4 text-sm font-bold transition-colors ' +
-        (active
-          ? 'bg-[var(--foreground)] text-[var(--background)]'
-          : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)]')
-      }
-    >
-      {children}
-    </button>
-  );
-}
-
-function MonthlySummaryPanel({
-  result,
-  loading,
-  error,
-  page,
-  showValues,
-  onRetry,
-  onPrevious,
-  onNext,
-}: {
-  result: PayrollPage<PayrollSummary>;
-  loading: boolean;
-  error: string;
-  page: number;
-  showValues: boolean;
-  onRetry: () => void;
-  onPrevious: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <section className="ds-panel p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-[var(--foreground)]">
-            Consolidação por competência
-          </h2>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Mostra as competências mais recentes primeiro; carregue páginas
-            anteriores apenas quando precisar do histórico.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onRetry}
-          disabled={loading}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
-        >
-          <FaRedo aria-hidden="true" />
-          Atualizar
-        </button>
-      </div>
-
-      {error && (
-        <div
-          role="alert"
-          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
-        >
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="min-h-11 rounded-full border border-current px-3 font-bold"
-          >
-            Tentar novamente
-          </button>
-        </div>
-      )}
-
-      {loading ? (
-        <p className="mt-4 text-sm text-[var(--text-muted)]">
-          Carregando consolidação...
-        </p>
-      ) : result.items.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--text-muted)]">
-          Nenhuma competência encontrada neste ano.
-        </p>
-      ) : (
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {result.items.map((summary) => (
-            <article
-              key={
-                summary.employerCnpj + '-' + summary.year + '-' + summary.month
-              }
-              className="rounded-[14px] border border-[var(--border)] p-4"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <strong className="break-words text-sm text-[var(--foreground)]">
-                    {summary.employerName}
-                  </strong>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    {String(summary.month).padStart(2, '0')}/{summary.year} ·{' '}
-                    {summary.employerCnpj}
-                  </p>
-                </div>
-                {summary.reviewRequired ? (
-                  <span className="rounded-full bg-[var(--warning-subtle)] px-2 py-1 text-xs font-semibold text-[var(--warning)]">
-                    Revisar competência
-                  </span>
-                ) : summary.matchedAdvances > 0 ? (
-                  <span className="rounded-full bg-[var(--success-subtle)] px-2 py-1 text-xs font-semibold text-[var(--success)]">
-                    Adiantamento vinculado
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
-                    Sem pendências
-                  </span>
-                )}
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <Metric
-                  label="Renda bruta"
-                  value={payrollSummaryMoney(
-                    summary.grossIncomeCents,
-                    summary.grossIncomeComplete,
-                    showValues,
-                  )}
-                />
-                <Metric
-                  label="Adiantamento líquido"
-                  value={payrollSummaryMoney(
-                    summary.advanceNetPaidCents,
-                    summary.advanceNetPaidComplete,
-                    showValues,
-                  )}
-                />
-                <Metric
-                  label="Folha líquida"
-                  value={payrollSummaryMoney(
-                    summary.regularNetPaidCents,
-                    summary.regularNetPaidComplete,
-                    showValues,
-                  )}
-                />
-                <Metric
-                  label="Total líquido pago"
-                  value={payrollSummaryMoney(
-                    summary.netPaidCents,
-                    summary.netPaidComplete,
-                    showValues,
-                  )}
-                />
-              </div>
-
-              <p className="mt-3 text-xs text-[var(--text-muted)]">
-                IRRF retido:{' '}
-                <strong className="text-[var(--foreground)]">
-                  {payrollSummaryMoney(
-                    summary.irrfCents,
-                    summary.irrfComplete,
-                    showValues,
-                  )}
-                </strong>
-              </p>
-
-              {summary.reviewReason && (
-                <p className="mt-3 rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--warning)]">
-                  {summary.reviewReason}
-                </p>
-              )}
-            </article>
-          ))}
-        </div>
-      )}
-
-      {!loading && (page > 1 || result.pageInfo.hasMore) && (
-        <Pagination
-          page={page}
-          hasMore={result.pageInfo.hasMore}
-          onPrevious={onPrevious}
-          onNext={onNext}
-        />
-      )}
-    </section>
-  );
-}
-
-function DocumentHistoryPanel({
-  result,
-  loading,
-  error,
-  page,
-  working,
-  showValues,
-  onRetry,
-  onArchive,
-  onPrevious,
-  onNext,
-}: {
-  result: PayrollPage<StoredPayrollDocument>;
-  loading: boolean;
-  error: string;
-  page: number;
-  working: boolean;
-  showValues: boolean;
-  onRetry: () => void;
-  onArchive: (id: string) => void;
-  onPrevious: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <section className="ds-panel overflow-hidden">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] p-4 sm:p-5">
-        <div>
-          <h2 className="text-lg font-bold text-[var(--foreground)]">
-            Documentos importados
-          </h2>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Histórico paginado; cada versão continua separada e auditável.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onRetry}
-          disabled={loading}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
-        >
-          <FaRedo aria-hidden="true" />
-          Atualizar
-        </button>
-      </div>
-
-      {error && (
-        <div
-          role="alert"
-          className="m-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
-        >
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="min-h-11 rounded-full border border-current px-3 font-bold"
-          >
-            Tentar novamente
-          </button>
-        </div>
-      )}
-
-      {loading ? (
-        <p className="p-5 text-sm text-[var(--text-muted)]">
-          Carregando documentos...
-        </p>
-      ) : result.items.length === 0 ? (
-        <p className="p-5 text-sm text-[var(--text-muted)]">
-          Nenhum documento importado neste ano.
-        </p>
-      ) : (
-        <div className="divide-y divide-[var(--border)]">
-          {result.items.map((document) => (
-            <article
-              key={document.id}
-              className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-            >
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <strong className="text-sm text-[var(--foreground)]">
-                    {typeLabel(document.documentType)}
-                  </strong>
-                  <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--foreground)]">
-                    {payrollPaymentTypeLabel(document.paymentType)}
-                  </span>
-                  <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs text-[var(--text-muted)]">
-                    {String(document.month).padStart(2, '0')}/{document.year}
-                  </span>
-                  <span
-                    className={
-                      document.lifecycleStatus === 'ACTIVE'
-                        ? 'rounded-full bg-[var(--success-subtle)] px-2 py-1 text-xs font-semibold text-[var(--success)]'
-                        : document.lifecycleStatus === 'SUPERSEDED'
-                          ? 'rounded-full bg-[var(--warning-subtle)] px-2 py-1 text-xs font-semibold text-[var(--warning)]'
-                          : 'rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]'
-                    }
-                  >
-                    {importedDocumentStatusLabel(document.lifecycleStatus)}
-                  </span>
-                </div>
-                <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
-                  {document.employerName} · {document.employerCnpj}
-                </p>
-                <p className="mt-1 break-words text-xs text-[var(--text-subtle)]">
-                  INSS {payrollMoney(document.inssCents, showValues)} · IRRF{' '}
-                  {payrollMoney(document.irrfCents, showValues)}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-                <div className="text-left sm:text-right">
-                  <span className="block text-xs text-[var(--text-muted)]">
-                    Líquido
-                  </span>
-                  <strong className="text-sm text-[var(--foreground)]">
-                    {payrollMoney(document.netPaidCents, showValues)}
-                  </strong>
-                </div>
-                {document.lifecycleStatus === 'ACTIVE' && (
-                  <button
-                    type="button"
-                    disabled={working}
-                    onClick={() => onArchive(document.id)}
-                    className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
-                  >
-                    Arquivar
-                  </button>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
-      {!loading && (page > 1 || result.pageInfo.hasMore) && (
-        <div className="p-4">
-          <Pagination
-            page={page}
-            hasMore={result.pageInfo.hasMore}
-            onPrevious={onPrevious}
-            onNext={onNext}
-          />
-        </div>
-      )}
-    </section>
-  );
-}
-
-function Pagination({
-  page,
-  hasMore,
-  onPrevious,
-  onNext,
-}: {
-  page: number;
-  hasMore: boolean;
-  onPrevious: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="mt-4 flex items-center justify-between gap-3">
-      <button
-        type="button"
-        disabled={page <= 1}
-        onClick={onPrevious}
-        className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
-      >
-        Anterior
-      </button>
-      <span className="text-xs text-[var(--text-muted)]">Página {page}</span>
-      <button
-        type="button"
-        disabled={!hasMore}
-        onClick={onNext}
-        className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
-      >
-        Próxima
-      </button>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-[12px] bg-[var(--surface-raised)] p-3">
-      <span className="block text-xs text-[var(--text-muted)]">{label}</span>
-      <strong className="mt-1 block break-words text-sm text-[var(--foreground)]">
-        {value}
-      </strong>
-    </div>
   );
 }
