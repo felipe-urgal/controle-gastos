@@ -105,6 +105,9 @@ export async function expectBottomContentClearOfFixedChrome(page) {
       if (!node.textContent?.trim()) continue;
       const parent = node.parentElement;
       if (!parent || parent.closest('[aria-hidden="true"]')) continue;
+      // Conteúdo de <details> fechado não é renderizado (só o <summary>), mesmo que o Range ainda devolva caixa.
+      const closedDetails = parent.closest('details:not([open])');
+      if (closedDetails && !parent.closest('summary')) continue;
       let fixed = false;
       for (let el = parent; el && el !== document.body; el = el.parentElement) {
         if (getComputedStyle(el).position === 'fixed') { fixed = true; break; }

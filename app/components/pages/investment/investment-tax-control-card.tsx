@@ -13,6 +13,7 @@ import type {
   InvestmentAssetType,
   InvestmentTaxControlReport,
 } from '@/app/types/investment';
+import { Button, Input, Select } from '@/app/components/ui';
 
 const assetTypes: Array<{ value: InvestmentAssetType; label: string }> = [
   { value: 'STOCK', label: 'Ações' },
@@ -164,33 +165,19 @@ export function InvestmentTaxControlCard({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <select
+          <Select
+            ariaLabel="Ano fiscal"
             value={year}
-            onChange={(event) => void changeYear(Number(event.target.value))}
-            className="ds-control min-h-10 px-3 text-sm"
+            onChange={(value) => void changeYear(Number(value))}
+            options={years.map((item) => ({ value: item, label: String(item) }))}
             disabled={loading}
-            aria-label="Ano fiscal"
-          >
-            {years.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => setMode(mode === 'IRRF' ? null : 'IRRF')}
-            className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
-          >
+          />
+          <Button variant="outline" size="sm" pill onClick={() => setMode(mode === 'IRRF' ? null : 'IRRF')}>
             Registrar IRRF
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode(mode === 'DARF' ? null : 'DARF')}
-            className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
-          >
+          </Button>
+          <Button variant="outline" size="sm" pill onClick={() => setMode(mode === 'DARF' ? null : 'DARF')}>
             Registrar DARF
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -199,121 +186,83 @@ export function InvestmentTaxControlCard({
           onSubmit={save}
           className="mt-4 grid gap-3 rounded-[14px] bg-[var(--surface-raised)] p-4 sm:grid-cols-2 lg:grid-cols-3"
         >
-          <label className="text-xs font-semibold text-[var(--text-muted)]">
-            Classe
-            <select
-              value={assetType}
-              onChange={(event) =>
-                setAssetType(event.target.value as InvestmentAssetType)
-              }
-              className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-              disabled={saving}
-            >
-              {assetTypes.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs font-semibold text-[var(--text-muted)]">
-            Moeda
-            <select
+          <Select
+            label="Classe"
+            value={assetType}
+            onChange={(value) => setAssetType(value as InvestmentAssetType)}
+            options={assetTypes.map((item) => ({ value: item.value, label: String(item.label) }))}
+            disabled={saving}
+          />
+          <div>
+            <Select
+              label="Moeda"
               value={currency}
-              onChange={(event) =>
-                setCurrency(event.target.value as SupportedCurrency)
-              }
-              className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
+              onChange={(value) => setCurrency(value as SupportedCurrency)}
+              options={[{ value: 'BRL', label: 'BRL' }]}
               disabled={saving}
-            >
-              <option value="BRL">BRL</option>
-            </select>
+            />
             <span className="mt-1 block text-xs font-normal text-[var(--text-subtle)]">
               USD/EUR exigem tratamento fiscal próprio para investimentos no exterior.
             </span>
-          </label>
-          <label className="text-xs font-semibold text-[var(--text-muted)]">
-            Competência
-            <select
-              value={month}
-              onChange={(event) => setMonth(Number(event.target.value))}
-              className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-              disabled={saving}
-            >
-              {Array.from({ length: 12 }, (_, index) => index + 1).map(
-                (value) => (
-                  <option key={value} value={value}>
-                    {String(value).padStart(2, '0')}/{year}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-          <label className="text-xs font-semibold text-[var(--text-muted)]">
-            Valor
-            <input
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-              inputMode="decimal"
-              placeholder="R$ 0,00"
+          </div>
+          <Select
+            label="Competência"
+            value={month}
+            onChange={(value) => setMonth(Number(value))}
+            options={Array.from({ length: 12 }, (_, index) => index + 1).map((value) => ({
+              value,
+              label: `${String(value).padStart(2, '0')}/${year}`,
+            }))}
+            disabled={saving}
+          />
+          <Input
+            label="Valor"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            placeholder="R$ 0,00"
+            inputMode="decimal"
+            required
+            disabled={saving}
+          />
+          <Input
+            label={mode === 'IRRF' ? 'Data do IRRF' : 'Data de pagamento'}
+            type="date"
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+            required
+            disabled={saving}
+          />
+          {mode === 'DARF' && (
+            <Input
+              label="Código DARF"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
               required
               disabled={saving}
+              maxLength={10}
             />
-          </label>
-          <label className="text-xs font-semibold text-[var(--text-muted)]">
-            {mode === 'IRRF' ? 'Data do IRRF' : 'Data de pagamento'}
-            <input
-              type="date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-              className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-              required
+          )}
+          {mode === 'DARF' && (
+            <Input
+              label="Referência do comprovante"
+              value={receiptReference}
+              onChange={(event) => setReceiptReference(event.target.value)}
               disabled={saving}
+              maxLength={120}
             />
-          </label>
-          {mode === 'DARF' && (
-            <label className="text-xs font-semibold text-[var(--text-muted)]">
-              Código DARF
-              <input
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-                className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-                maxLength={10}
-                required
-                disabled={saving}
-              />
-            </label>
           )}
-          {mode === 'DARF' && (
-            <label className="text-xs font-semibold text-[var(--text-muted)]">
-              Referência do comprovante
-              <input
-                value={receiptReference}
-                onChange={(event) => setReceiptReference(event.target.value)}
-                className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-                maxLength={120}
-                disabled={saving}
-              />
-            </label>
-          )}
-          <label className="text-xs font-semibold text-[var(--text-muted)] sm:col-span-2">
-            Observação
-            <input
+          <div className="sm:col-span-2">
+            <Input
+              label="Observação"
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-              maxLength={500}
               disabled={saving}
+              maxLength={500}
             />
-          </label>
-          <button
-            type="submit"
-            disabled={saving}
-            className="min-h-11 rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-50"
-          >
+          </div>
+          <Button type="submit" variant="secondary" size="sm" pill disabled={saving}>
             {saving ? 'Salvando...' : 'Salvar ' + mode}
-          </button>
+          </Button>
         </form>
       )}
 

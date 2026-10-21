@@ -9,6 +9,7 @@ import type {
   InvestmentTaxPaymentReconciliationItem,
   InvestmentTaxPaymentTransactionCandidate,
 } from '@/app/types/investment';
+import { Button } from '@/app/components/ui';
 
 function statusLabel(status: InvestmentTaxPaymentReconciliationItem['status']) {
   if (status === 'MATCHED') return 'Vinculado';
@@ -190,17 +191,12 @@ export function InvestmentTaxPaymentReconciliationSection({
                     transaction={item.matchedTransaction}
                     showValues={showValues}
                   />
-                  <button
-                    type="button"
-                    disabled={workingKey !== ''}
-                    onClick={() => void unlink(item.paymentId)}
-                    className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
-                  >
+                  <Button variant="outline" size="sm" pill className="mt-3" onClick={() => void unlink(item.paymentId)} disabled={workingKey !== ''}>
                     <FaUnlink aria-hidden="true" />
                     {workingKey === item.paymentId + ':unlink'
                       ? 'Desfazendo...'
                       : 'Desfazer vínculo'}
-                  </button>
+                  </Button>
                 </div>
               ) : item.candidates.length > 0 ? (
                 <div className="mt-3 space-y-2">
@@ -215,15 +211,10 @@ export function InvestmentTaxPaymentReconciliationSection({
                           transaction={candidate}
                           showValues={showValues}
                         />
-                        <button
-                          type="button"
-                          disabled={workingKey !== ''}
-                          onClick={() => void link(item.paymentId, candidate.id)}
-                          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--foreground)] px-3 text-xs font-bold text-[var(--background)] disabled:opacity-40"
-                        >
+                        <Button variant="secondary" size="sm" pill className="mt-3" onClick={() => void link(item.paymentId, candidate.id)} disabled={workingKey !== ''}>
                           <FaLink aria-hidden="true" />
                           {workingKey === key ? 'Vinculando...' : 'Vincular'}
-                        </button>
+                        </Button>
                       </div>
                     );
                   })}

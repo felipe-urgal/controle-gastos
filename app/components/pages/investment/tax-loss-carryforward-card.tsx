@@ -12,6 +12,7 @@ import type {
   InvestmentAssetType,
   InvestmentTaxLossReport,
 } from '@/app/types/investment';
+import { Button, Input, Select } from '@/app/components/ui';
 
 const assetTypeLabels: Record<InvestmentAssetType, string> = {
   STOCK: 'Ações',
@@ -124,100 +125,66 @@ export function TaxLossCarryforwardCard({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select
+          <Select
+            ariaLabel="Ano do prejuízo fiscal"
             value={year}
-            onChange={(event) => void changeYear(Number(event.target.value))}
-            className="ds-control min-h-10 px-3 text-sm"
+            onChange={(value) => void changeYear(Number(value))}
+            options={years.map((item) => ({ value: item, label: String(item) }))}
             disabled={loading}
-            aria-label="Ano do prejuízo fiscal"
-          >
-            {years.map((item) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => setEditing((value) => !value)}
-            className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
-          >
+          />
+          <Button variant="outline" size="sm" pill onClick={() => setEditing((value) => !value)}>
             {editing ? 'Cancelar ajuste' : 'Informar saldo inicial'}
-          </button>
+          </Button>
         </div>
       </div>
 
       {editing && (
         <form onSubmit={saveAdjustment} className="mt-4 grid gap-3 rounded-[14px] bg-[var(--surface-raised)] p-4 sm:grid-cols-2 lg:grid-cols-3">
-          <label className="text-xs font-semibold text-[var(--text-muted)]">
-            Classe
-            <select
-              value={assetType}
-              onChange={(event) => setAssetType(event.target.value as InvestmentAssetType)}
-              className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-              disabled={saving}
-            >
-              {Object.entries(assetTypeLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs font-semibold text-[var(--text-muted)]">
-            Moeda
-            <select
-              value={currency}
-              onChange={(event) => setCurrency(event.target.value as SupportedCurrency)}
-              className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-              disabled={saving}
-            >
-              <option value="BRL">BRL</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-            </select>
-          </label>
-          <label className="text-xs font-semibold text-[var(--text-muted)]">
-            Mês de início
-            <select
-              value={month}
-              onChange={(event) => setMonth(Number(event.target.value))}
-              className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-              disabled={saving}
-            >
-              {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
-                <option key={value} value={value}>{value}</option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs font-semibold text-[var(--text-muted)]">
-            Saldo de prejuízo
-            <input
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
-              placeholder="R$ 0,00"
-              inputMode="decimal"
-              required
-              disabled={saving}
-            />
-          </label>
-          <label className="text-xs font-semibold text-[var(--text-muted)] sm:col-span-2">
-            Motivo
-            <input
+          <Select
+            label="Classe"
+            value={assetType}
+            onChange={(value) => setAssetType(value as InvestmentAssetType)}
+            options={Object.entries(assetTypeLabels).map(([value, label]) => ({ value: value, label: String(label) }))}
+            disabled={saving}
+          />
+          <Select
+            label="Moeda"
+            value={currency}
+            onChange={(value) => setCurrency(value as SupportedCurrency)}
+            options={[{ value: 'BRL', label: 'BRL' }, { value: 'USD', label: 'USD' }, { value: 'EUR', label: 'EUR' }]}
+            disabled={saving}
+          />
+          <Select
+            label="Mês de início"
+            value={month}
+            onChange={(value) => setMonth(Number(value))}
+            options={Array.from({ length: 12 }, (_, index) => index + 1).map((value) => ({ value: value, label: String(value) }))}
+            disabled={saving}
+          />
+          <Input
+            label="Saldo de prejuízo"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            placeholder="R$ 0,00"
+            inputMode="decimal"
+            required
+            disabled={saving}
+          />
+          <div className="sm:col-span-2">
+            <Input
+              label="Motivo"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              className="ds-control mt-1 min-h-10 w-full px-3 text-sm"
               placeholder="Ex.: prejuízo acumulado informado na declaração anterior"
-              minLength={3}
-              maxLength={500}
               required
               disabled={saving}
+              minLength={3}
+              maxLength={500}
             />
-          </label>
-          <button
-            type="submit"
-            disabled={saving}
-            className="min-h-11 rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-50"
-          >
+          </div>
+          <Button type="submit" variant="secondary" size="sm" pill disabled={saving}>
             {saving ? 'Salvando...' : 'Registrar ajuste'}
-          </button>
+          </Button>
         </form>
       )}
 

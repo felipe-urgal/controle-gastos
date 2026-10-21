@@ -8,6 +8,7 @@ import type {
   InvestmentFiscalPendingCenter,
   InvestmentFiscalPendingItem,
 } from '@/app/types/investment';
+import { Button, Input, Select } from '@/app/components/ui';
 
 const categoryLabels: Record<InvestmentFiscalPendingItem['category'], string> = {
   FISCAL_COST: 'Custo fiscal',
@@ -107,19 +108,13 @@ export function FiscalPendingCenterCard() {
             Centraliza lacunas que impedem considerar o ano fiscal completo.
           </p>
         </div>
-        <select
+        <Select
+          ariaLabel="Ano das pendências fiscais"
           value={year}
-          onChange={(event) => void changeYear(Number(event.target.value))}
-          className="ds-control min-h-10 px-3 text-sm"
+          onChange={(value) => void changeYear(Number(value))}
+          options={years.map((item) => ({ value: item, label: String(item) }))}
           disabled={loading}
-          aria-label="Ano das pendências fiscais"
-        >
-          {years.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
+        />
       </div>
 
       {error && (
@@ -132,7 +127,7 @@ export function FiscalPendingCenterCard() {
         <p className="mt-4 text-sm text-[var(--text-muted)]">Recalculando...</p>
       ) : !report ? null : (
         <>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <SummaryMetric
               label="Status"
               value={
@@ -202,16 +197,12 @@ export function FiscalPendingCenterCard() {
                     </div>
 
                     {item.status === 'ACTIVE' && (
-                      <button
-                        type="button"
-                        onClick={() => {
+                      <Button variant="outline" size="sm" pill onClick={() => {
                           setJustifying(item);
                           setJustification('');
-                        }}
-                        className="min-h-11 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold"
-                      >
+                        }}>
                         Justificar
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -253,31 +244,25 @@ export function FiscalPendingCenterCard() {
             A justificativa não altera os dados de origem. Se os dados mudarem,
             a pendência será recalculada e poderá reaparecer.
           </p>
-          <textarea
+          <div className="mt-3">
+          <Input
+            aria-label="Justificativa"
+            multiline
             value={justification}
             onChange={(event) => setJustification(event.target.value)}
-            className="ds-control mt-3 min-h-24 w-full p-3 text-sm"
             minLength={5}
             maxLength={1000}
             required
             disabled={saving}
           />
+          </div>
           <div className="mt-3 flex gap-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="min-h-11 rounded-full bg-[var(--foreground)] px-4 text-xs font-bold text-[var(--background)] disabled:opacity-50"
-            >
+            <Button type="submit" variant="secondary" size="sm" pill disabled={saving}>
               {saving ? 'Salvando...' : 'Salvar justificativa'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setJustifying(null)}
-              className="min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"
-              disabled={saving}
-            >
+            </Button>
+            <Button variant="outline" size="sm" pill onClick={() => setJustifying(null)} disabled={saving}>
               Cancelar
-            </button>
+            </Button>
           </div>
         </form>
       )}

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { investmentService } from '@/app/services/investment-service';
 import type { InvestmentAnnualTaxSupportReport } from '@/app/types/investment';
+import { Select } from '@/app/components/ui';
 
 export function AnnualTaxSupportReportCard({
   showValues,
@@ -87,19 +88,13 @@ export function AnnualTaxSupportReportCard({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <select
+          <Select
+            ariaLabel="Ano do relatório anual"
             value={year}
-            onChange={(event) => void changeYear(Number(event.target.value))}
-            className="ds-control min-h-10 px-3 text-sm"
+            onChange={(value) => void changeYear(Number(value))}
+            options={years.map((item) => ({ value: item, label: String(item) }))}
             disabled={loading}
-            aria-label="Ano do relatório anual"
-          >
-            {years.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+          />
           <a
             href={'/api/investments/annual-tax-support/export?year=' + year + '&format=csv'}
             className="inline-flex min-h-11 items-center rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold"

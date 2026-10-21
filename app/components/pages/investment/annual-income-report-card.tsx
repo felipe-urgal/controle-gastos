@@ -11,6 +11,7 @@ import type {
   InvestmentAnnualIncomeReport,
   InvestmentIncomeType,
 } from '@/app/types/investment';
+import { Select } from '@/app/components/ui';
 
 const incomeLabels: Record<InvestmentIncomeType, string> = {
   INCOME: 'Rendimento',
@@ -80,21 +81,13 @@ export function AnnualIncomeReportCard({
           </p>
         </div>
 
-        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)]">
-          Ano
-          <select
-            value={year}
-            onChange={(event) => void changeYear(Number(event.target.value))}
-            className="ds-control min-h-10 px-3 text-sm"
-            disabled={loading}
-          >
-            {years.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          label="Ano"
+          value={year}
+          onChange={(value) => void changeYear(Number(value))}
+          options={years.map((item) => ({ value: item, label: String(item) }))}
+          disabled={loading}
+        />
       </div>
 
       {loading ? (

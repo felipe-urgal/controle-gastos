@@ -7,6 +7,7 @@ import { useInvestmentFiscalYear } from '@/app/components/pages/investment/inves
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { investmentService } from '@/app/services/investment-service';
 import type { InvestmentRealizedResultReport } from '@/app/types/investment';
+import { Select } from '@/app/components/ui';
 
 const monthLabel = new Intl.DateTimeFormat('pt-BR', { month: 'long' });
 
@@ -62,19 +63,13 @@ export function RealizedResultReportCard({
             Vendas agrupadas por mês e classe fiscal. Valorização de mercado não entra neste cálculo.
           </p>
         </div>
-        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)]">
-          Ano
-          <select
-            value={year}
-            onChange={(event) => void changeYear(Number(event.target.value))}
-            className="ds-control min-h-10 px-3 text-sm"
-            disabled={loading}
-          >
-            {years.map((item) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
-        </label>
+        <Select
+          label="Ano"
+          value={year}
+          onChange={(value) => void changeYear(Number(value))}
+          options={years.map((item) => ({ value: item, label: String(item) }))}
+          disabled={loading}
+        />
       </div>
 
       {loading ? (
@@ -118,7 +113,7 @@ export function RealizedResultReportCard({
                 </div>
               </summary>
               <div className="border-t border-[var(--border)] px-4 pb-4 pt-3">
-                <div className="grid gap-2 text-xs sm:grid-cols-3">
+                <div className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-3">
                   <Metric label="Venda líquida" value={showValues ? formatCurrency(group.netProceedsCents, group.currency) : '••••'} />
                   <Metric label="Custo das unidades" value={showValues ? formatCurrency(group.allocatedCostCents, group.currency) : '••••'} />
                   <Metric label="Taxas" value={showValues ? formatCurrency(group.feesCents, group.currency) : '••••'} />
