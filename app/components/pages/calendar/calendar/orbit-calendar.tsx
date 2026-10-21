@@ -1,8 +1,7 @@
 'use client';
 
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { PageTitle } from '@/app/components/base-pages';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
 import {
   FaArrowDown,
@@ -18,7 +17,7 @@ import {
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { CalendarGrid } from '@/app/components/pages/calendar';
-import { Button, Select } from '@/app/components/ui';
+import { Button, IconButton, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useCalendar } from '@/app/hooks/calendar/use-calendar';
 import { useCalendarPersistence } from '@/app/hooks/calendar/use-calendar-persistence';
@@ -194,19 +193,11 @@ export default function OrbitCalendar() {
 
   return (
     <ProtectedRoute>
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="hidden text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] sm:block">
-            Linha do tempo financeira
-          </p>
-          <h1 className={`mt-1 ${pageTitleClassName}`}>
-            Calendário
-          </h1>
-          <p className="mt-1 hidden text-sm text-[var(--text-muted)] sm:block">
-            Movimentos, vencimentos e marcos financeiros em uma única visão temporal.
-          </p>
-        </div>
-
+      <PageTitle
+        eyebrow="Linha do tempo financeira"
+        title="Calendário"
+        description="Movimentos, vencimentos e marcos financeiros em uma única visão temporal."
+        actions={
         <div className={`grid w-full grid-cols-[auto_1fr_auto] gap-2 sm:flex sm:w-auto sm:flex-wrap ${orbitActionTokens}`}>
           <Button
             variant="outline"
@@ -233,15 +224,19 @@ export default function OrbitCalendar() {
               onChange={changeAccount}
             />
           </div>
-          <Link
+          <Button
+            as="a"
             href="/transacoes/nova"
-            className="col-span-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/40 bg-[var(--orbit-primary-subtle)] px-3 text-sm font-bold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:col-span-1"
+            variant="outline"
+            size="sm"
+            icon={<FaPlus aria-hidden="true" />}
+            className="col-span-3 sm:col-span-1"
           >
-            <FaPlus aria-hidden="true" />
             Nova transação
-          </Link>
+          </Button>
         </div>
-      </header>
+        }
+      />
 
       {error && (
         <div
@@ -415,31 +410,27 @@ function MonthNavigator({
 }) {
   return (
     <aside
-      className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 ${orbitActionTokens}`}
+      className={`-mx-4 border-y border-[var(--border)] bg-[var(--surface)] py-4 sm:mx-0 sm:rounded-2xl sm:border sm:p-4 ${orbitActionTokens}`}
       aria-label="Navegação mensal"
     >
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <button
-          type="button"
+      <div className="mb-3 flex items-center justify-between gap-2 px-4 sm:px-0">
+        <IconButton
+          label="Mês anterior"
+          icon={<FaChevronLeft />}
           onClick={onPrevious}
-          aria-label="Mês anterior"
-          className="grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          <FaChevronLeft aria-hidden="true" />
-        </button>
+          className="border border-[var(--border)] bg-[var(--surface-raised)]"
+        />
         <h2 className="truncate text-sm font-bold text-[var(--foreground)]">
           {monthLabel}
         </h2>
-        <button
-          type="button"
+        <IconButton
+          label="Próximo mês"
+          icon={<FaChevronRight />}
           onClick={onNext}
-          aria-label="Próximo mês"
-          className="grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          <FaChevronRight aria-hidden="true" />
-        </button>
+          className="border border-[var(--border)] bg-[var(--surface-raised)]"
+        />
       </div>
-      <div className="grid grid-cols-7 gap-1" aria-hidden="true">
+      <div className="grid grid-cols-7 gap-0 sm:gap-1" aria-hidden="true">
         {compactWeekDays.map((day, index) => (
           <span
             key={`${day}-${index}`}
@@ -732,13 +723,9 @@ function CommitmentsAgenda({
       )}
 
       {total > 6 && (
-        <button
-          type="button"
-          onClick={onToggleAll}
-          className="mt-3 min-h-11 w-full rounded-[10px] border border-[var(--border)] px-3 text-sm font-bold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
+        <Button className="mt-3" variant="outline" size="sm" fullWidth onClick={onToggleAll}>
           {showAll ? 'Mostrar menos' : `Ver todos (${total})`}
-        </button>
+        </Button>
       )}
     </aside>
   );
@@ -761,7 +748,7 @@ function EventDetailDrawer({
       description={eventKindLabel(event)}
       closeLabel="Fechar detalhe"
       onClose={onClose}
-      maxWidthClass={`max-w-[520px] ${orbitActionTokens}`}
+      maxWidthClass={`max-w-lg ${orbitActionTokens}`}
     >
       <dl className=" grid grid-cols-2 gap-2.5">
         <DetailBox label="Valor" value={signedAmount(event, showValues)} />
@@ -780,12 +767,9 @@ function EventDetailDrawer({
         <DetailBox label="Origem" value={eventKindLabel(event)} />
       </dl>
 
-      <Link
-        href={event.href}
-        className="mt-4 inline-flex min-h-11 items-center rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-      >
+      <Button as="a" href={event.href} className="mt-4" variant="outline" size="sm">
         Abrir origem
-      </Link>
+      </Button>
     </ModalShell>
   );
 }

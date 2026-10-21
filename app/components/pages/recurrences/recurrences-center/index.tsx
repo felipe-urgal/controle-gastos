@@ -1,9 +1,7 @@
 'use client';
 
-import { Button } from '@/app/components/ui';
-import { PageContainer } from '@/app/components/base-pages';
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
-import Link from 'next/link';
+import { Button, Input } from '@/app/components/ui';
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -16,7 +14,7 @@ import {
   FaTimes,
 } from 'react-icons/fa';
 
-import { PageEmpty, PageLoading } from '@/app/components/feedback';
+import { Alert, PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { SubscriptionSection } from '@/app/components/pages/recurrences/recurrences-center/subscription-section';
 import { ProtectedRoute } from '@/app/components/layout';
@@ -169,28 +167,28 @@ export default function RecurrencesCenter() {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className={pageTitleClassName}>
-              Recorrências e assinaturas
-            </h1>
-            <p className="mt-1 max-w-2xl text-sm text-[var(--text-muted)] sm:text-base">
-              Acompanhe séries cadastradas e revise padrões detectados antes de transformá-los em recorrências.
-            </p>
-          </div>
-          <Link
-            href="/transacoes/nova"
-            className="flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)]"
-          >
-            Nova transação
-            <FaArrowRight aria-hidden="true" />
-          </Link>
-        </header>
+        <PageTitle
+          title="Recorrências e assinaturas"
+          description="Acompanhe séries cadastradas e revise padrões detectados antes de transformá-los em recorrências."
+          actions={
+            <Button
+              as="a"
+              href="/transacoes/nova"
+              variant="outline"
+              pill
+              size="sm"
+              icon={<FaArrowRight aria-hidden="true" />}
+              iconPosition="right"
+            >
+              Nova transação
+            </Button>
+          }
+        />
 
         {error && (
-          <p role="alert" className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
-            {error}
-          </p>
+          <div className="mt-4">
+            <Alert variant="error" message={error} />
+          </div>
         )}
 
         {loading ? (
@@ -225,7 +223,7 @@ export default function RecurrencesCenter() {
                   <PageEmpty title="Nenhuma recorrência ativa" />
                 </div>
               ) : (
-                <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
                   {data.formal.map((item) => (
                     <FormalCard
                       key={item.id}
@@ -260,7 +258,7 @@ export default function RecurrencesCenter() {
                   <PageEmpty title="Nenhum padrão pendente de revisão" />
                 </div>
               ) : (
-                <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
                   {visibleCandidates.map((candidate) => (
                     <CandidateCard
                       key={candidate.id}
@@ -295,7 +293,7 @@ function Totals({ data, showValues }: { data: RecurrencesData; showValues: boole
   if (data.totals.length === 0) return null;
 
   return (
-    <section aria-label="Totais de recorrências" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <section aria-label="Totais de recorrências" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {data.totals.map((total) => (
         <article key={total.currency} className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">
           <span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">{total.currency}</span>
@@ -356,22 +354,27 @@ function FormalCard({
           <FaPen aria-hidden="true" />
           Editar série
         </Button>
-        <Link
+        <Button
+          as="a"
           href={`/transacoes/alterar/${item.transactionId}`}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)]"
+          variant="outline"
+          pill
+          size="sm"
+          icon={<FaArrowRight aria-hidden="true" />}
+          iconPosition="right"
         >
           Editar próxima ocorrência
-          <FaArrowRight aria-hidden="true" />
-        </Link>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="danger"
+          pill
+          size="sm"
+          icon={<FaStopCircle aria-hidden="true" />}
           onClick={onEnd}
           disabled={ending}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--expense)]/35 px-4 text-sm font-bold text-[var(--expense)] disabled:opacity-50"
         >
-          <FaStopCircle aria-hidden="true" />
           {ending ? 'Encerrando…' : 'Encerrar recorrência'}
-        </button>
+        </Button>
       </div>
     </article>
   );
@@ -449,40 +452,32 @@ function EditSeriesModal({
       maxWidthClass="max-w-md"
     >
       <form onSubmit={submit} className="space-y-4">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
-              Descrição
-            </span>
-            <input
-              ref={descriptionRef}
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              minLength={2}
-              maxLength={100}
-              required
-              disabled={saving}
-              className="min-h-11 w-full rounded-[12px] border border-[var(--border)] bg-[var(--background)] px-3 text-[var(--foreground)] outline-none focus:border-[var(--orbit-primary)]"
-            />
-          </label>
+          <Input
+            ref={descriptionRef}
+            label="Descrição"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            minLength={2}
+            maxLength={100}
+            enterKeyHint="next"
+            disabled={saving}
+          />
 
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
-              Valor ({item.currency})
-            </span>
-            <input
+          <div>
+            <Input
+              label={`Valor (${item.currency})`}
+              aria-label={`Valor (${item.currency})`}
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               inputMode="decimal"
-              aria-label={`Valor (${item.currency})`}
-              required
+              enterKeyHint="done"
               disabled={saving}
               aria-describedby="edit-series-amount-help"
-              className="min-h-11 w-full rounded-[12px] border border-[var(--border)] bg-[var(--background)] px-3 text-[var(--foreground)] outline-none focus:border-[var(--orbit-primary)]"
             />
             <span id="edit-series-amount-help" className="mt-1 block text-xs text-[var(--text-muted)]">
               Use vírgula para centavos.
             </span>
-          </label>
+          </div>
 
           {error && (
             <p role="alert" className="text-sm font-semibold text-[var(--expense)]">
@@ -491,14 +486,9 @@ function EditSeriesModal({
           )}
 
           <div className="flex flex-wrap justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="min-h-11 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)] disabled:opacity-50"
-            >
+            <Button variant="outline" pill size="sm" onClick={onClose} disabled={saving}>
               Cancelar
-            </button>
+            </Button>
             <Button variant="accent" pill size="sm"
               type="submit"
               disabled={saving || description.trim().length < 2}
@@ -593,23 +583,25 @@ function CandidateCard({
           <FaCheck aria-hidden="true" />
           {confirming ? 'Confirmando…' : 'Confirmar recorrência'}
         </Button>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          pill
+          size="sm"
+          icon={<FaTimes aria-hidden="true" />}
           onClick={onIgnore}
           disabled={confirming || suppressing}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)] disabled:opacity-50"
         >
-          <FaTimes aria-hidden="true" />
           Ignorar agora
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="ghost"
+          pill
+          size="sm"
           onClick={onSuppress}
           disabled={confirming || suppressing}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--text-muted)] disabled:opacity-50"
         >
           {suppressing ? 'Salvando…' : 'Não sugerir novamente'}
-        </button>
+        </Button>
       </div>
     </article>
   );

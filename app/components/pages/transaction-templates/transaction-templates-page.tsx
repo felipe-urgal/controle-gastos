@@ -1,7 +1,6 @@
 'use client';
 
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
-import Link from 'next/link';
 import {
   useCallback,
   useEffect,
@@ -10,8 +9,13 @@ import {
 } from 'react';
 
 import Pagination from '@/app/components/navigation/pagination';
+import { Alert } from '@/app/components/feedback';
+import { ProtectedRoute } from '@/app/components/layout';
+import { Button, Input, Select } from '@/app/components/ui';
+import { FaPlus } from 'react-icons/fa';
 import { useAuth } from '@/app/context';
 import { useDebounce } from '@/app/hooks/use-debounce';
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { analyzeTransactionTemplateSource } from '@/app/lib/templates/transaction-template-mapping';
@@ -105,6 +109,8 @@ export default function TransactionTemplatesPage({
 }) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const [formOpen, setFormOpen] = useState(Boolean(sourceTransactionId));
   const [items, setItems] = useState<TransactionTemplateDTO[]>([]);
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
@@ -234,6 +240,7 @@ export default function TransactionTemplatesPage({
     let cancelled = false;
     void transactionTemplateService.getById(focusTemplateId).then(({ data }) => {
       if (cancelled) return;
+      setFormOpen(true);
       setEditing(data);
       setForm(inputFromTemplate(data));
       setSourceNotices([]);
@@ -252,6 +259,7 @@ export default function TransactionTemplatesPage({
   );
 
   function resetForm() {
+    setFormOpen(false);
     setEditing(null);
     setForm(emptyForm);
     setSourceNotices([]);
@@ -260,6 +268,7 @@ export default function TransactionTemplatesPage({
   }
 
   function startEdit(item: TransactionTemplateDTO) {
+    setFormOpen(true);
     setEditing(item);
     setForm(inputFromTemplate(item));
     setSourceNotices([]);
@@ -383,262 +392,239 @@ export default function TransactionTemplatesPage({
   const categorySelectDisabled =
     categoriesLoading || Boolean(categoryError);
 
+  const formTitle = editing
+    ? 'Editar modelo'
+    : sourceTransactionId
+      ? 'Salvar transação como modelo'
+      : 'Novo modelo';
+  const submitLabel = saving
+    ? 'Salvando...'
+    : editing
+      ? 'Salvar alterações'
+      : 'Salvar modelo';
+  const submitDisabled = sourceBlocked || saving || !form.name.trim();
+
+  const accountOptions = [
+    ...(editingInactiveAccount
+      ? [
+          {
+            value: editingInactiveAccount.id,
+            label: `${editingInactiveAccount.name} (inativa — escolha outra)`,
+            disabled: true,
+          },
+        ]
+      : []),
+    ...accounts
+      .filter((account) => account.isActive)
+      .map((account) => ({ value: account.id, label: account.name })),
+  ];
+  const categoryOptions = [
+    ...(editingInactiveCategory && editingInactiveCategory.type === form.type
+      ? [
+          {
+            value: editingInactiveCategory.id,
+            label: `${editingInactiveCategory.name} (inativa — escolha outra)`,
+            disabled: true,
+          },
+        ]
+      : []),
+    ...compatibleCategories
+      .filter((category) => category.isActive)
+      .map((category) => ({ value: category.id, label: category.name })),
+  ];
+
+  const formFields = (
+    <div className="mt-4 grid gap-3">
+      <Input
+        label="Nome"
+        maxLength={80}
+        enterKeyHint="next"
+        value={form.name}
+        onChange={(event) =>
+          setForm((value) => ({ ...value, name: event.target.value }))
+        }
+      />
+
+      <Select
+        label="Tipo"
+        value={form.type}
+        onChange={(next) =>
+          setForm((value) => ({
+            ...value,
+            type: next as 'INCOME' | 'EXPENSE',
+            categoryId: null,
+          }))
+        }
+        options={[
+          { value: 'EXPENSE', label: 'Despesa' },
+          { value: 'INCOME', label: 'Receita' },
+        ]}
+      />
+
+      <Input
+        label="Descrição"
+        maxLength={TRANSACTION_DESCRIPTION_MAX_LENGTH}
+        enterKeyHint="next"
+        value={form.description ?? ''}
+        onChange={(event) =>
+          setForm((value) => ({
+            ...value,
+            description: event.target.value,
+          }))
+        }
+      />
+
+      <Input
+        label="Valor opcional"
+        type="number"
+        inputMode="decimal"
+        enterKeyHint="done"
+        min="0.01"
+        max={TRANSACTION_MAX_AMOUNT_CENTS / 100}
+        step="0.01"
+        value={form.amount ? form.amount / 100 : ''}
+        onChange={(event) =>
+          setForm((value) => ({
+            ...value,
+            amount: event.target.value
+              ? Math.round(Number(event.target.value) * 100)
+              : null,
+          }))
+        }
+      />
+
+      <div className="grid gap-1">
+        <Select
+          label="Conta opcional"
+          value={form.accountId ?? ''}
+          disabled={accountSelectDisabled}
+          onChange={(next) =>
+            setForm((value) => ({ ...value, accountId: String(next) || null }))
+          }
+          placeholder={accountsLoading ? 'Carregando contas…' : 'Escolher ao usar'}
+          options={accountOptions}
+        />
+        {accountError && (
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] p-2 text-xs">
+            <span role="alert">{accountError}</span>
+            <Button variant="outline" size="sm" onClick={() => void loadAccounts()}>
+              Tentar novamente
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="grid gap-1">
+        <Select
+          label="Categoria opcional"
+          value={form.categoryId ?? ''}
+          disabled={categorySelectDisabled}
+          onChange={(next) =>
+            setForm((value) => ({ ...value, categoryId: String(next) || null }))
+          }
+          placeholder={categoriesLoading ? 'Carregando categorias…' : 'Escolher ao usar'}
+          options={categoryOptions}
+        />
+        {categoryError && (
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] p-2 text-xs">
+            <span role="alert">{categoryError}</span>
+            <Button variant="outline" size="sm" onClick={() => void loadCategories()}>
+              Tentar novamente
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <label className="flex min-h-11 items-center gap-2 text-sm font-semibold">
+        <input
+          type="checkbox"
+          checked={form.isFavorite ?? false}
+          onChange={(event) =>
+            setForm((value) => ({
+              ...value,
+              isFavorite: event.target.checked,
+            }))
+          }
+        />
+        Favoritar
+      </label>
+    </div>
+  );
+
+  const sourceNoticeList = sourceNotices.length > 0 && (
+    <div className="mt-3 grid gap-2" aria-label="Avisos da transação de origem">
+      {sourceNotices.map((notice) => (
+        <p
+          key={notice}
+          className="rounded-xl border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm"
+        >
+          {notice}
+        </p>
+      ))}
+    </div>
+  );
+
   return (
+    <ProtectedRoute>
     <PageContainer>
-      <PageTitle eyebrow="Atalhos" title="Modelos de lançamento" description="Modelos apenas preenchem uma nova transação. Nada é lançado sem sua confirmação." />
+      <PageTitle
+        eyebrow="Atalhos"
+        title="Modelos de lançamento"
+        description="Modelos apenas preenchem uma nova transação. Nada é lançado sem sua confirmação."
+        actions={
+          isDesktop ? undefined : (
+            <Button
+              variant="accent"
+              size="sm"
+              icon={<FaPlus aria-hidden="true" />}
+              onClick={() => {
+                resetForm();
+                setFormOpen(true);
+              }}
+            >
+              Novo modelo
+            </Button>
+          )
+        }
+      />
 
       {actionError && (
-        <p
-          role="alert"
-          className="mt-4 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
-        >
-          {actionError}
-        </p>
+        <div className="mt-4">
+          <Alert variant="error" message={actionError} />
+        </div>
       )}
       {sourceError && (
-        <p
-          role="alert"
-          className="mt-4 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
-        >
-          {sourceError}
-        </p>
+        <div className="mt-4">
+          <Alert variant="error" message={sourceError} />
+        </div>
       )}
       {successMessage && (
-        <p
-          role="status"
-          className="mt-4 rounded-xl border border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)] p-3 text-sm"
-        >
-          {successMessage}
-        </p>
+        <div className="mt-4">
+          <Alert variant="success" message={successMessage} />
+        </div>
       )}
 
-      <section className="mt-5 grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <form
-          onSubmit={saveTemplate}
-          className="h-fit rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold">
-              {editing
-                ? 'Editar modelo'
-                : sourceTransactionId
-                  ? 'Salvar transação como modelo'
-                  : 'Novo modelo'}
-            </h2>
-            {editing && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold"
-              >
-                Cancelar
-              </button>
-            )}
-          </div>
-
-          {sourceNotices.length > 0 && (
-            <div
-              className="mt-3 grid gap-2"
-              aria-label="Avisos da transação de origem"
-            >
-              {sourceNotices.map((notice) => (
-                <p
-                  key={notice}
-                  className="rounded-xl border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm"
-                >
-                  {notice}
-                </p>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-4 grid gap-3">
-            <label className="grid gap-1 text-sm font-semibold">
-              Nome
-              <input
-                required
-                maxLength={80}
-                value={form.name}
-                onChange={(event) =>
-                  setForm((value) => ({ ...value, name: event.target.value }))
-                }
-                className="ds-control min-h-11 bg-[var(--surface)] px-3"
-              />
-            </label>
-
-            <label className="grid gap-1 text-sm font-semibold">
-              Tipo
-              <select
-                value={form.type}
-                onChange={(event) =>
-                  setForm((value) => ({
-                    ...value,
-                    type: event.target.value as 'INCOME' | 'EXPENSE',
-                    categoryId: null,
-                  }))
-                }
-                className="ds-control min-h-11 bg-[var(--surface)] px-3"
-              >
-                <option value="EXPENSE">Despesa</option>
-                <option value="INCOME">Receita</option>
-              </select>
-            </label>
-
-            <label className="grid gap-1 text-sm font-semibold">
-              Descrição
-              <input
-                maxLength={TRANSACTION_DESCRIPTION_MAX_LENGTH}
-                value={form.description ?? ''}
-                onChange={(event) =>
-                  setForm((value) => ({
-                    ...value,
-                    description: event.target.value,
-                  }))
-                }
-                className="ds-control min-h-11 bg-[var(--surface)] px-3"
-              />
-            </label>
-
-            <label className="grid gap-1 text-sm font-semibold">
-              Valor opcional
-              <input
-                type="number"
-                min="0.01"
-                max={TRANSACTION_MAX_AMOUNT_CENTS / 100}
-                step="0.01"
-                value={form.amount ? form.amount / 100 : ''}
-                onChange={(event) =>
-                  setForm((value) => ({
-                    ...value,
-                    amount: event.target.value
-                      ? Math.round(Number(event.target.value) * 100)
-                      : null,
-                  }))
-                }
-                className="ds-control min-h-11 bg-[var(--surface)] px-3"
-              />
-            </label>
-
-            <div className="grid gap-1">
-              <label className="grid gap-1 text-sm font-semibold">
-                Conta opcional
-                <select
-                  value={form.accountId ?? ''}
-                  disabled={accountSelectDisabled}
-                  onChange={(event) =>
-                    setForm((value) => ({
-                      ...value,
-                      accountId: event.target.value || null,
-                    }))
-                  }
-                  className="ds-control min-h-11 bg-[var(--surface)] px-3 disabled:opacity-60"
-                >
-                  <option value="">
-                    {accountsLoading ? 'Carregando contas…' : 'Escolher ao usar'}
-                  </option>
-                  {editingInactiveAccount && (
-                    <option value={editingInactiveAccount.id} disabled>
-                      {editingInactiveAccount.name} (inativa — escolha outra)
-                    </option>
-                  )}
-                  {accounts
-                    .filter((account) => account.isActive)
-                    .map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              {accountError && (
-                <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] p-2 text-xs">
-                  <span role="alert">{accountError}</span>
-                  <button
-                    type="button"
-                    onClick={() => void loadAccounts()}
-                    className="min-h-11 shrink-0 rounded-lg border border-[var(--border)] px-3 font-semibold"
-                  >
-                    Tentar novamente
-                  </button>
-                </div>
+      <section className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+        {isDesktop && (
+          <form
+            onSubmit={saveTemplate}
+            className="h-fit rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-bold">{formTitle}</h2>
+              {editing && (
+                <Button variant="outline" size="sm" onClick={resetForm}>
+                  Cancelar
+                </Button>
               )}
             </div>
-
-            <div className="grid gap-1">
-              <label className="grid gap-1 text-sm font-semibold">
-                Categoria opcional
-                <select
-                  value={form.categoryId ?? ''}
-                  disabled={categorySelectDisabled}
-                  onChange={(event) =>
-                    setForm((value) => ({
-                      ...value,
-                      categoryId: event.target.value || null,
-                    }))
-                  }
-                  className="ds-control min-h-11 bg-[var(--surface)] px-3 disabled:opacity-60"
-                >
-                  <option value="">
-                    {categoriesLoading
-                      ? 'Carregando categorias…'
-                      : 'Escolher ao usar'}
-                  </option>
-                  {editingInactiveCategory &&
-                    editingInactiveCategory.type === form.type && (
-                      <option value={editingInactiveCategory.id} disabled>
-                        {editingInactiveCategory.name} (inativa — escolha outra)
-                      </option>
-                    )}
-                  {compatibleCategories
-                    .filter((category) => category.isActive)
-                    .map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              {categoryError && (
-                <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] p-2 text-xs">
-                  <span role="alert">{categoryError}</span>
-                  <button
-                    type="button"
-                    onClick={() => void loadCategories()}
-                    className="min-h-11 shrink-0 rounded-lg border border-[var(--border)] px-3 font-semibold"
-                  >
-                    Tentar novamente
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <label className="flex min-h-11 items-center gap-2 text-sm font-semibold">
-              <input
-                type="checkbox"
-                checked={form.isFavorite ?? false}
-                onChange={(event) =>
-                  setForm((value) => ({
-                    ...value,
-                    isFavorite: event.target.checked,
-                  }))
-                }
-              />
-              Favoritar
-            </label>
-
-            <button
-              type="submit"
-              disabled={sourceBlocked || saving}
-              className="min-h-11 rounded-xl bg-[var(--orbit-primary)] px-4 text-sm font-bold text-[var(--orbit-on-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {saving
-                ? 'Salvando...'
-                : editing
-                  ? 'Salvar alterações'
-                  : 'Salvar modelo'}
-            </button>
-          </div>
-        </form>
+            {sourceNoticeList}
+            {formFields}
+            <Button type="submit" variant="accent" fullWidth className="mt-3" disabled={submitDisabled}>
+              {submitLabel}
+            </Button>
+          </form>
+        )}
 
         <section aria-labelledby="transaction-template-list-heading">
           <div className="flex items-center justify-between gap-3">
@@ -646,37 +632,30 @@ export default function TransactionTemplatesPage({
               Seus modelos
             </h2>
             {templateError && (
-              <button
-                type="button"
-                onClick={() => void loadTemplates()}
-                className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold"
-              >
+              <Button variant="outline" size="sm" onClick={() => void loadTemplates()}>
                 Tentar novamente
-              </button>
+              </Button>
             )}
           </div>
 
-          <label className="mt-3 grid gap-1 text-sm font-semibold">
-            Buscar modelos
-            <input
+          <div className="mt-3">
+            <Input
+              label="Buscar modelos"
               type="search"
+              enterKeyHint="search"
               value={templateSearch}
               placeholder="Nome ou descrição"
               onChange={(event) => {
                 setTemplateSearch(event.target.value);
                 setTemplatePage(1);
               }}
-              className="ds-control min-h-11 bg-[var(--surface)] px-3"
             />
-          </label>
+          </div>
 
           {templateError ? (
-            <p
-              role="alert"
-              className="mt-3 rounded-2xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-4 text-sm text-[var(--expense)]"
-            >
-              {templateError}
-            </p>
+            <div className="mt-3">
+              <Alert variant="error" message={templateError} />
+            </div>
           ) : templatesLoading ? (
             <p className="mt-4 text-sm text-[var(--text-muted)]">
               Carregando…
@@ -686,7 +665,7 @@ export default function TransactionTemplatesPage({
               Nenhum modelo criado.
             </p>
           ) : (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {items.map((item) => {
                 const favoriteBusy = favoriteBusyIds.includes(item.id);
                 const deleting = deletingIds.includes(item.id);
@@ -694,7 +673,7 @@ export default function TransactionTemplatesPage({
                 return (
                   <article
                     key={item.id}
-                    className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
+                    className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
                   >
                     <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--orbit-primary)]">
                       <span>
@@ -702,7 +681,7 @@ export default function TransactionTemplatesPage({
                       </span>
                       {item.isFavorite && <span>★ Favorito</span>}
                     </div>
-                    <h3 className="mt-1 truncate font-bold">{item.name}</h3>
+                    <h3 className="mt-1 truncate font-bold" title={item.name}>{item.name}</h3>
                     <p className="mt-1 truncate text-sm text-[var(--text-muted)]">
                       {item.description || 'Sem descrição fixa'}
                     </p>
@@ -717,39 +696,37 @@ export default function TransactionTemplatesPage({
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-2">
-                      <Link
+                      <Button
+                        as="a"
                         href={`/transacoes/nova?template=${encodeURIComponent(item.id)}`}
-                        className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--orbit-primary)] px-3 text-sm font-bold text-[var(--orbit-on-primary)]"
+                        variant="accent"
+                        size="sm"
                       >
                         Usar
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => startEdit(item)}
-                        className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold"
-                      >
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => startEdit(item)}>
                         Editar
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         disabled={favoriteBusy}
                         onClick={() => void toggleFavorite(item)}
-                        className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold disabled:opacity-50"
                       >
                         {favoriteBusy
                           ? 'Atualizando...'
                           : item.isFavorite
                             ? 'Desfavoritar'
                             : 'Favoritar'}
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         disabled={deleting}
                         onClick={() => setDeleteCandidate(item)}
-                        className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold disabled:opacity-50"
                       >
                         {deleting ? 'Excluindo...' : 'Excluir'}
-                      </button>
+                      </Button>
                     </div>
                   </article>
                 );
@@ -775,6 +752,31 @@ export default function TransactionTemplatesPage({
         </section>
       </section>
 
+      {!isDesktop && formOpen && (
+        <ModalShell
+          variant="fullscreen-sheet"
+          title={formTitle}
+          onClose={resetForm}
+          closeDisabled={saving}
+          footer={
+            <Button
+              type="submit"
+              form="transaction-template-form"
+              variant="accent"
+              fullWidth
+              disabled={submitDisabled}
+            >
+              {submitLabel}
+            </Button>
+          }
+        >
+          <form id="transaction-template-form" onSubmit={saveTemplate}>
+            {sourceNoticeList}
+            {formFields}
+          </form>
+        </ModalShell>
+      )}
+
       {deleteCandidate && (
         <ModalShell
           title="Excluir Modelo?"
@@ -784,22 +786,16 @@ export default function TransactionTemplatesPage({
           maxWidthClass="max-w-md"
           footer={
             <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                disabled={deletingCandidate}
-                onClick={closeDeleteDialog}
-                className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold disabled:opacity-50"
-              >
+              <Button variant="outline" disabled={deletingCandidate} onClick={closeDeleteDialog}>
                 Cancelar
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="danger"
                 disabled={deletingCandidate}
                 onClick={() => void removeTemplate(deleteCandidate.id)}
-                className="min-h-11 rounded-xl bg-[var(--expense)] px-3 text-sm font-bold text-white disabled:opacity-50"
               >
                 {deletingCandidate ? 'Excluindo...' : 'Excluir'}
-              </button>
+              </Button>
             </div>
           }
         >
@@ -807,5 +803,6 @@ export default function TransactionTemplatesPage({
         </ModalShell>
       )}
     </PageContainer>
+    </ProtectedRoute>
   );
 }

@@ -96,6 +96,7 @@ export default function Pagination({
             disabled={loading}
             aria-label={`Página ${visiblePage}`}
             aria-current={visiblePage === page ? 'page' : undefined}
+            className="min-w-11"
           >
             {visiblePage}
           </Button>

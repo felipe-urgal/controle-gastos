@@ -15,6 +15,8 @@ import {
 } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
+import { Alert } from '@/app/components/feedback';
+import { Button, IconButton, Input } from '@/app/components/ui';
 import ConfirmationModal from '@/app/components/overlays/confirmation-modal';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -311,49 +313,39 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
         <PageTitle eyebrow="Contexto" title="Tags" description="Classifique transações por contexto sem alterar categoria, saldo ou tipo financeiro." />
 
 
-        <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,.8fr)]">
+        <section className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,.8fr)]">
           <div className="space-y-4">
             <form
               onSubmit={createTag}
               className="ds-panel flex flex-col gap-3 p-4 sm:flex-row sm:items-end"
             >
-              <label className="grid flex-1 gap-1 text-sm font-semibold">
-                Nova tag
-                <input
+              <div className="min-w-0 flex-1">
+                <Input
+                  label="Nova tag"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   maxLength={41}
                   placeholder="Ex.: ferias-2026"
-                  className="ds-control min-h-11 bg-[var(--surface)] px-3"
+                  enterKeyHint="done"
                   disabled={creating}
                 />
-              </label>
-              <button
+              </div>
+              <Button
                 type="submit"
+                variant="accent"
+                icon={<FaPlus aria-hidden="true" />}
                 disabled={creating || !normalizeTagDisplayName(name)}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--orbit-primary)] px-4 text-sm font-bold text-[var(--orbit-on-primary)] disabled:opacity-50"
               >
-                <FaPlus aria-hidden="true" />
                 {creating ? 'Criando…' : 'Criar tag'}
-              </button>
+              </Button>
             </form>
 
             {notice && actionFeedbackTagId === null ? (
-              <p
-                role="status"
-                className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--foreground)]"
-              >
-                {notice}
-              </p>
+              <Alert variant="info" message={notice} />
             ) : null}
 
             {actionError && actionFeedbackTagId === null ? (
-              <p
-                role="alert"
-                className="rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
-              >
-                {actionError}
-              </p>
+              <Alert variant="error" message={actionError} />
             ) : null}
 
             <section className="ds-panel p-4" aria-labelledby="tag-list-title">
@@ -365,15 +357,15 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                   </h2>
                 </div>
                 {listError ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<FaRedo aria-hidden="true" />}
                     onClick={() => void loadTags()}
                     disabled={loadingTags}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] px-3 text-sm font-bold"
                   >
-                    <FaRedo aria-hidden="true" />
                     Tentar novamente
-                  </button>
+                  </Button>
                 ) : null}
               </div>
 
@@ -382,29 +374,23 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                 className="mt-4 flex flex-col gap-2 sm:flex-row"
                 role="search"
               >
-                <input
-                  value={searchDraft}
-                  onChange={(event) => setSearchDraft(event.target.value)}
-                  placeholder="Buscar tag pelo nome"
-                  className="ds-control min-h-11 min-w-0 flex-1 bg-[var(--surface)] px-3 text-sm"
-                  aria-label="Buscar tags"
-                />
-                <button
-                  type="submit"
-                  disabled={loadingTags}
-                  className="min-h-11 rounded-xl border border-[var(--border)] px-4 text-sm font-bold"
-                >
+                <div className="min-w-0 flex-1">
+                  <Input
+                    value={searchDraft}
+                    onChange={(event) => setSearchDraft(event.target.value)}
+                    placeholder="Buscar tag pelo nome"
+                    aria-label="Buscar tags"
+                    type="search"
+                    enterKeyHint="search"
+                  />
+                </div>
+                <Button type="submit" variant="outline" size="sm" disabled={loadingTags}>
                   Buscar
-                </button>
+                </Button>
                 {search ? (
-                  <button
-                    type="button"
-                    onClick={clearSearch}
-                    disabled={loadingTags}
-                    className="min-h-11 px-3 text-sm font-semibold text-[var(--text-muted)]"
-                  >
+                  <Button type="button" variant="ghost" size="sm" onClick={clearSearch} disabled={loadingTags}>
                     Limpar
-                  </button>
+                  </Button>
                 ) : null}
               </form>
 
@@ -416,12 +402,9 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
               ) : null}
 
               {listError ? (
-                <p
-                  role="alert"
-                  className="mt-4 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
-                >
-                  {listError}
-                </p>
+                <div className="mt-4">
+                  <Alert variant="error" message={listError} />
+                </div>
               ) : loadingTags ? (
                 <p className="mt-4 text-sm text-[var(--text-muted)]">Carregando tags…</p>
               ) : tags.length === 0 ? (
@@ -440,44 +423,51 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                           onSubmit={saveRename}
                           className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row"
                         >
-                          <input
-                            autoFocus
-                            value={editing.name}
-                            onChange={(event) =>
-                              setEditing({ id: tag.id, name: event.target.value })
-                            }
-                            maxLength={41}
-                            aria-label="Novo nome da tag"
-                            className="ds-control min-h-11 min-w-0 flex-1 bg-[var(--surface)] px-3"
-                            disabled={renamingId === tag.id}
-                          />
-                          <button
+                          <div className="min-w-0 flex-1">
+                            <Input
+                              autoFocus
+                              value={editing.name}
+                              onChange={(event) =>
+                                setEditing({ id: tag.id, name: event.target.value })
+                              }
+                              maxLength={41}
+                              aria-label="Novo nome da tag"
+                              enterKeyHint="done"
+                              disabled={renamingId === tag.id}
+                            />
+                          </div>
+                          <Button
                             type="submit"
+                            variant="outline"
+                            size="sm"
                             disabled={
                               renamingId === tag.id ||
                               !normalizeTagDisplayName(editing.name)
                             }
-                            className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-bold"
                           >
                             {renamingId === tag.id ? 'Salvando…' : 'Salvar'}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => setEditing(null)}
                             disabled={renamingId === tag.id}
-                            className="min-h-11 px-2 text-sm text-[var(--text-muted)]"
                           >
                             Cancelar
-                          </button>
+                          </Button>
                         </form>
                       ) : (
                         <>
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <strong className="break-all text-sm text-[var(--foreground)]">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <strong
+                                className="min-w-0 truncate text-sm text-[var(--foreground)]"
+                                title={`#${tag.name}`}
+                              >
                                 #{tag.name}
                               </strong>
-                              <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">
+                              <span className="shrink-0 rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">
                                 {tag.isActive ? 'Ativa' : 'Arquivada'}
                               </span>
                             </div>
@@ -489,46 +479,30 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                           </div>
 
                           <div className="flex flex-wrap items-center gap-1 self-end sm:self-auto">
-                            <button
-                              type="button"
+                            <IconButton
+                              label={`Relatório da tag ${tag.name}`}
+                              icon={<FaChartBar />}
                               onClick={() => void loadReport(tag)}
                               disabled={reportLoadingTagId !== null}
-                              aria-label={`Relatório da tag ${tag.name}`}
-                              className="grid min-h-11 min-w-11 place-items-center rounded-xl text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)] disabled:opacity-50"
-                            >
-                              <FaChartBar aria-hidden="true" />
-                            </button>
-                            <button
-                              type="button"
+                            />
+                            <IconButton
+                              label={`Renomear tag ${tag.name}`}
+                              icon={<FaEdit />}
                               onClick={() => setEditing({ id: tag.id, name: tag.name })}
                               disabled={renamingId !== null}
-                              aria-label={`Renomear tag ${tag.name}`}
-                              className="grid min-h-11 min-w-11 place-items-center rounded-xl text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)] disabled:opacity-50"
-                            >
-                              <FaEdit aria-hidden="true" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void toggleArchive(tag)}
-                              disabled={lifecycleId !== null}
-                              aria-label={
+                            />
+                            <IconButton
+                              label={
                                 tag.isActive
                                   ? `Arquivar tag ${tag.name}`
                                   : `Reativar tag ${tag.name}`
                               }
-                              className="grid min-h-11 min-w-11 place-items-center rounded-xl text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)] disabled:opacity-50"
-                            >
-                              {tag.isActive ? (
-                                <FaArchive aria-hidden="true" />
-                              ) : (
-                                <FaUndo aria-hidden="true" />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeleteCandidate(tag)}
-                              disabled={tag.transactionCount > 0 || deletingId !== null}
-                              aria-label={
+                              icon={tag.isActive ? <FaArchive /> : <FaUndo />}
+                              onClick={() => void toggleArchive(tag)}
+                              disabled={lifecycleId !== null}
+                            />
+                            <IconButton
+                              label={
                                 tag.transactionCount > 0
                                   ? `Não é possível excluir ${tag.name}; arquive para preservar o histórico`
                                   : `Excluir tag ${tag.name}`
@@ -538,25 +512,22 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                                   ? 'Tag em uso: arquive para preservar o histórico'
                                   : 'Excluir permanentemente'
                               }
-                              className="grid min-h-11 min-w-11 place-items-center rounded-xl text-[var(--text-muted)] hover:bg-[var(--danger-subtle)] hover:text-[var(--expense)] disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              <FaTrash aria-hidden="true" />
-                            </button>
+                              tone="danger"
+                              icon={<FaTrash />}
+                              onClick={() => setDeleteCandidate(tag)}
+                              disabled={tag.transactionCount > 0 || deletingId !== null}
+                            />
                           </div>
                         </>
                       )}
 
                       {actionFeedbackTagId === tag.id && (notice || actionError) ? (
-                        <p
-                          role={actionError ? 'alert' : 'status'}
-                          className={
-                            actionError
-                              ? 'basis-full rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]'
-                              : 'basis-full rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--foreground)]'
-                          }
-                        >
-                          {actionError || notice}
-                        </p>
+                        <div className="basis-full">
+                          <Alert
+                            variant={actionError ? 'error' : 'info'}
+                            message={actionError || notice}
+                          />
+                        </div>
                       ) : null}
                     </li>
                   ))}
@@ -568,25 +539,25 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                   className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4"
                   aria-label="Paginação de tags"
                 >
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => changePage(Math.max(1, page - 1))}
                     disabled={page <= 1}
-                    className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-bold disabled:opacity-40"
                   >
                     Anterior
-                  </button>
+                  </Button>
                   <span className="text-xs font-semibold text-[var(--text-muted)]">
                     Página {page} de {totalPages}
                   </span>
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => changePage(Math.min(totalPages, page + 1))}
                     disabled={page >= totalPages}
-                    className="min-h-11 rounded-xl border border-[var(--border)] px-3 text-sm font-bold disabled:opacity-40"
                   >
                     Próxima
-                  </button>
+                  </Button>
                 </nav>
               ) : null}
             </section>
@@ -628,14 +599,15 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                   {reportError}
                 </p>
                 {selectedReportTag ? (
-                  <button
-                    type="button"
+                  <Button
+                    className="mt-3"
+                    variant="outline"
+                    size="sm"
+                    icon={<FaRedo aria-hidden="true" />}
                     onClick={() => void loadReport(selectedReportTag)}
-                    className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] px-3 text-sm font-bold text-[var(--foreground)]"
                   >
-                    <FaRedo aria-hidden="true" />
                     Tentar novamente
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             ) : !report ? (
@@ -645,7 +617,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
               </p>
             ) : (
               <div className="mt-4 space-y-3">
-                <strong className="block break-all">#{report.tag.name}</strong>
+                <strong className="block break-words [overflow-wrap:anywhere]">#{report.tag.name}</strong>
                 {report.currencies.length === 0 ? (
                   <p className="text-sm text-[var(--text-muted)]">
                     Sem transações concluídas nesta tag.

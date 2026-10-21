@@ -32,12 +32,14 @@ export default function CalendarGrid({
   showValues = true,
 }: CalendarGridProps) {
   const isMd = useMediaQuery('(min-width: 768px)');
+  // Abaixo de 390 px não cabem chips por célula: a densidade vira pontos coloridos + contador.
+  const isNarrow = useMediaQuery('(max-width: 389px)');
 
   if (isLoading) {
     if (!compact) return <CalendarDaysSkeleton />;
 
     return (
-      <div className="grid grid-cols-7 gap-1 p-2" aria-hidden="true">
+      <div className="grid grid-cols-7 gap-0 px-0 py-2 sm:gap-1 sm:p-2" aria-hidden="true">
         {Array.from({ length: 35 }).map((_, index) => (
           <div
             key={index}
@@ -55,7 +57,7 @@ export default function CalendarGrid({
     <div
       className={
         compact
-          ? 'grid grid-cols-7 gap-1 p-2'
+          ? 'grid grid-cols-7 gap-0 px-0 py-2 sm:gap-1 sm:p-2'
           : 'grid grid-cols-7 auto-rows-[88px] bg-[var(--border)] md:auto-rows-[118px]'
       }
       aria-label="Dias do mês"
@@ -230,7 +232,27 @@ export default function CalendarGrid({
 
             {eventCount > 0 && (
               <div className="mt-1.5 space-y-1 md:mt-2">
-                {!isMd && (
+                {!isMd && isNarrow && (
+                <div className="flex flex-wrap items-center gap-1" aria-hidden="true">
+                  {hasIncome && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--income)]" />
+                  )}
+                  {hasExpense && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--expense)]" />
+                  )}
+                  {hasTransfer && (
+                    <span className="h-1.5 w-1.5 rotate-45 bg-[var(--orbit-primary)]" />
+                  )}
+                  {pendingCount > 0 && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--warning)]" />
+                  )}
+                  {milestoneCount > 0 && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--text-muted)]" />
+                  )}
+                </div>
+                )}
+
+                {!isMd && !isNarrow && (
                 <div className="flex flex-wrap gap-1" aria-hidden="true">
                   {summaries.map((summary) => (
                     <span

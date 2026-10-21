@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/app/components/ui';
+import { Alert } from '@/app/components/feedback';
 import { useState } from 'react';
 import {
   FaCheck,
@@ -98,13 +99,11 @@ export function SubscriptionSection({
       </div>
 
       {error && (
-        <p role="alert" className="rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
-          {error}
-        </p>
+        <Alert variant="error" message={error} />
       )}
 
       {data.totals.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {data.totals.map((total) => (
             <article key={total.currency} className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">
               <span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
@@ -128,7 +127,7 @@ export function SubscriptionSection({
             <FaExclamationTriangle className="text-[var(--warning)]" aria-hidden="true" />
             <h3 className="font-bold text-[var(--foreground)]">Variações recentes de preço</h3>
           </div>
-          <div className="mt-3 grid gap-2 md:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
             {data.priceChanges.map((item) => (
               <PriceChange key={item.id} item={item} showValues={showValues} />
             ))}
@@ -141,7 +140,7 @@ export function SubscriptionSection({
           <h3 className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
             Confirmadas
           </h3>
-          <div className="mt-2 grid gap-3 lg:grid-cols-2">
+          <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
             {data.confirmed.map((item) => (
               <SubscriptionCard
                 key={item.id}
@@ -166,7 +165,7 @@ export function SubscriptionSection({
             Nenhuma assinatura pendente de revisão.
           </p>
         ) : (
-          <div className="mt-2 grid gap-3 lg:grid-cols-2">
+          <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
             {data.possible.map((item) => (
               <SubscriptionCard
                 key={item.id}
@@ -309,25 +308,27 @@ function SubscriptionCard({
           </Button>
         )}
 
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          pill
+          size="sm"
+          icon={<FaTimes aria-hidden="true" />}
           disabled={reviewing || creating}
           onClick={() => onReview('REJECTED')}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)] disabled:opacity-50"
         >
-          <FaTimes aria-hidden="true" />
           Não é assinatura
-        </button>
+        </Button>
 
         {item.status === 'POSSIBLE' && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            pill
+            size="sm"
             disabled={reviewing}
             onClick={() => onReview('IGNORED')}
-            className="min-h-11 rounded-full border border-[var(--border)] px-4 text-sm font-bold text-[var(--text-muted)] disabled:opacity-50"
           >
             Ignorar
-          </button>
+          </Button>
         )}
       </div>
     </article>
