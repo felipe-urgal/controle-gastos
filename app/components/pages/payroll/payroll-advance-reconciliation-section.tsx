@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FaLink, FaRedo, FaUnlink } from 'react-icons/fa';
 
+import { Button, Select } from '@/app/components/ui';
+import { usePayrollConfirmation } from '@/app/components/pages/payroll/use-payroll-confirmation';
+
 import { useAuth } from '@/app/context/auth-context';
 import { payrollMoney } from '@/app/lib/payroll/payroll-presentation';
 import { payrollService } from '@/app/services/payroll-service';
@@ -23,6 +26,7 @@ export function PayrollAdvanceReconciliationSection({
   onChanged?: () => void | Promise<void>;
 }) {
   const { user } = useAuth();
+  const { confirm, modal: confirmationModal } = usePayrollConfirmation();
   const showValues = user?.showValues !== false;
   const [items, setItems] = useState<PayrollAdvanceResolutionItem[]>([]);
   const [selected, setSelected] = useState<Record<string, string>>({});
@@ -79,7 +83,7 @@ export function PayrollAdvanceReconciliationSection({
     }
   }
 
-  async function resolve(item: PayrollAdvanceResolutionItem) {
+  function resolve(item: PayrollAdvanceResolutionItem) {
     const key = selected[item.advanceDocumentId];
     const candidate = item.candidates.find(
       (current) => candidateKey(current) === key,
@@ -92,8 +96,17 @@ export function PayrollAdvanceReconciliationSection({
         : candidate.exactAmount
           ? 'Confirmar este vínculo de adiantamento com a folha?'
           : 'O valor da rubrica diverge do valor esperado do adiantamento. Confirmar mesmo assim?';
-    if (!window.confirm(warning)) return;
+    confirm({
+      title: 'Confirmar vínculo do adiantamento',
+      message: warning,
+      onConfirm: () => runResolve(item, candidate),
+    });
+  }
 
+  async function runResolve(
+    item: PayrollAdvanceResolutionItem,
+    candidate: PayrollAdvanceResolutionItem['candidates'][number],
+  ) {
     setWorkingKey(item.advanceDocumentId);
     setError('');
     try {
@@ -121,15 +134,17 @@ export function PayrollAdvanceReconciliationSection({
     }
   }
 
-  async function undo(item: PayrollAdvanceResolutionItem) {
-    if (
-      !window.confirm(
+  function undo(item: PayrollAdvanceResolutionItem) {
+    confirm({
+      title: 'Desfazer vínculo',
+      message:
         'Desfazer a decisão manual? A conciliação automática será recalculada.',
-      )
-    ) {
-      return;
-    }
+      confirmText: 'Desfazer',
+      onConfirm: () => runUndo(item),
+    });
+  }
 
+  async function runUndo(item: PayrollAdvanceResolutionItem) {
     setWorkingKey(item.advanceDocumentId);
     setError('');
     try {
@@ -159,15 +174,15 @@ export function PayrollAdvanceReconciliationSection({
             automática for ambígua.
           </p>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          pill
           onClick={() => void retry()}
           disabled={loading}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 text-xs font-bold disabled:opacity-40"
+          icon={<FaRedo aria-hidden="true" />}
         >
-          <FaRedo aria-hidden="true" />
           Atualizar
-        </button>
+        </Button>
       </div>
 
       {error && (
@@ -176,13 +191,9 @@ export function PayrollAdvanceReconciliationSection({
           className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
           <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => void retry()}
-            className="min-h-11 rounded-full border border-current px-3 text-xs font-bold"
-          >
+          <Button variant="outline" size="sm" pill onClick={() => void retry()}>
             Tentar novamente
-          </button>
+          </Button>
         </div>
       )}
 
@@ -250,48 +261,39 @@ export function PayrollAdvanceReconciliationSection({
                     </p>
                   ) : (
                     <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
-                      <label className="text-xs font-semibold text-[var(--foreground)]">
-                        Rubrica de compensação
-                        <select
-                          value={selected[item.advanceDocumentId] ?? ''}
-                          onChange={(event) =>
-                            setSelected((current) => ({
-                              ...current,
-                              [item.advanceDocumentId]: event.target.value,
-                            }))
-                          }
-                          className="ds-control mt-1 min-h-11 w-full px-3"
-                        >
-                          <option value="">Selecione explicitamente</option>
-                          {item.candidates.map((candidate) => (
-                            <option
-                              key={candidateKey(candidate)}
-                              value={candidateKey(candidate)}
-                            >
-                              {candidate.description} ·{' '}
-                              {payrollMoney(
-                                candidate.compensationCents,
-                                showValues,
-                              )}
-                              {candidate.exactAmount
-                                ? ' · valor exato'
-                                : ' · valor divergente'}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <button
-                        type="button"
+                      <Select
+                        label="Rubrica de compensação"
+                        value={selected[item.advanceDocumentId] ?? ''}
+                        onChange={(value) =>
+                          setSelected((current) => ({
+                            ...current,
+                            [item.advanceDocumentId]: String(value),
+                          }))
+                        }
+                        placeholder="Selecione explicitamente"
+                        options={item.candidates.map((candidate) => ({
+                          value: candidateKey(candidate),
+                          label: `${candidate.description} · ${payrollMoney(
+                            candidate.compensationCents,
+                            showValues,
+                          )}${
+                            candidate.exactAmount
+                              ? ' · valor exato'
+                              : ' · valor divergente'
+                          }`,
+                        }))}
+                      />
+                      <Button
+                        pill
                         disabled={
                           !selected[item.advanceDocumentId] ||
                           workingKey === item.advanceDocumentId
                         }
-                        onClick={() => void resolve(item)}
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--orbit-primary)] px-4 text-xs font-bold text-white disabled:opacity-40"
+                        onClick={() => resolve(item)}
+                        icon={<FaLink aria-hidden="true" />}
                       >
-                        <FaLink aria-hidden="true" />
                         Confirmar vínculo
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -303,21 +305,22 @@ export function PayrollAdvanceReconciliationSection({
                       {payrollMoney(item.compensationCents, showValues)}
                     </strong>
                   </p>
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    pill
                     disabled={workingKey === item.advanceDocumentId}
-                    onClick={() => void undo(item)}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold disabled:opacity-40"
+                    onClick={() => undo(item)}
+                    icon={<FaUnlink aria-hidden="true" />}
                   >
-                    <FaUnlink aria-hidden="true" />
                     Desfazer vínculo
-                  </button>
+                  </Button>
                 </div>
               )}
             </article>
           ))}
         </div>
       )}
+      {confirmationModal}
     </section>
   );
 }
