@@ -68,12 +68,12 @@ test('insights do dashboard: desktop, contexto, mobile e valores ocultos', async
 
   await login(page, email);
 
-  await page.route('**/api/insights?*', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(insightsPayload),
-    });
+  // Os insights chegam dentro de /api/dashboard/home: injeta o payload na resposta real.
+  await page.route('**/api/dashboard/home*', async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    body.data.insights = { status: 'SUCCESS', data: insightsPayload.data };
+    await route.fulfill({ response, json: body });
   });
 
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -81,7 +81,7 @@ test('insights do dashboard: desktop, contexto, mobile e valores ocultos', async
 
   const desktopCard = page
     .locator('section:visible')
-    .filter({ hasText: 'Insights do período' })
+    .filter({ hasText: 'Insights financeiros' })
     .first();
 
   await expect(desktopCard).toBeVisible();
@@ -107,7 +107,7 @@ test('insights do dashboard: desktop, contexto, mobile e valores ocultos', async
 
   const mobileCard = page
     .locator('section:visible')
-    .filter({ hasText: 'Insights do período' })
+    .filter({ hasText: 'Insights financeiros' })
     .first();
 
   await expect(mobileCard).toBeVisible();
@@ -131,7 +131,7 @@ test('insights do dashboard: desktop, contexto, mobile e valores ocultos', async
 
   const hiddenCard = page
     .locator('section:visible')
-    .filter({ hasText: 'Insights do período' })
+    .filter({ hasText: 'Insights financeiros' })
     .first();
 
   await expect(hiddenCard).toBeVisible();

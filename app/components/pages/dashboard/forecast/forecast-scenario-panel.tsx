@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { FaFlask, FaPlus, FaTrash } from 'react-icons/fa';
 
+import { Button, IconButton, Input, Select } from '@/app/components/ui';
 import {
   applyForecastScenarios,
   type ForecastScenarioMovement,
@@ -108,92 +109,67 @@ export default function ForecastScenarioPanel({
         </div>
 
         {movements.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => setMovements([])}
-            className="min-h-11 rounded-[var(--radius-md)] border border-[var(--border)] px-3 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--foreground)]"
-          >
+          <Button type="button" variant="outline" onClick={() => setMovements([])}>
             Limpar cenário
-          </button>
+          </Button>
         ) : null}
       </div>
 
       <form onSubmit={addMovement} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-[140px_1fr_150px_170px_1fr_auto] xl:items-end">
-        <label className="grid gap-1 text-sm font-medium">
-          Tipo
-          <select
-            value={type}
-            onChange={(event) => setType(event.target.value as 'INCOME' | 'EXPENSE')}
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
-          >
-            <option value="EXPENSE">Despesa</option>
-            <option value="INCOME">Receita</option>
-          </select>
-        </label>
+        <Select
+          label="Tipo"
+          value={type}
+          onChange={(value) => setType(value as 'INCOME' | 'EXPENSE')}
+          options={[
+            { value: 'EXPENSE', label: 'Despesa' },
+            { value: 'INCOME', label: 'Receita' },
+          ]}
+        />
 
-        <label className="grid gap-1 text-sm font-medium">
-          Conta
-          <select
-            value={accountId}
-            onChange={(event) => setAccountId(event.target.value)}
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
-            required
-          >
-            {data.accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          label="Conta"
+          value={accountId}
+          onChange={(value) => setAccountId(String(value))}
+          options={data.accounts.map((account) => ({ value: account.id, label: account.name }))}
+          required
+        />
 
-        <label className="grid gap-1 text-sm font-medium">
-          Valor
-          <input
-            aria-label="Valor do cenário"
-            type="number"
-            min="0.01"
-            step="0.01"
-            inputMode="decimal"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
-            placeholder="0,00"
-            required
-          />
-        </label>
+        <Input
+          label="Valor"
+          aria-label="Valor do cenário"
+          type="number"
+          min="0.01"
+          step="0.01"
+          inputMode="decimal"
+          enterKeyHint="next"
+          value={amount}
+          onChange={(event) => setAmount(event.target.value)}
+          placeholder="0,00"
+          required
+        />
 
-        <label className="grid gap-1 text-sm font-medium">
-          Data
-          <input
-            type="date"
-            min={isoDate(data.asOf)}
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
-            required
-          />
-        </label>
+        <Input
+          label="Data"
+          type="date"
+          min={isoDate(data.asOf)}
+          value={date}
+          onChange={(event) => setDate(event.target.value)}
+          required
+        />
 
-        <label className="grid gap-1 text-sm font-medium">
-          Descrição
-          <input
-            type="text"
-            maxLength={80}
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            className="ds-control min-h-11 bg-[var(--surface)] px-3"
-            placeholder="Ex.: viagem"
-          />
-        </label>
+        <Input
+          label="Descrição"
+          type="text"
+          maxLength={80}
+          enterKeyHint="done"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder="Ex.: viagem"
+        />
 
-        <button
-          type="submit"
-          className="flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--orbit-primary)] px-4 text-sm font-bold text-[var(--orbit-on-primary)]"
-        >
-          <FaPlus aria-hidden="true" />
+        <Button type="submit" icon={<FaPlus aria-hidden="true" />} className="xl:mb-0">
           Adicionar
-        </button>
+        </Button>
       </form>
 
       {error ? (
@@ -258,14 +234,12 @@ export default function ForecastScenarioPanel({
                       {movement.type === 'INCOME' ? '+' : '-'}
                       {money(movement.amount, showValues, data.currency)}
                     </strong>
-                    <button
-                      type="button"
-                      aria-label={`Remover cenário ${movement.description}`}
+                    <IconButton
+                      label={`Remover cenário ${movement.description}`}
+                      icon={<FaTrash />}
+                      tone="danger"
                       onClick={() => setMovements((current) => current.filter((item) => item.id !== movement.id))}
-                      className="flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--expense)]"
-                    >
-                      <FaTrash aria-hidden="true" />
-                    </button>
+                    />
                   </div>
                 </li>
               );
