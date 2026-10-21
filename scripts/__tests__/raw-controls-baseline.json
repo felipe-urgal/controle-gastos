@@ -1,10 +1,9 @@
 {
   "app/components/feedback/alert/index.tsx": 1,
-  "app/components/layout/app-sidebar/index.tsx": 4,
+  "app/components/layout/app-sidebar/index.tsx": 3,
   "app/components/layout/bottom-nav/index.tsx": 1,
   "app/components/layout/global-search-dialog/index.tsx": 6,
-  "app/components/layout/mobile-more-menu/index.tsx": 2,
-  "app/components/layout/mobile-topbar/index.tsx": 4,
+  "app/components/layout/mobile-more-menu/index.tsx": 1,
   "app/components/overlays/modal-shell/index.tsx": 1,
   "app/components/pages/account/form/index.tsx": 4,
   "app/components/pages/account/index/orbit-accounts.tsx": 3,
@@ -44,7 +43,5 @@
   "app/components/pages/transactions/index/orbit-transactions.tsx": 2,
   "app/components/pages/transactions/index/transaction-dialogs.tsx": 1,
   "app/components/pages/transactions/shared/receipt-select.tsx": 2,
-  "app/components/pages/transactions/transfer-form/index.tsx": 3,
-  "app/components/pages/user/show/index.tsx": 1,
-  "app/components/pages/user/show/mcp-access-panel.tsx": 1
+  "app/components/pages/transactions/transfer-form/index.tsx": 3
 }

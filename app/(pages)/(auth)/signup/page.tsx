@@ -186,7 +186,7 @@ export default function RegisterPage() {
       footer={
         <>
           Já tem uma conta?{' '}
-          <Link className="font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]" href="/login">
+          <Link className="inline-flex min-h-11 items-center font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]" href="/login">
             Entrar
           </Link>
         </>

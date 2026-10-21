@@ -7,7 +7,7 @@ import { PageHeader } from '@/app/components/base-pages';
 import { PageEmpty, PageError, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { ConfirmationModal, DeleteOverlay } from '@/app/components/overlays';
-import { Button, Input } from '@/app/components/ui';
+import { Button, Chip, ChipRow, Input } from '@/app/components/ui';
 import ExportData from '@/app/components/pages/user/show/export-data';
 import McpAccessPanel from '@/app/components/pages/user/show/mcp-access-panel';
 import MfaSecurityPanel from '@/app/components/pages/user/show/mfa-security-panel';
@@ -132,29 +132,17 @@ export default function Show() {
         />
       ) : (
         <div className="space-y-5">
-          <nav
-            className="flex gap-2 overflow-x-auto rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] p-2"
-            aria-label="Áreas de configuração"
-          >
-            {sections.map((section) => {
-              const active = activeSection === section.id;
-              return (
-                <button
-                  key={section.id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`min-h-11 shrink-0 rounded-[var(--radius-lg)] px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
-                    active
-                      ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
-                      : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
-                  }`}
-                >
-                  {section.label}
-                </button>
-              );
-            })}
-          </nav>
+          <ChipRow label="Áreas de configuração">
+            {sections.map((section) => (
+              <Chip
+                key={section.id}
+                selected={activeSection === section.id}
+                onClick={() => setActiveSection(section.id)}
+              >
+                {section.label}
+              </Chip>
+            ))}
+          </ChipRow>
 
           {activeSection === 'account' && (
             <div className="grid gap-5 xl:grid-cols-2">

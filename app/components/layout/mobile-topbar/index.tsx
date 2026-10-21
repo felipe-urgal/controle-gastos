@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FaFilter, FaMoon, FaPlus, FaSearch, FaSignOutAlt, FaSun, FaWallet } from 'react-icons/fa';
+import { IconButton } from '@/app/components/ui';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
 import OfflinePendingBadge from '@/app/components/pwa/offline-pending-badge';
@@ -84,15 +85,12 @@ export default function MobileTopbar({
 
         {transactionsListActive && (
           <div className="flex items-center gap-1 sm:hidden">
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('transactions:open-filters'))}
-              aria-label="Buscar e filtrar transações"
+            <IconButton
+              label="Buscar e filtrar transações"
               title="Buscar e filtrar"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-            >
-              <FaFilter aria-hidden="true" />
-            </button>
+              icon={<FaFilter />}
+              onClick={() => window.dispatchEvent(new CustomEvent('transactions:open-filters'))}
+            />
             <Link
               href="/transacoes/nova"
               aria-label="Nova transação"
@@ -104,25 +102,21 @@ export default function MobileTopbar({
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={onOpenGlobalSearch}
-          aria-label="Abrir busca global"
+        <IconButton
+          label="Abrir busca global"
           title="Busca global"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          <FaSearch aria-hidden="true" />
-        </button>
+          icon={<FaSearch />}
+          onClick={onOpenGlobalSearch}
+        />
 
-        <button
-          type="button"
-          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-          aria-label={resolvedTheme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
-          title={resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}
-          className={`h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${transactionsListActive ? 'hidden sm:flex' : 'flex'}`}
-        >
-          {resolvedTheme === 'dark' ? <FaSun aria-hidden="true" /> : <FaMoon aria-hidden="true" />}
-        </button>
+        <div className={transactionsListActive ? 'hidden sm:block' : undefined}>
+          <IconButton
+            label={resolvedTheme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
+            title={resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+            icon={resolvedTheme === 'dark' ? <FaSun /> : <FaMoon />}
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+          />
+        </div>
 
         <Link
           href={profileHref}
@@ -138,15 +132,15 @@ export default function MobileTopbar({
           <span aria-hidden="true">{initial}</span>
         </Link>
 
-        <button
-          type="button"
-          onClick={() => void logout()}
-          aria-label="Sair da conta"
-          title="Sair"
-          className={`h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--expense)] transition-colors hover:bg-[var(--danger-subtle)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${transactionsListActive ? 'hidden sm:flex' : 'flex'}`}
-        >
-          <FaSignOutAlt aria-hidden="true" />
-        </button>
+        <div className={transactionsListActive ? 'hidden sm:block' : undefined}>
+          <IconButton
+            label="Sair da conta"
+            title="Sair"
+            tone="danger"
+            icon={<FaSignOutAlt />}
+            onClick={() => void logout()}
+          />
+        </div>
       </div>
     </header>
   );

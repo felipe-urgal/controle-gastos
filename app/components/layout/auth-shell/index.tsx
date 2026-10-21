@@ -8,6 +8,7 @@ import {
   FaWallet,
 } from 'react-icons/fa';
 
+import { KeyboardScrollPadding } from '@/app/components/layout/auth-shell/keyboard-scroll-padding';
 import styles from '@/app/components/layout/auth-shell/auth-shell.module.css';
 
 type AuthShellProps = {
@@ -37,9 +38,10 @@ export default function AuthShell({
 }: AuthShellProps) {
   return (
     <div
-      className={`${styles.root} min-h-screen bg-[var(--background)] text-[var(--foreground)]`}
+      className={`${styles.root} min-h-dvh bg-[var(--background)] text-[var(--foreground)]`}
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
+      <KeyboardScrollPadding />
       <a
         href="#auth-form"
         className="sr-only z-[var(--z-toast)] rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-3 text-base font-semibold text-[var(--on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
@@ -47,7 +49,7 @@ export default function AuthShell({
         Pular para o formulário
       </a>
 
-      <div className="mx-auto grid min-h-screen w-full max-w-[1440px] lg:grid-cols-[minmax(360px,0.78fr)_minmax(520px,1.22fr)]">
+      <div className="mx-auto grid min-h-dvh w-full max-w-[1440px] lg:grid-cols-[minmax(360px,0.78fr)_minmax(520px,1.22fr)]">
         <aside className="hidden border-r border-[var(--border)] bg-[var(--surface)] px-10 py-10 lg:flex lg:flex-col xl:px-14 xl:py-12">
           <Link
             href="/"
@@ -93,7 +95,7 @@ export default function AuthShell({
           </div>
         </aside>
 
-        <main className="flex min-h-screen flex-col px-4 py-[max(1.25rem,env(safe-area-inset-top))] sm:px-6 sm:py-8 lg:px-10 lg:py-10 xl:px-16">
+        <main className="flex min-h-dvh flex-col px-4 py-[max(1.25rem,env(safe-area-inset-top))] sm:px-6 sm:py-8 lg:px-10 lg:py-10 xl:px-16">
           <div className="flex min-h-11 items-center justify-between gap-3">
             <Link
               href={backHref}
