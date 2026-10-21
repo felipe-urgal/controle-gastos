@@ -12,6 +12,9 @@ on:
   pull_request:
     paths:
       - ".github/workflows/e2e.yml"
+      # Qualquer mudança de UI roda o E2E de PR (inclui o WebKit); a lista abaixo cobre o resto.
+      - "app/components/**"
+      - "app/stylesheets/**"
       - "tests/e2e/global-search-accessibility.spec.mjs"
       - "tests/e2e/global-search-entities.spec.mjs"
       - "tests/e2e/global-search-flow.spec.mjs"
