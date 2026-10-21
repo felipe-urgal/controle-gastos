@@ -1,6 +1,7 @@
 'use client';
 
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
+import { ProtectedRoute } from '@/app/components/layout';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -74,6 +75,7 @@ export default function FinancialCommitmentsPage() {
   }
 
   return (
+    <ProtectedRoute>
     <PageContainer as="section">
       <PageTitle
         eyebrow="Planejamento"
@@ -215,6 +217,7 @@ export default function FinancialCommitmentsPage() {
         </div>
       ) : null}
     </PageContainer>
+    </ProtectedRoute>
   );
 }
 

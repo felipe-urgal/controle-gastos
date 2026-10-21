@@ -2,6 +2,7 @@
 
 import { Button, Input, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
+import { ProtectedRoute } from '@/app/components/layout';
 import { PageError } from '@/app/components/feedback';
 import {
   useEffect,
@@ -446,6 +447,7 @@ export default function FinancialComparisonPage() {
   const maxMonth = monthValue(currentMonth);
 
   return (
+    <ProtectedRoute>
     <PageContainer>
       <PageTitle eyebrow="Análise" title="Comparar períodos" description="Compare realizado financeiro entre dois intervalos de até 24 meses na mesma moeda." />
 
@@ -975,5 +977,6 @@ export default function FinancialComparisonPage() {
           </div>
         )}
     </PageContainer>
+    </ProtectedRoute>
   );
 }

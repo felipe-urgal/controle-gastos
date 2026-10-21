@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 
+// `default` não impõe largura própria: vale o limite do shell (`--orbit-page-max-width`, em `orbit.css`),
+// o mesmo de todas as páginas autenticadas. `narrow` é só para formulários e telas de leitura.
 const WIDTH_CLASS = {
   narrow: 'max-w-3xl',
-  default: 'max-w-6xl',
-  wide: 'max-w-[1480px]',
+  default: 'max-w-none',
 } as const;
 
 export type PageContainerWidth = keyof typeof WIDTH_CLASS;

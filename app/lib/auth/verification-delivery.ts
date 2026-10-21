@@ -1,4 +1,4 @@
-import { sendEmailVerification } from "@/app/lib/auth/auth-email";
+import { emailDeliveryFailureContext, sendEmailVerification } from "@/app/lib/auth/auth-email";
 import { signEmailVerificationToken } from "@/app/lib/auth/email-verification-token";
 import { logEvent } from "@/app/lib/observability";
 import { consumeRateLimit } from "@/app/lib/security/rate-limit";
@@ -50,7 +50,12 @@ export async function sendSignupVerificationBestEffort(
     logEvent(
       "error",
       "auth_signup_verification_delivery_failed",
-      { requestId: context.requestId, route: context.route, status: 202 },
+      {
+        requestId: context.requestId,
+        route: context.route,
+        status: 202,
+        ...emailDeliveryFailureContext(error),
+      },
       error,
     );
   }

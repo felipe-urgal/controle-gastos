@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { isHttpError } from "@/app/lib/http-error";
 
-import { sendPasswordResetEmail } from "@/app/lib/auth/auth-email";
+import { emailDeliveryFailureContext, sendPasswordResetEmail } from "@/app/lib/auth/auth-email";
 import {
   AUTH_INPUT_LIMITS,
   asInputRecord,
@@ -144,7 +144,12 @@ export async function POST(request: Request): Promise<NextResponse> {
         logEvent(
           "error",
           "password_reset_delivery_failed",
-          { requestId, route: ROUTE, status: 200 },
+          {
+            requestId,
+            route: ROUTE,
+            status: 200,
+            ...emailDeliveryFailureContext(error),
+          },
           error,
         );
       }

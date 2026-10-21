@@ -1,9 +1,50 @@
 import { Resend } from "resend";
 
-import { observeProviderCall } from "@/app/lib/observability";
+import { observeProviderCall, type LogContext } from "@/app/lib/observability";
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
+}
+
+const SAFE_SLUG = /^[a-z0-9_]{1,40}$/;
+
+/** Falha de envio devolvida pelo Resend: guarda só nome e status do erro, nunca mensagem ou destinatário. */
+export class AuthEmailDeliveryError extends Error {
+  constructor(
+    readonly providerError?: string,
+    readonly providerStatus?: number,
+  ) {
+    super("AUTH_EMAIL_DELIVERY_FAILED");
+    this.name = "AuthEmailDeliveryError";
+  }
+}
+
+const KNOWN_REASONS = [
+  "RESEND_FROM_EMAIL_NOT_CONFIGURED",
+  "NEXT_PUBLIC_SITE_URL_NOT_CONFIGURED",
+  "AUTH_EMAIL_DELIVERY_FAILED",
+] as const;
+
+/**
+ * Contexto de log seguro para falhas de envio: códigos fixos, sem e-mail, mensagem livre ou segredo.
+ * Permite distinguir configuração ausente de recusa do provedor (ex.: 403 por domínio não verificado).
+ */
+export function emailDeliveryFailureContext(error: unknown): LogContext {
+  if (error instanceof AuthEmailDeliveryError) {
+    return {
+      reason: "AUTH_EMAIL_DELIVERY_FAILED",
+      providerError: error.providerError,
+      providerStatus: error.providerStatus,
+    };
+  }
+  if (error instanceof Error) {
+    const known = KNOWN_REASONS.find((reason) => reason === error.message);
+    if (known) return { reason: known };
+    if (error.message.startsWith("Missing API key")) {
+      return { reason: "RESEND_API_KEY_NOT_CONFIGURED" };
+    }
+  }
+  return { reason: "UNKNOWN" };
 }
 
 function requiredEnv(name: "RESEND_FROM_EMAIL" | "NEXT_PUBLIC_SITE_URL") {
@@ -35,7 +76,12 @@ async function sendEmail(args: {
       html: args.html,
     });
 
-    if (error) throw new Error("AUTH_EMAIL_DELIVERY_FAILED");
+    if (error) {
+      throw new AuthEmailDeliveryError(
+        SAFE_SLUG.test(error.name) ? error.name : undefined,
+        typeof error.statusCode === "number" ? error.statusCode : undefined,
+      );
+    }
   }, (error) =>
     error instanceof Error && error.message === "AUTH_EMAIL_DELIVERY_FAILED"
       ? "upstream_unavailable"
