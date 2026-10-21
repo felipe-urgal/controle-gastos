@@ -10,6 +10,7 @@ import {
   type ReceiptOcrApplication,
   type ReceiptOcrSuggestions,
 } from '@/app/lib/receipts/receipt-ocr-parser';
+import { Button } from '@/app/components/ui';
 import { recognizeReceiptImage, type ReceiptOcrPhase } from '@/app/lib/receipts/receipt-ocr-browser';
 import { isReceiptOcrCancellation } from '@/app/lib/receipts/receipt-ocr-errors';
 
@@ -270,16 +271,15 @@ export default function ReceiptOcrScanner({
       />
 
       {!isProcessing && !result ? (
-        <button
+        <Button
           ref={pickerButtonRef}
-          type="button"
+          variant="outline"
           onClick={openPicker}
           disabled={disabled}
-          className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] px-3.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_FOCUS}`}
+          icon={<FaCamera aria-hidden="true" />}
         >
-          <FaCamera aria-hidden="true" />
           Ler recibo
-        </button>
+        </Button>
       ) : null}
 
       {isProcessing ? (
@@ -295,14 +295,9 @@ export default function ReceiptOcrScanner({
                 {PHASE_LABEL[phase]}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={cancelProcessing}
-              className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[9px] px-3 text-sm font-semibold text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] ${BUTTON_FOCUS}`}
-            >
-              <FaTimes aria-hidden="true" />
+            <Button variant="ghost" size="sm" onClick={cancelProcessing} icon={<FaTimes aria-hidden="true" />} className="shrink-0">
               Cancelar
-            </button>
+            </Button>
           </div>
           {phase === 'reading' ? (
             <div
@@ -326,13 +321,9 @@ export default function ReceiptOcrScanner({
           role="alert"
         >
           <p>{error}</p>
-          <button
-            type="button"
-            onClick={openPicker}
-            className={`mt-2 inline-flex min-h-11 items-center font-semibold underline underline-offset-2 ${BUTTON_FOCUS}`}
-          >
+          <Button variant="link" onClick={openPicker} className="mt-2">
             Tentar outra imagem
-          </button>
+          </Button>
         </div>
       ) : null}
 
@@ -350,13 +341,9 @@ export default function ReceiptOcrScanner({
                 Escolha o que aplicar e revise. A transação só será criada na confirmação normal do formulário.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={openPicker}
-              className={`inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-[var(--orbit-primary)] hover:underline ${BUTTON_FOCUS}`}
-            >
+            <Button variant="link" onClick={openPicker} className="shrink-0">
               Trocar imagem
-            </button>
+            </Button>
           </div>
 
           {result.suggestions.inconsistentAmountEvidence ? (
@@ -438,22 +425,12 @@ export default function ReceiptOcrScanner({
           </details>
 
           <div className="mt-3 flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              onClick={discard}
-              className={`min-h-11 rounded-[9px] px-3 text-sm font-semibold text-[var(--text-muted)] hover:bg-[var(--surface-hover)] ${BUTTON_FOCUS}`}
-            >
+            <Button variant="ghost" onClick={discard}>
               Descartar
-            </button>
-            <button
-              type="button"
-              onClick={apply}
-              disabled={!canApply}
-              className={`inline-flex min-h-11 items-center gap-2 rounded-[9px] bg-[var(--orbit-primary)] px-3.5 text-sm font-semibold text-[var(--orbit-on-primary)] hover:bg-[var(--orbit-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_FOCUS}`}
-            >
-              <FaCheck aria-hidden="true" />
+            </Button>
+            <Button onClick={apply} disabled={!canApply} icon={<FaCheck aria-hidden="true" />}>
               Aplicar selecionados
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}

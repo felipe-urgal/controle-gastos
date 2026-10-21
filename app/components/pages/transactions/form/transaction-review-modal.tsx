@@ -3,7 +3,7 @@
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { ReactNode } from 'react';
 import { FaCheck } from 'react-icons/fa';
-import { Button } from '@/app/components/ui';
+import { Button, Select } from '@/app/components/ui';
 import { MerchantAliasOperator } from '@/app/types/merchant-alias';
 
 export interface TransactionReviewModalProps {
@@ -116,16 +116,16 @@ export function LearningOption({
       </label>
       {checked ? (
         <div className="mt-2 grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)]">
-          <select
-            aria-label={"Operador para " + label}
+          <Select
+            ariaLabel={"Operador para " + label}
             value={operator}
-            onChange={(event) => onOperatorChange(event.target.value as MerchantAliasOperator)}
-            className="ds-control min-h-10 bg-[var(--surface)] px-2 text-sm text-[var(--foreground)]"
-          >
-            <option value="EQUALS">Igual a</option>
-            <option value="STARTS_WITH">Começa com</option>
-            <option value="CONTAINS">Contém</option>
-          </select>
+            onChange={(value) => onOperatorChange(value as MerchantAliasOperator)}
+            options={[
+              { value: 'EQUALS', label: 'Igual a' },
+              { value: 'STARTS_WITH', label: 'Começa com' },
+              { value: 'CONTAINS', label: 'Contém' },
+            ]}
+          />
           <div className="min-w-0 rounded-[8px] bg-[var(--surface-raised)] px-2.5 py-2 text-xs text-[var(--text-muted)]">
             <span className="block text-xs font-semibold uppercase tracking-wide">Padrão</span>
             <span className="mt-0.5 block break-all font-mono text-[var(--foreground)]">{pattern}</span>

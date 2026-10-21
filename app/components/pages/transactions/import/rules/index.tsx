@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/app/components/base-pages';
 import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
-import { Button } from '@/app/components/ui';
+import { Button, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import {
@@ -585,63 +585,52 @@ export default function ImportRuleManagementPage({ focusRuleId }: { focusRuleId?
             </header>
 
             <div className="grid gap-3 border-b border-[var(--border)] p-4 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="text-sm font-medium text-[var(--foreground)] sm:col-span-2 lg:col-span-1">
-                Buscar
-                <input
+              <div className="sm:col-span-2 lg:col-span-1">
+                <Input
+                  label="Buscar"
                   type="search"
                   value={rulesSearchInput}
                   onChange={(event) => setRulesSearchInput(event.target.value)}
                   placeholder="Nome ou padrão"
-                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
                 />
-              </label>
-              <label className="text-sm font-medium text-[var(--foreground)]">
-                Estado
-                <select
-                  value={activeFilter}
-                  onChange={(event) => {
-                    setActiveFilter(event.target.value as 'all' | 'true' | 'false');
-                    setRulesPage(1);
-                  }}
-                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                >
-                  <option value="all">Todas</option>
-                  <option value="true">Configuradas como ativas</option>
-                  <option value="false">Pausadas</option>
-                </select>
-              </label>
-              <label className="text-sm font-medium text-[var(--foreground)]">
-                Conta
-                <select
-                  value={accountFilter}
-                  onChange={(event) => {
-                    setAccountFilter(event.target.value);
-                    setRulesPage(1);
-                  }}
-                  disabled={accountUnavailable}
-                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 disabled:opacity-50"
-                >
-                  <option value="">Todas as contas</option>
-                  {accounts.map((account) => (
-                    <option key={account.id} value={account.id}>{account.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-sm font-medium text-[var(--foreground)]">
-                Tipo
-                <select
-                  value={typeFilter}
-                  onChange={(event) => {
-                    setTypeFilter(event.target.value as '' | ImportRuleTransactionType);
-                    setRulesPage(1);
-                  }}
-                  className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                >
-                  <option value="">Receitas e despesas</option>
-                  <option value="EXPENSE">Despesas</option>
-                  <option value="INCOME">Receitas</option>
-                </select>
-              </label>
+              </div>
+              <Select
+                label="Estado"
+                value={activeFilter}
+                onChange={(value) => {
+                  setActiveFilter(value as 'all' | 'true' | 'false');
+                  setRulesPage(1);
+                }}
+                options={[
+                  { value: 'all', label: 'Todas' },
+                  { value: 'true', label: 'Configuradas como ativas' },
+                  { value: 'false', label: 'Pausadas' },
+                ]}
+              />
+              <Select
+                label="Conta"
+                value={accountFilter}
+                onChange={(value) => {
+                  setAccountFilter(String(value));
+                  setRulesPage(1);
+                }}
+                disabled={accountUnavailable}
+                placeholder="Todas as contas"
+                options={accounts.map((account) => ({ value: account.id, label: account.name }))}
+              />
+              <Select
+                label="Tipo"
+                value={typeFilter}
+                onChange={(value) => {
+                  setTypeFilter(value as '' | ImportRuleTransactionType);
+                  setRulesPage(1);
+                }}
+                placeholder="Receitas e despesas"
+                options={[
+                  { value: 'EXPENSE', label: 'Despesas' },
+                  { value: 'INCOME', label: 'Receitas' },
+                ]}
+              />
             </div>
 
             {loadingRules ? (
@@ -783,140 +772,111 @@ export default function ImportRuleManagementPage({ focusRuleId }: { focusRuleId?
                   </h2>
                 </div>
 
-                <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Nome
-                  <input
-                    value={form.name}
-                    onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                    maxLength={100}
-                    required
-                    disabled={submitting}
-                    className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                  />
-                </label>
+                <Input
+                  label="Nome"
+                  value={form.name}
+                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                  maxLength={100}
+                  required
+                  disabled={submitting}
+                />
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block text-sm font-medium text-[var(--foreground)]">
-                    Tipo
-                    <select
-                      value={form.transactionType}
-                      onChange={(event) => changeTransactionType(event.target.value as ImportRuleTransactionType)}
-                      disabled={submitting}
-                      className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                    >
-                      <option value="EXPENSE">Despesa</option>
-                      <option value="INCOME">Receita</option>
-                    </select>
-                  </label>
+                  <Select
+                    label="Tipo"
+                    value={form.transactionType}
+                    onChange={(value) => changeTransactionType(value as ImportRuleTransactionType)}
+                    disabled={submitting}
+                    options={[
+                      { value: 'EXPENSE', label: 'Despesa' },
+                      { value: 'INCOME', label: 'Receita' },
+                    ]}
+                  />
 
-                  <label className="block text-sm font-medium text-[var(--foreground)]">
-                    Prioridade
-                    <input
+                  <div>
+                    <Input
+                      label="Prioridade"
                       type="number"
                       step="1"
                       value={form.priority}
                       onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))}
                       required
                       disabled={submitting}
-                      className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
                     />
                     <span className="mt-1 block text-xs font-normal text-[var(--text-subtle)]">Menor número vem primeiro.</span>
-                  </label>
+                  </div>
                 </div>
 
-                <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Conta
-                  <select
-                    value={form.accountId}
-                    onChange={(event) => setForm((current) => ({ ...current, accountId: event.target.value }))}
-                    disabled={submitting}
-                    className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                  >
-                    <option value="">Qualquer conta</option>
-                    {accounts.map((account) => (
-                      <option key={account.id} value={account.id}>{account.name} · {account.currency}</option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="Conta"
+                  value={form.accountId}
+                  onChange={(value) => setForm((current) => ({ ...current, accountId: String(value) }))}
+                  disabled={submitting}
+                  placeholder="Qualquer conta"
+                  options={accounts.map((account) => ({ value: account.id, label: `${account.name} · ${account.currency}` }))}
+                />
 
-                <label className="block text-sm font-medium text-[var(--foreground)]">
-                  Categoria sugerida
-                  <select
-                    value={form.categoryId}
-                    onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value }))}
-                    required
-                    disabled={submitting}
-                    className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                  >
-                    <option value="">Selecione</option>
-                    {availableCategories.map((category) => (
-                      <option key={category.id} value={category.id}>{category.name}</option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="Categoria sugerida"
+                  value={form.categoryId}
+                  onChange={(value) => setForm((current) => ({ ...current, categoryId: String(value) }))}
+                  required
+                  disabled={submitting}
+                  placeholder="Selecione"
+                  options={availableCategories.map((category) => ({ value: category.id, label: category.name }))}
+                />
 
                 <div className="grid gap-4 sm:grid-cols-[0.75fr_1.25fr]">
-                  <label className="block text-sm font-medium text-[var(--foreground)]">
-                    Operador
-                    <select
-                      value={form.descriptionOperator}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          descriptionOperator: event.target.value as ImportRuleDescriptionOperator,
-                        }))
-                      }
-                      disabled={submitting}
-                      className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                    >
-                      <option value="EQUALS">É igual a</option>
-                      <option value="STARTS_WITH">Começa com</option>
-                      <option value="CONTAINS">Contém</option>
-                    </select>
-                  </label>
+                  <Select
+                    label="Operador"
+                    value={form.descriptionOperator}
+                    onChange={(value) =>
+                      setForm((current) => ({
+                        ...current,
+                        descriptionOperator: value as ImportRuleDescriptionOperator,
+                      }))
+                    }
+                    disabled={submitting}
+                    options={[
+                      { value: 'EQUALS', label: 'É igual a' },
+                      { value: 'STARTS_WITH', label: 'Começa com' },
+                      { value: 'CONTAINS', label: 'Contém' },
+                    ]}
+                  />
 
-                  <label className="block text-sm font-medium text-[var(--foreground)]">
-                    Padrão da descrição
-                    <input
-                      value={form.descriptionPattern}
-                      onChange={(event) =>
-                        setForm((current) => ({ ...current, descriptionPattern: event.target.value }))
-                      }
-                      maxLength={255}
-                      required
-                      disabled={submitting}
-                      className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                    />
-                  </label>
+                  <Input
+                    label="Padrão da descrição"
+                    value={form.descriptionPattern}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, descriptionPattern: event.target.value }))
+                    }
+                    maxLength={255}
+                    required
+                    disabled={submitting}
+                  />
                 </div>
 
                 {showValues ? (
                   <div>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <label className="block text-sm font-medium text-[var(--foreground)]">
-                        Valor mínimo (centavos{selectedRuleAccount ? ` de ${selectedRuleAccount.currency}` : ''})
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={form.minAmountCents}
-                          onChange={(event) => setForm((current) => ({ ...current, minAmountCents: event.target.value }))}
-                          disabled={submitting}
-                          className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                        />
-                      </label>
-                      <label className="block text-sm font-medium text-[var(--foreground)]">
-                        Valor máximo (centavos{selectedRuleAccount ? ` de ${selectedRuleAccount.currency}` : ''})
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={form.maxAmountCents}
-                          onChange={(event) => setForm((current) => ({ ...current, maxAmountCents: event.target.value }))}
-                          disabled={submitting}
-                          className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                        />
-                      </label>
+                      <Input
+                        label={`Valor mínimo (centavos${selectedRuleAccount ? ` de ${selectedRuleAccount.currency}` : ''})`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={form.minAmountCents}
+                        onChange={(event) => setForm((current) => ({ ...current, minAmountCents: event.target.value }))}
+                        disabled={submitting}
+                      />
+                      <Input
+                        label={`Valor máximo (centavos${selectedRuleAccount ? ` de ${selectedRuleAccount.currency}` : ''})`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={form.maxAmountCents}
+                        onChange={(event) => setForm((current) => ({ ...current, maxAmountCents: event.target.value }))}
+                        disabled={submitting}
+                      />
                     </div>
                     <p className="mt-2 text-xs leading-relaxed text-[var(--text-subtle)]">
                       {selectedRuleAccount

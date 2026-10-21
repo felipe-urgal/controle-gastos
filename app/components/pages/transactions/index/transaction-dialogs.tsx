@@ -135,28 +135,21 @@ export function TagFilterField({
 
   return (
     <div className="min-w-0">
-      <label className="block text-sm font-medium text-[var(--foreground)]">
-        Tag
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar tag"
-          className="ds-control mt-1 min-h-11 w-full bg-[var(--surface)] px-3 text-sm"
-        />
-      </label>
+      <Input
+        label="Tag"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Buscar tag"
+      />
 
       {selectedTag ? (
         <div className="mt-2 flex min-h-11 items-center justify-between gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3">
           <span className="min-w-0 truncate text-sm font-semibold">
             #{selectedTag.name}{!selectedTag.isActive ? ' · arquivada' : ''}
           </span>
-          <button
-            type="button"
-            onClick={() => onChange('')}
-            className="min-h-11 sm:min-h-9 shrink-0 px-2 text-xs font-bold text-[var(--text-muted)]"
-          >
+          <Button variant="ghost" size="xs" onClick={() => onChange('')}>
             Limpar
-          </button>
+          </Button>
         </div>
       ) : null}
 

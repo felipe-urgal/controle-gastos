@@ -5,6 +5,7 @@ import ReceiptOcrScanner from '@/app/components/pages/transactions/form/receipt-
 import { FaArrowDown, FaArrowRight, FaArrowUp, FaCalendarAlt, FaCalculator, FaCheck, FaChevronRight, FaCog, FaExchangeAlt, FaFileAlt, FaStore, FaTag, FaWallet } from 'react-icons/fa';
 import { FormContainer } from '@/app/components/forms';
 import { Button, IconRenderer, Input, RadioGroup } from '@/app/components/ui';
+import { useVisualViewportInset } from '@/app/hooks/use-visual-viewport-inset';
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { MAX_RECURRENCE_OCCURRENCES } from '@/app/lib/transactions/logical-recurrence';
 import { formatIsoLogicalDate, formatPtBrLogicalDate, MAX_MONTHLY_OCCURRENCES } from '@/app/lib/transactions/monthly-recurrence';
@@ -17,6 +18,11 @@ import type { TransactionFormState } from '@/app/components/pages/transactions/f
 
 export function MobileTransactionWizard({ form }: { form: TransactionFormState }) {
   const { isEditing, onSelectTransfer, reviewingQueueItem, formData, setFormData, creationMode, setCreationMode, recurrencePreset, setRecurrencePreset, recurrenceMode, setRecurrenceMode, occurrenceCount, setOccurrenceCount, recurrenceEndDate, setRecurrenceEndDate, installmentCount, setInstallmentCount, merchants, submitError, setSubmitError, isSubmitting, mobileStep, setMobileStep, merchantRecognition, selectedAccount, selectedCategory, selectedMerchant, displayValue, formatCentsToCurrency, recurrencePreview, installmentPreview, handleCancel, handleAmountChange, handleMerchantChange, handleDescriptionChange, receiptOcrFormState, handleReceiptOcrApplication, handleCategoryType, handleCategoryChange, persistTransaction, advanceMobilePrimaryStep, advanceMobileAdvancedStep, loading, renderTagEditor, renderAllocationEditor, accountOptions, categoryOptions, isFixedDate, firstRecurrenceDate, lastRecurrenceDate, firstInstallment, lastInstallment, installmentTotal, operationType, operationLabel, selectedStatusLabel, selectedDateLabel, recurrencePresetLabel, creationModeLabel, createLabel } = form;
+  // Com o teclado aberto a navegação inferior fica atrás dele: o rodapé cola no topo do teclado.
+  const keyboardInset = useVisualViewportInset();
+  const stickyFooterStyle = {
+    bottom: keyboardInset > 0 ? `${keyboardInset}px` : 'calc(var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom))',
+  };
 
   return (
     <FormContainer
@@ -68,41 +74,36 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 className="grid grid-cols-3 overflow-hidden rounded-[14px] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
                 aria-label="Tipo da transação"
               >
-                <button
-                  type="button"
+                <Button
+                  variant={operationType === 'EXPENSE' ? 'primary' : 'ghost'}
                   aria-pressed={operationType === 'EXPENSE'}
                   onClick={() => handleCategoryType('EXPENSE')}
                   disabled={loading}
-                  className={`flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-[10px] px-2 text-xs font-bold transition-colors min-[360px]:gap-2 min-[360px]:text-sm ${
-                    operationType === 'EXPENSE'
-                      ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)] ring-1 ring-inset ring-[var(--orbit-primary)]'
-                      : 'text-[var(--text-muted)]'
-                  }`}
+                  icon={<FaArrowDown aria-hidden="true" />}
+                  className="min-w-0 px-2"
                 >
-                  <FaArrowDown aria-hidden="true" /> <span className="truncate">Despesa</span>
-                </button>
-                <button
-                  type="button"
+                  <span className="truncate">Despesa</span>
+                </Button>
+                <Button
+                  variant={operationType === 'INCOME' ? 'primary' : 'ghost'}
                   aria-pressed={operationType === 'INCOME'}
                   onClick={() => handleCategoryType('INCOME')}
                   disabled={loading}
-                  className={`flex min-h-12 min-w-0 items-center justify-center gap-1.5 border-l border-[var(--border)] px-2 text-xs font-bold transition-colors min-[360px]:gap-2 min-[360px]:text-sm ${
-                    operationType === 'INCOME'
-                      ? 'rounded-[10px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)] ring-1 ring-inset ring-[var(--orbit-primary)]'
-                      : 'text-[var(--text-muted)]'
-                  }`}
+                  icon={<FaArrowUp aria-hidden="true" />}
+                  className="min-w-0 px-2"
                 >
-                  <FaArrowUp aria-hidden="true" /> <span className="truncate">Receita</span>
-                </button>
-                <button
-                  type="button"
+                  <span className="truncate">Receita</span>
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={onSelectTransfer}
                   disabled={loading || !onSelectTransfer}
                   aria-label={isEditing ? 'Transferência indisponível na edição' : 'Transferência'}
-                  className="flex min-h-12 min-w-0 items-center justify-center gap-1.5 border-l border-[var(--border)] px-1.5 text-xs font-bold text-[var(--text-muted)] disabled:opacity-35 min-[360px]:gap-2 min-[360px]:px-2 min-[360px]:text-sm"
+                  icon={<FaExchangeAlt aria-hidden="true" />}
+                  className="min-w-0 px-1.5"
                 >
-                  <FaExchangeAlt aria-hidden="true" /> <span className="truncate">Transferência</span>
-                </button>
+                  <span className="truncate">Transferência</span>
+                </Button>
               </div>
 
               {!isEditing ? (
@@ -261,15 +262,17 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                     <label htmlFor="mobile-transaction-description" className="block text-sm font-bold text-[var(--foreground)]">
                       Descrição <span className="text-[var(--expense)]">*</span>
                     </label>
-                    <input
+                    <Input
+                      bare
                       id="mobile-transaction-description"
                       aria-label="Descrição"
                       value={formData.description}
                       onChange={(event) => handleDescriptionChange(event.target.value)}
                       disabled={loading}
                       maxLength={100}
+                      enterKeyHint="next"
                       placeholder="Ex.: Supermercado, salário, aluguel..."
-                      className="mt-1 min-h-11 w-full min-w-0 bg-transparent text-base text-[var(--text-muted)] outline-none placeholder:text-[var(--text-subtle)]"
+                      className="mt-1 min-h-11 text-base text-[var(--text-muted)] placeholder:text-[var(--text-subtle)]"
                     />
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
@@ -292,7 +295,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 </button>
               </div>
 
-              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>
                   Cancelar
                 </Button>
@@ -444,7 +447,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 )}
               </div>
 
-              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(1)} disabled={loading} fullWidth>
                   Voltar
                 </Button>
@@ -490,7 +493,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 </dl>
               </div>
 
-              <div className="sticky bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(2)} disabled={loading} fullWidth>
                   Voltar
                 </Button>

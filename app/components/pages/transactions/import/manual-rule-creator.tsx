@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 
-import { Button } from '@/app/components/ui';
+import { Button, Input, Select } from '@/app/components/ui';
 import {
   importRuleFormFromManualClassification,
   importRuleFormToInput,
@@ -242,79 +242,56 @@ export function ManualImportRuleCreator({
             </p>
           </div>
 
-          <label className="block text-sm font-medium text-[var(--foreground)]">
-            Nome da regra
-            <input
-              value={state.form.name}
-              maxLength={100}
-              onChange={(event) => updateForm({ name: event.target.value })}
-              disabled={state.loading || disabled}
-              className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] disabled:opacity-50"
-              required
-            />
-          </label>
+          <Input
+            label="Nome da regra"
+            value={state.form.name}
+            maxLength={100}
+            onChange={(event) => updateForm({ name: event.target.value })}
+            disabled={state.loading || disabled}
+            required
+          />
 
-          <label className="block text-sm font-medium text-[var(--foreground)]">
-            Escopo
-            <select
-              value={state.form.accountId}
-              onChange={(event) => updateForm({ accountId: event.target.value })}
-              disabled={state.loading || disabled}
-              className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] disabled:opacity-50"
-            >
-              <option value={accountId}>Somente esta conta</option>
-              <option value="">Qualquer conta</option>
-            </select>
-          </label>
+          <Select
+            label="Escopo"
+            value={state.form.accountId}
+            onChange={(value) => updateForm({ accountId: String(value) })}
+            disabled={state.loading || disabled}
+            options={[
+              { value: accountId, label: 'Somente esta conta' },
+              { value: '', label: 'Qualquer conta' },
+            ]}
+          />
 
           <div className="grid gap-3 sm:grid-cols-[0.9fr_1.1fr] lg:grid-cols-1 xl:grid-cols-[0.9fr_1.1fr]">
-            <label className="block text-sm font-medium text-[var(--foreground)]">
-              Comparação
-              <select
-                value={state.form.descriptionOperator}
-                onChange={(event) =>
-                  updateForm({
-                    descriptionOperator: event.target.value as ImportRuleDescriptionOperator,
-                  })
-                }
-                disabled={state.loading || disabled}
-                className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] disabled:opacity-50"
-              >
-                {operators.map((operator) => (
-                  <option key={operator.value} value={operator.value}>
-                    {operator.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block text-sm font-medium text-[var(--foreground)]">
-              Padrão da descrição
-              <input
-                value={state.form.descriptionPattern}
-                maxLength={255}
-                onChange={(event) =>
-                  updateForm({ descriptionPattern: event.target.value })
-                }
-                disabled={state.loading || disabled}
-                className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] disabled:opacity-50"
-                required
-              />
-            </label>
-          </div>
-
-          <label className="block text-sm font-medium text-[var(--foreground)]">
-            Prioridade
-            <input
-              type="number"
-              step="1"
-              value={state.form.priority}
-              onChange={(event) => updateForm({ priority: event.target.value })}
+            <Select
+              label="Comparação"
+              value={state.form.descriptionOperator}
+              onChange={(value) =>
+                updateForm({ descriptionOperator: value as ImportRuleDescriptionOperator })
+              }
               disabled={state.loading || disabled}
-              className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] disabled:opacity-50"
+              options={operators.map((operator) => ({ value: operator.value, label: operator.label }))}
+            />
+
+            <Input
+              label="Padrão da descrição"
+              value={state.form.descriptionPattern}
+              maxLength={255}
+              onChange={(event) => updateForm({ descriptionPattern: event.target.value })}
+              disabled={state.loading || disabled}
               required
             />
-          </label>
+          </div>
+
+          <Input
+            label="Prioridade"
+            type="number"
+            step="1"
+            value={state.form.priority}
+            onChange={(event) => updateForm({ priority: event.target.value })}
+            disabled={state.loading || disabled}
+            required
+          />
 
           <p className="text-xs leading-relaxed text-[var(--text-muted)]">
             Categoria: <strong className="text-[var(--foreground)]">{categoryName ?? 'selecionada'}</strong>. Tipo e categoria vêm da sua classificação manual. Faixa de valor e descrição normalizada ficam vazias e podem ser refinadas depois em Regras.

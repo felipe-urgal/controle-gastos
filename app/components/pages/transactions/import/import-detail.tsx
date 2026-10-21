@@ -2,7 +2,7 @@
 
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { ManualImportRuleCreator } from '@/app/components/pages/transactions/import/manual-rule-creator';
-import { Button } from '@/app/components/ui';
+import { Button, Input, Select } from '@/app/components/ui';
 import { CategoryModel } from '@/app/types/category';
 import { MerchantDTO } from '@/app/types/merchant';
 import { MerchantAliasOperator } from '@/app/types/merchant-alias';
@@ -150,18 +150,16 @@ export function ImportDetail({
       <div className="mt-5 space-y-4 border-t border-[var(--border)] pt-4">
         <label className="block text-sm font-medium text-[var(--foreground)]">
           Categoria
-          <select
-            aria-label="Categoria"
-            value={item.categoryId ?? ''}
-            onChange={(event) => onUpdate(item.index, { categoryId: event.target.value || null })}
-            disabled={!canCategorize || submitting}
-            className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] disabled:opacity-50"
-          >
-            <option value="">Selecione</option>
-            {availableCategories.map((category) => (
-              <option key={category.id} value={category.id}>{category.name}</option>
-            ))}
-          </select>
+          <div className="mt-2">
+            <Select
+              ariaLabel="Categoria"
+              value={item.categoryId ?? ''}
+              onChange={(value) => onUpdate(item.index, { categoryId: String(value) || null })}
+              disabled={!canCategorize || submitting}
+              placeholder="Selecione"
+              options={availableCategories.map((category) => ({ value: category.id, label: category.name }))}
+            />
+          </div>
         </label>
 
         {canCategorize && (
@@ -186,44 +184,45 @@ export function ImportDetail({
                 </Button>
               </span>
             )}
-            <input
-              type="search"
-              aria-label="Buscar estabelecimento"
-              value={merchantSearch}
-              onChange={(event) => onSearchMerchants(event.target.value)}
-              disabled={submitting || merchantOptionsUnavailable}
-              placeholder="Buscar por nome"
-              className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] disabled:opacity-50"
-            />
+            <div className="mt-2">
+              <Input
+                type="search"
+                aria-label="Buscar estabelecimento"
+                value={merchantSearch}
+                onChange={(event) => onSearchMerchants(event.target.value)}
+                disabled={submitting || merchantOptionsUnavailable}
+                placeholder="Buscar por nome"
+              />
+            </div>
             {merchantSearchLoading && (
               <span className="mt-1 block text-xs font-normal text-[var(--text-muted)]" role="status">
                 Buscando estabelecimentos…
               </span>
             )}
-            <select
-              aria-label="Estabelecimento"
-              value={item.merchantId ?? ''}
-              onChange={(event) => onUpdate(item.index, {
-                merchantId: event.target.value || null,
-                merchantReviewed: true,
-                learnMerchantAlias: false,
-              })}
-              disabled={submitting || merchantOptionsUnavailable}
-              className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] disabled:opacity-50"
-            >
-              <option value="">Sem estabelecimento</option>
-              {suggestedMerchantOutsideOptions && item.merchantId && (
-                <option value={item.merchantId}>
-                  {item.suggestedMerchantName ?? 'Estabelecimento sugerido'}
-                </option>
-              )}
-              {merchants.map((merchant) => (
-                <option key={merchant.id} value={merchant.id}>{merchant.name}</option>
-              ))}
-            </select>
+            <div className="mt-2">
+              <Select
+                ariaLabel="Estabelecimento"
+                value={item.merchantId ?? ''}
+                onChange={(value) => onUpdate(item.index, {
+                  merchantId: String(value) || null,
+                  merchantReviewed: true,
+                  learnMerchantAlias: false,
+                })}
+                disabled={submitting || merchantOptionsUnavailable}
+                placeholder="Sem estabelecimento"
+                options={[
+                  ...(suggestedMerchantOutsideOptions && item.merchantId
+                    ? [{ value: item.merchantId, label: item.suggestedMerchantName ?? 'Estabelecimento sugerido' }]
+                    : []),
+                  ...merchants.map((merchant) => ({ value: merchant.id, label: merchant.name })),
+                ]}
+              />
+            </div>
             {(!item.merchantReviewed || merchantOptionsUnavailable) && (
-              <button
-                type="button"
+              <Button
+                variant="link"
+                size="sm"
+                className="mt-2"
                 onClick={() =>
                   onUpdate(item.index, {
                     merchantId: null,
@@ -231,10 +230,9 @@ export function ImportDetail({
                     learnMerchantAlias: false,
                   })
                 }
-                className="mt-2 text-xs font-semibold text-[var(--orbit-primary)]"
               >
                 Continuar sem estabelecimento
-              </button>
+              </Button>
             )}
 
             {item.merchantReviewed && item.merchantId ? (
@@ -256,22 +254,19 @@ export function ImportDetail({
                   <div className="mt-2">
                     <label className="text-xs font-semibold text-[var(--text-muted)]">
                       Regra do reconhecimento
-                      <select
-                        aria-label="Regra do reconhecimento"
-                        value={item.merchantAliasOperator}
-                        disabled={submitting}
-                        onChange={(event) =>
-                          onUpdate(item.index, {
-                            merchantAliasOperator:
-                              event.target.value as MerchantAliasOperator,
-                          })
-                        }
-                        className="mt-1 min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)]"
-                      >
-                        <option value="EQUALS">Igual a</option>
-                        <option value="STARTS_WITH">Começa com</option>
-                        <option value="CONTAINS">Contém</option>
-                      </select>
+                      <div className="mt-1">
+                        <Select
+                          ariaLabel="Regra do reconhecimento"
+                          value={item.merchantAliasOperator}
+                          disabled={submitting}
+                          onChange={(value) => onUpdate(item.index, { merchantAliasOperator: value as MerchantAliasOperator })}
+                          options={[
+                            { value: 'EQUALS', label: 'Igual a' },
+                            { value: 'STARTS_WITH', label: 'Começa com' },
+                            { value: 'CONTAINS', label: 'Contém' },
+                          ]}
+                        />
+                      </div>
                     </label>
                     <p className="mt-2 break-all text-xs text-[var(--text-muted)]">
                       Padrão: <span className="font-mono">{item.description}</span>

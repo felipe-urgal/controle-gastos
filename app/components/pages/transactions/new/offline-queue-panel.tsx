@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/app/components/ui';
 import type { OfflineTransactionQueueItem } from '@/app/lib/pwa/offline-transaction-queue';
 
 const MASKED_AMOUNT = '••••';
@@ -114,81 +115,41 @@ export default function OfflineQueuePanel({
 
               <div className="flex shrink-0 flex-wrap gap-2">
                 {item.status === 'synced' ? (
-                  <button
-                    type="button"
-                    onClick={() => discardQueuedTransaction(item)}
-                    disabled={Boolean(queueSyncingId)}
-                    className="min-h-9 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)] disabled:opacity-50"
-                  >
+                  <Button size="xs" pill variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
                     Limpar
-                  </button>
+                  </Button>
                 ) : item.failureKind === 'auth' ? (
                   <>
-                    <button
-                      type="button"
-                      onClick={reauthenticateForQueue}
-                      disabled={Boolean(queueSyncingId)}
-                      className="min-h-9 rounded-full bg-[var(--orbit-primary)] px-3 text-xs font-bold text-white disabled:opacity-50"
-                    >
+                    <Button size="xs" pill variant="accent" onClick={reauthenticateForQueue} disabled={Boolean(queueSyncingId)}>
                       Entrar novamente
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => discardQueuedTransaction(item)}
-                      disabled={Boolean(queueSyncingId)}
-                      className="min-h-9 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)] disabled:opacity-50"
-                    >
+                    </Button>
+                    <Button size="xs" pill variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
                       Descartar
-                    </button>
+                    </Button>
                   </>
                 ) : item.failureKind === 'idempotency_conflict' && item.errorCode === 'IDEMPOTENCY_PAYLOAD_CONFLICT' ? (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => resolveConflictAsNew(item)}
-                      disabled={!isOnline || Boolean(queueSyncingId)}
-                      className="min-h-9 rounded-full bg-[var(--orbit-primary)] px-3 text-xs font-bold text-white disabled:opacity-50"
-                    >
+                    <Button size="xs" pill variant="accent" onClick={() => resolveConflictAsNew(item)} disabled={!isOnline || Boolean(queueSyncingId)}>
                       Criar como novo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => discardQueuedTransaction(item)}
-                      disabled={Boolean(queueSyncingId)}
-                      className="min-h-9 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)] disabled:opacity-50"
-                    >
+                    </Button>
+                    <Button size="xs" pill variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
                       Descartar
-                    </button>
+                    </Button>
                   </>
                 ) : (
                   <>
                     {(item.failureKind === 'validation' || item.failureKind === 'business_conflict') ? (
-                      <button
-                        type="button"
-                        onClick={() => reviewQueuedTransaction(item)}
-                        disabled={Boolean(queueSyncingId)}
-                        className="min-h-9 rounded-full bg-[var(--orbit-primary)] px-3 text-xs font-bold text-white disabled:opacity-50"
-                      >
+                      <Button size="xs" pill variant="accent" onClick={() => reviewQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
                         Revisar
-                      </button>
+                      </Button>
                     ) : (
-                    <button
-                      type="button"
-                      onClick={() => syncQueuedTransaction(item)}
-                      disabled={!isOnline || Boolean(queueSyncingId) || Boolean(item.retryAfterAt && now < Date.parse(item.retryAfterAt))}
-                      className="min-h-9 rounded-full bg-[var(--orbit-primary)] px-3 text-xs font-bold text-white disabled:opacity-50"
-                    >
+                    <Button size="xs" pill variant="accent" onClick={() => syncQueuedTransaction(item)} disabled={!isOnline || Boolean(queueSyncingId) || Boolean(item.retryAfterAt && now < Date.parse(item.retryAfterAt))}>
                       {queueSyncingId === item.id ? 'Sincronizando...' : 'Sincronizar'}
-                    </button>
+                    </Button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => discardQueuedTransaction(item)}
-                      disabled={Boolean(queueSyncingId)}
-                      className="min-h-9 rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)] disabled:opacity-50"
-                    >
+                    <Button size="xs" pill variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
                       Descartar
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

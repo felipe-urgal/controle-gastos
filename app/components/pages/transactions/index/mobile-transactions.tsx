@@ -94,7 +94,7 @@ export function MobileTransactionsPrototype2({
           </span>
           <div className="min-w-0">
             <p className="text-sm text-[var(--text-muted)]">Saldo do mês</p>
-            <strong className={`mt-1 block text-[30px] font-black tracking-tight ${
+            <strong className={`mt-1 block text-3xl font-black tracking-tight ${
               summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
             }`}>
               {displayMoney(summary.balance, showValues, summary.currency)}
@@ -196,9 +196,9 @@ export function MobileUpcomingPreview({
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-bold min-[360px]:text-base">Próximos lançamentos</h2>
         {items.length > 0 && (
-          <button type="button" onClick={onViewAll} className="text-xs font-semibold text-[var(--orbit-primary)]">
+          <Button variant="link" size="xs" onClick={onViewAll}>
             Ver todos
-          </button>
+          </Button>
         )}
       </div>
 
@@ -295,13 +295,9 @@ export function MobileActivityFeed({
         );
       })}
       {hasMore && (
-        <button
-          type="button"
-          onClick={onLoadMore}
-          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
-        >
-          Carregar mais transações <FaChevronDown aria-hidden="true" />
-        </button>
+        <Button variant="secondary" fullWidth onClick={onLoadMore} icon={<FaChevronDown aria-hidden="true" />} iconPosition="right">
+          Carregar mais transações
+        </Button>
       )}
     </section>
   );

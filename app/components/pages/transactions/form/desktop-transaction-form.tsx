@@ -34,41 +34,33 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
               className="mx-auto grid max-w-[520px] grid-cols-3 overflow-hidden rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
               aria-label="Tipo da transação"
             >
-              <button
-                type="button"
+              <Button
+                variant={operationType === 'EXPENSE' ? 'primary' : 'ghost'}
                 aria-pressed={operationType === 'EXPENSE'}
                 onClick={() => handleCategoryType('EXPENSE')}
                 disabled={loading}
-                className={`flex min-h-11 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 ${
-                  operationType === 'EXPENSE'
-                    ? 'bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-sm'
-                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
-                }`}
+                icon={<FaArrowDown aria-hidden="true" />}
               >
-                <FaArrowDown aria-hidden="true" /> Despesa
-              </button>
-              <button
-                type="button"
+                Despesa
+              </Button>
+              <Button
+                variant={operationType === 'INCOME' ? 'primary' : 'ghost'}
                 aria-pressed={operationType === 'INCOME'}
                 onClick={() => handleCategoryType('INCOME')}
                 disabled={loading}
-                className={`flex min-h-11 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50 ${
-                  operationType === 'INCOME'
-                    ? 'bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-sm'
-                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
-                }`}
+                icon={<FaArrowUp aria-hidden="true" />}
               >
-                <FaArrowUp aria-hidden="true" /> Receita
-              </button>
-              <button
-                type="button"
+                Receita
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={onSelectTransfer}
                 disabled={loading || !onSelectTransfer}
                 aria-label={isEditing ? 'Transferência indisponível na edição' : 'Transferência'}
-                className="flex min-h-11 items-center justify-center gap-2 rounded-[9px] px-3 text-sm font-bold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--orbit-focus)] disabled:cursor-not-allowed disabled:opacity-40"
+                icon={<FaExchangeAlt aria-hidden="true" />}
               >
-                <FaExchangeAlt aria-hidden="true" /> Transferência
-              </button>
+                Transferência
+              </Button>
             </div>
 
             {!isEditing ? (
@@ -284,15 +276,17 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
               <div className="grid min-h-[44px] grid-cols-[28px_120px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
                 <FaFileAlt className="text-[var(--text-muted)]" aria-hidden="true" />
                 <label htmlFor="transaction-description" className="text-[var(--text-muted)]">Descrição</label>
-                <input
+                <Input
+                  bare
                   id="transaction-description"
                   value={formData.description}
                   onChange={(event) => handleDescriptionChange(event.target.value)}
                   disabled={loading}
                   required
                   maxLength={100}
+                  enterKeyHint="next"
                   placeholder="Adicionar descrição"
-                  className="min-w-0 bg-transparent text-right font-medium text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)]"
+                  className="text-right font-medium placeholder:text-[var(--text-subtle)]"
                 />
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </div>

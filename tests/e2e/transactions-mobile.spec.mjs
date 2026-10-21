@@ -52,6 +52,16 @@ test.describe('transações no mobile (360×640)', () => {
     expect(geometry.topmost).toBeTruthy();
     expect(geometry.bottom).toBeLessThanOrEqual(geometry.navTop + 1);
     expect(geometry.height).toBeGreaterThanOrEqual(44);
+
+    // Teclado simulado: com o campo focado e o viewport reduzido, o CTA continua acessível.
+    await page.getByRole('button', { name: /^Despesa/ }).first().click().catch(() => {});
+    const field = page.locator('input:not([type=hidden]):not([type=file]):not([type=checkbox])').first();
+    await field.focus();
+    await page.setViewportSize({ width: 360, height: 340 });
+    await expect(next).toBeVisible();
+    await next.scrollIntoViewIfNeeded();
+    await expect(next).toBeInViewport({ ratio: 1 });
+    await page.setViewportSize({ width: 360, height: 640 });
   });
   test('importação a 360×640: lista empilhada, filtros roláveis, revisão em sheet e CTA visível', async ({ page }) => {
     test.setTimeout(90_000);

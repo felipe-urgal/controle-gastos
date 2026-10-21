@@ -4,7 +4,7 @@ import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { FaTag } from 'react-icons/fa';
-import { Button } from '@/app/components/ui';
+import { Button, Input, Select } from '@/app/components/ui';
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import { FormData } from '@/app/lib/interface/transaction.interface';
@@ -938,23 +938,24 @@ export function useTransactionForm({
         {selected.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-2">
             {selected.map((tag) => (
-              <button
+              <Button
                 key={tag.id}
-                type="button"
+                variant="outline"
+                size="xs"
+                pill
                 onClick={() => setFormData((previous) => ({
                   ...previous,
                   tagIds: (previous.tagIds ?? []).filter((id) => id !== tag.id),
                 }))}
-                className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs font-semibold text-[var(--foreground)]"
                 aria-label={`Remover tag ${tag.name}`}
               >
                 #{tag.name}{!tag.isActive ? ' · arquivada' : ''} ×
-              </button>
+              </Button>
             ))}
           </div>
         ) : null}
         <div className="mt-2 flex gap-2">
-          <input
+          <Input
             list={datalistId}
             value={tagDraft}
             onChange={(event) => setTagDraft(event.target.value)}
@@ -967,7 +968,7 @@ export function useTransactionForm({
             maxLength={41}
             disabled={loading || (formData.tagIds?.length ?? 0) >= 10}
             placeholder="Digite ou escolha uma tag"
-            className="ds-control min-h-11 min-w-0 flex-1 bg-[var(--surface)] px-3 text-sm"
+            enterKeyHint="done"
             aria-label="Adicionar tag"
           />
           <datalist id={datalistId}>
@@ -1016,16 +1017,18 @@ export function useTransactionForm({
           <div className="mt-3 grid gap-2">
             {allocations.map((allocation, index) => (
               <div key={index} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
-                <select aria-label={`Categoria da divisão ${index + 1}`} value={allocation.categoryId} disabled={loading || index === 0}
-                  onChange={(event) => setFormData((previous) => ({
+                <Select
+                  ariaLabel={`Categoria da divisão ${index + 1}`}
+                  value={allocation.categoryId}
+                  disabled={loading || index === 0}
+                  onChange={(value) => setFormData((previous) => ({
                     ...previous,
-                    allocations: (previous.allocations ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, categoryId: event.target.value } : item),
+                    allocations: (previous.allocations ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, categoryId: String(value) } : item),
                   }))}
-                  className="ds-control min-h-11 w-full bg-[var(--surface)] px-3 text-sm text-[var(--foreground)]">
-                  <option value="">Selecione a categoria</option>
-                  {availableCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                </select>
-                <input aria-label={`Valor da divisão ${index + 1}`} type="number" min="0.01" step="0.01"
+                  placeholder="Selecione a categoria"
+                  options={availableCategories.map((category) => ({ value: category.id, label: category.name }))}
+                />
+                <Input aria-label={`Valor da divisão ${index + 1}`} type="number" inputMode="decimal" enterKeyHint="next" min="0.01" step="0.01"
                   value={allocation.amount > 0 ? (allocation.amount / 100).toFixed(2) : ''} disabled={loading}
                   onChange={(event) => {
                     const amount = Math.round(Number(event.target.value || 0) * 100);
@@ -1034,19 +1037,18 @@ export function useTransactionForm({
                       allocations: (previous.allocations ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, amount } : item),
                     }));
                   }}
-                  className="ds-control min-h-11 w-full bg-[var(--surface)] px-3 text-right text-sm text-[var(--foreground)]" placeholder="0,00" />
-                <button type="button" disabled={loading || allocations.length <= 2 || index === 0} onClick={() =>
+                  className="text-right" placeholder="0,00" />
+                <Button variant="outline" disabled={loading || allocations.length <= 2 || index === 0} onClick={() =>
                   setFormData((previous) => ({ ...previous, allocations: (previous.allocations ?? []).filter((_, itemIndex) => itemIndex !== index) }))
-                } className="min-h-11 rounded-[10px] border border-[var(--border)] px-3 text-sm font-semibold text-[var(--text-muted)] disabled:opacity-40">
+                }>
                   Remover
-                </button>
+                </Button>
               </div>
             ))}
-            <button type="button" disabled={loading || allocations.length >= 20}
-              onClick={() => setFormData((previous) => ({ ...previous, allocations: [...(previous.allocations ?? []), { categoryId: '', amount: 0 }] }))}
-              className="min-h-11 rounded-[10px] border border-dashed border-[var(--border-strong)] px-3 text-sm font-semibold text-[var(--orbit-primary)] disabled:opacity-40">
+            <Button variant="outline" disabled={loading || allocations.length >= 20}
+              onClick={() => setFormData((previous) => ({ ...previous, allocations: [...(previous.allocations ?? []), { categoryId: '', amount: 0 }] }))}>
               + Adicionar categoria
-            </button>
+            </Button>
             <p className="text-xs text-[var(--text-muted)]">Total dividido: {formatCentsToCurrency(allocations.reduce((sum, item) => sum + item.amount, 0))} de {formatCentsToCurrency(formData.amount)}</p>
           </div>
         )}

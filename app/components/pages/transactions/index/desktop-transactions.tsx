@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ReactNode } from 'react';
 import { FaArrowDown, FaArrowRight, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaClock, FaCreditCard, FaExchangeAlt } from 'react-icons/fa';
-import { IconRenderer } from '@/app/components/ui';
+import { Button, IconRenderer, Select } from '@/app/components/ui';
 import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
@@ -115,20 +115,17 @@ export function MovementTimeline({
     <article className="min-h-[620px] rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold">Movimentação de {monthTitle(month, year).toLowerCase()}</h2>
-        <label className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-          Ordenar por
-          <span className="relative">
-            <select
-              value={order}
-              onChange={(event) => onOrderChange(event.target.value as TimelineOrder)}
-              className="min-h-11 sm:min-h-9 appearance-none rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] py-2 pl-3 pr-9 text-xs font-semibold text-[var(--foreground)] outline-none focus:border-[var(--orbit-primary)]"
-            >
-              <option value="newest">Mais recente</option>
-              <option value="oldest">Mais antigo</option>
-            </select>
-            <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-          </span>
-        </label>
+        <div className="w-full sm:w-52">
+          <Select
+            label="Ordenar por"
+            value={order}
+            onChange={(value) => onOrderChange(value as TimelineOrder)}
+            options={[
+              { value: 'newest', label: 'Mais recente' },
+              { value: 'oldest', label: 'Mais antigo' },
+            ]}
+          />
+        </div>
       </header>
 
       {loading ? (
@@ -174,13 +171,16 @@ export function MovementTimeline({
       )}
 
       {hasMore && !loading && (
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          pill
           onClick={onLoadMore}
-          className="mx-auto mt-4 flex min-h-11 sm:min-h-9 w-full max-w-[520px] items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-4 text-xs font-semibold hover:bg-[var(--surface-hover)]"
+          icon={<FaChevronDown aria-hidden="true" />}
+          iconPosition="right"
+          className="mx-auto mt-4 w-full max-w-[520px]"
         >
-          Ver mais transações <FaChevronDown aria-hidden="true" />
-        </button>
+          Ver mais transações
+        </Button>
       )}
     </article>
   );

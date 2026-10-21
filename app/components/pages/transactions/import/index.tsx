@@ -7,7 +7,7 @@ import { PageHeader } from '@/app/components/base-pages';
 import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 
-import { Button, Chip, ChipRow, Input } from '@/app/components/ui';
+import { Button, Chip, ChipRow, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 
 import { accountService } from '@/app/services/account-service';
@@ -497,21 +497,15 @@ export default function TransactionImportPage() {
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <label className="space-y-2 text-sm font-medium text-[var(--foreground)]">
-                  Conta
-                  <select
-                    value={accountId}
-                    onChange={(event) => setAccountId(event.target.value)}
-                    disabled={loadingRelations || submitting}
-                    className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5 text-[var(--foreground)]"
-                    required
-                  >
-                    <option value="">Selecione</option>
-                    {accounts.map((item) => (
-                      <option key={item.id} value={item.id}>{item.name} · {item.currency}</option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="Conta"
+                  value={accountId}
+                  onChange={(value) => setAccountId(String(value))}
+                  disabled={loadingRelations || submitting}
+                  required
+                  placeholder="Selecione"
+                  options={accounts.map((item) => ({ value: item.id, label: `${item.name} · ${item.currency}` }))}
+                />
 
                 <label className="space-y-2 text-sm font-medium text-[var(--foreground)]">
                   Arquivo
@@ -527,22 +521,22 @@ export default function TransactionImportPage() {
               </div>
 
               {file?.name.toLowerCase().endsWith('.qif') && (
-                <label className="mt-4 block max-w-sm text-sm font-medium text-[var(--foreground)]">
-                  Formato de data QIF
-                  <select
+                <div className="mt-4 max-w-sm">
+                  <Select
+                    label="Formato de data QIF"
                     value={qifDateOrder}
-                    onChange={(event) => setQifDateOrder(event.target.value as '' | QifDateOrder)}
+                    onChange={(value) => setQifDateOrder(value as '' | QifDateOrder)}
                     disabled={submitting}
-                    className="mt-2 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                  >
-                    <option value="">Detectar pelo arquivo</option>
-                    <option value="MDY">MM/DD — mês/dia</option>
-                    <option value="DMY">DD/MM — dia/mês</option>
-                  </select>
-                  <span className="mt-1 block text-xs font-normal text-[var(--text-muted)]">
+                    placeholder="Detectar pelo arquivo"
+                    options={[
+                      { value: 'MDY', label: 'MM/DD — mês/dia' },
+                      { value: 'DMY', label: 'DD/MM — dia/mês' },
+                    ]}
+                  />
+                  <p className="mt-1 text-xs font-normal text-[var(--text-muted)]">
                     Se todas as datas forem ambíguas, escolha a convenção explicitamente.
-                  </span>
-                </label>
+                  </p>
+                </div>
               )}
             </div>
 
@@ -688,22 +682,19 @@ export default function TransactionImportPage() {
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                  <label className="min-w-0 flex-1 text-sm font-medium text-[var(--foreground)]">
-                    Categoria em lote para selecionadas visíveis
-                    <select
+                  <div className="min-w-0 flex-1">
+                    <Select
+                      label="Categoria em lote para selecionadas visíveis"
                       value={bulkCategoryId}
-                      onChange={(event) => setBulkCategoryId(event.target.value)}
+                      onChange={(value) => setBulkCategoryId(String(value))}
                       disabled={submitting || categoryLoadError.length > 0}
-                      className="mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--background)] px-3 py-2.5"
-                    >
-                      <option value="">Selecione uma categoria</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name} · {category.type === 'INCOME' ? 'Receita' : 'Despesa'}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      placeholder="Selecione uma categoria"
+                      options={categories.map((category) => ({
+                        value: category.id,
+                        label: `${category.name} · ${category.type === 'INCOME' ? 'Receita' : 'Despesa'}`,
+                      }))}
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="outline"

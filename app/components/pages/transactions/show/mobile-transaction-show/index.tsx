@@ -25,7 +25,7 @@ import {
   FaWallet,
 } from 'react-icons/fa';
 
-import { IconRenderer } from '@/app/components/ui';
+import { Button, IconRenderer } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { statusConfig } from '@/app/lib/constants/transaction.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -371,14 +371,15 @@ export default function MobileTransactionShow({
             >
               Salvar como modelo
             </Link>
-            <button
-              type="button"
+            <Button
+              variant="danger"
+              className="col-span-2"
               onClick={onRequestDelete}
               disabled={isDeleting}
-              className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-[11px] border border-[var(--expense)] bg-transparent px-3 text-sm font-bold text-[var(--expense)] disabled:opacity-50"
+              icon={<FaTrashAlt aria-hidden="true" />}
             >
-              <FaTrashAlt aria-hidden="true" /> Excluir transação
-            </button>
+              Excluir transação
+            </Button>
           </div>
         </section>
       ) : (

@@ -321,7 +321,7 @@ test('correção manual aprende categoria e estabelecimento apenas quando solici
     name: 'Criar regra com esta classificação',
   });
   await expect(ruleForm).toBeVisible();
-  const generatedRuleName = await ruleForm.getByLabel('Nome da regra', { exact: true }).inputValue();
+  const generatedRuleName = await ruleForm.getByLabel(/^Nome da regra/).inputValue();
   expect(generatedRuleName).toContain(description);
 
   await ruleForm.getByRole('button', { name: 'Criar regra', exact: true }).click();
@@ -346,7 +346,7 @@ test('correção manual aprende categoria e estabelecimento apenas quando solici
   await expect(secondDetail).toBeVisible();
   await expect(secondDetail.getByText(generatedRuleName, { exact: true })).toBeVisible();
   await expect(secondDetail.getByLabel('Categoria', { exact: true })).toHaveValue(relations.categoryId);
-  await expect(secondDetail.getByText(merchantName, { exact: true })).toBeVisible();
+  await expect(secondDetail.getByRole('definition').filter({ hasText: merchantName })).toBeVisible();
   await expect(secondDetail.getByLabel('Estabelecimento', { exact: true })).toHaveValue(relations.merchantId);
   await expect(secondDetail.getByText('Pronta', { exact: true })).toBeVisible();
 });
