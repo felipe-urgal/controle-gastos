@@ -2,9 +2,12 @@
 
 import { FormEvent } from 'react';
 import { FaTrash } from 'react-icons/fa';
+import { Button, Chip, ChipRow, IconButton, Input, Select } from '@/app/components/ui';
 import { ExchangeRateModel } from '@/app/types/exchange-rate';
 import { SupportedCurrency } from '@/app/types/financial-summary';
 import { currencies, currentIsoDate, logicalDateLabel, rateProvenanceLabel, rateRatioLabel } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
+
+const currencyOptions = currencies.map((currency) => ({ value: currency, label: currency }));
 
 export function ExchangeRatesCard({
   rates,
@@ -85,85 +88,55 @@ export function ExchangeRatesCard({
       <form
         onSubmit={onSave}
         noValidate
-        className="mt-4 grid gap-3 rounded-[14px] bg-[var(--surface-raised)] p-3 md:grid-cols-[120px_120px_minmax(150px,1fr)_170px_auto] md:items-end"
+        className="mt-4 grid gap-3 rounded-[14px] bg-[var(--surface-raised)] p-3 md:grid-cols-[minmax(0,7.5rem)_minmax(0,7.5rem)_minmax(0,1fr)_minmax(0,10.5rem)_auto] md:items-end"
       >
-        <label>
-          <span className="ds-label mb-2 block">De</span>
-          <select
+        <div>
+          <span className="ds-label mb-2 block" aria-hidden="true">De</span>
+          <Select
+            ariaLabel="Moeda de origem da taxa"
             value={from}
-            onChange={(event) =>
-              onFromChange(event.target.value as SupportedCurrency)
-            }
-            className="ds-control min-h-11 w-full px-3"
-            aria-label="Moeda de origem da taxa"
-          >
-            {currencies.map((currency) => (
-              <option key={currency} value={currency}>
-                {currency}
-              </option>
-            ))}
-          </select>
-        </label>
+            onChange={(value) => onFromChange(value as SupportedCurrency)}
+            options={currencyOptions}
+          />
+        </div>
 
-        <label>
-          <span className="ds-label mb-2 block">Para</span>
-          <select
+        <div>
+          <span className="ds-label mb-2 block" aria-hidden="true">Para</span>
+          <Select
+            ariaLabel="Moeda de destino da taxa"
             value={to}
-            onChange={(event) =>
-              onToChange(event.target.value as SupportedCurrency)
-            }
-            className="ds-control min-h-11 w-full px-3"
-            aria-label="Moeda de destino da taxa"
-          >
-            {currencies.map((currency) => (
-              <option key={currency} value={currency}>
-                {currency}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          <span className="ds-label mb-2 block">Taxa para 1 {from}</span>
-          <input
-            value={value}
-            onChange={(event) => onValueChange(event.target.value)}
-            inputMode="decimal"
-            placeholder={`Ex.: 5,32 ${to}`}
-            className="ds-control min-h-11 w-full px-3"
-            aria-label="Valor da taxa manual"
+            onChange={(value) => onToChange(value as SupportedCurrency)}
+            options={currencyOptions}
           />
-        </label>
+        </div>
 
-        <label>
-          <span className="ds-label mb-2 block">Data de referência</span>
-          <input
-            type="date"
-            value={referenceDate}
-            onChange={(event) => onReferenceDateChange(event.target.value)}
-            min="2000-01-01"
-            max={currentIsoDate()}
-            className="ds-control min-h-11 w-full px-3"
-            aria-label="Data de referência da taxa"
-          />
-        </label>
+        <Input
+          label={`Taxa para 1 ${from}`}
+          aria-label="Valor da taxa manual"
+          value={value}
+          onChange={(event) => onValueChange(event.target.value)}
+          inputMode="decimal"
+          enterKeyHint="done"
+          placeholder={`Ex.: 5,32 ${to}`}
+        />
+
+        <Input
+          label="Data de referência"
+          aria-label="Data de referência da taxa"
+          type="date"
+          value={referenceDate}
+          onChange={(event) => onReferenceDateChange(event.target.value)}
+          min="2000-01-01"
+          max={currentIsoDate()}
+        />
 
         <div className="flex gap-2 md:flex-col">
-          <button
-            type="submit"
-            disabled={saving || fetchingPtax}
-            className="min-h-11 flex-1 rounded-[10px] bg-[var(--orbit-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
-          >
+          <Button type="submit" disabled={saving || fetchingPtax} className="flex-1">
             {saving ? 'Salvando…' : 'Salvar manual'}
-          </button>
-          <button
-            type="button"
-            onClick={onFetchPtax}
-            disabled={saving || fetchingPtax}
-            className="min-h-11 flex-1 rounded-[10px] border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)] disabled:opacity-50"
-          >
+          </Button>
+          <Button type="button" variant="outline" onClick={onFetchPtax} disabled={saving || fetchingPtax} className="flex-1">
             {fetchingPtax ? 'Consultando…' : 'Buscar PTAX'}
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -188,33 +161,18 @@ export function ExchangeRatesCard({
         </p>
       )}
 
-      <div
-        role="tablist"
-        aria-label="Origem das taxas"
-        className="mt-5 inline-flex rounded-full border border-[var(--border)] p-1"
-      >
+      <ChipRow label="Origem das taxas" className="mt-5">
         {(
           [
             ['MANUAL', 'Manuais'],
             ['BCB_PTAX', 'PTAX'],
           ] as const
         ).map(([source, label]) => (
-          <button
-            key={source}
-            type="button"
-            role="tab"
-            aria-selected={sourceTab === source}
-            onClick={() => onSourceTabChange(source)}
-            className={`min-h-11 rounded-full px-4 text-sm font-bold ${
-              sourceTab === source
-                ? 'bg-[var(--orbit-primary)] text-white'
-                : 'text-[var(--text-muted)]'
-            }`}
-          >
+          <Chip key={source} selected={sourceTab === source} onClick={() => onSourceTabChange(source)}>
             {label}
-          </button>
+          </Chip>
         ))}
-      </div>
+      </ChipRow>
       {sourceTab === 'BCB_PTAX' && (
         <p className="mt-2 text-xs text-[var(--text-muted)]">
           Inclui cotações buscadas por você e as importadas pela apuração fiscal de
@@ -232,46 +190,20 @@ export function ExchangeRatesCard({
           </p>
         </div>
         <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
-          <label>
-            <span className="sr-only">Filtrar moeda de origem</span>
-            <select
-              value={filterFrom}
-              onChange={(event) =>
-                onFilterFromChange(
-                  event.target.value as SupportedCurrency | '',
-                )
-              }
-              className="ds-control min-h-11 w-full px-3"
-              aria-label="Filtrar taxas por moeda de origem"
-            >
-              <option value="">Todas origens</option>
-              {currencies.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span className="sr-only">Filtrar moeda de destino</span>
-            <select
-              value={filterTo}
-              onChange={(event) =>
-                onFilterToChange(
-                  event.target.value as SupportedCurrency | '',
-                )
-              }
-              className="ds-control min-h-11 w-full px-3"
-              aria-label="Filtrar taxas por moeda de destino"
-            >
-              <option value="">Todos destinos</option>
-              {currencies.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Select
+            ariaLabel="Filtrar taxas por moeda de origem"
+            value={filterFrom}
+            onChange={(value) => onFilterFromChange(value as SupportedCurrency | '')}
+            options={currencyOptions}
+            placeholder="Todas origens"
+          />
+          <Select
+            ariaLabel="Filtrar taxas por moeda de destino"
+            value={filterTo}
+            onChange={(value) => onFilterToChange(value as SupportedCurrency | '')}
+            options={currencyOptions}
+            placeholder="Todos destinos"
+          />
         </div>
       </div>
 
@@ -324,14 +256,13 @@ export function ExchangeRatesCard({
                     )}
                   </div>
                   {rate.source === 'MANUAL' ? (
-                    <button
-                      type="button"
+                    <IconButton
+                      label={`Excluir taxa ${rate.from} para ${rate.to}`}
+                      icon={<FaTrash />}
+                      tone="danger"
                       onClick={() => onRemove(rate)}
-                      aria-label={`Excluir taxa ${rate.from} para ${rate.to}`}
-                      className="grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] text-[var(--expense)] hover:bg-[var(--danger-subtle)]"
-                    >
-                      <FaTrash aria-hidden="true" />
-                    </button>
+                      className="border border-[var(--border)]"
+                    />
                   ) : (
                     <span
                       className="text-center text-xs font-bold text-[var(--text-muted)]"
@@ -345,14 +276,9 @@ export function ExchangeRatesCard({
             </div>
 
             {hasMore && (
-              <button
-                type="button"
-                onClick={onLoadMore}
-                disabled={moreLoading}
-                className="mt-3 min-h-11 w-full rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold disabled:opacity-50"
-              >
+              <Button type="button" variant="outline" fullWidth className="mt-3" onClick={onLoadMore} disabled={moreLoading}>
                 {moreLoading ? 'Carregando…' : 'Carregar mais taxas'}
-              </button>
+              </Button>
             )}
           </>
         )}

@@ -9,7 +9,7 @@ import { FaChevronRight } from 'react-icons/fa';
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { Chip, ChipRow } from '@/app/components/ui';
+import { Button, Chip, ChipRow, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 
 import { exchangeRateService } from '@/app/services/exchange-rate-service';
@@ -379,41 +379,29 @@ export default function NetWorthPage() {
           </div>
 
           <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
-            <label className="block min-w-[170px]">
-              <span className="ds-label mb-2 block">Mês de referência</span>
-              <input
-                type="month"
-                value={periodInputValue({ year, month })}
-                max={periodInputValue(currentPeriod())}
-                onChange={(event) => {
-                  const parsed = parsePeriodInput(event.target.value);
-                  if (parsed) {
-                    setLoading(true);
-                    setEndPeriod(parsed);
-                  }
-                }}
-                className="ds-control min-h-11 w-full px-3"
-                aria-label="Mês final do patrimônio"
-              />
-            </label>
-            <label className="block min-w-[150px]">
-              <span className="ds-label mb-2 block">Histórico</span>
-              <select
-                value={months}
-                onChange={(event) => {
+            <Input
+              label="Mês de referência"
+              aria-label="Mês final do patrimônio"
+              type="month"
+              value={periodInputValue({ year, month })}
+              max={periodInputValue(currentPeriod())}
+              onChange={(event) => {
+                const parsed = parsePeriodInput(event.target.value);
+                if (parsed) {
                   setLoading(true);
-                  setMonths(Number(event.target.value));
-                }}
-                className="ds-control min-h-11 w-full px-3"
-                aria-label="Período do histórico"
-              >
-                <option value={6}>6 meses</option>
-                <option value={12}>12 meses</option>
-                <option value={24}>24 meses</option>
-                <option value={36}>36 meses</option>
-                <option value={60}>60 meses</option>
-              </select>
-            </label>
+                  setEndPeriod(parsed);
+                }
+              }}
+            />
+            <Select
+              label="Histórico"
+              value={months}
+              onChange={(value) => {
+                setLoading(true);
+                setMonths(Number(value));
+              }}
+              options={[6, 12, 24, 36, 60].map((count) => ({ value: count, label: `${count} meses` }))}
+            />
           </div>
         </header>
 
@@ -531,16 +519,16 @@ export default function NetWorthPage() {
                     <p className="mt-1 text-sm text-[var(--text-muted)]">
                       {data.realEvolution.error}
                     </p>
-                    <button
-                      type="button"
+                    <Button
+                      variant="outline"
+                      className="mt-3"
                       onClick={() => {
                         setLoading(true);
                         setCoreNonce((current) => current + 1);
                       }}
-                      className="mt-3 min-h-11 rounded-full border border-[var(--border-strong)] px-4 text-sm font-bold"
                     >
                       Tentar novamente
-                    </button>
+                    </Button>
                   </article>
                 )}
 
@@ -594,22 +582,12 @@ export default function NetWorthPage() {
               a taxa depois.
             </p>
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setRatePendingDelete(null)}
-                disabled={rateDeleteLoading}
-                className="min-h-12 rounded-full border border-[var(--border-strong)] font-bold"
-              >
+              <Button variant="secondary" onClick={() => setRatePendingDelete(null)} disabled={rateDeleteLoading}>
                 Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleRateRemove()}
-                disabled={rateDeleteLoading}
-                className="min-h-12 rounded-full bg-[var(--expense)] font-extrabold text-white disabled:opacity-50"
-              >
+              </Button>
+              <Button variant="danger" onClick={() => void handleRateRemove()} disabled={rateDeleteLoading}>
                 {rateDeleteLoading ? 'Excluindo…' : 'Excluir taxa'}
-              </button>
+              </Button>
             </div>
           </ModalShell>
         )}
