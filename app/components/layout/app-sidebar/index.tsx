@@ -39,10 +39,12 @@ function SidebarLink({
   item,
   active,
   collapsed,
+  indented = false,
 }: {
   item: AppNavigationItem;
   active: boolean;
   collapsed: boolean;
+  indented?: boolean;
 }) {
   const Icon = item.icon;
 
@@ -66,7 +68,7 @@ function SidebarLink({
       {active && (
         <span
           aria-hidden="true"
-          className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--primary)]"
+          className={`absolute top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--primary)] ${indented ? '-left-[9px]' : 'left-0'}`}
         />
       )}
       <Icon
@@ -100,14 +102,14 @@ export default function AppSidebar({
   const primaryItems = mobilePrimaryNavigationKeys
     .map((key) => byKey.get(key))
     .filter((item): item is AppNavigationItem => Boolean(item));
-  const groups = mobileMoreNavigationGroups
+  const groups = [{ label: 'Principal', items: primaryItems }, ...mobileMoreNavigationGroups
     .map((group) => ({
       label: group.label,
       items: (group.keys as readonly string[])
         .map((key) => byKey.get(key as AppNavigationItem['key']))
         .filter((item): item is AppNavigationItem => Boolean(item)),
     }))
-    .filter((group) => group.items.length > 0);
+    .filter((group) => group.items.length > 0)];
 
   const toggleGroup = (label: string) => {
     setClosedGroups((current) => {
@@ -176,21 +178,19 @@ export default function AppSidebar({
           )}
         </button>
 
-        <div className="space-y-0.5">
-          {primaryItems.map((item) => (
-            <SidebarLink key={item.key} item={item} active={item.isActive(pathname)} collapsed={collapsed} />
-          ))}
-        </div>
-
-        {groups.map((group) => {
+        {groups.map((group, index) => {
           const hasActive = group.items.some((item) => item.isActive(pathname));
-          const open = collapsed || hasActive || !closedGroups.includes(group.label);
+          const open = collapsed || !closedGroups.includes(group.label);
           const panelId = `sidebar-group-${group.label}`;
 
           return (
             <div
               key={group.label}
-              className={collapsed ? 'mt-3 space-y-0.5 border-t border-[var(--border)] pt-3' : 'mt-5'}
+              className={
+                index === 0
+                  ? collapsed ? 'space-y-0.5' : ''
+                  : collapsed ? 'mt-3 space-y-0.5 border-t border-[var(--border)] pt-3' : 'mt-4'
+              }
             >
               {!collapsed && (
                 <button
@@ -198,10 +198,19 @@ export default function AppSidebar({
                   onClick={() => toggleGroup(group.label)}
                   aria-expanded={open}
                   aria-controls={panelId}
-                  disabled={hasActive}
-                  className="mb-1 flex w-full items-center justify-between rounded-[var(--radius-sm)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)] transition-colors hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:cursor-default disabled:hover:text-[var(--text-subtle)]"
+                  className={`mb-1 flex w-full items-center justify-between rounded-[var(--radius-sm)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+                    hasActive
+                      ? 'text-[var(--primary)]'
+                      : 'text-[var(--text-subtle)] hover:text-[var(--foreground)]'
+                  }`}
                 >
-                  {group.label}
+                  <span className="flex items-center gap-2">
+                    <span
+                      aria-hidden="true"
+                      className={`h-1.5 w-1.5 rounded-full transition-colors ${hasActive ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
+                    />
+                    {group.label}
+                  </span>
                   <FaChevronDown
                     className={`h-2.5 w-2.5 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
                     aria-hidden="true"
@@ -209,9 +218,16 @@ export default function AppSidebar({
                 </button>
               )}
               {open && (
-                <div id={panelId} className="space-y-0.5">
+                <div
+                  id={panelId}
+                  className={
+                    collapsed
+                      ? 'space-y-0.5'
+                      : `ml-[17px] space-y-0.5 border-l pl-2 ${hasActive ? 'border-[var(--primary)]/40' : 'border-[var(--border)]'}`
+                  }
+                >
                   {group.items.map((item) => (
-                    <SidebarLink key={item.key} item={item} active={item.isActive(pathname)} collapsed={collapsed} />
+                    <SidebarLink key={item.key} item={item} active={item.isActive(pathname)} collapsed={collapsed} indented={!collapsed} />
                   ))}
                 </div>
               )}
