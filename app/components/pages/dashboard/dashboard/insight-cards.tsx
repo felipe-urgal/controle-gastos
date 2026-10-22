@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { FaArrowDown, FaArrowRight, FaCalendarAlt, FaChartLine, FaChartPie, FaChevronRight, FaBullseye, FaSyncAlt } from 'react-icons/fa';
+import { FaArrowRight } from 'react-icons/fa';
 import { DashboardNetWorthSummary, MonthlyDashboard } from '@/app/types/dashboard';
 import { SupportedCurrency } from '@/app/types/financial-summary';
-import { FinancialInsight, FinancialInsightsData } from '@/app/types/financial-insight';
+import { FinancialInsight } from '@/app/types/financial-insight';
 import { compactMonthLabel, dashboardLogicalDateLabel, displayMoney, signedMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 
 export function ComparisonDetail({
@@ -110,21 +110,6 @@ export function NetWorthSummaryCard({
   );
 }
 
-export function insightIcon(type: FinancialInsight['type']) {
-  if (type === 'CATEGORY_BUDGET') return FaChartPie;
-  if (type === 'UPCOMING_PENDING') return FaCalendarAlt;
-  if (
-    type === 'RECURRING_SHARE' ||
-    type === 'SUBSCRIPTION_PRICE_CHANGE' ||
-    type === 'POSSIBLE_SUBSCRIPTION'
-  ) {
-    return FaSyncAlt;
-  }
-  if (type === 'INCOME_CHANGE') return FaArrowDown;
-  if (type === 'GOAL_DELAYED') return FaBullseye;
-  return FaChartLine;
-}
-
 export function insightDetail(
   insight: FinancialInsight,
   showValues: boolean,
@@ -167,103 +152,4 @@ export function insightDetail(
   }
 
   return `${signedMoney(insight.data.difference, showValues, currency)} em 30 dias`;
-}
-
-export function FinancialInsightsCard({
-  insights,
-  showValues,
-  currency,
-  compact = false,
-}: {
-  insights: {
-    data: FinancialInsightsData | null;
-    loading: boolean;
-    error: string;
-  };
-  showValues: boolean;
-  currency: SupportedCurrency;
-  compact?: boolean;
-}) {
-  const items = insights.data?.items ?? [];
-
-  if (!insights.loading && !insights.error && items.length === 0) {
-    return null;
-  }
-
-  return (
-    <section
-      className={`border border-[var(--border)] bg-[var(--surface)] ${compact ? 'rounded-[16px] p-4' : 'rounded-[14px] p-[14px] sm:p-5'}`}
-      aria-labelledby={compact ? 'mobile-insights-title' : 'desktop-insights-title'}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2
-            id={compact ? 'mobile-insights-title' : 'desktop-insights-title'}
-            className={compact ? 'text-base font-bold' : 'text-lg font-bold'}
-          >
-            Insights financeiros
-          </h2>
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-            Orçamento e categorias usam o mês selecionado; projeções usam a referência atual.
-          </p>
-        </div>
-        <span className="rounded-full border border-[var(--border)] px-2 py-1 text-xs font-semibold text-[var(--text-muted)]">
-          {currency}
-        </span>
-      </div>
-
-      {insights.loading ? (
-        <div className="mt-3 grid gap-2 sm:grid-cols-2" role="status" aria-label="Carregando insights financeiros">
-          {[1, 2].map((item) => (
-            <div key={item} className="h-16 animate-pulse rounded-[11px] bg-[var(--skeleton)]" />
-          ))}
-        </div>
-      ) : insights.error ? (
-        <p className="mt-3 text-sm text-[var(--text-muted)]">
-          Não foi possível carregar os insights deste período.
-        </p>
-      ) : (
-        <div className={`mt-3 grid gap-2 ${compact ? '' : 'sm:grid-cols-2'}`}>
-          {items.map((insight) => {
-            const Icon = insightIcon(insight.type);
-            const content = (
-              <>
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[9px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
-                  <Icon aria-hidden="true" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <strong className="block text-sm leading-snug text-[var(--foreground)]">
-                    {insight.message}
-                  </strong>
-                  <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                    {insightDetail(insight, showValues, currency)}
-                  </span>
-                </span>
-                {insight.href && (
-                  <FaChevronRight className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                )}
-              </>
-            );
-
-            return insight.href ? (
-              <Link
-                key={insight.id}
-                href={insight.href}
-                className="flex min-h-[64px] items-center gap-3 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/45 px-3 py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-              >
-                {content}
-              </Link>
-            ) : (
-              <div
-                key={insight.id}
-                className="flex min-h-[64px] items-center gap-3 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/45 px-3 py-2"
-              >
-                {content}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
 }

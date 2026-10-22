@@ -5,6 +5,7 @@ import {
 } from '@/app/lib/dashboard/monthly-dashboard';
 import {
   getForecastForUser,
+  lastDayOfMonth,
   type ForecastForUserResult,
 } from '@/app/lib/forecast/forecast';
 import { getFinancialInsightsFromContext } from '@/app/lib/insights/financial-insights';
@@ -190,7 +191,10 @@ export async function getDashboardHomeForUser(
   ] = await Promise.all([
     getMonthlyDashboardForUser(userId, period, currency, now),
     captureSection(
-      () => getForecastForUser(userId, { currency, days: 30 }, now),
+      () =>
+        getForecastForUser(userId, { currency, days: 30 }, now, {
+          safeToSpendThrough: lastDayOfMonth(logicalDateFromUtcInstant(now)),
+        }),
       'Não foi possível carregar a projeção atual.',
     ),
     captureSection(

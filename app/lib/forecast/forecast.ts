@@ -20,7 +20,10 @@ export type ForecastForUserResult = ForecastResult & {
     overdue: ReturnType<typeof buildCreditCardCommitments>;
     upcoming: ReturnType<typeof buildCreditCardCommitments>;
   };
-  safeToSpend: ReturnType<typeof buildSafeToSpend>;
+  safeToSpend: ReturnType<typeof buildSafeToSpend> & {
+    /** Último dia considerado: pendências e faturas posteriores a ele ficam de fora. */
+    through: LogicalDate;
+  };
 };
 
 export { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
@@ -51,13 +54,24 @@ function monthWindow(start: LogicalDate, end: LogicalDate) {
   return periods;
 }
 
+/** Último dia do mês de `date`. */
+export function lastDayOfMonth(date: LogicalDate): LogicalDate {
+  const day = new Date(Date.UTC(date.year, date.month, 0)).getUTCDate();
+  return { year: date.year, month: date.month, day };
+}
+
 export async function getForecastForUser(
   userId: string,
   input: ForecastQueryInput,
-  now: Date = new Date()
+  now: Date = new Date(),
+  options: {
+    /** Limita o "disponível para gastar" a esta data (padrão: fim do horizonte). */
+    safeToSpendThrough?: LogicalDate;
+  } = {},
 ): Promise<ForecastForUserResult> {
   const asOf = logicalDateFromUtcInstant(now);
   const horizonEnd = addLogicalDays(asOf, input.days - 1);
+  const safeToSpendThrough = options.safeToSpendThrough ?? horizonEnd;
 
   const [accounts, cards] = await Promise.all([
     prisma.account.findMany({
@@ -222,6 +236,11 @@ export async function getForecastForUser(
       compareLogicalDates(commitment.dueDate, asOf) >= 0 &&
       compareLogicalDates(commitment.dueDate, horizonEnd) <= 0,
   );
+  const safeToSpendCardCommitments = cardCommitments.filter(
+    (commitment) =>
+      compareLogicalDates(commitment.dueDate, asOf) < 0 ||
+      compareLogicalDates(commitment.dueDate, safeToSpendThrough) <= 0,
+  );
 
   const forecast = buildForecast({
     asOf,
@@ -236,18 +255,37 @@ export async function getForecastForUser(
       seriesType: series?.type ?? null,
     })),
   });
+  // O horizonte do cálculo é 30/60/90 dias; o corte exato do "disponível" é feito pela data.
+  const safeToSpendHorizon =
+    compareLogicalDates(safeToSpendThrough, horizonEnd) <= 0
+      ? forecast
+      : buildForecast({
+          asOf,
+          horizonDays: 60,
+          accounts: accountsWithBalances.map((account) => ({
+            id: account.id,
+            name: account.name,
+            balance: account.balance,
+          })),
+          transactions: transactions.map(({ series, ...transaction }) => ({
+            ...transaction,
+            seriesType: series?.type ?? null,
+          })),
+        });
   const safeToSpend = buildSafeToSpend({
-    forecast,
+    forecast: {
+      ...safeToSpendHorizon,
+      upcoming: safeToSpendHorizon.upcoming.filter(
+        (item) => compareLogicalDates(item, safeToSpendThrough) <= 0,
+      ),
+    },
     accountTypes: new Map(
       accountsWithBalances.map((account) => [
         account.id,
         account.type === "INVESTMENT" ? "INVESTMENT" : "CREDIT_DEBIT",
       ] as const),
     ),
-    cardCommitments: [
-      ...overdueCardCommitments,
-      ...upcomingCardCommitments,
-    ],
+    cardCommitments: safeToSpendCardCommitments,
   });
 
   return {
@@ -257,6 +295,6 @@ export async function getForecastForUser(
       overdue: overdueCardCommitments,
       upcoming: upcomingCardCommitments,
     },
-    safeToSpend,
+    safeToSpend: { ...safeToSpend, through: safeToSpendThrough },
   };
 }

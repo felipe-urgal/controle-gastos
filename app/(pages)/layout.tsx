@@ -15,7 +15,14 @@ import "@/app/stylesheets/app-shell.css";
 import "@/app/stylesheets/orbit.css";
 
 // importing font
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
+
+// Fonte dos valores monetários em destaque (ex.: "Disponível para gastar"): dígitos de largura fixa.
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-numeric",
+});
 
 const inter = Inter({
   subsets: ["latin"],
@@ -98,7 +105,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           `}
         </Script>
       </head>
-      <body className={`${inter.className} overscroll-none`}>
+      <body className={`${inter.className} ${jetbrainsMono.variable} overscroll-none`}>
         <ServiceWorkerRegistration />
         <Providers>
           <ClientLayout>

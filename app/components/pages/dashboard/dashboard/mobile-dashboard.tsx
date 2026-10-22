@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FaArrowUp, FaBarcode, FaCalendarAlt, FaChartLine, FaChartPie, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaEye, FaBullseye, FaPlus } from 'react-icons/fa';
+import { FaCalendarAlt, FaChartPie, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaBullseye } from 'react-icons/fa';
 import { LocalFinancialAssistantCard } from '@/app/components/pages/dashboard/dashboard/local-financial-assistant-card';
 import { Button, IconRenderer, Select } from '@/app/components/ui';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
@@ -11,8 +11,8 @@ import { SupportedCurrency } from '@/app/types/financial-summary';
 import { FinancialInsightsData } from '@/app/types/financial-insight';
 import { ForecastData } from '@/app/types/forecast';
 import { FinancialCommitment } from '@/app/types/financial-commitment';
-import { commitmentBadge, compactMonthLabel, dashboardLogicalDateLabel, displayMoney, groupCommitments, monthLabel, signedMoney, transactionDateLabel } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
-import { FinancialInsightsCard, NetWorthSummaryCard } from '@/app/components/pages/dashboard/dashboard/insight-cards';
+import { commitmentBadge, compactMonthLabel, dashboardLogicalDateLabel, displayMoney, groupCommitments, monthLabel, transactionDateLabel } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
+import { NetWorthSummaryCard } from '@/app/components/pages/dashboard/dashboard/insight-cards';
 import { PlanningMetric } from '@/app/components/pages/dashboard/dashboard/desktop-cards';
 
 /** Estado de erro padrão dos cards: mensagem + "Tentar novamente" quando houver retry. */
@@ -85,13 +85,11 @@ export function MobileDashboardHome({
   topCategories,
   netWorth,
   insights,
-  onOpenForecast,
   onRetry,
 }: {
   home: DashboardHome;
   onRetry?: () => void;
   showValues: boolean;
-  onOpenForecast: () => void;
   forecast: {
     data: ForecastData | null;
     loading: boolean;
@@ -133,38 +131,6 @@ export function MobileDashboardHome({
 
   return (
     <div className="space-y-3">
-      <MobileBalanceCard
-        cashTotal={availableNow}
-        cashAccounts={cashAccounts}
-        asOf={home.scope.currentAsOf}
-        showValues={showValues}
-        summary={data.summary}
-        currency={data.currency}
-      />
-
-      <MobileQuickActions />
-
-      <MobileSafeToSpendCard
-        safeToSpend={forecast.data?.safeToSpend ?? null}
-        horizonEnd={forecast.data?.horizonEnd ?? null}
-        showValues={showValues}
-        currency={data.currency}
-        loading={forecast.loading}
-        error={forecast.error}
-        onRetry={onRetry}
-      />
-
-      <Button
-        type="button"
-        variant="outline"
-        fullWidth
-        onClick={onOpenForecast}
-        disabled={!forecast.data}
-        icon={<FaChartLine aria-hidden="true" />}
-      >
-        Ver projeção
-      </Button>
-
       {(data.cards.length > 0 || data.goals.length > 0 || hasPlanning) && (
         <details className="group rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[16px] px-4 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
@@ -204,13 +170,6 @@ export function MobileDashboardHome({
         showValues={showValues}
         summary={netWorth}
         period={data.period}
-      />
-
-      <FinancialInsightsCard
-        insights={insights}
-        showValues={showValues}
-        currency={data.currency}
-        compact
       />
 
       <LocalFinancialAssistantCard
@@ -253,195 +212,6 @@ export function MobileDashboardHome({
         Receitas representam {incomeWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do fluxo do mês selecionado e despesas {expenseWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%.
       </div>
     </div>
-  );
-}
-
-export function MobileSafeToSpendCard({
-  safeToSpend,
-  horizonEnd,
-  showValues,
-  currency,
-  loading,
-  error,
-  onRetry,
-}: {
-  onRetry?: () => void;
-  safeToSpend: ForecastData['safeToSpend'] | null;
-  horizonEnd: ForecastData['horizonEnd'] | null;
-  showValues: boolean;
-  currency: string;
-  loading: boolean;
-  error: string;
-}) {
-  const horizonLabel = horizonEnd
-    ? `${String(horizonEnd.day).padStart(2, '0')}/${String(horizonEnd.month).padStart(2, '0')}`
-    : '30 dias';
-
-  return (
-    <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="mobile-safe-to-spend-title">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">Próximos 30 dias</p>
-          <h2 id="mobile-safe-to-spend-title" className="mt-1 text-sm font-bold">Disponível para gastar</h2>
-        </div>
-        <span className="text-xs text-[var(--text-muted)]">até {horizonLabel}</span>
-      </div>
-
-      {error ? (
-        <CardError message={error} onRetry={onRetry} />
-      ) : loading ? (
-        <div className="mt-3 h-16 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando disponível para gastar" />
-      ) : safeToSpend ? (
-        <>
-          <strong className={`mt-2 block text-2xl font-black ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
-            {displayMoney(safeToSpend.safeToSpend, showValues, currency)}
-          </strong>
-          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-            <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
-              <span className="block text-xs text-[var(--text-muted)]">Pendências</span>
-              <strong className="mt-0.5 block text-base text-[var(--expense)]">
-                {safeToSpend.pendingExpenses > 0 ? '- ' : ''}{displayMoney(safeToSpend.pendingExpenses, showValues, currency)}
-              </strong>
-            </div>
-            <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
-              <span className="block text-xs text-[var(--text-muted)]">Faturas</span>
-              <strong className="mt-0.5 block text-base text-[var(--expense)]">
-                {safeToSpend.cardCommitments > 0 ? '- ' : ''}{displayMoney(safeToSpend.cardCommitments, showValues, currency)}
-              </strong>
-            </div>
-          </div>
-        </>
-      ) : (
-        <p className="mt-3 text-sm text-[var(--text-muted)]">Sem dados elegíveis nesta moeda.</p>
-      )}
-    </section>
-  );
-}
-
-export function MobileBalanceCard({
-  cashTotal,
-  cashAccounts,
-  asOf,
-  showValues,
-  summary,
-  currency,
-}: {
-  cashTotal: number;
-  cashAccounts: DashboardHome['current']['cash']['accounts'];
-  asOf: DashboardHome['scope']['currentAsOf'];
-  showValues: boolean;
-  summary: MonthlyDashboard['summary'];
-  currency: string;
-}) {
-  return (
-    <section className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="mobile-balance-title">
-      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">
-        Hoje · {dashboardLogicalDateLabel(asOf)}
-      </p>
-      <p id="mobile-balance-title" className="mt-1 flex items-center gap-2 text-sm text-[var(--text-muted)]">
-        Saldo realizado em contas correntes <FaEye className="text-xs" aria-hidden="true" />
-      </p>
-
-      <strong className={`mt-1 block text-4xl font-black leading-none tracking-tight ${cashTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
-        {displayMoney(cashTotal, showValues, currency)}
-      </strong>
-
-      <Link
-        href="/contas"
-        className="mt-4 flex min-h-11 items-center gap-3 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/55 px-3 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-      >
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]">
-          <IconRenderer iconName="wallet" size={14} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <strong className="block truncate text-sm">
-            {cashAccounts.length === 0
-              ? 'Nenhuma conta corrente ativa'
-              : `${cashAccounts.length} ${cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}`}
-          </strong>
-          <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
-            Investimentos ficam no patrimônio e não entram neste saldo.
-          </span>
-        </span>
-        <FaChevronRight className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-      </Link>
-
-      <dl className="mt-4 divide-y divide-[var(--border)] border-t border-[var(--border)]">
-        <div className="flex min-h-11 items-center justify-between gap-3 py-2">
-          <dt className="text-sm text-[var(--text-muted)]">Receitas do mês</dt>
-          <dd className="tabular-nums text-base font-extrabold text-[var(--income)]">
-            {displayMoney(summary.income, showValues, currency)}
-          </dd>
-        </div>
-        <div className="flex min-h-11 items-center justify-between gap-3 py-2">
-          <dt className="text-sm text-[var(--text-muted)]">Despesas do mês</dt>
-          <dd className="tabular-nums text-base font-extrabold text-[var(--expense)]">
-            {displayMoney(summary.expense, showValues, currency)}
-          </dd>
-        </div>
-        <div className="flex min-h-11 items-center justify-between gap-3 py-2">
-          <dt className="text-sm text-[var(--text-muted)]">Saldo do mês</dt>
-          <dd className={`tabular-nums text-base font-extrabold ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
-            {signedMoney(summary.balance, showValues, currency)}
-          </dd>
-        </div>
-      </dl>
-    </section>
-  );
-}
-
-export function MobileQuickActions() {
-  const actions = [
-    {
-      href: '/transacoes/nova?type=expense',
-      label: 'Nova transação',
-      icon: <FaPlus aria-hidden="true" />,
-      primary: true,
-    },
-    {
-      href: '/transacoes/nova?mode=transfer',
-      label: 'Transferir',
-      icon: <FaExchangeAlt aria-hidden="true" />,
-      primary: false,
-    },
-    {
-      href: '/transacoes/nova?type=expense',
-      label: 'Pagar',
-      icon: <FaBarcode aria-hidden="true" />,
-      primary: false,
-    },
-    {
-      href: '/transacoes/nova?type=income',
-      label: 'Adicionar',
-      icon: <FaArrowUp aria-hidden="true" />,
-      primary: false,
-    },
-  ];
-
-  return (
-    <section className="grid grid-cols-2 gap-2" aria-label="Ações rápidas">
-      {actions.map((action) => (
-        <Link
-          key={action.label}
-          href={action.href}
-          className={`flex min-h-[62px] items-center gap-3 rounded-[12px] border px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-            action.primary
-              ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]'
-              : 'border-[var(--border-strong)] bg-[var(--surface)] text-[var(--foreground)]'
-          }`}
-        >
-          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
-            action.primary
-              ? 'bg-white/90 text-[var(--orbit-primary)]'
-              : 'bg-[var(--surface-raised)] text-[var(--foreground)]'
-          }`}>
-            {action.icon}
-          </span>
-          <span className="min-w-0 flex-1 leading-tight">{action.label}</span>
-          <FaChevronRight className="hidden shrink-0 text-xs opacity-70 min-[360px]:block" aria-hidden="true" />
-        </Link>
-      ))}
-    </section>
   );
 }
 

@@ -19,10 +19,11 @@ import { currencyOptions } from '@/app/lib/constants/account.constants';
 import type { DashboardHome } from '@/app/types/dashboard';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
-import { commitmentCountWithinTenDays, currentDateLabel, dashboardLogicalDateLabel, monthLabel, periodOffset, sectionState } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
+import { currentDateLabel, dashboardLogicalDateLabel, monthLabel, periodOffset, sectionState } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { MobileDashboardHeader, MobileDashboardHome } from '@/app/components/pages/dashboard/dashboard/mobile-dashboard';
-import { AccountsCard } from '@/app/components/pages/dashboard/dashboard/cards/accounts-card';
-import { CurrentCashCard } from '@/app/components/pages/dashboard/dashboard/cards/current-cash-card';
+import { AttentionCard } from '@/app/components/pages/dashboard/dashboard/cards/attention-card';
+import { SafeToSpendHero } from '@/app/components/pages/dashboard/dashboard/cards/safe-to-spend-hero';
+import { buildAttentionItems } from '@/app/components/pages/dashboard/dashboard/dashboard-attention';
 import { UpcomingCard } from '@/app/components/pages/dashboard/dashboard/cards/upcoming-card';
 
 // Cards abaixo da dobra (desktop) e o diálogo de projeção carregam sob demanda; os três cards
@@ -38,9 +39,7 @@ const MonthlyPlanningCard = dynamic(() => import('@/app/components/pages/dashboa
 const MonthOverviewCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/month-overview-card').then((m) => m.MonthOverviewCard), { ssr: false, loading: cardFallback(252) });
 const CategoriesCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/categories-card').then((m) => m.CategoriesCard), { ssr: false, loading: cardFallback(252) });
 const RecentTransactionsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/recent-transactions-card').then((m) => m.RecentTransactionsCard), { ssr: false, loading: cardFallback(244) });
-const ProjectedBalanceCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/projected-balance-card').then((m) => m.ProjectedBalanceCard), { ssr: false, loading: cardFallback(244) });
 const ForecastDialog = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/forecast-dialog').then((m) => m.ForecastDialog), { ssr: false });
-const FinancialInsightsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/insight-cards').then((m) => m.FinancialInsightsCard), { ssr: false, loading: cardFallback(220) });
 const NetWorthSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/insight-cards').then((m) => m.NetWorthSummaryCard), { ssr: false, loading: cardFallback(180) });
 const LocalFinancialAssistantCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/local-financial-assistant-card').then((m) => m.LocalFinancialAssistantCard), { ssr: false, loading: cardFallback(180) });
 const PeriodicSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/periodic-summary-card').then((m) => m.PeriodicSummaryCard), { ssr: false, loading: cardFallback(140) });
@@ -176,13 +175,17 @@ function DashboardHome({
     .sort((left, right) => right.realized - left.realized)
     .slice(0, 5);
   const commitmentItems = commitments.data?.items ?? [];
-  const tenDayCommitmentCount = commitmentCountWithinTenDays(
-    commitmentItems,
-    home.scope.currentAsOf,
-  );
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
   const expenseWidth = flowTotal > 0 ? (data.summary.expense / flowTotal) * 100 : 50;
+  const attentionItems = buildAttentionItems({
+    cards: data.cards,
+    recentTransactions: recentTransactions.data ?? [],
+    insights: insights.data?.items ?? [],
+    asOf: home.scope.currentAsOf,
+    showValues,
+    currency: data.currency,
+  });
   const hasPartialError = [
     home.current.forecast,
     home.current.commitments,
@@ -210,32 +213,57 @@ function DashboardHome({
         </div>
       )}
 
-      {!isDesktop && (
-        <MobileDashboardHome
-          home={home}
+      <section className="grid gap-[14px] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <SafeToSpendHero
+          cashTotal={availableNow}
+          cashAccounts={cashAccounts}
+          asOf={home.scope.currentAsOf}
+          safeToSpend={forecast.data?.safeToSpend ?? null}
+          horizonEnd={forecast.data?.horizonEnd ?? null}
+          loading={forecast.loading}
+          error={forecast.error}
           showValues={showValues}
-          forecast={forecast}
-          commitments={commitments}
-          recentTransactions={recentTransactions}
-          topCategories={topCategories}
-          netWorth={netWorth}
-          insights={insights}
+          currency={data.currency}
           onOpenForecast={() => setForecastOpen(true)}
+          forecastEnabled={Boolean(forecast.data) && !forecast.loading}
           onRetry={onRetry}
         />
+        <AttentionCard
+          items={attentionItems}
+          loading={insights.loading || recentTransactions.loading}
+          insightsError={insights.error}
+        />
+      </section>
+
+      {!isDesktop && (
+        <div className="mt-[14px]">
+          <MobileDashboardHome
+            home={home}
+            showValues={showValues}
+            forecast={forecast}
+            commitments={commitments}
+            recentTransactions={recentTransactions}
+            topCategories={topCategories}
+            netWorth={netWorth}
+            insights={insights}
+            onRetry={onRetry}
+          />
+        </div>
       )}
 
       {isDesktop && (
         <>
-        <section className="grid gap-[14px] xl:grid-cols-[minmax(0,1.95fr)_minmax(0,1fr)_minmax(0,1.22fr)]">
-          <CurrentCashCard
-            accounts={cashAccounts}
-            total={availableNow}
+        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+          <MonthOverviewCard
+            data={data}
             showValues={showValues}
-            currency={data.currency}
-            asOf={home.scope.currentAsOf}
+            incomeWidth={incomeWidth}
+            expenseWidth={expenseWidth}
           />
-          <AccountsCard accounts={cashAccounts} showValues={showValues} currency={data.currency} />
+          <CategoriesCard categories={topCategories} showValues={showValues} currency={data.currency} period={data.period} />
+        </section>
+
+        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1.36fr)]">
           <UpcomingCard
             items={commitmentItems}
             asOf={home.scope.currentAsOf}
@@ -243,6 +271,14 @@ function DashboardHome({
             currency={data.currency}
             loading={commitments.loading}
             error={commitments.error}
+            onRetry={onRetry}
+          />
+          <RecentTransactionsCard
+            items={recentTransactions.data ?? []}
+            loading={recentTransactions.loading}
+            error={recentTransactions.error}
+            showValues={showValues}
+            currency={data.currency}
             onRetry={onRetry}
           />
         </section>
@@ -290,14 +326,6 @@ function DashboardHome({
         </div>
 
         <div className="mt-[14px]">
-          <FinancialInsightsCard
-            insights={insights}
-            showValues={showValues}
-            currency={data.currency}
-          />
-        </div>
-
-        <div className="mt-[14px]">
           <LocalFinancialAssistantCard
             key={`${data.period.year}-${data.period.month}-${data.currency}`}
             dashboard={data}
@@ -307,39 +335,6 @@ function DashboardHome({
             contextReady={Boolean(forecast.data) && Boolean(insights.data)}
           />
         </div>
-
-        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-          <MonthOverviewCard
-            data={data}
-            showValues={showValues}
-            incomeWidth={incomeWidth}
-            expenseWidth={expenseWidth}
-          />
-          <CategoriesCard categories={topCategories} showValues={showValues} currency={data.currency} period={data.period} />
-        </section>
-
-        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1.36fr)_minmax(0,1fr)]">
-          <RecentTransactionsCard
-            items={recentTransactions.data ?? []}
-            loading={recentTransactions.loading}
-            error={recentTransactions.error}
-            showValues={showValues}
-            currency={data.currency}
-            onRetry={onRetry}
-          />
-          <ProjectedBalanceCard
-            safeToSpend={forecast.data?.safeToSpend ?? null}
-            showValues={showValues}
-            currency={data.currency}
-            loading={forecast.loading}
-            error={forecast.error}
-            commitmentCount={tenDayCommitmentCount}
-            horizonEnd={forecast.data?.horizonEnd ?? null}
-            onOpen={() => setForecastOpen(true)}
-            enabled={Boolean(forecast.data) && !forecast.loading}
-            onRetry={onRetry}
-          />
-        </section>
         </>
       )}
 
