@@ -1,114 +1,80 @@
 'use client';
 
-import { Button, Input } from '@/app/components/ui';
-import { PageContainer, PageTitle } from '@/app/components/base-pages';
-import type { FormEvent } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  FaArrowRight,
-  FaCheck,
-  FaClock,
-  FaPen,
-  FaStopCircle,
-  FaSyncAlt,
-  FaTimes,
-} from 'react-icons/fa';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FaArrowRight } from 'react-icons/fa';
 
-import { Alert, PageEmpty, PageLoading } from '@/app/components/feedback';
-import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { SubscriptionSection } from '@/app/components/pages/recurrences/recurrences-center/subscription-section';
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
+import { Alert, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
+import { ModalShell } from '@/app/components/overlays/modal-shell';
+import EditSeriesModal from '@/app/components/pages/recurrences/recurrences-center/edit-series-modal';
+import RecurrencesHero from '@/app/components/pages/recurrences/recurrences-center/recurrences-hero';
+import { ConfirmedSubscriptions, FormalList } from '@/app/components/pages/recurrences/recurrences-center/recurrences-lists';
+import {
+  buildReviewQueue,
+  logicalToday,
+} from '@/app/components/pages/recurrences/recurrences-center/recurrences-model';
+import RecurrencesReview from '@/app/components/pages/recurrences/recurrences-center/recurrences-review';
+import { Button } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
-import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { recurrenceService } from '@/app/services/recurrence-service';
+import { subscriptionService } from '@/app/services/subscription-service';
 import type {
   RecurrenceCandidate,
-  RecurrenceLogicalDate,
   RecurrencesData,
   RecurrenceSummaryItem,
   UpdateRecurrenceSeriesInput,
 } from '@/app/types/recurrence';
-import type { RecurrenceFrequency } from '@/app/types/transaction';
+import type { SubscriptionReviewStatus } from '@/app/types/subscription';
 
-function displayMoney(amount: number, showValues: boolean, currency: string) {
-  return showValues ? formatCurrency(amount, currency) : '••••';
-}
-
-function dateLabel(value: RecurrenceLogicalDate) {
-  return new Date(value.year, value.month - 1, value.day).toLocaleDateString('pt-BR');
-}
-
-function frequencyLabel(frequency: RecurrenceFrequency, interval: number) {
-  if (frequency === 'WEEKLY') return interval === 1 ? 'Semanal' : `A cada ${interval} semanas`;
-  if (frequency === 'MONTHLY') return interval === 1 ? 'Mensal' : `A cada ${interval} meses`;
-  return interval === 1 ? 'Anual' : `A cada ${interval} anos`;
+function messageOf(caught: unknown, fallback: string) {
+  return caught instanceof Error && caught.message ? caught.message : fallback;
 }
 
 export default function RecurrencesCenter() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
+  const today = useMemo(() => logicalToday(), []);
   const [data, setData] = useState<RecurrencesData | null>(null);
   const [ignored, setIgnored] = useState<Set<string>>(() => new Set());
-  const [confirming, setConfirming] = useState<string | null>(null);
-  const [suppressing, setSuppressing] = useState<string | null>(null);
-  const [ending, setEnding] = useState<string | null>(null);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const [editing, setEditing] = useState<RecurrenceSummaryItem | null>(null);
+  const [endCandidate, setEndCandidate] = useState<RecurrenceSummaryItem | null>(null);
+  const [ending, setEnding] = useState(false);
+  const [heroCurrency, setHeroCurrency] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
       const response = await recurrenceService.get();
       setData(response.data);
       setError('');
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Não foi possível carregar as recorrências.');
+      setError(messageOf(caught, 'Não foi possível carregar as recorrências.'));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    let active = true;
+    const timeout = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [load]);
 
-    void recurrenceService
-      .get()
-      .then((response) => {
-        if (!active) return;
-        setData(response.data);
-        setError('');
-      })
-      .catch((caught) => {
-        if (!active) return;
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : 'Não foi possível carregar as recorrências.',
-        );
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+  const queue = useMemo(() => (data ? buildReviewQueue(data, ignored) : []), [data, ignored]);
+  const currency = heroCurrency ?? data?.totals[0]?.currency ?? data?.subscriptions.totals[0]?.currency ?? 'BRL';
 
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const visibleCandidates =
-    data?.candidates.filter((candidate) => !ignored.has(candidate.id)) ?? [];
-
-  async function confirm(candidate: RecurrenceCandidate) {
-    setConfirming(candidate.id);
+  async function run(key: string, action: () => Promise<unknown>, fallback: string) {
+    setBusyKey(key);
     setError('');
     try {
-      await recurrenceService.confirmCandidate(candidate.id);
+      await action();
       await load();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Não foi possível confirmar a recorrência.');
+      setError(messageOf(caught, fallback));
     } finally {
-      setConfirming(null);
+      setBusyKey(null);
     }
   }
 
@@ -116,49 +82,22 @@ export default function RecurrencesCenter() {
     setIgnored((current) => new Set(current).add(id));
   }
 
-  async function suppress(id: string) {
-    setSuppressing(id);
-    setError('');
-    try {
-      await recurrenceService.suppressCandidate(id);
-      await load();
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : 'Não foi possível ocultar o padrão.',
-      );
-    } finally {
-      setSuppressing(null);
-    }
-  }
-
   async function endSeries(item: RecurrenceSummaryItem) {
-    const confirmed = window.confirm(
-      'Encerrar esta recorrência? Lançamentos concluídos serão preservados e apenas ocorrências futuras pendentes serão canceladas.',
-    );
-    if (!confirmed) return;
-
-    setEnding(item.id);
+    setEnding(true);
     setError('');
     try {
       await recurrenceService.endSeries(item.id);
+      setEndCandidate(null);
       await load();
     } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : 'Não foi possível encerrar a recorrência.',
-      );
+      setError(messageOf(caught, 'Não foi possível encerrar a recorrência.'));
+      setEndCandidate(null);
     } finally {
-      setEnding(null);
+      setEnding(false);
     }
   }
 
-  async function saveSeries(
-    item: RecurrenceSummaryItem,
-    input: UpdateRecurrenceSeriesInput,
-  ) {
+  async function saveSeries(item: RecurrenceSummaryItem, input: UpdateRecurrenceSeriesInput) {
     await recurrenceService.updateSeries(item.id, input);
     setEditing(null);
     await load();
@@ -168,24 +107,17 @@ export default function RecurrencesCenter() {
     <ProtectedRoute>
       <PageContainer as="section">
         <PageTitle
+          eyebrow="Planejamento"
           title="Recorrências e assinaturas"
           description="Acompanhe séries cadastradas e revise padrões detectados antes de transformá-los em recorrências."
           actions={
-            <Button
-              as="a"
-              href="/transacoes/nova"
-              variant="outline"
-              pill
-              size="sm"
-              icon={<FaArrowRight aria-hidden="true" />}
-              iconPosition="right"
-            >
+            <Button as="a" href="/transacoes/nova" variant="outline" pill size="sm" icon={<FaArrowRight aria-hidden="true" />} iconPosition="right">
               Nova transação
             </Button>
           }
         />
 
-        {error && (
+        {error && !data && (
           <div className="mt-4">
             <Alert variant="error" message={error} />
           </div>
@@ -194,424 +126,97 @@ export default function RecurrencesCenter() {
         {loading ? (
           <div className="mt-5"><PageLoading /></div>
         ) : !data ? null : (
-          <div className="mt-5 space-y-5">
-            <SubscriptionSection
-              data={data.subscriptions}
+          <div className="mt-5 space-y-4">
+            <RecurrencesHero
+              data={data}
               showValues={showValues}
-              onChanged={load}
+              today={today}
+              currency={currency}
+              onCurrency={setHeroCurrency}
+              reviewCount={queue.length}
             />
 
-            <Totals data={data} showValues={showValues} />
+            <RecurrencesReview
+              entries={queue}
+              showValues={showValues}
+              error={error}
+              window={{ months: data.candidateWindowMonths, limit: data.candidateHistoryLimit }}
+              busyKey={busyKey}
+              onReview={(id: string, status: SubscriptionReviewStatus) =>
+                void run(`subscription:${id}`, () => subscriptionService.review(id, { status }), 'Não foi possível atualizar a assinatura.')
+              }
+              onCreateRecurrence={(id: string) =>
+                void run(`subscription:${id}`, () => subscriptionService.createRecurrence(id), 'Não foi possível criar a recorrência.')
+              }
+              onConfirmCandidate={(candidate: RecurrenceCandidate) =>
+                void run(`candidate:${candidate.id}`, () => recurrenceService.confirmCandidate(candidate.id), 'Não foi possível confirmar a recorrência.')
+              }
+              onSuppressCandidate={(id: string) =>
+                void run(`candidate:${id}`, () => recurrenceService.suppressCandidate(id), 'Não foi possível ocultar o padrão.')
+              }
+              onIgnore={ignore}
+            />
 
-            <section aria-labelledby="formal-recurrences-title">
-              <div className="flex items-end justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 id="formal-recurrences-title" className="text-xl font-bold text-[var(--foreground)]">
-                    Recorrências ativas
-                  </h2>
-                  <p className="mt-1 text-sm text-[var(--text-muted)]">
-                    Séries formais já cadastradas. Candidatos não entram nos totais até serem confirmados.
-                  </p>
-                </div>
-                <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-[var(--text-muted)]">
-                  {data.formal.length} {data.formal.length === 1 ? 'série' : 'séries'}
-                </span>
+            <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+              <FormalList
+                items={data.formal}
+                showValues={showValues}
+                today={today}
+                endingId={ending ? endCandidate?.id ?? null : null}
+                onEdit={setEditing}
+                onEnd={setEndCandidate}
+              />
+              <ConfirmedSubscriptions
+                items={data.subscriptions.confirmed}
+                showValues={showValues}
+                busyKey={busyKey}
+                onCreateRecurrence={(id) =>
+                  void run(`subscription:${id}`, () => subscriptionService.createRecurrence(id), 'Não foi possível criar a recorrência.')
+                }
+              />
+            </div>
+
+            <details className="group rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
+              <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between px-4 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
+                Qual a diferença entre recorrência e assinatura?
+                <span className="text-lg text-[var(--text-muted)] group-open:hidden" aria-hidden="true">+</span>
+                <span className="hidden text-lg text-[var(--text-muted)] group-open:inline" aria-hidden="true">−</span>
+              </summary>
+              <div className="grid max-w-[78ch] gap-2.5 px-4 pb-5 text-[13px] text-[var(--text-muted)] sm:px-5">
+                <p><strong className="text-[var(--foreground)]">Recorrência</strong> é o mecanismo que cria lançamentos futuros. Só nasce de uma ação explícita sua e é a única que entra no custo fixo.</p>
+                <p><strong className="text-[var(--foreground)]">Assinatura</strong> é uma classificação detectada do histórico. Serve para acompanhar preços e cobranças; não cria lançamentos sozinha.</p>
+                <p><strong className="text-[var(--foreground)]">Cada moeda é calculada separada.</strong> Candidatos não entram nos totais até serem confirmados.</p>
               </div>
-
-              {data.formal.length === 0 ? (
-                <div className="mt-3 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-6">
-                  <PageEmpty title="Nenhuma recorrência ativa" />
-                </div>
-              ) : (
-                <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  {data.formal.map((item) => (
-                    <FormalCard
-                      key={item.id}
-                      item={item}
-                      showValues={showValues}
-                      onEdit={() => setEditing(item)}
-                      ending={ending === item.id}
-                      onEnd={() => void endSeries(item)}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <section aria-labelledby="candidate-recurrences-title">
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <h2 id="candidate-recurrences-title" className="text-xl font-bold text-[var(--foreground)]">
-                    Padrões detectados
-                  </h2>
-                  <p className="mt-1 max-w-2xl text-sm text-[var(--text-muted)]">
-                    Sugestões baseadas em até {data.candidateWindowMonths} meses e {data.candidateHistoryLimit} lançamentos. Nada é criado sem confirmação.
-                  </p>
-                </div>
-                <span className="text-xs font-semibold text-[var(--text-muted)]">
-                  {visibleCandidates.length} {visibleCandidates.length === 1 ? 'sugestão' : 'sugestões'}
-                </span>
-              </div>
-
-              {visibleCandidates.length === 0 ? (
-                <div className="mt-3 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-6">
-                  <PageEmpty title="Nenhum padrão pendente de revisão" />
-                </div>
-              ) : (
-                <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  {visibleCandidates.map((candidate) => (
-                    <CandidateCard
-                      key={candidate.id}
-                      candidate={candidate}
-                      showValues={showValues}
-                      confirming={confirming === candidate.id}
-                      suppressing={suppressing === candidate.id}
-                      onConfirm={() => void confirm(candidate)}
-                      onIgnore={() => ignore(candidate.id)}
-                      onSuppress={() => void suppress(candidate.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
+            </details>
           </div>
         )}
 
         {editing && (
-          <EditSeriesModal
-            item={editing}
-            onClose={() => setEditing(null)}
-            onSave={(input) => saveSeries(editing, input)}
-          />
+          <EditSeriesModal item={editing} onClose={() => setEditing(null)} onSave={(input) => saveSeries(editing, input)} />
+        )}
+
+        {endCandidate && (
+          <ModalShell
+            title={`Encerrar “${endCandidate.description}”?`}
+            description="Lançamentos concluídos serão preservados e apenas ocorrências futuras pendentes serão canceladas."
+            onClose={() => setEndCandidate(null)}
+            closeDisabled={ending}
+            maxWidthClass="max-w-md"
+            footer={
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" disabled={ending} onClick={() => setEndCandidate(null)}>
+                  Cancelar
+                </Button>
+                <Button variant="danger" disabled={ending} onClick={() => void endSeries(endCandidate)}>
+                  {ending ? 'Encerrando…' : 'Encerrar recorrência'}
+                </Button>
+              </div>
+            }
+          >
+            {null}
+          </ModalShell>
         )}
       </PageContainer>
     </ProtectedRoute>
-  );
-}
-
-function Totals({ data, showValues }: { data: RecurrencesData; showValues: boolean }) {
-  if (data.totals.length === 0) return null;
-
-  return (
-    <section aria-label="Totais de recorrências" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {data.totals.map((total) => (
-        <article key={total.currency} className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">
-          <span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">{total.currency}</span>
-          <strong className="mt-2 block text-2xl font-extrabold text-[var(--foreground)]">
-            <span className="money">{displayMoney(total.monthlyEquivalent, showValues, total.currency)}</span>
-            <span className="ml-1 text-xs font-semibold text-[var(--text-muted)]">/ mês</span>
-          </strong>
-          <span className="mt-1 block text-sm text-[var(--text-muted)]">
-            <span className="money">{displayMoney(total.annualEquivalent, showValues, total.currency)}</span> / ano
-          </span>
-        </article>
-      ))}
-    </section>
-  );
-}
-
-function FormalCard({
-  item,
-  showValues,
-  onEdit,
-  ending,
-  onEnd,
-}: {
-  item: RecurrenceSummaryItem;
-  showValues: boolean;
-  onEdit: () => void;
-  ending: boolean;
-  onEnd: () => void;
-}) {
-  return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--primary-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--primary)]">
-            <FaSyncAlt aria-hidden="true" />
-            Recorrência cadastrada
-          </span>
-          <h3 className="mt-3 truncate text-lg font-bold text-[var(--foreground)]">{item.description}</h3>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">{item.category.name} · {item.account.name}</p>
-        </div>
-        <strong className="shrink-0 text-right text-base text-[var(--foreground)]">
-          <span className="money">{displayMoney(item.amount, showValues, item.currency)}</span>
-        </strong>
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-        <Metric label="Frequência" value={frequencyLabel(item.frequency, item.interval)} />
-        <Metric label="Próximo lançamento" value={dateLabel(item.nextOccurrence)} />
-        <Metric label="Equivalente mensal" value={displayMoney(item.monthlyEquivalent, showValues, item.currency)} />
-        <Metric label="Ocorrências restantes" value={String(item.remainingOccurrences)} />
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="accent" pill size="sm"
-          type="button"
-          onClick={onEdit}
-        >
-          <FaPen aria-hidden="true" />
-          Editar série
-        </Button>
-        <Button
-          as="a"
-          href={`/transacoes/alterar/${item.transactionId}`}
-          variant="outline"
-          pill
-          size="sm"
-          icon={<FaArrowRight aria-hidden="true" />}
-          iconPosition="right"
-        >
-          Editar próxima ocorrência
-        </Button>
-        <Button
-          variant="danger"
-          pill
-          size="sm"
-          icon={<FaStopCircle aria-hidden="true" />}
-          onClick={onEnd}
-          disabled={ending}
-        >
-          {ending ? 'Encerrando…' : 'Encerrar recorrência'}
-        </Button>
-      </div>
-    </article>
-  );
-}
-
-function formatAmountInput(amount: number) {
-  return `${Math.floor(amount / 100)},${String(amount % 100).padStart(2, '0')}`;
-}
-
-function parseAmountInput(value: string) {
-  const normalized = value.trim().replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
-  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null;
-
-  const [whole, fraction = ''] = normalized.split('.');
-  const cents =
-    Number.parseInt(whole, 10) * 100 +
-    Number.parseInt((fraction + '00').slice(0, 2), 10);
-
-  return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
-}
-
-function EditSeriesModal({
-  item,
-  onClose,
-  onSave,
-}: {
-  item: RecurrenceSummaryItem;
-  onClose: () => void;
-  onSave: (input: UpdateRecurrenceSeriesInput) => Promise<void>;
-}) {
-  const [description, setDescription] = useState(item.description);
-  const [amount, setAmount] = useState(() => formatAmountInput(item.amount));
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const descriptionRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    descriptionRef.current?.focus();
-  }, []);
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const amountCents = parseAmountInput(amount);
-    if (!amountCents) {
-      setError('Informe um valor válido com até duas casas decimais.');
-      return;
-    }
-
-    setSaving(true);
-    setError('');
-    try {
-      await onSave({
-        description: description.trim(),
-        amount: amountCents,
-      });
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : 'Não foi possível atualizar a recorrência.',
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <ModalShell
-      title="Editar série"
-      eyebrow="Série recorrente"
-      description="A alteração afeta somente as ocorrências pendentes. Histórico concluído, frequência e datas são preservados."
-      onClose={onClose}
-      closeDisabled={saving}
-      maxWidthClass="max-w-md"
-    >
-      <form onSubmit={submit} className="space-y-4">
-          <Input
-            ref={descriptionRef}
-            label="Descrição"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            minLength={2}
-            maxLength={100}
-            enterKeyHint="next"
-            disabled={saving}
-          />
-
-          <div>
-            <Input
-              label={`Valor (${item.currency})`}
-              aria-label={`Valor (${item.currency})`}
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              inputMode="decimal"
-              enterKeyHint="done"
-              disabled={saving}
-              aria-describedby="edit-series-amount-help"
-            />
-            <span id="edit-series-amount-help" className="mt-1 block text-xs text-[var(--text-muted)]">
-              Use vírgula para centavos.
-            </span>
-          </div>
-
-          {error && (
-            <p role="alert" className="text-sm font-semibold text-[var(--expense)]">
-              {error}
-            </p>
-          )}
-
-          <div className="flex flex-wrap justify-end gap-2 pt-1">
-            <Button variant="outline" pill size="sm" onClick={onClose} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button variant="accent" pill size="sm"
-              type="submit"
-              disabled={saving || description.trim().length < 2}
-            >
-              {saving ? 'Salvando…' : 'Salvar série'}
-            </Button>
-          </div>
-      </form>
-    </ModalShell>
-  );
-}
-
-
-function CandidateCard({
-  candidate,
-  showValues,
-  confirming,
-  suppressing,
-  onConfirm,
-  onIgnore,
-  onSuppress,
-}: {
-  candidate: RecurrenceCandidate;
-  showValues: boolean;
-  confirming: boolean;
-  suppressing: boolean;
-  onConfirm: () => void;
-  onIgnore: () => void;
-  onSuppress: () => void;
-}) {
-  return (
-    <article className="rounded-[18px] border border-dashed border-[var(--orbit-primary)]/45 bg-[var(--surface)] p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--orbit-primary-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--orbit-primary)]">
-            <FaClock aria-hidden="true" />
-            Detectada · {candidate.occurrenceCount} ocorrências
-          </span>
-          <h3 className="mt-3 truncate text-lg font-bold text-[var(--foreground)]">{candidate.description}</h3>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            {candidate.category.name} · {candidate.account.name} · {candidate.type === 'INCOME' ? 'Receita' : 'Despesa'}
-          </p>
-        </div>
-        <div className="text-right">
-          <strong className="block text-base text-[var(--foreground)]">
-            <span className="money">{displayMoney(candidate.amount, showValues, candidate.currency)}</span>
-          </strong>
-          {candidate.variableAmount && (
-            <span className="mt-1 block text-xs font-semibold text-[var(--warning)]">valor variável</span>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-        <Metric label="Padrão" value={frequencyLabel(candidate.frequency, candidate.interval)} />
-        <Metric label="Próxima estimativa" value={dateLabel(candidate.nextOccurrence)} />
-        <Metric label="Equivalente anual" value={displayMoney(candidate.annualEquivalent, showValues, candidate.currency)} />
-      </div>
-
-      <p className="mt-3 text-sm text-[var(--text-muted)]">
-        {candidate.explanation}
-      </p>
-
-      {candidate.variableAmount && (
-        <p className="mt-2 text-xs text-[var(--text-muted)]">
-          Faixa observada: {displayMoney(candidate.minAmount, showValues, candidate.currency)} a <span className="money">{displayMoney(candidate.maxAmount, showValues, candidate.currency)}</span>.
-        </p>
-      )}
-
-      <details className="mt-3 rounded-[12px] bg-[var(--surface-raised)] p-3">
-        <summary className="cursor-pointer text-sm font-bold text-[var(--foreground)]">
-          Revisar {candidate.evidence.length} lançamentos usados
-        </summary>
-        <ul className="mt-3 space-y-2">
-          {candidate.evidence.map((item) => (
-            <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
-              <span>{dateLabel(item)} · {item.description}</span>
-              <strong className="text-[var(--foreground)]">
-                <span className="money">{displayMoney(item.amount, showValues, candidate.currency)}</span>
-              </strong>
-            </li>
-          ))}
-        </ul>
-      </details>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="accent" pill size="sm"
-          type="button"
-          onClick={onConfirm}
-          disabled={confirming || suppressing}
-        >
-          <FaCheck aria-hidden="true" />
-          {confirming ? 'Confirmando…' : 'Confirmar recorrência'}
-        </Button>
-        <Button
-          variant="outline"
-          pill
-          size="sm"
-          icon={<FaTimes aria-hidden="true" />}
-          onClick={onIgnore}
-          disabled={confirming || suppressing}
-        >
-          Ignorar agora
-        </Button>
-        <Button
-          variant="ghost"
-          pill
-          size="sm"
-          onClick={onSuppress}
-          disabled={confirming || suppressing}
-        >
-          {suppressing ? 'Salvando…' : 'Não sugerir novamente'}
-        </Button>
-      </div>
-    </article>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
-      <span className="block text-xs text-[var(--text-muted)]">{label}</span>
-      <strong className="money mt-1 block text-sm text-[var(--foreground)]">{value}</strong>
-    </div>
   );
 }
