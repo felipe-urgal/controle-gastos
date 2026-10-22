@@ -1,13 +1,12 @@
 .authenticated-shell {
-  --orbit-primary: #a78bfa;
-  --orbit-primary-hover: #9575e8;
-  --orbit-primary-subtle: #2a2143;
+  --orbit-primary: #9f8bfb;
+  --orbit-primary-hover: #8b76f0;
+  --orbit-primary-subtle: #221b3a;
   --orbit-on-primary: #180f2e;
   --orbit-focus: #c4b5fd;
 
-  --orbit-navigation-surface: #0f151b;
-  --orbit-navigation-raised: #151d25;
-  --orbit-page-max-width: 1480px;
+  --orbit-navigation-surface: #0b1017;
+  --orbit-navigation-raised: #121a24;
   --orbit-page-padding-inline: 1rem;
   --orbit-page-padding-block: 1.5rem;
 }
@@ -19,8 +18,8 @@
   --orbit-on-primary: #ffffff;
   --orbit-focus: #6d28d9;
 
-  --orbit-navigation-surface: #ffffff;
-  --orbit-navigation-raised: #f7f5ff;
+  --orbit-navigation-surface: #fcfbff;
+  --orbit-navigation-raised: #f4f1fe;
 }
 
 .authenticated-shell .orbit-navigation-surface {
@@ -34,9 +33,8 @@
 }
 
 .authenticated-shell .orbit-page-container {
+  /* Sem max-width: a página ocupa toda a largura útil e o padding controla o respiro. */
   width: 100%;
-  max-width: var(--orbit-page-max-width);
-  margin-inline: auto;
   padding: var(--orbit-page-padding-block) var(--orbit-page-padding-inline);
 }
 
