@@ -246,7 +246,7 @@ export default function CreditCardOverview({
   ];
 
   return (
-    <div className={`mx-auto w-full max-w-4xl space-y-4 pb-5 transition-opacity ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
+    <div className={`w-full space-y-4 pb-5 transition-opacity ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
         <div className="flex items-center justify-between gap-3">
           <Link
