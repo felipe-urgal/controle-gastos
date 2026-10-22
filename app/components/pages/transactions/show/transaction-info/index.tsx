@@ -2,17 +2,9 @@
 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  FaArrowDown,
-  FaArrowUp,
-  FaCalendarAlt,
-  FaCreditCard,
-  FaExchangeAlt,
-  FaLayerGroup,
-  FaStore,
-  FaTag,
-  FaWallet,
-} from 'react-icons/fa';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { FaArrowDown, FaArrowUp, FaCreditCard, FaExchangeAlt, FaLayerGroup } from 'react-icons/fa';
 
 import { IconRenderer } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -24,6 +16,17 @@ import {
   getTransferDirectionLabel,
   isTransferTransaction,
 } from '@/app/lib/transactions/transaction-presentation';
+import type { ReconciliationStatus, TransactionAccountDTO } from '@/app/types/transaction';
+
+const RECONCILIATION_LABEL: Record<ReconciliationStatus, string> = {
+  UNCLEARED: 'Não compensada',
+  CLEARED: 'Compensada',
+  RECONCILED: 'Conciliada',
+};
+
+const cardClassName = 'rounded-[16px] border border-[var(--border)] bg-[var(--surface)]';
+const linkClassName =
+  'font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
 
 export default function TransactionInfo({
   transaction,
@@ -32,238 +35,200 @@ export default function TransactionInfo({
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
+  const longDate = format(transactionDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   const isIncome = transaction.type === 'INCOME';
   const isTransfer = isTransferTransaction(transaction);
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
-  const transferLabel = getTransferDirectionLabel(transaction);
+  const isNormal = !isTransfer && !isCardPayment;
   const status =
     statusConfig[transaction.status as keyof typeof statusConfig] || statusConfig.COMPLETED;
   const isInstallment = transaction.series?.type === 'INSTALLMENT';
-  const amount = showValues
-    ? formatCurrency(transaction.amount, transaction.account.currency)
-    : '••••';
-  const amountTone = isTransfer || isCardPayment
+  const currency = transaction.account.currency;
+  const money = (cents: number) => (showValues ? formatCurrency(cents, currency) : '••••');
+  const allocations = transaction.allocations ?? [];
+  const kindLabel = isTransfer
+    ? getTransferDirectionLabel(transaction)
+    : isCardPayment
+      ? 'Pagamento de fatura'
+      : isIncome
+        ? 'Receita'
+        : 'Despesa';
+  const amountTone = !isNormal
     ? 'text-[var(--orbit-primary)]'
     : isIncome
       ? 'text-[var(--income)]'
       : 'text-[var(--expense)]';
-  const iconTone = isTransfer || isCardPayment
+  const iconTone = !isNormal
     ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
     : isIncome
       ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
       : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
 
   return (
-    <div
-      className={`grid gap-4 transition-opacity duration-150 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)] lg:items-start ${
-        isDeleting ? 'pointer-events-none opacity-50' : ''
-      }`}
-    >
-      <div className="space-y-4">
-        <section className="ds-panel overflow-hidden" aria-labelledby="transaction-detail-heading">
-          <div className="p-5 sm:p-6">
-            <div className="flex items-start gap-4">
-              <span
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${iconTone}`}
-                aria-hidden="true"
-              >
-                {isTransfer ? <FaExchangeAlt /> : isCardPayment ? <FaCreditCard /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
-              </span>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold ${status.color}`}>
-                    {status.label}
-                  </span>
-                  <span className={`text-sm font-semibold ${amountTone}`}>
-                    {isTransfer ? transferLabel : isCardPayment ? 'Pagamento de fatura' : isIncome ? 'Receita' : 'Despesa'}
-                  </span>
-                  {isInstallment && transaction.seriesIndex && (
-                    <span className="inline-flex rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-2.5 py-1 text-sm font-semibold text-[var(--text-muted)]">
-                      Parcela {transaction.seriesIndex}/{transaction.series?.occurrenceCount}
-                    </span>
-                  )}
-                </div>
-
-                <h2
-                  id="transaction-detail-heading"
-                  className="mt-3 break-words text-2xl font-bold tracking-tight text-[var(--foreground)]"
-                >
-                  {transaction.description || 'Sem descrição'}
-                </h2>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  {format(transactionDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-[var(--radius-lg)] bg-[var(--surface-subtle)] p-5">
-              <p className="text-sm font-medium text-[var(--text-muted)]">Valor do lançamento</p>
-              <p
-                className={`mt-1 break-words text-3xl font-bold tracking-tight ${amountTone}`}
-              >
-                {isIncome ? '+' : '-'}{amount}
-              </p>
-              {!showValues && (
-                <p className="mt-2 text-xs text-[var(--text-subtle)]">Valores ocultos pelas suas preferências.</p>
-              )}
-            </div>
+    <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
+      <section
+        aria-labelledby="transaction-detail-heading"
+        className="grid gap-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+      >
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
+          <span className={`grid h-12 w-12 place-items-center rounded-[14px] text-lg ${iconTone}`} aria-hidden="true">
+            {isTransfer ? <FaExchangeAlt /> : isCardPayment ? <FaCreditCard /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
+          </span>
+          <div className="min-w-0">
+            <h2 id="transaction-detail-heading" className="break-words text-xl font-bold tracking-tight">
+              {transaction.description || 'Sem descrição'}
+            </h2>
+            <p className="text-sm text-[var(--text-muted)]">
+              <span className={`mr-2 rounded-full border px-2 py-0.5 text-xs font-semibold ${status.color}`}>{status.label}</span>
+              {longDate}
+              {isInstallment && transaction.seriesIndex
+                ? ` · Parcela ${transaction.seriesIndex}/${transaction.series?.occurrenceCount}`
+                : ''}
+            </p>
           </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-[var(--text-muted)]">{kindLabel}</p>
+          <strong className={`money mt-1 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${amountTone}`}>
+            {isNormal ? (isIncome ? '+' : '−') : ''}
+            {money(transaction.amount)}
+          </strong>
+          {!showValues && (
+            <p className="mt-2 text-xs text-[var(--text-subtle)]">Valores ocultos pelas suas preferências.</p>
+          )}
+        </div>
+      </section>
+
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        <div className="space-y-4">
+          {allocations.length > 1 && (
+            <section className={cardClassName} aria-labelledby="transaction-allocations-heading">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
+                <h2 id="transaction-allocations-heading" className="text-base font-bold">Divisão por categoria</h2>
+                <p className="text-xs text-[var(--text-muted)]">{allocations.length} categorias</p>
+              </div>
+              <ul className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
+                {allocations.map((allocation) => (
+                  <li key={allocation.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 sm:px-5">
+                    <span className="inline-flex min-w-0 items-center gap-2 text-sm font-semibold">
+                      <IconRenderer iconName={allocation.category.icon || 'tag'} size={16} color={allocation.category.color} />
+                      <span className="break-words">{allocation.category.name}</span>
+                    </span>
+                    <span className="money text-sm font-semibold">{money(allocation.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {transaction.series && (
-            <div className="border-t border-[var(--border)] p-5 sm:p-6">
-              <div className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--orbit-primary)]/25 bg-[var(--primary-subtle)] p-4">
-                <FaLayerGroup className="mt-0.5 shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
+            <section className={`${cardClassName} p-4 sm:p-5`} aria-labelledby="transaction-series-heading">
+              <div className="flex items-start gap-3">
+                <FaLayerGroup className="mt-1 shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
                 <div>
-                  <p className="font-semibold text-[var(--foreground)]">
+                  <h2 id="transaction-series-heading" className="text-base font-bold">
                     {isInstallment
                       ? `Parcela ${transaction.seriesIndex ?? '?'} de ${transaction.series.occurrenceCount}`
                       : 'Ocorrência de uma série'}
-                  </p>
+                  </h2>
                   <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-                    {isInstallment && transaction.series.description ? (
-                      <>
-                        “{transaction.series.description}” · {formatPtBrLogicalDate(transaction.series.start)} até{' '}
-                        {formatPtBrLogicalDate(transaction.series.end)}. Editar altera somente esta parcela.
-                      </>
-                    ) : (
-                      <>
-                        {transaction.series.occurrenceCount} ocorrências · {formatPtBrLogicalDate(transaction.series.start)} até{' '}
-                        {formatPtBrLogicalDate(transaction.series.end)}. Editar altera somente esta ocorrência.
-                      </>
-                    )}
+                    {isInstallment && transaction.series.description ? `“${transaction.series.description}” · ` : `${transaction.series.occurrenceCount} ocorrências · `}
+                    {formatPtBrLogicalDate(transaction.series.start)} até {formatPtBrLogicalDate(transaction.series.end)}.
+                    Editar altera somente {isInstallment ? 'esta parcela' : 'esta ocorrência'}.
                   </p>
                 </div>
               </div>
-            </div>
+            </section>
           )}
+
+          <p className={`${cardClassName} p-4 text-sm leading-relaxed text-[var(--text-muted)] sm:p-5`}>
+            {isTransfer
+              ? 'Esta é uma perna de uma transferência ligada. A contraparte é somente leitura aqui e alterações da operação usam o fluxo dedicado de transferências.'
+              : isCardPayment
+                ? 'Este lançamento foi criado pelo fluxo de pagamento da fatura e é somente leitura no CRUD comum de transações.'
+                : 'O status financeiro e a categoria exibidos aqui vêm do lançamento persistido. Esta tela não recalcula nem altera valores ao abrir.'}
+          </p>
+        </div>
+
+        <section className={cardClassName} aria-labelledby="transaction-context-heading">
+          <h2 id="transaction-context-heading" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Sobre este lançamento</h2>
+          <dl className="grid gap-3 px-4 pb-4 text-sm sm:px-5">
+            <Row label="Data">{longDate}</Row>
+
+            <Row label="Conta">
+              <AccountLabel account={transaction.account} href={`/contas/show/${transaction.account.id}`} />
+            </Row>
+
+            {isTransfer && (
+              <Row label="Conta contraparte">
+                {transaction.counterpartAccount ? (
+                  <AccountLabel account={transaction.counterpartAccount} href={`/contas/show/${transaction.counterpartAccount.id}`} />
+                ) : (
+                  'Contraparte indisponível'
+                )}
+              </Row>
+            )}
+
+            {isNormal && transaction.merchant && (
+              <Row label="Estabelecimento">
+                <Link href={`/estabelecimentos/show/${transaction.merchant.id}`} className={linkClassName}>
+                  {transaction.merchant.name}
+                </Link>
+                {!transaction.merchant.isActive ? ' · inativo' : ''}
+              </Row>
+            )}
+
+            {isNormal && transaction.category && (
+              <Row label="Categoria">
+                <Link href={`/categorias/show/${transaction.category.id}`} className={`${linkClassName} inline-flex min-w-0 items-center gap-2`}>
+                  <IconRenderer iconName={transaction.category.icon || 'tag'} size={16} color={transaction.category.color} />
+                  <span className="break-words">{transaction.category.name}</span>
+                </Link>
+              </Row>
+            )}
+
+            {transaction.tags?.length ? (
+              <Row label="Tags">
+                <span className="flex flex-wrap justify-end gap-1.5">
+                  {transaction.tags.map((tag) => (
+                    <span key={tag.id} className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-xs">#{tag.name}</span>
+                  ))}
+                </span>
+              </Row>
+            ) : null}
+
+            <Row label="Conciliação">{RECONCILIATION_LABEL[transaction.reconciliationStatus] ?? '—'}</Row>
+            {transaction.importSource && <Row label="Origem">Importada de {transaction.importSource}</Row>}
+            <Row label="Criada em">{format(new Date(transaction.createdAt), 'dd/MM/yyyy HH:mm')}</Row>
+            <Row label="Atualizada em">{format(new Date(transaction.updatedAt), 'dd/MM/yyyy HH:mm')}</Row>
+          </dl>
         </section>
       </div>
-
-      <aside className="ds-panel p-5 lg:sticky lg:top-4" aria-labelledby="transaction-context-heading">
-        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Contexto</p>
-        <h3 id="transaction-context-heading" className="mt-1 text-lg font-semibold text-[var(--foreground)]">
-          Sobre este lançamento
-        </h3>
-
-        <dl className="mt-5 space-y-4">
-          <InfoRow icon={<FaCalendarAlt />} label="Data da transação">
-            {format(transactionDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-          </InfoRow>
-
-          {transaction.account && (
-            <InfoRow icon={<FaWallet />} label="Conta">
-              <span className="inline-flex min-w-0 items-center gap-2">
-                <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-                  style={{ backgroundColor: transaction.account.color ?? 'var(--surface-subtle)' }}
-                  aria-hidden="true"
-                >
-                  <IconRenderer
-                    iconName={transaction.account.icon || 'wallet'}
-                    size={13}
-                    className="text-white"
-                  />
-                </span>
-                <span className="break-words">{transaction.account.name} · {transaction.account.currency}</span>
-              </span>
-            </InfoRow>
-          )}
-
-          {isTransfer && (
-            <InfoRow icon={<FaExchangeAlt />} label="Conta contraparte">
-              <span className="inline-flex min-w-0 items-center gap-2">
-                {transaction.counterpartAccount && (
-                  <span
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-                    style={{ backgroundColor: transaction.counterpartAccount.color ?? 'var(--surface-subtle)' }}
-                    aria-hidden="true"
-                  >
-                    <IconRenderer
-                      iconName={transaction.counterpartAccount.icon || 'wallet'}
-                      size={13}
-                      className="text-white"
-                    />
-                  </span>
-                )}
-                <span className="break-words">
-                  {transaction.counterpartAccount
-                    ? `${transaction.counterpartAccount.name} · ${transaction.counterpartAccount.currency}`
-                    : 'Contraparte indisponível'}
-                </span>
-              </span>
-            </InfoRow>
-          )}
-
-          {!isTransfer && !isCardPayment && transaction.merchant && (
-            <InfoRow icon={<FaStore />} label="Estabelecimento">
-              <span className="break-words">
-                {transaction.merchant.name}
-                {!transaction.merchant.isActive ? ' · inativo' : ''}
-              </span>
-            </InfoRow>
-          )}
-
-          {!isTransfer && !isCardPayment && transaction.category && (
-            <InfoRow icon={<FaTag />} label="Categoria">
-              <span className="inline-flex min-w-0 items-center gap-2">
-                <span aria-hidden="true">
-                  <IconRenderer
-                    iconName={transaction.category.icon || 'tag'}
-                    size={16}
-                    color={transaction.category.color}
-                  />
-                </span>
-                <span className="break-words">{transaction.category.name}</span>
-              </span>
-            </InfoRow>
-          )}
-
-          {transaction.tags?.length ? (
-            <InfoRow icon={<FaTag />} label="Tags">
-              <span className="flex flex-wrap gap-1.5">
-                {transaction.tags.map((tag) => (
-                  <span key={tag.id} className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs">
-                    #{tag.name}
-                  </span>
-                ))}
-              </span>
-            </InfoRow>
-          ) : null}
-
-          <InfoRow icon={<FaCalendarAlt />} label="Criada em">
-            {format(new Date(transaction.createdAt), 'dd/MM/yyyy HH:mm')}
-          </InfoRow>
-        </dl>
-
-        <div className="mt-5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-sm leading-relaxed text-[var(--text-muted)]">
-          {isTransfer
-            ? 'Esta é uma perna de uma transferência ligada. A contraparte é somente leitura aqui e alterações da operação usam o fluxo dedicado de transferências.'
-            : isCardPayment
-              ? 'Este lançamento foi criado pelo fluxo de pagamento da fatura e é somente leitura no CRUD comum de transações.'
-              : 'O status financeiro e a categoria exibidos aqui vêm do lançamento persistido. Esta tela não recalcula nem altera valores ao abrir.'}
-        </div>
-      </aside>
     </div>
   );
 }
 
-function InfoRow({
-  icon,
-  label,
-  children,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  children: React.ReactNode;
-}) {
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="border-b border-[var(--border)] pb-4 last:border-0 last:pb-0">
-      <dt className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
-        <span className="text-[var(--text-subtle)]" aria-hidden="true">{icon}</span>
-        {label}
-      </dt>
-      <dd className="mt-1.5 min-w-0 text-sm font-semibold text-[var(--foreground)]">{children}</dd>
+    <div className="flex justify-between gap-4">
+      <dt className="shrink-0 text-[var(--text-muted)]">{label}</dt>
+      <dd className="min-w-0 break-words text-right font-semibold">{children}</dd>
     </div>
+  );
+}
+
+function AccountLabel({ account, href }: { account: TransactionAccountDTO; href: string }) {
+  return (
+    <Link href={href} className={`${linkClassName} inline-flex min-w-0 items-center gap-2`}>
+      <span
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+        style={{ backgroundColor: account.color ?? 'var(--surface-subtle)' }}
+        aria-hidden="true"
+      >
+        <IconRenderer iconName={account.icon || 'wallet'} size={13} className="text-white" />
+      </span>
+      <span className="break-words">{account.name} · {account.currency}</span>
+    </Link>
   );
 }
