@@ -99,3 +99,60 @@ export function buildMerchantSummary(
       .sort((left, right) => right.assigned - left.assigned || left.currency.localeCompare(right.currency)),
   };
 }
+
+export const MERCHANT_HISTORY_MONTHS = 6;
+
+/** Os `count` meses terminando em `asOf`, do mais antigo para o atual. */
+export function merchantMonthWindow(asOf: Month, count = MERCHANT_HISTORY_MONTHS): Month[] {
+  return Array.from({ length: count }, (_, index) => {
+    const absolute = asOf.year * 12 + (asOf.month - 1) - (count - 1 - index);
+    return { year: Math.floor(absolute / 12), month: (absolute % 12) + 1 };
+  });
+}
+
+/**
+ * Histórico de um estabelecimento na moeda de maior gasto da janela (BRL sem gasto).
+ * As demais moedas com gasto ficam em `otherCurrencies` e não entram nos números.
+ */
+export function buildMerchantHistory(rows: readonly MerchantSpendRow[], asOf: Month) {
+  const window = merchantMonthWindow(asOf);
+  const first = window[0].year * 12 + window[0].month;
+  const last = asOf.year * 12 + asOf.month;
+  const inWindow = rows.filter((row) => {
+    const index = row.year * 12 + row.month;
+    return index >= first && index <= last;
+  });
+
+  const net = (row: MerchantSpendRow) => transactionFinancialImpact(row.accountType, row.type, row.total).expense;
+  const totals = new Map<string, number>();
+  for (const row of inWindow) totals.set(row.currency, (totals.get(row.currency) ?? 0) + net(row));
+
+  let currency = "BRL";
+  let best = Number.NEGATIVE_INFINITY;
+  for (const [code, total] of [...totals.entries()].sort(([left], [right]) => left.localeCompare(right))) {
+    if (total > best) {
+      best = total;
+      currency = code;
+    }
+  }
+
+  const history = window.map(({ year, month }) => ({
+    year,
+    month,
+    expense: inWindow
+      .filter((row) => row.currency === currency && row.year === year && row.month === month)
+      .reduce((sum, row) => sum + net(row), 0),
+  }));
+  const count = inWindow
+    .filter((row) => row.currency === currency && row.year === asOf.year && row.month === asOf.month)
+    .reduce((sum, row) => sum + row.count, 0);
+  const previous = history.slice(0, -1);
+
+  return {
+    currency: currency as SupportedCurrency,
+    otherCurrencies: [...totals.keys()].filter((code) => code !== currency && (totals.get(code) ?? 0) !== 0) as SupportedCurrency[],
+    history,
+    count,
+    previousAverage: previous.length ? Math.round(previous.reduce((sum, point) => sum + point.expense, 0) / previous.length) : 0,
+  };
+}

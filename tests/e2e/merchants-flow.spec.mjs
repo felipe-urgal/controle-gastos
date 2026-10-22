@@ -151,6 +151,19 @@ test('estabelecimentos: CRUD de alias, conflito, move e mobile sem overflow', as
   await expect(aliasSection).toContainText(merchantB);
   await expect(aliasSection).toContainText('IFOOD');
 
+  await merchantList.getByRole('link', { name: merchantB, exact: true }).click();
+  await expect(page).toHaveURL(/\/estabelecimentos\/show\/[0-9a-f-]+$/);
+  await expect(page.getByRole('region', { name: 'Resumo do estabelecimento', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Como reconhecemos', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Últimos 6 meses', exact: true })).toBeVisible();
+  await expect(page.getByText('IFOOD', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Renomear', exact: true }).click();
+  await page.getByLabel('Novo nome do estabelecimento', { exact: true }).fill(merchantB + ' renomeado');
+  await page.getByRole('button', { name: 'Salvar nome', exact: true }).click();
+  await expect(page.getByRole('heading', { name: merchantB + ' renomeado', exact: true })).toBeVisible();
+  await page.goto('/estabelecimentos');
+
   for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 780 });
     const metrics = await page.evaluate(() => ({

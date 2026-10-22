@@ -19,6 +19,7 @@ import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import Pagination from '@/app/components/navigation/pagination';
 import { Button, Input, Select } from '@/app/components/ui';
+import Link from 'next/link';
 import { useAuth } from '@/app/context';
 import { useDebounce } from '@/app/hooks/use-debounce';
 import { merchantAliasService } from '@/app/services/merchant-alias-service';
@@ -632,7 +633,9 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <strong className="break-words text-[var(--foreground)]">{item.name}</strong>
+                          <Link href={`/estabelecimentos/show/${encodeURIComponent(item.id)}`} className="break-words font-bold text-[var(--foreground)] hover:underline">
+                            {item.name}
+                          </Link>
                           <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-xs font-semibold text-[var(--foreground)]">
                             {item.isActive ? 'Ativo' : 'Inativo'}
                           </span>

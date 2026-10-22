@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildMerchantHistory,
   buildMerchantSummary,
+  merchantMonthWindow,
   merchantSpend,
   previousMonth,
   type MerchantSpendRow,
@@ -79,5 +81,31 @@ describe("buildMerchantSummary", () => {
 
     expect(summary.currencies.map((entry) => entry.currency)).toEqual(["EUR", "BRL", "USD"]);
     expect(buildMerchantSummary([], asOf, names).currencies).toEqual([]);
+  });
+});
+
+describe("buildMerchantHistory", () => {
+  it("monta seis meses na moeda de maior gasto e avisa das outras", () => {
+    const history = buildMerchantHistory(
+      [
+        row({ month: 10, total: 3_000, count: 2 }),
+        row({ month: 9, total: 1_000 }),
+        row({ month: 7, total: 2_000 }),
+        row({ month: 10, currency: "USD", total: 500 }),
+        row({ year: 2025, month: 1, total: 99_000 }),
+      ],
+      asOf,
+    );
+
+    expect(history.currency).toBe("BRL");
+    expect(history.otherCurrencies).toEqual(["USD"]);
+    expect(history.history.map((point) => point.expense)).toEqual([0, 0, 2_000, 0, 1_000, 3_000]);
+    expect(history.count).toBe(2);
+    expect(history.previousAverage).toBe(600);
+  });
+
+  it("sem gasto cai em BRL com zeros, e a janela atravessa o ano", () => {
+    expect(buildMerchantHistory([], asOf)).toMatchObject({ currency: "BRL", otherCurrencies: [], count: 0, previousAverage: 0 });
+    expect(merchantMonthWindow({ year: 2026, month: 2 })[0]).toEqual({ year: 2025, month: 9 });
   });
 });

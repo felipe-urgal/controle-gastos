@@ -7,6 +7,8 @@ import {
   createMerchantSchema,
   updateMerchantSchema,
 } from "@/app/lib/merchants/merchant-schema";
+import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import { getMerchantActivity } from "@/app/lib/merchants/merchant-activity";
 import { getMerchantMonthSummary, monthSpendForMerchants } from "@/app/lib/merchants/merchant-spend";
 import { prisma } from "@/app/lib/prisma";
 
@@ -71,6 +73,14 @@ export const merchantCrud = baseCrudHandler({
   async afterList({ items, userId }) {
     const spend = await monthSpendForMerchants(userId, items.map((item) => item.id));
     return items.map((item) => ({ ...item, monthSpend: spend.get(item.id) ?? [] }));
+  },
+  async afterRead(merchant, userId) {
+    const activity = await getMerchantActivity({
+      userId,
+      merchantId: merchant.id,
+      asOf: logicalDateFromUtcInstant(new Date()),
+    });
+    return { ...merchant, activity };
   },
   summary: ({ userId }) => getMerchantMonthSummary(userId),
   async beforeCreate(data, userId) {
