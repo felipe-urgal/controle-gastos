@@ -14,6 +14,8 @@ import {
 } from "@/app/lib/categories/category-usage";
 import { createCategorySchema, updateCategorySchema } from "@/app/lib/categories/category-schema";
 import { HttpError } from "@/app/lib/http-error";
+import { getCategoryActivity } from "@/app/lib/categories/category-activity";
+import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
 
 function rethrowCategoryWriteError(error: unknown): never {
@@ -103,7 +105,15 @@ export const categoryCrud = baseCrudHandler({
       throw error;
     }
   },
-  afterRead: (category, userId) => withCategoryTransactionUsage(category, userId),
+  afterRead: async (category, userId) => {
+    const usage = await withCategoryTransactionUsage(category, userId);
+    const activity = await getCategoryActivity({
+      userId,
+      category: { id: category.id, type: category.type },
+      asOf: logicalDateFromUtcInstant(new Date()),
+    });
+    return { ...usage, activity };
+  },
   afterList: ({ items, userId }) => withCategoryTransactionUsages(items, userId),
   mapper: toCategoryDTO,
 });

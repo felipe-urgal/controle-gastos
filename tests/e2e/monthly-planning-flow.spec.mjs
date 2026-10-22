@@ -72,16 +72,11 @@ test('planejamento: ajustar orçamento, criar despesa e atualizar consumo', asyn
   const supporting = await seedSupportingData(page, suffix);
 
   await page.goto('/categorias');
-  await page.getByLabel('Buscar categoria', { exact: true }).fill(supporting.categoryName);
+  await page.getByLabel('Buscar categorias', { exact: true }).fill(supporting.categoryName);
 
-  const categoryRow = page
-    .getByRole('button')
-    .filter({ hasText: supporting.categoryName })
-    .first();
+  const categoryRow = page.getByRole('listitem').filter({ hasText: supporting.categoryName }).first();
   await expect(categoryRow).toBeVisible();
-  await categoryRow.click();
-
-  await page.getByRole('button', { name: 'Definir limite', exact: true }).click();
+  await categoryRow.getByRole('button', { name: /Definir limite de/ }).click();
 
   const limitDialog = page.getByRole('dialog', {
     name: new RegExp(`Definir limite.*${supporting.categoryName}`),
@@ -123,21 +118,13 @@ test('planejamento: ajustar orçamento, criar despesa e atualizar consumo', asyn
   await expect(page).toHaveURL(/\/transacoes$/);
 
   await page.goto('/categorias');
-  await page.getByLabel('Buscar categoria', { exact: true }).fill(supporting.categoryName);
-  const updatedRow = page
-    .getByRole('button')
-    .filter({ hasText: supporting.categoryName })
-    .first();
+  await page.getByLabel('Buscar categorias', { exact: true }).fill(supporting.categoryName);
+  const updatedRow = page.getByRole('listitem').filter({ hasText: supporting.categoryName }).first();
   await expect(updatedRow).toBeVisible();
-  await updatedRow.click();
-
-  const context = page
-    .getByRole('heading', { name: 'Resumo da categoria selecionada', exact: true })
-    .locator('..');
-  await expect(context).toContainText('R$ 500,00');
-  await expect(context).toContainText('R$ 200,00');
-  await expect(context).toContainText('R$ 300,00');
-  await expect(context).toContainText('40%');
+  await expect(updatedRow).toContainText('R$ 200,00');
+  await expect(updatedRow).toContainText('de R$ 500,00');
+  await expect(updatedRow).toContainText('40%');
+  await expect(updatedRow).toContainText('Faltam R$ 300,00');
 
   const apiState = await page.evaluate(async (categoryId) => {
     const now = new Date();

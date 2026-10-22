@@ -29,6 +29,7 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
   await page.goto('/categorias/nova', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Nova categoria', exact: true })).toBeVisible();
   await page.getByRole('textbox', { name: 'Nome da categoria', exact: true }).fill(categoryName);
+  await page.getByText('Mais opções', { exact: true }).click();
   await page.getByRole('textbox', { name: 'Descrição', exact: true }).fill('Descrição E2E');
   await page.getByRole('button', { name: 'Criar categoria', exact: true }).click();
   await expect(page).toHaveURL(/\/categorias$/);
@@ -179,8 +180,10 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
   });
 
   await page.goto(`/categorias/alterar/${fixture.primary.id}`);
-  await expect(page.getByRole('radio', { name: 'Despesa', exact: true })).toBeDisabled();
-  await expect(page.getByRole('radio', { name: 'Receita', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Despesa', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Receita', exact: true })).toBeDisabled();
+  await expect(page.getByText('O tipo não muda depois de criada.', { exact: true })).toBeVisible();
+  await page.getByText('Mais opções', { exact: true }).click();
   await page.getByLabel('Descrição', { exact: true }).fill('');
   await page.getByRole('checkbox', { name: /^Categoria ativa\b/ }).uncheck({ force: true });
   await page.getByRole('button', { name: 'Salvar alterações', exact: true }).click();
@@ -195,7 +198,8 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
     page.getByText('Inativa', { exact: true }).filter({ visible: true }).first(),
   ).toBeVisible();
 
-  await page.getByRole('button', { name: 'Excluir', exact: true }).click();
+  await page.getByText('Zona de risco', { exact: true }).click();
+  await page.getByRole('button', { name: 'Excluir categoria', exact: true }).click();
   const deleteDialog = page.getByRole('dialog', { name: 'Excluir categoria', exact: true });
   await expect(deleteDialog).toBeVisible();
   await deleteDialog.getByRole('button', { name: 'Excluir', exact: true }).click();
@@ -214,29 +218,18 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto('/categorias');
   await page.getByLabel('Buscar categorias', { exact: true }).fill(categoryName);
-  const mobileCard = page
-    .getByRole('button')
-    .filter({ hasText: categoryName })
-    .first();
-  await expect(mobileCard).toBeVisible();
-  await expect(mobileCard).toContainText('Inativa');
-  await expect(mobileCard).toContainText('Excedido');
+  const mobileRow = page.getByRole('listitem').filter({ hasText: categoryName }).first();
+  await expect(mobileRow).toBeVisible();
+  await expect(mobileRow).toContainText('Inativa');
+  await expect(mobileRow).toContainText('Excedido');
 
-  await page.getByRole('button', { name: 'Filtrar categorias', exact: true }).click();
-  const filtersDialog = page.getByRole('dialog', { name: 'Filtros', exact: true });
-  await expect(filtersDialog).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(filtersDialog).toBeHidden();
-
-  await mobileCard.click();
-  const categoryDialog = page.getByRole('dialog', { name: categoryName, exact: true });
-  await expect(categoryDialog).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(categoryDialog).toBeHidden();
+  await mobileRow.getByRole('link', { name: categoryName, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/categorias/show/${fixture.primary.id}$`));
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`/categorias/show/${fixture.empty.id}`);
-  await page.getByRole('button', { name: 'Excluir', exact: true }).click();
+  await page.getByText('Zona de risco', { exact: true }).click();
+  await page.getByRole('button', { name: 'Excluir categoria', exact: true }).click();
   const emptyDeleteDialog = page.getByRole('dialog', {
     name: 'Excluir categoria',
     exact: true,

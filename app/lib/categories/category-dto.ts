@@ -1,8 +1,11 @@
 import type { Category } from "@prisma/client";
 
+import type { CategoryActivity } from "@/app/lib/categories/category-activity";
+
 type CategoryWithCount = Category & {
   _count?: { transactions: number };
   transactionsCount?: number;
+  activity?: CategoryActivity;
 };
 
 export function toCategoryDTO(category: CategoryWithCount) {
@@ -17,6 +20,8 @@ export function toCategoryDTO(category: CategoryWithCount) {
     position: category.position,
     transactionsCount:
       category.transactionsCount ?? category._count?.transactions ?? 0,
+    /** Só vem na leitura de uma categoria. */
+    activity: category.activity ?? null,
     createdAt: category.createdAt.toISOString(),
     updatedAt: category.updatedAt.toISOString(),
   };
