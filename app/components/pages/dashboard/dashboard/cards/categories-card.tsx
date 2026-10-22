@@ -38,7 +38,7 @@ export function CategoriesCard({
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: category.color }}><IconRenderer iconName={category.icon || 'tag'} size={14} /></span>
                 <span className="truncate text-sm font-semibold">{category.name}</span>
               </span>
-              <strong className="text-right text-sm sm:text-left">{displayMoney(category.realized, showValues, currency)}</strong>
+              <strong className="text-right text-sm sm:text-left"><span className="money">{displayMoney(category.realized, showValues, currency)}</span></strong>
               <span className="hidden h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)] sm:block">
                 <span className="block h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${Math.min(100, category.sharePercentage)}%` }} />
               </span>

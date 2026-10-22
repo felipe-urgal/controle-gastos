@@ -282,7 +282,7 @@ export function MobileUpcomingCard({
                     <span className="min-w-0">
                       <strong className="block truncate text-sm">{item.title}</strong>
                       <span className="mt-1 block text-sm text-[var(--text-muted)]">
-                        {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
+                        {item.amount === null ? 'Marco sem valor financeiro' : <span className="money">{displayMoney(item.amount, showValues, currency)}</span>}
                       </span>
                     </span>
                     <span className={`rounded-full px-2 py-1 text-xs font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
@@ -331,7 +331,7 @@ export function MobileCategoriesCard({
                 </span>
                 <span className="truncate text-sm font-semibold">{category.name}</span>
               </span>
-              <strong className="text-right text-sm">{displayMoney(category.realized, showValues, currency)}</strong>
+              <strong className="text-right text-sm"><span className="money">{displayMoney(category.realized, showValues, currency)}</span></strong>
               <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
             </Link>
           ))
@@ -403,7 +403,7 @@ export function MobileRecentTransactionsCard({
                     </span>
                   </span>
                 </span>
-                <strong className={`shrink-0 text-sm ${tone}`}>
+                <strong className={`money shrink-0 text-sm ${tone}`}>
                   {showValues ? `${isIncome ? '+' : isTransfer || isCardPayment ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
                 </strong>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
@@ -489,7 +489,7 @@ export function MobileFinancialGoalsCard({
             <span className="min-w-0">
               <strong className="block truncate text-sm">{goal.name}</strong>
               <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                {displayMoney(goal.currentAmount, showValues, currency)} de {displayMoney(goal.targetAmount, showValues, currency)}
+                <span className="money">{displayMoney(goal.currentAmount, showValues, currency)}</span> de <span className="money">{displayMoney(goal.targetAmount, showValues, currency)}</span>
               </span>
             </span>
             <span className="text-right">
@@ -497,7 +497,7 @@ export function MobileFinancialGoalsCard({
                 {goal.percentage.toLocaleString('pt-BR')}%
               </strong>
               <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                falta {displayMoney(goal.remainingAmount, showValues, currency)}
+                falta <span className="money">{displayMoney(goal.remainingAmount, showValues, currency)}</span>
               </span>
             </span>
           </Link>
@@ -545,11 +545,11 @@ export function MobileCreditCardsCard({
             <span className="min-w-0">
               <strong className="block truncate text-sm">{card.name}</strong>
               <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-                Disponível {displayMoney(card.availableLimit, showValues, currency)}
+                Disponível <span className="money">{displayMoney(card.availableLimit, showValues, currency)}</span>
               </span>
             </span>
             <span className="text-right">
-              <strong className="block text-sm text-[var(--foreground)]">
+              <strong className="money block text-sm text-[var(--foreground)]">
                 {card.nextStatement
                   ? displayMoney(card.nextStatement.amount, showValues, currency)
                   : 'Sem fatura'}

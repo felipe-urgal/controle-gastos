@@ -68,20 +68,20 @@ export function FinancialGoalsCard({
                 <div>
                   <p className="text-[var(--text-muted)]">Atual</p>
                   <strong className="mt-1 block text-[var(--foreground)]">
-                    {displayMoney(goal.currentAmount, showValues, currency)}
+                    <span className="money">{displayMoney(goal.currentAmount, showValues, currency)}</span>
                   </strong>
                 </div>
                 <div>
                   <p className="text-[var(--text-muted)]">Falta</p>
                   <strong className="mt-1 block text-[var(--foreground)]">
-                    {displayMoney(goal.remainingAmount, showValues, currency)}
+                    <span className="money">{displayMoney(goal.remainingAmount, showValues, currency)}</span>
                   </strong>
                 </div>
               </div>
 
               {goal.monthlyContributionSuggestion !== null && (
                 <p className="mt-2 text-xs text-[var(--text-muted)]">
-                  Aproximadamente {displayMoney(goal.monthlyContributionSuggestion, showValues, currency)}/mês até o prazo.
+                  Aproximadamente <span className="money">{displayMoney(goal.monthlyContributionSuggestion, showValues, currency)}</span>/mês até o prazo.
                 </p>
               )}
             </Link>

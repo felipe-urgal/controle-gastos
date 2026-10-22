@@ -94,9 +94,9 @@ export function SafeToSpendHero({
       ) : safeToSpend ? (
         <div className="mt-2 space-y-4">
           <strong
-            className={`block font-[family-name:var(--font-numeric)] text-[2.25rem] font-semibold leading-none tracking-[-0.035em] tabular-nums sm:text-5xl ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}
+            className={`block money text-[2.25rem] font-semibold leading-none tracking-[-0.035em] tabular-nums sm:text-5xl ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}
           >
-            {money(safeToSpend.safeToSpend)}
+            <span className="money">{money(safeToSpend.safeToSpend)}</span>
           </strong>
           {margin && (
             <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${margin.className}`}>
@@ -119,7 +119,7 @@ export function SafeToSpendHero({
                   <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: row.color }} aria-hidden="true" />
                   {row.label}
                 </dt>
-                <dd className="font-[family-name:var(--font-numeric)] text-[0.8125rem] font-medium tabular-nums text-[var(--foreground)]">{row.sign}{row.value}</dd>
+                <dd className="money text-[0.8125rem] font-medium tabular-nums text-[var(--foreground)]">{row.sign}{row.value}</dd>
               </div>
             ))}
           </dl>
@@ -141,7 +141,7 @@ export function SafeToSpendHero({
               <span>Saldo realizado em contas correntes</span> · {dashboardLogicalDateLabel(asOf)}
             </span>
             <span className="mt-0.5 flex items-center gap-1 truncate">
-              <strong className={`font-[family-name:var(--font-numeric)] text-[0.8125rem] tabular-nums ${cashTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>{money(cashTotal)}</strong>
+              <strong className={`money text-[0.8125rem] tabular-nums ${cashTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}><span className="money">{money(cashTotal)}</span></strong>
               <span>
                 em {cashAccounts.length} {cashAccounts.length === 1 ? 'conta' : 'contas'}
               </span>

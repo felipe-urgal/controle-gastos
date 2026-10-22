@@ -66,14 +66,14 @@ export function CreditCardsCard({
                 <div>
                   <p className="text-[var(--text-muted)]">Disponível</p>
                   <strong className="mt-1 block text-[var(--foreground)]">
-                    {displayMoney(card.availableLimit, showValues, currency)}
+                    <span className="money">{displayMoney(card.availableLimit, showValues, currency)}</span>
                   </strong>
                 </div>
                 <div>
                   <p className="text-[var(--text-muted)]">Próxima fatura</p>
                   <strong className="mt-1 block text-[var(--foreground)]">
                     {card.nextStatement
-                      ? displayMoney(card.nextStatement.amount, showValues, currency)
+                      ? <span className="money">{displayMoney(card.nextStatement.amount, showValues, currency)}</span>
                       : 'Sem fatura'}
                   </strong>
                 </div>

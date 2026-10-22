@@ -35,7 +35,7 @@ export function MonthMetric({
         <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${iconToneClass}`}>{icon}</span>
         <span className="text-sm text-[var(--text-muted)]">{label}</span>
       </div>
-      <strong className={`mt-2 block break-words text-xl font-extrabold ${toneClass}`}>{value}</strong>
+      <strong className={`money mt-2 block break-words text-xl font-extrabold ${toneClass}`}>{value}</strong>
       <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{detail}</p>
     </div>
   );

@@ -363,3 +363,10 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Valores monetários: dígitos de largura fixa (JetBrains Mono, carregada em app/(pages)/layout.tsx). */
+.money {
+  font-family: var(--font-numeric), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}

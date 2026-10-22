@@ -74,8 +74,8 @@ export function MonthOverviewCard({
         <span className="h-full bg-[var(--expense)]" style={{ width: `${expenseWidth}%` }} />
       </div>
       <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold">
-        <span>{displayMoney(data.summary.income, showValues, data.currency)}</span>
-        <span className="text-[var(--expense)]">{displayMoney(data.summary.expense, showValues, data.currency)}</span>
+        <span><span className="money">{displayMoney(data.summary.income, showValues, data.currency)}</span></span>
+        <span className="text-[var(--expense)]"><span className="money">{displayMoney(data.summary.expense, showValues, data.currency)}</span></span>
       </div>
     </article>
   );
