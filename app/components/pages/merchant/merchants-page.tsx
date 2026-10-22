@@ -633,7 +633,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Link href={`/estabelecimentos/show/${encodeURIComponent(item.id)}`} className="inline-flex min-h-11 items-center break-words font-bold text-[var(--foreground)] hover:underline">
+                          <Link href={`/estabelecimentos/show/${encodeURIComponent(item.id)}`} className="inline-flex min-h-11 min-w-11 items-center break-words font-bold text-[var(--foreground)] hover:underline">
                             {item.name}
                           </Link>
                           <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-xs font-semibold text-[var(--foreground)]">
