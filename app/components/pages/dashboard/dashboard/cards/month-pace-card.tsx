@@ -48,7 +48,8 @@ function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues
   const x = (day: number) => PAD.left + ((day - 1) / Math.max(daysInMonth - 1, 1)) * (WIDTH - PAD.left - PAD.right);
   const y = (value: number) => PAD.top + (1 - value / top) * (HEIGHT - PAD.top - PAD.bottom);
   const line = (values: number[]) => values.map((value, index) => `${index === 0 ? 'M' : 'L'} ${x(index + 1).toFixed(1)} ${y(value).toFixed(1)}`).join(' ');
-  const ticks = [0, 0.5, 1].map((fraction) => Math.round((top * fraction) / 1000) * 1000);
+  // Arredondar em múltiplos de R$ 10 pode repetir valores quando o gasto é pequeno; o eixo mostra só valores distintos.
+  const ticks = [...new Set([0, 0.5, 1].map((fraction) => Math.round((top * fraction) / 1000) * 1000))];
   const xTicks = [1, Math.ceil(daysInMonth / 4), Math.ceil(daysInMonth / 2), Math.ceil((daysInMonth * 3) / 4), daysInMonth];
   const money = (cents: number) => (showValues ? formatCurrency(cents, currency) : '••••');
   const hasToday = elapsedDays > 0;
