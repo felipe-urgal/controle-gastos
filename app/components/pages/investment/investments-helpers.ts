@@ -1,5 +1,5 @@
 import { SupportedCurrency } from '@/app/types/financial-summary';
-import { InvestmentAssetType, InvestmentFiscalEventType, InvestmentTaxLocation, InvestmentOperationType } from '@/app/types/investment';
+import { InvestmentAssetType, InvestmentFiscalEventType, InvestmentTaxLocation, InvestmentOperationType, InvestmentIncomeType } from '@/app/types/investment';
 
 export const fiscalEventTypes: Array<{ value: InvestmentFiscalEventType; label: string }> = [
   { value: 'BUY', label: 'Compra' },
@@ -88,6 +88,35 @@ export type OperationForm = {
   fees: string;
   date: string;
   note: string;
+};
+
+export const incomeTypes: Array<{ value: InvestmentIncomeType; label: string }> = [
+  { value: 'DIVIDEND', label: 'Dividendo' },
+  { value: 'INTEREST', label: 'JCP / juros' },
+  { value: 'INCOME', label: 'Rendimento' },
+  { value: 'OTHER', label: 'Outro' },
+];
+
+export type IncomeForm = {
+  type: InvestmentIncomeType;
+  accountId: string;
+  assetId: string;
+  quantity: string;
+  unitValue: string;
+  netAmount: string;
+  date: string;
+  note: string;
+};
+
+export const emptyIncome: IncomeForm = {
+  type: 'DIVIDEND',
+  accountId: '',
+  assetId: '',
+  quantity: '',
+  unitValue: '',
+  netAmount: '',
+  date: today(),
+  note: '',
 };
 
 export const emptyAsset: AssetForm = {

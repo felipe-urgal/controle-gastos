@@ -135,6 +135,17 @@ export type InvestmentOperationInput = {
   note?: string | null;
 };
 
+export type InvestmentIncomeInput = {
+  type: "DIVIDEND" | "INTEREST" | "INCOME" | "OTHER";
+  accountId: string;
+  assetId: string;
+  quantity: string;
+  unitValueCents: number;
+  netAmountCents: number;
+  date: string;
+  note?: string | null;
+};
+
 export const investmentService = {
   async getPortfolio(): Promise<ApiResponse<InvestmentPortfolio>> {
     return apiClient("/api/investments", { method: "GET" });
@@ -156,6 +167,15 @@ export const investmentService = {
     input: InvestmentOperationInput,
   ): Promise<ApiResponse<InvestmentOperation>> {
     return apiClient("/api/investments/operations", {
+      method: "POST",
+      body: input,
+      headers: investmentMutationHeaders(),
+    });
+  },
+  async createIncome(
+    input: InvestmentIncomeInput,
+  ): Promise<ApiResponse<import("@/app/types/investment").InvestmentIncome>> {
+    return apiClient("/api/investments/incomes", {
       method: "POST",
       body: input,
       headers: investmentMutationHeaders(),

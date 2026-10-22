@@ -713,6 +713,11 @@ Regras aplicadas:
 de cotas usada no evento e o valor unitário. A quantidade do provento é
 histórica e não é recalculada usando a posição atual.
 
+Além da importação, é possível lançar um provento manualmente em **Novo
+provento** (`POST /api/investments/incomes`, idempotente): tipo, conta, ativo,
+quantidade de cotas, valor por cota, valor líquido recebido e data. A conta
+deve ser de investimento, ativa e na mesma moeda do ativo.
+
 Os proventos aparecem na superfície de investimentos e no histórico do ativo,
 mas não alteram o saldo da conta.
 
