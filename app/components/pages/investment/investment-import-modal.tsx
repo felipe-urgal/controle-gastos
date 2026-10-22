@@ -10,7 +10,7 @@ import {
   type InvestmentImportPreview,
 } from '@/app/services/investment-service';
 import type { InvestmentAccountOption } from '@/app/types/investment';
-import { Button, Select } from '@/app/components/ui';
+import { Button, MoneyText, Select } from '@/app/components/ui';
 
 type Props = {
   accounts: InvestmentAccountOption[];
@@ -223,7 +223,7 @@ export function InvestmentImportModal({
                     })}{' '}
                     un.
                   </span>
-                  <strong className="text-sm text-[var(--foreground)]">
+                  <strong className="money text-sm text-[var(--foreground)]">
                     {showValues
                       ? formatCurrency(group.amountCents, 'BRL')
                       : '••••'}
@@ -249,8 +249,9 @@ export function InvestmentImportModal({
                       </span>
                     </span>
                     <span className="text-right text-xs text-[var(--text-muted)]">
-                      Taxas: {showValues ? formatCurrency(note.feesCents, 'BRL') : '••••'}
-                      {note.irrfCents > 0 ? ` · IRRF: ${showValues ? formatCurrency(note.irrfCents, 'BRL') : '••••'}` : ''}
+                      <MoneyText>
+                        {`Taxas: ${showValues ? formatCurrency(note.feesCents, 'BRL') : '••••'}${note.irrfCents > 0 ? ` · IRRF: ${showValues ? formatCurrency(note.irrfCents, 'BRL') : '••••'}` : ''}`}
+                      </MoneyText>
                       {note.irrfCents > 0 && (
                         <span className="mt-1 block">
                           {note.taxDestination === 'IRRF'

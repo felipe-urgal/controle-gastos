@@ -222,7 +222,7 @@ export function MobileUpcomingPreview({
               {scheduledDistanceLabel(first)} • {first.account?.name ?? 'Conta'}
             </span>
           </span>
-          <strong className={`shrink-0 text-xs ${first.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
+          <strong className={`money shrink-0 text-xs ${first.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
             {formatTransactionAmount(first, showValues)}
           </strong>
           <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
@@ -350,7 +350,7 @@ export function MobileTransactionRow({
       </span>
 
       <span className="min-w-[86px] text-right">
-        <strong className={`block text-xs ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
+        <strong className={`money block text-xs ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
         <span className="mt-1 block text-xs text-[var(--text-muted)]">
           {transaction.status === 'PENDING' ? 'Pendente' : formatTransactionTime(transaction)}
         </span>

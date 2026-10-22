@@ -11,7 +11,7 @@ import {
 import Pagination from '@/app/components/navigation/pagination';
 import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
-import { Button, Input, Select } from '@/app/components/ui';
+import { Button, Input, MoneyText, Select } from '@/app/components/ui';
 import { FaPlus } from 'react-icons/fa';
 import { useAuth } from '@/app/context';
 import { useDebounce } from '@/app/hooks/use-debounce';
@@ -686,7 +686,7 @@ export default function TransactionTemplatesPage({
                       {item.description || 'Sem descrição fixa'}
                     </p>
                     <div className="mt-3 grid gap-1 text-xs text-[var(--text-muted)]">
-                      <span>{templateAmountLabel(item, showValues)}</span>
+                      <span><MoneyText>{templateAmountLabel(item, showValues)}</MoneyText></span>
                       <span>
                         {templateReferenceLabel('Conta', item.account)}
                       </span>

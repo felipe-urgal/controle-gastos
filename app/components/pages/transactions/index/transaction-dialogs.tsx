@@ -248,7 +248,7 @@ export function OrbitTransactionDetail({ transaction, showValues, compact = fals
         </div>
       </div>
 
-      <p className={`mt-5 break-words text-3xl font-bold tracking-tight ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</p>
+      <p className={`money mt-5 break-words text-3xl font-bold tracking-tight ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</p>
       <div className="mt-2"><StatusPill status={transaction.status} /></div>
 
       <dl className="mt-5 overflow-hidden rounded-[13px] border border-[var(--border)]">

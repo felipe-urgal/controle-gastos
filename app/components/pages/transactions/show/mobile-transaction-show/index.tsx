@@ -193,7 +193,7 @@ export default function MobileTransactionShow({
         </div>
 
         <div className="relative z-[1] mt-5">
-          <strong className="block break-words text-[40px] font-black leading-none tracking-tight text-white">
+          <strong className="money block break-words text-[40px] font-black leading-none tracking-tight text-white">
             {sign}{amount}
           </strong>
           {!showValues ? (

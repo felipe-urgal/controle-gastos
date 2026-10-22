@@ -533,7 +533,7 @@ function Row({
     <div className="rounded-xl bg-[var(--surface-raised)] p-3 text-xs">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <strong className="text-[var(--foreground)]">{title}</strong>
-        <span className="font-semibold text-[var(--foreground)]">{value}</span>
+        <span className="money font-semibold text-[var(--foreground)]">{value}</span>
       </div>
       <p className="mt-1 leading-relaxed text-[var(--text-muted)]">{detail}</p>
       <span className="mt-1 block text-xs font-semibold text-[var(--text-muted)]">
