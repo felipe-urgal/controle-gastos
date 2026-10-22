@@ -183,7 +183,7 @@ export default function AccountShowView({
       ];
 
   return (
-    <div className={`mx-auto w-full max-w-6xl space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
+    <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
         <header className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2">
           <IconLink label="Voltar para contas" href={backUrl} icon={<FaArrowLeft />} className="rounded-full text-lg text-[var(--foreground)]" />

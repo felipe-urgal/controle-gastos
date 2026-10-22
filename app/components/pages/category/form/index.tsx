@@ -79,7 +79,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
 
   const mobileWizard = (
     <form onSubmit={handleSubmit} className={orbitSelectionTokens}>
-      <div className="mx-auto w-full max-w-xl pb-5">
+      <div className="w-full pb-5">
         <header className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-1.5 pt-1">
           <IconButton
             label="Voltar"

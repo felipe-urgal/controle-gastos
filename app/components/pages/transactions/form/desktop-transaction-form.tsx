@@ -26,7 +26,7 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
         className="mt-4 [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
       >
         <section
-          className="mx-auto w-full max-w-[860px] overflow-visible rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
+          className="w-full overflow-visible rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
           aria-label={isEditing ? 'Editar transação' : 'Nova transação'}
         >
           <div className="p-4 sm:p-6">
