@@ -170,9 +170,9 @@ jobs:
     strategy:
       fail-fast: false
       # PR: chromium em 3 shards paralelos (o spec roda com workers: 1) e webkit só no smoke de layout.
-      # Push na main: só chromium (specs visuais). Manual: suíte completa, sem shards.
+      # Push na main: só chromium (specs visuais) em 3 shards. Manual: suíte completa, sem shards.
       matrix:
-        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"browser":"chromium","shard":"1/3"},{"browser":"chromium","shard":"2/3"},{"browser":"chromium","shard":"3/3"},{"browser":"webkit","shard":""}]' || github.event_name == 'push' && '[{"browser":"chromium","shard":""}]' || '[{"browser":"chromium","shard":""},{"browser":"firefox","shard":""},{"browser":"webkit","shard":""}]') }}
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"browser":"chromium","shard":"1/3"},{"browser":"chromium","shard":"2/3"},{"browser":"chromium","shard":"3/3"},{"browser":"webkit","shard":""}]' || github.event_name == 'push' && '[{"browser":"chromium","shard":"1/3"},{"browser":"chromium","shard":"2/3"},{"browser":"chromium","shard":"3/3"}]' || '[{"browser":"chromium","shard":""},{"browser":"firefox","shard":""},{"browser":"webkit","shard":""}]') }}
     services:
       postgres:
         image: postgres:17-alpine
@@ -311,7 +311,9 @@ jobs:
 
       - name: Run visual validation (main)
         if: github.event_name == 'push'
-        run: pnpm test:e2e tests/e2e/*-visual.spec.mjs --project=chromium
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: pnpm test:e2e tests/e2e/*-visual.spec.mjs --project=chromium --shard=$SHARD
 
       - name: Run full E2E
         if: github.event_name == 'workflow_dispatch'
