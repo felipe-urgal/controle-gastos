@@ -358,7 +358,7 @@ function CalendarSummary({
                   return (
                     <strong
                       key={summary.currency}
-                      className={`block truncate text-[15px] font-bold sm:text-[23px] ${tone}`}
+                      className={`money block truncate text-[15px] font-bold sm:text-[23px] ${tone}`}
                     >
                       {showValues
                         ? formatCurrency(value, summary.currency)
@@ -506,7 +506,7 @@ function FinancialTimeline({
             summaries.map((summary) => (
               <strong
                 key={summary.currency}
-                className={`mt-1 block text-sm font-bold ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}
+                className={`money mt-1 block text-sm font-bold ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}
               >
                 {showValues
                   ? `${summary.balance > 0 ? '+' : summary.balance < 0 ? '-' : ''}${formatCurrency(Math.abs(summary.balance), summary.currency)}`
@@ -624,7 +624,7 @@ function TimelineEvent({
           {eventContextLabel(event)}
         </p>
       </div>
-      <strong className={`col-start-3 justify-self-end whitespace-nowrap text-sm sm:col-start-auto ${amountTone}`}>
+      <strong className={`money col-start-3 justify-self-end whitespace-nowrap text-sm sm:col-start-auto ${amountTone}`}>
         {signedAmount(event, showValues)}
       </strong>
     </button>
@@ -713,7 +713,7 @@ function CommitmentsAgenda({
                     {eventKindLabel(event)} · {event.account?.name ?? eventDateLabel(event)}
                   </p>
                 </div>
-                <strong className={`self-center whitespace-nowrap text-xs sm:text-sm ${amountTone}`}>
+                <strong className={`money self-center whitespace-nowrap text-xs sm:text-sm ${amountTone}`}>
                   {signedAmount(event, showValues)}
                 </strong>
               </button>
@@ -751,7 +751,7 @@ function EventDetailDrawer({
       maxWidthClass={`max-w-lg ${orbitActionTokens}`}
     >
       <dl className=" grid grid-cols-2 gap-2.5">
-        <DetailBox label="Valor" value={signedAmount(event, showValues)} />
+        <DetailBox label="Valor" value={signedAmount(event, showValues)} mono />
         <DetailBox label="Data" value={date.toLocaleDateString('pt-BR')} />
         <DetailBox
           label="Conta"
@@ -774,11 +774,11 @@ function EventDetailDrawer({
   );
 }
 
-function DetailBox({ label, value }: { label: string; value: string }) {
+function DetailBox({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3">
       <dt className="text-xs text-[var(--text-muted)]">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-bold text-[var(--foreground)]">
+      <dd className={`${mono ? 'money ' : ''}mt-1 break-words text-sm font-bold text-[var(--foreground)]`}>
         {value}
       </dd>
     </div>

@@ -223,7 +223,7 @@ export function InvestmentImportModal({
                     })}{' '}
                     un.
                   </span>
-                  <strong className="text-sm text-[var(--foreground)]">
+                  <strong className="money text-sm text-[var(--foreground)]">
                     {showValues
                       ? formatCurrency(group.amountCents, 'BRL')
                       : '••••'}

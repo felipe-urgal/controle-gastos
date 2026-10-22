@@ -69,7 +69,7 @@ export function MonthSummaryCard({
           <p className="mt-0.5 min-h-4 text-xs text-[var(--text-muted)]">
             {count !== undefined ? `${count} ${countLabel}` : '\u00A0'}
           </p>
-          <strong className={`mt-2 block text-[24px] font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
+          <strong className={`money mt-2 block text-[24px] font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
           <p className={`mt-1 flex items-center gap-1.5 text-xs ${detailClass}`}>
             {detailDirection === 'up' ? (
               <FaArrowUp aria-hidden="true" />
@@ -227,7 +227,7 @@ export function TimelineTransactionRow({
         <TransactionTags transaction={transaction} />
       </span>
       <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center justify-between gap-3 text-right sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:grid sm:shrink-0 sm:justify-items-end sm:gap-1">
-        <strong className={`text-sm ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
+        <strong className={`money text-sm ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
         <span className="text-xs text-[var(--text-muted)]">{formatTransactionTime(transaction)}</span>
       </span>
       <span className="col-start-2 row-start-3 justify-self-start sm:col-start-auto sm:row-start-auto sm:justify-self-center">
