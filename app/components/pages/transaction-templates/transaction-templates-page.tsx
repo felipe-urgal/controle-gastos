@@ -11,18 +11,17 @@ import {
 import Pagination from '@/app/components/navigation/pagination';
 import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
-import { Button, Input, MoneyText, Select } from '@/app/components/ui';
+import { Button, Input } from '@/app/components/ui';
 import { FaPlus } from 'react-icons/fa';
+import TransactionTemplateCard from '@/app/components/pages/transaction-templates/transaction-template-card';
+import TransactionTemplateFormFields from '@/app/components/pages/transaction-templates/transaction-template-form-fields';
+import { formPreview, groupTemplates } from '@/app/components/pages/transaction-templates/transaction-templates-model';
 import { useAuth } from '@/app/context';
 import { useDebounce } from '@/app/hooks/use-debounce';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { analyzeTransactionTemplateSource } from '@/app/lib/templates/transaction-template-mapping';
-import {
-  TRANSACTION_DESCRIPTION_MAX_LENGTH,
-  TRANSACTION_MAX_AMOUNT_CENTS,
-} from '@/app/lib/transactions/transaction-field-contract';
 import { accountService } from '@/app/services/account-service';
 import { ApiClientError } from '@/app/services/api-client';
 import { categoryService } from '@/app/services/category-service';
@@ -65,30 +64,6 @@ function errorMessage(error: unknown, fallback: string) {
   if (error instanceof ApiClientError) return error.message;
   if (error instanceof Error && error.message) return error.message;
   return fallback;
-}
-
-function templateAmountLabel(
-  item: TransactionTemplateDTO,
-  showValues: boolean,
-) {
-  if (item.amount === null) return 'Valor: escolher ao usar';
-  if (!showValues) return 'Valor: ••••';
-
-  return `Valor: ${formatCurrency(
-    item.amount,
-    item.account?.currency ?? 'BRL',
-  )}`;
-}
-
-function templateReferenceLabel(
-  label: 'Conta' | 'Categoria',
-  reference: { name: string; isActive: boolean } | null,
-) {
-  if (!reference) return `${label}: escolher ao usar`;
-  if (!reference.isActive) {
-    return `${label}: ${reference.name} (inativa — escolher novamente)`;
-  }
-  return `${label}: ${reference.name}`;
 }
 
 function sortTemplates(items: TransactionTemplateDTO[]) {
@@ -388,10 +363,6 @@ export default function TransactionTemplatesPage({
   const editingInactiveCategory =
     editing?.category && !editing.category.isActive ? editing.category : null;
 
-  const accountSelectDisabled = accountsLoading || Boolean(accountError);
-  const categorySelectDisabled =
-    categoriesLoading || Boolean(categoryError);
-
   const formTitle = editing
     ? 'Editar modelo'
     : sourceTransactionId
@@ -433,121 +404,28 @@ export default function TransactionTemplatesPage({
       .map((category) => ({ value: category.id, label: category.name })),
   ];
 
-  const formFields = (
-    <div className="mt-4 grid gap-3">
-      <Input
-        label="Nome"
-        maxLength={80}
-        enterKeyHint="next"
-        value={form.name}
-        onChange={(event) =>
-          setForm((value) => ({ ...value, name: event.target.value }))
-        }
-      />
+  const accountCurrency = accounts.find((account) => account.id === form.accountId)?.currency ?? 'BRL';
+  const preview = formPreview({
+    form,
+    accountName: accounts.find((account) => account.id === form.accountId)?.name ?? null,
+    money: (cents) => formatCurrency(cents, accountCurrency),
+  });
+  const { favorites, others } = groupTemplates(items);
 
-      <Select
-        label="Tipo"
-        value={form.type}
-        onChange={(next) =>
-          setForm((value) => ({
-            ...value,
-            type: next as 'INCOME' | 'EXPENSE',
-            categoryId: null,
-          }))
-        }
-        options={[
-          { value: 'EXPENSE', label: 'Despesa' },
-          { value: 'INCOME', label: 'Receita' },
-        ]}
-      />
-
-      <Input
-        label="Descrição"
-        maxLength={TRANSACTION_DESCRIPTION_MAX_LENGTH}
-        enterKeyHint="next"
-        value={form.description ?? ''}
-        onChange={(event) =>
-          setForm((value) => ({
-            ...value,
-            description: event.target.value,
-          }))
-        }
-      />
-
-      <Input
-        label="Valor opcional"
-        type="number"
-        inputMode="decimal"
-        enterKeyHint="done"
-        min="0.01"
-        max={TRANSACTION_MAX_AMOUNT_CENTS / 100}
-        step="0.01"
-        value={form.amount ? form.amount / 100 : ''}
-        onChange={(event) =>
-          setForm((value) => ({
-            ...value,
-            amount: event.target.value
-              ? Math.round(Number(event.target.value) * 100)
-              : null,
-          }))
-        }
-      />
-
-      <div className="grid gap-1">
-        <Select
-          label="Conta opcional"
-          value={form.accountId ?? ''}
-          disabled={accountSelectDisabled}
-          onChange={(next) =>
-            setForm((value) => ({ ...value, accountId: String(next) || null }))
-          }
-          placeholder={accountsLoading ? 'Carregando contas…' : 'Escolher ao usar'}
-          options={accountOptions}
+  const renderCards = (list: TransactionTemplateDTO[]) => (
+    <div className="grid gap-3 md:grid-cols-2">
+      {list.map((item) => (
+        <TransactionTemplateCard
+          key={item.id}
+          item={item}
+          showValues={showValues}
+          favoriteBusy={favoriteBusyIds.includes(item.id)}
+          deleting={deletingIds.includes(item.id)}
+          onEdit={() => startEdit(item)}
+          onToggleFavorite={() => void toggleFavorite(item)}
+          onDelete={() => setDeleteCandidate(item)}
         />
-        {accountError && (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] p-2 text-xs">
-            <span role="alert">{accountError}</span>
-            <Button variant="outline" size="sm" onClick={() => void loadAccounts()}>
-              Tentar novamente
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <div className="grid gap-1">
-        <Select
-          label="Categoria opcional"
-          value={form.categoryId ?? ''}
-          disabled={categorySelectDisabled}
-          onChange={(next) =>
-            setForm((value) => ({ ...value, categoryId: String(next) || null }))
-          }
-          placeholder={categoriesLoading ? 'Carregando categorias…' : 'Escolher ao usar'}
-          options={categoryOptions}
-        />
-        {categoryError && (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] p-2 text-xs">
-            <span role="alert">{categoryError}</span>
-            <Button variant="outline" size="sm" onClick={() => void loadCategories()}>
-              Tentar novamente
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <label className="flex min-h-11 items-center gap-2 text-sm font-semibold">
-        <input
-          type="checkbox"
-          checked={form.isFavorite ?? false}
-          onChange={(event) =>
-            setForm((value) => ({
-              ...value,
-              isFavorite: event.target.checked,
-            }))
-          }
-        />
-        Favoritar
-      </label>
+      ))}
     </div>
   );
 
@@ -570,21 +448,19 @@ export default function TransactionTemplatesPage({
       <PageTitle
         eyebrow="Atalhos"
         title="Modelos de lançamento"
-        description="Modelos apenas preenchem uma nova transação. Nada é lançado sem sua confirmação."
+        description="Um modelo só preenche uma nova transação. Nada é lançado sem a sua confirmação."
         actions={
-          isDesktop ? undefined : (
-            <Button
-              variant="accent"
-              size="sm"
-              icon={<FaPlus aria-hidden="true" />}
-              onClick={() => {
-                resetForm();
-                setFormOpen(true);
-              }}
-            >
-              Novo modelo
-            </Button>
-          )
+          <Button
+            variant="accent"
+            size="sm"
+            icon={<FaPlus aria-hidden="true" />}
+            onClick={() => {
+              resetForm();
+              setFormOpen(true);
+            }}
+          >
+            Novo modelo
+          </Button>
         }
       />
 
@@ -604,41 +480,10 @@ export default function TransactionTemplatesPage({
         </div>
       )}
 
-      <section className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
-        {isDesktop && (
-          <form
-            onSubmit={saveTemplate}
-            className="h-fit rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-bold">{formTitle}</h2>
-              {editing && (
-                <Button variant="outline" size="sm" onClick={resetForm}>
-                  Cancelar
-                </Button>
-              )}
-            </div>
-            {sourceNoticeList}
-            {formFields}
-            <Button type="submit" variant="accent" fullWidth className="mt-3" disabled={submitDisabled}>
-              {submitLabel}
-            </Button>
-          </form>
-        )}
-
-        <section aria-labelledby="transaction-template-list-heading">
-          <div className="flex items-center justify-between gap-3">
-            <h2 id="transaction-template-list-heading" className="text-lg font-bold">
-              Seus modelos
-            </h2>
-            {templateError && (
-              <Button variant="outline" size="sm" onClick={() => void loadTemplates()}>
-                Tentar novamente
-              </Button>
-            )}
-          </div>
-
-          <div className="mt-3">
+      <section className="mt-5 space-y-4" aria-labelledby="transaction-template-list-heading">
+        <h2 id="transaction-template-list-heading" className="sr-only">Seus modelos</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-[240px] flex-1 sm:max-w-[420px]">
             <Input
               label="Buscar modelos"
               type="search"
@@ -651,128 +496,118 @@ export default function TransactionTemplatesPage({
               }}
             />
           </div>
-
-          {templateError ? (
-            <div className="mt-3">
-              <Alert variant="error" message={templateError} />
-            </div>
-          ) : templatesLoading ? (
-            <p className="mt-4 text-sm text-[var(--text-muted)]">
-              Carregando…
-            </p>
-          ) : items.length === 0 ? (
-            <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]">
-              Nenhum modelo criado.
-            </p>
-          ) : (
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {items.map((item) => {
-                const favoriteBusy = favoriteBusyIds.includes(item.id);
-                const deleting = deletingIds.includes(item.id);
-
-                return (
-                  <article
-                    key={item.id}
-                    className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
-                  >
-                    <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--orbit-primary)]">
-                      <span>
-                        {item.type === 'EXPENSE' ? 'Despesa' : 'Receita'}
-                      </span>
-                      {item.isFavorite && <span>★ Favorito</span>}
-                    </div>
-                    <h3 className="mt-1 truncate font-bold" title={item.name}>{item.name}</h3>
-                    <p className="mt-1 truncate text-sm text-[var(--text-muted)]">
-                      {item.description || 'Sem descrição fixa'}
-                    </p>
-                    <div className="mt-3 grid gap-1 text-xs text-[var(--text-muted)]">
-                      <span><MoneyText>{templateAmountLabel(item, showValues)}</MoneyText></span>
-                      <span>
-                        {templateReferenceLabel('Conta', item.account)}
-                      </span>
-                      <span>
-                        {templateReferenceLabel('Categoria', item.category)}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <Button
-                        as="a"
-                        href={`/transacoes/nova?template=${encodeURIComponent(item.id)}`}
-                        variant="accent"
-                        size="sm"
-                      >
-                        Usar
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => startEdit(item)}>
-                        Editar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={favoriteBusy}
-                        onClick={() => void toggleFavorite(item)}
-                      >
-                        {favoriteBusy
-                          ? 'Atualizando...'
-                          : item.isFavorite
-                            ? 'Desfavoritar'
-                            : 'Favoritar'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={deleting}
-                        onClick={() => setDeleteCandidate(item)}
-                      >
-                        {deleting ? 'Excluindo...' : 'Excluir'}
-                      </Button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="mt-4">
-            <Pagination
-              page={templatePage}
-              pageSize={templatePageSize}
-              total={templateTotal}
-              totalPages={templateTotalPages}
-              loading={templatesLoading}
-              pageSizeOptions={[10, 20, 50]}
-              onPageChange={setTemplatePage}
-              onPageSizeChange={(nextPageSize) => {
-                setTemplatePageSize(nextPageSize);
-                setTemplatePage(1);
-              }}
-            />
+          <div className="flex items-center gap-3">
+            <span className="text-[13px] text-[var(--text-muted)]">
+              {templateTotal} {templateTotal === 1 ? 'modelo' : 'modelos'}
+            </span>
+            {templateError && (
+              <Button variant="outline" size="sm" onClick={() => void loadTemplates()}>
+                Tentar novamente
+              </Button>
+            )}
           </div>
-        </section>
+        </div>
+
+        {templateError ? (
+          <Alert variant="error" message={templateError} />
+        ) : templatesLoading ? (
+          <p className="text-sm text-[var(--text-muted)]">Carregando…</p>
+        ) : items.length === 0 ? (
+          <div className="grid justify-items-center gap-2.5 rounded-[16px] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center">
+            <h3 className="text-lg font-bold">
+              {debouncedTemplateSearch ? 'Nenhum modelo encontrado' : 'Nenhum modelo criado'}
+            </h3>
+            <p className="max-w-[50ch] text-sm text-[var(--text-muted)]">
+              {debouncedTemplateSearch
+                ? 'Tente outro nome ou descrição.'
+                : 'Crie um modelo para as contas que você repete e lance em dois toques. Você também pode abrir uma transação e escolher “Salvar como modelo”.'}
+            </p>
+            {!debouncedTemplateSearch && (
+              <Button
+                variant="accent"
+                icon={<FaPlus aria-hidden="true" />}
+                onClick={() => {
+                  resetForm();
+                  setFormOpen(true);
+                }}
+              >
+                Criar primeiro modelo
+              </Button>
+            )}
+          </div>
+        ) : (
+          <>
+            {favorites.length > 0 && (
+              <div className="grid gap-3">
+                <h3 className="flex items-baseline gap-2.5 text-sm font-bold">
+                  ★ Favoritos <span className="text-xs font-normal text-[var(--text-muted)]">{favorites.length}</span>
+                </h3>
+                {renderCards(favorites)}
+              </div>
+            )}
+            {others.length > 0 && (
+              <div className="grid gap-3">
+                {favorites.length > 0 && (
+                  <h3 className="flex items-baseline gap-2.5 text-sm font-bold">
+                    Outros modelos <span className="text-xs font-normal text-[var(--text-muted)]">{others.length}</span>
+                  </h3>
+                )}
+                {renderCards(others)}
+              </div>
+            )}
+          </>
+        )}
+
+        <Pagination
+          page={templatePage}
+          pageSize={templatePageSize}
+          total={templateTotal}
+          totalPages={templateTotalPages}
+          loading={templatesLoading}
+          pageSizeOptions={[10, 20, 50]}
+          onPageChange={setTemplatePage}
+          onPageSizeChange={(nextPageSize) => {
+            setTemplatePageSize(nextPageSize);
+            setTemplatePage(1);
+          }}
+        />
       </section>
 
-      {!isDesktop && formOpen && (
+      {formOpen && (
         <ModalShell
-          variant="fullscreen-sheet"
+          variant={isDesktop ? 'side-panel' : 'fullscreen-sheet'}
+          maxWidthClass="max-w-md"
           title={formTitle}
           onClose={resetForm}
           closeDisabled={saving}
           footer={
-            <Button
-              type="submit"
-              form="transaction-template-form"
-              variant="accent"
-              fullWidth
-              disabled={submitDisabled}
-            >
-              {submitLabel}
-            </Button>
+            <div className="grid gap-2">
+              <Button type="submit" form="transaction-template-form" variant="accent" fullWidth disabled={submitDisabled}>
+                {submitLabel}
+              </Button>
+              <Button variant="outline" fullWidth disabled={saving} onClick={resetForm}>
+                Cancelar
+              </Button>
+            </div>
           }
         >
           <form id="transaction-template-form" onSubmit={saveTemplate}>
             {sourceNoticeList}
-            {formFields}
+            <div className={sourceNotices.length > 0 ? 'mt-3' : ''}>
+              <TransactionTemplateFormFields
+                form={form}
+                setForm={setForm}
+                accountOptions={accountOptions}
+                categoryOptions={categoryOptions}
+                accountsLoading={accountsLoading}
+                categoriesLoading={categoriesLoading}
+                accountError={accountError}
+                categoryError={categoryError}
+                onRetryAccounts={() => void loadAccounts()}
+                onRetryCategories={() => void loadCategories()}
+                preview={preview}
+              />
+            </div>
           </form>
         </ModalShell>
       )}
