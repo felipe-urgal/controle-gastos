@@ -5,14 +5,6 @@ import { SupportedCurrency } from '@/app/types/financial-summary';
 
 export type CategoryState = 'danger' | 'warn' | 'ok' | 'info';
 
-export type CategoryTypeFilter = 'all' | 'expense' | 'income';
-
-export type CategoryStatusFilter = 'all' | 'critical' | 'ok' | 'no-limit';
-
-export type LimitScope = 'all' | 'with-limit' | 'no-limit';
-
-export type PageSection = 'overview' | 'categories' | 'alerts' | 'admin';
-
 export const orbitActionTokens =
   '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
 
@@ -62,20 +54,6 @@ export function stateBarClass(state: CategoryState) {
   if (state === 'warn') return 'bg-[var(--warning)]';
   if (state === 'ok') return 'bg-[var(--income)]';
   return 'bg-[var(--surface-subtle)]';
-}
-
-export function stateBadgeClass(state: CategoryState) {
-  if (state === 'danger') return 'border-[var(--expense)]/25 bg-[var(--danger-subtle)] text-[var(--expense)]';
-  if (state === 'warn') return 'border-[var(--warning)]/25 bg-[var(--surface-raised)] text-[var(--warning)]';
-  if (state === 'ok') return 'border-[var(--income)]/25 bg-[var(--primary-subtle)] text-[var(--income)]';
-  return 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-muted)]';
-}
-
-export function stateLabel(state: CategoryState) {
-  if (state === 'danger') return 'Crítica';
-  if (state === 'warn') return 'Quase no limite';
-  if (state === 'ok') return 'Dentro do limite';
-  return 'Sem limite';
 }
 
 export function buildDistribution(items: CategoryMonthlyLimitItem[]) {

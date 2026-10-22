@@ -218,25 +218,13 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto('/categorias');
   await page.getByLabel('Buscar categorias', { exact: true }).fill(categoryName);
-  const mobileCard = page
-    .getByRole('button')
-    .filter({ hasText: categoryName })
-    .first();
-  await expect(mobileCard).toBeVisible();
-  await expect(mobileCard).toContainText('Inativa');
-  await expect(mobileCard).toContainText('Excedido');
+  const mobileRow = page.getByRole('listitem').filter({ hasText: categoryName }).first();
+  await expect(mobileRow).toBeVisible();
+  await expect(mobileRow).toContainText('Inativa');
+  await expect(mobileRow).toContainText('Excedido');
 
-  await page.getByRole('button', { name: 'Filtrar categorias', exact: true }).click();
-  const filtersDialog = page.getByRole('dialog', { name: 'Filtros', exact: true });
-  await expect(filtersDialog).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(filtersDialog).toBeHidden();
-
-  await mobileCard.click();
-  const categoryDialog = page.getByRole('dialog', { name: categoryName, exact: true });
-  await expect(categoryDialog).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(categoryDialog).toBeHidden();
+  await mobileRow.getByRole('link', { name: categoryName, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/categorias/show/${fixture.primary.id}$`));
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`/categorias/show/${fixture.empty.id}`);
