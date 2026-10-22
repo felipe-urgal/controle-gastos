@@ -73,6 +73,15 @@ export interface AccountAttentionItem {
   limitUsedPercent: number | null;
 }
 
+export interface AccountActivity {
+  monthIncome: number;
+  monthExpense: number;
+  pendingNet: number;
+  pendingCount: number;
+  /** Saldo dos últimos 30 dias, do mais antigo para hoje. */
+  balanceSeries: number[];
+}
+
 export interface AccountModel {
   id: string;
   name: string;
@@ -84,6 +93,8 @@ export interface AccountModel {
   cardStatus?: AccountCardStatus | null;
   /** Só vem na leitura de uma conta. Com histórico, tipo, moeda e ciclo do cartão ficam travados. */
   hasFinancialHistory?: boolean | null;
+  /** Só vem na leitura de uma conta corrente. */
+  activity?: AccountActivity | null;
   currency: string;
   isActive: boolean;
   color?: string | null;
