@@ -46,10 +46,6 @@ Gate principal:
 
     pnpm check
 
-Use E2E quando alterar um fluxo crítico de usuário:
-
-    pnpm test:e2e
-
 ## Documentação
 
 - docs/DEVELOPMENT.md
