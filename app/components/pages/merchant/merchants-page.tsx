@@ -19,6 +19,8 @@ import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import Pagination from '@/app/components/navigation/pagination';
 import { Button, Input, Select } from '@/app/components/ui';
+import Link from 'next/link';
+import { useAuth } from '@/app/context';
 import { useDebounce } from '@/app/hooks/use-debounce';
 import { merchantAliasService } from '@/app/services/merchant-alias-service';
 import { merchantService } from '@/app/services/merchant-service';
@@ -27,7 +29,9 @@ import type {
   MerchantAliasOperator,
   MerchantAliasPreviewDTO,
 } from '@/app/types/merchant-alias';
-import type { MerchantDTO } from '@/app/types/merchant';
+import type { MerchantDTO, MerchantMonthSummary } from '@/app/types/merchant';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
+import { joinNames, pickSpend, shareWidth, spendDelta, spendDeltaLabel, topShare } from '@/app/components/pages/merchant/merchants-model';
 
 const MERCHANT_PAGE_SIZE = 10;
 const ALIAS_PAGE_SIZE = 10;
@@ -47,6 +51,7 @@ function operatorLabel(operator: MerchantAliasOperator) {
 
 export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: string }) {
   const [items, setItems] = useState<MerchantDTO[]>([]);
+  const [summary, setSummary] = useState<MerchantMonthSummary | null>(null);
   const [merchantPage, setMerchantPage] = useState(1);
   const [merchantTotal, setMerchantTotal] = useState(0);
   const [merchantTotalPages, setMerchantTotalPages] = useState(1);
@@ -94,6 +99,14 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
     useState<MerchantDTO | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const { user } = useAuth();
+  const showValues = user?.showValues !== false;
+  const formatMoney = (cents: number, currency: string) => (showValues ? formatCurrency(cents, currency) : '••••');
+  const heroCurrency = summary?.currencies[0] ?? null;
+  const summaryLoaded = summary !== null;
+  const heroShare = heroCurrency ? topShare(heroCurrency) : null;
+  const maxSpend = Math.max(0, ...items.map((item) => pickSpend(item.monthSpend, heroCurrency?.currency)?.expense ?? 0));
+
   const debouncedMerchantSearch = useDebounce(merchantSearch.trim(), 300);
   const debouncedAliasSearch = useDebounce(aliasSearch.trim(), 300);
   const debouncedAliasMerchantFilter = useDebounce(
@@ -121,6 +134,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
       });
       const data = response.data;
       setItems(data?.items ?? []);
+      setSummary(data?.summary ?? null);
       setMerchantTotal(data?.total ?? 0);
       setMerchantTotalPages(Math.max(1, data?.totalPages ?? 1));
     } catch (error) {
@@ -489,76 +503,212 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
           eyebrow="Organização"
           title="Estabelecimentos"
           description="Padronize onde suas transações aconteceram sem alterar a descrição original."
-          actions={
-            <p className="text-sm text-[var(--text-muted)]">
-              {merchantTotal} cadastrado(s)
-            </p>
-          }
         />
 
+        {heroCurrency || summaryLoaded ? (
+          <section
+            aria-label="Gasto do mês em estabelecimentos"
+            className="mt-4 grid gap-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+          >
+            {heroCurrency ? (
+              <>
+                <p className="text-sm font-semibold text-[var(--text-muted)]">Gasto do mês em estabelecimentos reconhecidos</p>
+                <strong className="money block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+                  {formatMoney(heroCurrency.assigned, heroCurrency.currency)}
+                </strong>
+                <p className="text-sm text-[var(--text-muted)]">
+                  {heroShare !== null && heroCurrency.top.length > 1 ? (
+                    <>
+                      <strong className="text-[var(--foreground)]">{heroShare}%</strong> foi em {heroCurrency.top.length === 3 ? 'três lugares' : 'dois lugares'}: {joinNames(heroCurrency.top.map((entry) => entry.name))}.{' '}
+                    </>
+                  ) : heroCurrency.top[0] ? (
+                    <>
+                      Quase tudo foi em <strong className="text-[var(--foreground)]">{heroCurrency.top[0].name}</strong>.{' '}
+                    </>
+                  ) : null}
+                  {heroCurrency.unassigned > 0 ? (
+                    <>
+                      <span className="money font-semibold text-[var(--foreground)]">{formatMoney(heroCurrency.unassigned, heroCurrency.currency)}</span> ainda estão em despesas sem estabelecimento.
+                    </>
+                  ) : null}
+                </p>
+                {summary && summary.currencies.length > 1 ? (
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Há gastos em {summary.currencies.slice(1).map((entry) => entry.currency).join(', ')}; os valores acima são em {heroCurrency.currency}.
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <p className="text-sm text-[var(--text-muted)]">Nenhuma despesa concluída neste mês. Os gastos por estabelecimento aparecem aqui assim que houver movimentação.</p>
+            )}
+          </section>
+        ) : null}
+
         <section
-          className="ds-panel mt-4 p-4 sm:p-5"
-          aria-labelledby="merchant-form-heading"
+          className="ds-panel mt-4 overflow-hidden"
+          aria-labelledby="merchant-list-heading"
         >
-          <div className="flex items-center gap-2">
-            <FaStore
-              className="text-[var(--orbit-primary)]"
-              aria-hidden="true"
-            />
-            <h2
-              id="merchant-form-heading"
-              className="font-semibold text-[var(--foreground)]"
-            >
-              {editing ? 'Editar estabelecimento' : 'Novo estabelecimento'}
-            </h2>
+          <div className="grid gap-3 border-b border-[var(--border)] p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <FaStore className="text-[var(--orbit-primary)]" aria-hidden="true" />
+                <h2 id="merchant-list-heading" className="font-semibold text-[var(--foreground)]">
+                  {editing ? 'Editar estabelecimento' : 'Onde você gasta'}
+                </h2>
+              </div>
+              <span className="text-sm text-[var(--text-muted)]">{merchantTotal} cadastrado(s)</span>
+            </div>
+
+            {merchantError ? <Alert variant="error" message={merchantError} /> : null}
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <Input
+                label={editing ? 'Nome' : 'Novo estabelecimento'}
+                value={name}
+                maxLength={120}
+                disabled={saving}
+                placeholder="Ex.: iFood, Supermercado Central"
+                onChange={(event) => setName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    void save();
+                  }
+                }}
+              />
+              <div className="flex gap-2">
+                {editing ? (
+                  <Button type="button" variant="secondary" disabled={saving} onClick={resetForm}>
+                    Cancelar
+                  </Button>
+                ) : null}
+                <Button type="button" isLoading={saving} onClick={() => void save()} icon={editing ? <FaEdit /> : <FaPlus />}>
+                  {editing ? 'Salvar' : 'Adicionar'}
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+              <Input
+                aria-label="Buscar estabelecimentos"
+                placeholder="Buscar por nome"
+                value={merchantSearch}
+                onChange={(event) => {
+                  setMerchantSearch(event.target.value);
+                  setMerchantPage(1);
+                  setMerchantLoading(true);
+                  setMerchantError(null);
+                }}
+              />
+              <Select
+                label="Status"
+                ariaLabel="Filtrar estabelecimentos por status"
+                value={merchantStatus}
+                onChange={(value) => {
+                  setMerchantStatus(value as MerchantStatusFilter);
+                  setMerchantPage(1);
+                  setMerchantLoading(true);
+                  setMerchantError(null);
+                }}
+                options={[
+                  { value: 'all', label: 'Todos' },
+                  { value: 'active', label: 'Ativos' },
+                  { value: 'inactive', label: 'Inativos' },
+                ]}
+              />
+            </div>
           </div>
 
-          {merchantError ? (
-            <div className="mt-4">
-              <Alert variant="error" message={merchantError} />
-            </div>
-          ) : null}
+          {merchantLoading ? (
+            <p className="p-5 text-sm text-[var(--text-muted)]">Carregando...</p>
+          ) : items.length === 0 ? (
+            <p className="p-5 text-sm text-[var(--text-muted)]">Nenhum estabelecimento encontrado.</p>
+          ) : (
+            <div className="divide-y divide-[var(--border)]">
+              {items.map((item) => {
+                const spend = pickSpend(item.monthSpend, heroCurrency?.currency);
+                const delta = spendDelta(spend);
+                return (
+                  <article key={item.id} className="grid gap-3 p-4 sm:p-5">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link href={`/estabelecimentos/show/${encodeURIComponent(item.id)}`} className="break-words font-bold text-[var(--foreground)] hover:underline">
+                            {item.name}
+                          </Link>
+                          <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-xs font-semibold text-[var(--foreground)]">
+                            {item.isActive ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-[var(--text-muted)]">
+                          {spend ? `${spend.count} ${spend.count === 1 ? 'compra' : 'compras'} no mês · ` : 'Sem compras no mês · '}
+                          {item.transactionsCount} transação(ões) · {item.aliasesCount} alias(es)
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="money font-semibold text-[var(--foreground)]">
+                          {spend && spend.expense > 0 ? formatMoney(spend.expense, spend.currency) : '—'}
+                        </p>
+                        {delta.kind !== 'NONE' ? (
+                          <p className={`text-xs font-semibold ${delta.kind === 'UP' ? 'text-[var(--warning)]' : delta.kind === 'DOWN' ? 'text-[var(--income)]' : 'text-[var(--text-muted)]'}`}>
+                            {spendDeltaLabel(delta)}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-            <Input
-              label="Nome"
-              value={name}
-              maxLength={120}
-              disabled={saving}
-              placeholder="Ex.: iFood, Supermercado Central"
-              onChange={(event) => setName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  void save();
-                }
-              }}
-            />
-            <div className="flex gap-2">
-              {editing ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={saving}
-                  onClick={resetForm}
-                >
-                  Cancelar
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                isLoading={saving}
-                onClick={() => void save()}
-                icon={editing ? <FaEdit /> : <FaPlus />}
-              >
-                {editing ? 'Salvar' : 'Adicionar'}
-              </Button>
+                    {spend && spend.expense > 0 ? (
+                      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`Participação de ${item.name} no gasto da página`}>
+                        <div className="h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${shareWidth(spend.expense, maxSpend)}%` }} />
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" size="sm" variant="secondary" onClick={() => startEdit(item)} icon={<FaEdit />}>
+                        Editar
+                      </Button>
+                      <Button type="button" size="sm" variant="secondary" onClick={() => void toggleActive(item)}>
+                        {item.isActive ? 'Desativar' : 'Ativar'}
+                      </Button>
+                      <Button type="button" size="sm" variant="danger" onClick={() => setDeleteCandidate(item)} icon={<FaTrash />}>
+                        Excluir
+                      </Button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
+          )}
+
+          <div className="p-4 sm:p-5">
+            <Pagination
+              page={merchantPage}
+              pageSize={MERCHANT_PAGE_SIZE}
+              total={merchantTotal}
+              totalPages={merchantTotalPages}
+              onPageChange={(page) => {
+                setMerchantLoading(true);
+                setMerchantError(null);
+                setMerchantPage(page);
+              }}
+              onPageSizeChange={() => {
+                setMerchantLoading(true);
+                setMerchantError(null);
+                setMerchantPage(1);
+              }}
+              pageSizeOptions={[MERCHANT_PAGE_SIZE]}
+              loading={merchantLoading}
+            />
           </div>
         </section>
 
+        <details className="group mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
+            <span>Reconhecimento automático</span>
+            <span className="text-sm font-normal text-[var(--text-muted)]">{aliasTotal} alias(es)</span>
+          </summary>
         <section
-          className="ds-panel mt-4 p-4 sm:p-5"
+          className="border-t border-[var(--border)] p-4 sm:p-5"
           aria-labelledby="merchant-alias-heading"
         >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -938,132 +1088,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
           </div>
         </section>
 
-        <section
-          className="ds-panel mt-4 overflow-hidden"
-          aria-labelledby="merchant-list-heading"
-        >
-          <div className="border-b border-[var(--border)] p-4 sm:p-5">
-            <h2
-              id="merchant-list-heading"
-              className="font-semibold text-[var(--foreground)]"
-            >
-              Seus estabelecimentos
-            </h2>
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
-              <Input
-                aria-label="Buscar estabelecimentos"
-                placeholder="Buscar por nome"
-                value={merchantSearch}
-                onChange={(event) => {
-                  setMerchantSearch(event.target.value);
-                  setMerchantPage(1);
-                  setMerchantLoading(true);
-                  setMerchantError(null);
-                }}
-              />
-              <Select
-                label="Status"
-                ariaLabel="Filtrar estabelecimentos por status"
-                value={merchantStatus}
-                onChange={(value) => {
-                  setMerchantStatus(value as MerchantStatusFilter);
-                  setMerchantPage(1);
-                  setMerchantLoading(true);
-                  setMerchantError(null);
-                }}
-                options={[
-                  { value: 'all', label: 'Todos' },
-                  { value: 'active', label: 'Ativos' },
-                  { value: 'inactive', label: 'Inativos' },
-                ]}
-              />
-            </div>
-          </div>
-
-          {merchantLoading ? (
-            <p className="p-5 text-sm text-[var(--text-muted)]">
-              Carregando...
-            </p>
-          ) : items.length === 0 ? (
-            <p className="p-5 text-sm text-[var(--text-muted)]">
-              Nenhum estabelecimento encontrado.
-            </p>
-          ) : (
-            <div className="divide-y divide-[var(--border)]">
-              {items.map((item) => (
-                <article
-                  key={item.id}
-                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
-                >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <strong className="break-words text-[var(--foreground)]">
-                        {item.name}
-                      </strong>
-                      <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-xs font-semibold text-[var(--foreground)]">
-                        {item.isActive ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-[var(--text-muted)]">
-                      {item.transactionsCount} transação(ões) ·{' '}
-                      {item.aliasesCount} alias(es)
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => startEdit(item)}
-                      icon={<FaEdit />}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => void toggleActive(item)}
-                    >
-                      {item.isActive ? 'Desativar' : 'Ativar'}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="danger"
-                      onClick={() => setDeleteCandidate(item)}
-                      icon={<FaTrash />}
-                    >
-                      Excluir
-                    </Button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-
-          <div className="p-4 sm:p-5">
-            <Pagination
-              page={merchantPage}
-              pageSize={MERCHANT_PAGE_SIZE}
-              total={merchantTotal}
-              totalPages={merchantTotalPages}
-              onPageChange={(page) => {
-                setMerchantLoading(true);
-                setMerchantError(null);
-                setMerchantPage(page);
-              }}
-              onPageSizeChange={() => {
-                setMerchantLoading(true);
-                setMerchantError(null);
-                setMerchantPage(1);
-              }}
-              pageSizeOptions={[MERCHANT_PAGE_SIZE]}
-              loading={merchantLoading}
-            />
-          </div>
-        </section>
+        </details>
       </PageContainer>
 
       {deleteCandidate ? (
