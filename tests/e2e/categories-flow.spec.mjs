@@ -29,6 +29,7 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
   await page.goto('/categorias/nova', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Nova categoria', exact: true })).toBeVisible();
   await page.getByRole('textbox', { name: 'Nome da categoria', exact: true }).fill(categoryName);
+  await page.getByText('Mais opções', { exact: true }).click();
   await page.getByRole('textbox', { name: 'Descrição', exact: true }).fill('Descrição E2E');
   await page.getByRole('button', { name: 'Criar categoria', exact: true }).click();
   await expect(page).toHaveURL(/\/categorias$/);
@@ -179,8 +180,10 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
   });
 
   await page.goto(`/categorias/alterar/${fixture.primary.id}`);
-  await expect(page.getByRole('radio', { name: 'Despesa', exact: true })).toBeDisabled();
-  await expect(page.getByRole('radio', { name: 'Receita', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Despesa', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Receita', exact: true })).toBeDisabled();
+  await expect(page.getByText('O tipo não muda depois de criada.', { exact: true })).toBeVisible();
+  await page.getByText('Mais opções', { exact: true }).click();
   await page.getByLabel('Descrição', { exact: true }).fill('');
   await page.getByRole('checkbox', { name: /^Categoria ativa\b/ }).uncheck({ force: true });
   await page.getByRole('button', { name: 'Salvar alterações', exact: true }).click();

@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { initialFormData } from '@/app/lib/constants/category.constants';
 import type { CategoryFormProps } from '@/app/lib/interface/category.interface';
+import { isMonthlyLimitInvalid, readMonthlyLimit } from '@/app/components/pages/category/form/category-form-model';
+import { categoryLimitService } from '@/app/services/category-limit-service';
+import type { SupportedCurrency } from '@/app/types/financial-summary';
 import { categoryService } from '@/app/services/category-service';
 
 /**
@@ -27,6 +30,11 @@ export function useCategoryForm({ category, isEditing }: CategoryFormProps) {
   );
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Limite mensal opcional, só na criação de despesa; não faz parte do cadastro da categoria.
+  const [monthlyLimit, setMonthlyLimit] = useState('');
+  const [limitCurrency, setLimitCurrency] = useState<SupportedCurrency>('BRL');
+  // Se o limite falhar depois de a categoria ser criada, um novo envio só repete o limite.
+  const createdCategoryId = useRef<string | null>(null);
 
   function handleRedirect() {
     if (isEditing && category?.id) {
@@ -42,6 +50,11 @@ export function useCategoryForm({ category, isEditing }: CategoryFormProps) {
     setSubmitError(null);
 
     try {
+      if (!isEditing && formData.type === 'EXPENSE' && isMonthlyLimitInvalid(monthlyLimit)) {
+        setSubmitError('Informe um limite mensal válido ou deixe o campo em branco.');
+        return;
+      }
+
       const payload = {
         ...formData,
         description: formData.description || null,
@@ -50,7 +63,21 @@ export function useCategoryForm({ category, isEditing }: CategoryFormProps) {
       if (isEditing && category) {
         await categoryService.update(category.id, payload);
       } else {
-        await categoryService.create(payload);
+        if (!createdCategoryId.current) {
+          const created = await categoryService.create(payload);
+          createdCategoryId.current = created.data.id;
+        }
+
+        const limit = readMonthlyLimit({ type: formData.type, value: monthlyLimit, currency: limitCurrency });
+        if (limit) {
+          try {
+            await categoryLimitService.save({ categoryId: createdCategoryId.current, ...limit });
+          } catch (limitError) {
+            const reason = limitError instanceof Error ? limitError.message : 'erro desconhecido';
+            setSubmitError(`A categoria foi criada, mas o limite não foi salvo (${reason}). Tente de novo ou defina o limite na lista de categorias.`);
+            return;
+          }
+        }
       }
 
       handleRedirect();
@@ -66,5 +93,17 @@ export function useCategoryForm({ category, isEditing }: CategoryFormProps) {
     }
   }
 
-  return { formData, setFormData, submitError, setSubmitError, isSubmitting, handleSubmit, handleRedirect };
+  return {
+    formData,
+    setFormData,
+    monthlyLimit,
+    setMonthlyLimit,
+    limitCurrency,
+    setLimitCurrency,
+    submitError,
+    setSubmitError,
+    isSubmitting,
+    handleSubmit,
+    handleRedirect,
+  };
 }

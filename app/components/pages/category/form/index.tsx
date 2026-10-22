@@ -1,492 +1,124 @@
 'use client';
 
-import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
-import { useCategoryForm } from '@/app/hooks/categories/use-category-form';
-import { useMediaQuery } from '@/app/hooks/use-media-query';
-import { useState } from 'react';
-import {
-  FaArrowDown,
-  FaArrowLeft,
-  FaArrowRight,
-  FaArrowUp,
-  FaInfoCircle,
-  FaPalette,
-} from 'react-icons/fa';
+import { FaArrowLeft } from 'react-icons/fa';
 
+import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { FormActions, FormContainer } from '@/app/components/forms';
-import { ActiveToggle, Button, ColorIconSelector, IconButton, Input, RadioGroup } from '@/app/components/ui';
-import IconRenderer from '@/app/components/ui/icon-renderer';
+import { CategoryFormCard } from '@/app/components/pages/category/form/category-form-card';
 import {
-  CATEGORY_DESCRIPTION_MAX_LENGTH,
-  CATEGORY_NAME_MAX_LENGTH,
-} from '@/app/lib/categories/category-limits';
-import { CATEGORY_COLOR_PALETTE } from '@/app/lib/categories/default-color';
-import { categoryTypeOptions } from '@/app/lib/constants/category.constants';
+  categoryNameSuggestions,
+  categoryTypeCards,
+  categoryTypeLocked,
+} from '@/app/components/pages/category/form/category-form-model';
+import { ActiveToggle, Chip, IconButton, Input, ShowBelow } from '@/app/components/ui';
+import { useCategoryForm } from '@/app/hooks/categories/use-category-form';
+import { CATEGORY_DESCRIPTION_MAX_LENGTH } from '@/app/lib/categories/category-limits';
 import { CategoryFormProps } from '@/app/lib/interface/category.interface';
-import { CategoryType } from '@/app/types/category';
+import type { CategoryType } from '@/app/types/category';
 
 const orbitSelectionTokens =
   '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
 
-const mobileIcons = [
-  'food',
-  'transport',
-  'housing',
-  'groceries',
-  'games',
-  'health',
-  'travel',
-  'education',
-  'personal',
-  'tag',
-];
-
 export default function CategoryForm({ category, isEditing }: CategoryFormProps) {
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
-  const { formData, setFormData, submitError, setSubmitError, isSubmitting, handleSubmit, handleRedirect } =
-    useCategoryForm({ category, isEditing });
-  const [mobileStep, setMobileStep] = useState<1 | 2>(1);
-  const [mobileStepError, setMobileStepError] = useState<string | null>(null);
-
+  const {
+    formData,
+    setFormData,
+    monthlyLimit,
+    setMonthlyLimit,
+    limitCurrency,
+    setLimitCurrency,
+    submitError,
+    setSubmitError,
+    isSubmitting,
+    handleSubmit,
+    handleRedirect,
+  } = useCategoryForm({ category, isEditing });
+  const typeLocked = categoryTypeLocked(isEditing);
   const loading = isSubmitting;
-  const mobileColorOptions = Array.from(
-    new Set([formData.color, ...CATEGORY_COLOR_PALETTE]),
-  ).slice(0, 8);
-  const mobileIconOptions = Array.from(
-    new Set([formData.icon, ...mobileIcons]),
-  ).slice(0, 10);
 
-  function goToMobileStep2() {
-    if (!formData.name.trim()) {
-      setMobileStepError('Informe o nome da categoria.');
-      return;
-    }
-
-    setMobileStepError(null);
-    setMobileStep(2);
+  function chooseType(type: CategoryType) {
+    if (typeLocked || type === formData.type) return;
+    setFormData({ ...formData, type });
   }
 
-  function goBackMobile() {
-    setMobileStepError(null);
-
-    if (mobileStep === 1) {
-      handleRedirect();
-      return;
-    }
-
-    setMobileStep(1);
-  }
-
-  const mobileWizard = (
-    <form onSubmit={handleSubmit} className={orbitSelectionTokens}>
-      <div className="w-full pb-5">
-        <header className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-1.5 pt-1">
+  return (
+    <div className={`w-full ${orbitSelectionTokens}`}>
+      <ShowBelow breakpoint="lg">
+        <header className="mb-4 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
           <IconButton
             label="Voltar"
             icon={<FaArrowLeft />}
-            onClick={goBackMobile}
+            onClick={handleRedirect}
             disabled={loading}
             className="rounded-full text-lg text-[var(--foreground)]"
           />
-          <h1 className={`text-left ${appBarTitleClassName}`}>
-            {isEditing ? 'Editar categoria' : 'Nova categoria'}
-          </h1>
+          <h1 className={`text-center ${appBarTitleClassName}`}>{isEditing ? 'Editar categoria' : 'Nova categoria'}</h1>
+          <span aria-hidden="true" />
         </header>
+      </ShowBelow>
 
-        <section
-          className="relative mx-auto mt-8 max-w-[260px]"
-          aria-label="Etapas do formulário da categoria"
-        >
-          <div
-            className="absolute left-[22%] right-[22%] top-[18px] h-[2px] bg-[color-mix(in_srgb,var(--orbit-primary)_20%,var(--border-strong))]"
-            aria-hidden="true"
-          />
-          <div
-            className={`absolute left-[22%] top-[18px] h-[2px] bg-[var(--orbit-primary)] transition-[width] ${
-              mobileStep === 2 ? 'w-[56%]' : 'w-0'
-            }`}
-            aria-hidden="true"
-          />
-          <div className="relative grid grid-cols-2">
-            <div className="flex flex-col items-center">
-              <span
-                className={`grid h-9 w-9 place-items-center rounded-full border text-sm font-extrabold ${
-                  mobileStep >= 1
-                    ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)] shadow-[0_0_22px_color-mix(in_srgb,var(--orbit-primary)_34%,transparent)]'
-                    : 'border-[var(--border-strong)] bg-[var(--background)] text-[var(--text-muted)]'
-                }`}
-              >
-                1
-              </span>
-              <span
-                className={`mt-2 text-sm font-semibold ${
-                  mobileStep === 1
-                    ? 'text-[var(--orbit-primary)]'
-                    : 'text-[var(--text-muted)]'
-                }`}
-              >
-                Básico
-              </span>
-            </div>
+      <FormContainer
+        bare
+        onSubmit={handleSubmit}
+        error={submitError}
+        onClearError={() => setSubmitError(null)}
+        className="gap-5"
+      >
+        <div role="group" aria-label="Tipo de categoria" className="grid grid-cols-2 gap-2">
+          {categoryTypeCards.map((option) => (
+            <Chip
+              key={option.value}
+              selected={formData.type === option.value}
+              onClick={() => chooseType(option.value)}
+              disabled={loading || typeLocked}
+              className="w-full px-2"
+            >
+              {option.label}
+            </Chip>
+          ))}
+        </div>
+        <p className="-mt-2 px-1 text-sm text-[var(--text-muted)]">
+          {categoryTypeCards.find((option) => option.value === formData.type)?.description}
+        </p>
 
-            <div className="flex flex-col items-center">
-              <span
-                className={`grid h-9 w-9 place-items-center rounded-full border text-sm font-extrabold ${
-                  mobileStep === 2
-                    ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)] shadow-[0_0_22px_color-mix(in_srgb,var(--orbit-primary)_34%,transparent)]'
-                    : 'border-[color-mix(in_srgb,var(--orbit-primary)_24%,var(--border-strong))] bg-[var(--background)] text-[var(--text-muted)]'
-                }`}
-              >
-                2
-              </span>
-              <span
-                className={`mt-2 text-sm font-semibold ${
-                  mobileStep === 2
-                    ? 'text-[var(--orbit-primary)]'
-                    : 'text-[var(--text-muted)]'
-                }`}
-              >
-                Aparência
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {submitError && (
-          <div
-            role="alert"
-            className="mt-5 rounded-[14px] border border-[var(--expense)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm text-[var(--expense)]"
-          >
-            {submitError}
+        {typeLocked && (
+          <div role="note" className="flex items-start gap-2.5 rounded-[12px] bg-[var(--warning-subtle)] px-3.5 py-3 text-sm leading-relaxed text-[var(--warning)]">
+            <span aria-hidden="true">🔒</span>
+            <span>
+              <strong className="text-[var(--foreground)]">O tipo não muda depois de criada.</strong>{' '}
+              Para trocar, crie outra categoria e mova as transações.
+            </span>
           </div>
         )}
 
-        {mobileStep === 1 && (
-          <section
-            className="mt-8 flex min-h-[560px] flex-col"
-            aria-labelledby="mobile-category-step-one"
-          >
-            <div>
-              <h2
-                id="mobile-category-step-one"
-                className="text-[30px] font-extrabold leading-[1.12] tracking-tight text-[var(--foreground)]"
-              >
-                {isEditing ? 'Atualize sua categoria' : 'Vamos começar'}
-              </h2>
-              <p className="mt-2 max-w-[335px] text-[16px] leading-[1.5] text-[var(--text-muted)]">
-                {isEditing
-                  ? 'Atualize o nome. O tipo financeiro é definido na criação e não pode ser alterado.'
-                  : 'Dê um nome e escolha o tipo da categoria.'}
-              </p>
-            </div>
+        <CategoryFormCard
+          values={formData}
+          onChange={(patch) => setFormData({ ...formData, ...patch })}
+          loading={loading}
+          isEditing={isEditing}
+          monthlyLimit={monthlyLimit}
+          onMonthlyLimitChange={setMonthlyLimit}
+          limitCurrency={limitCurrency}
+          onLimitCurrencyChange={setLimitCurrency}
+        />
 
-            <div className="mt-8">
-              <Input
-                label="Nome"
-                maxLength={CATEGORY_NAME_MAX_LENGTH}
-                value={formData.name}
-                onChange={(event) => {
-                  setFormData({ ...formData, name: event.target.value });
-                  if (mobileStepError) setMobileStepError(null);
-                }}
-                disabled={loading}
-                required
-                error={mobileStepError ?? undefined}
-                className="min-h-[52px] text-[16px]"
-                placeholder="Ex: Alimentação"
-              />
-            </div>
-
-            <fieldset className="mt-7">
-              <legend className="mb-3 text-[16px] font-bold text-[var(--foreground)]">
-                Tipo
-              </legend>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, type: 'EXPENSE' })}
-                  disabled={loading || isEditing}
-                  aria-pressed={formData.type === 'EXPENSE'}
-                  className={`min-h-[164px] rounded-[12px] border p-4 text-center transition-colors ${
-                    formData.type === 'EXPENSE'
-                      ? 'border-2 border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_34%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_18%,var(--surface))_100%)] shadow-[0_12px_30px_color-mix(in_srgb,var(--orbit-primary)_18%,transparent)]'
-                      : 'border-[var(--border)] bg-[var(--surface)]'
-                  }`}
-                >
-                  <FaArrowDown
-                    className={`mx-auto mt-1 text-[38px] ${
-                      formData.type === 'EXPENSE'
-                        ? 'text-[var(--orbit-primary)]'
-                        : 'text-[var(--text-muted)]'
-                    }`}
-                    aria-hidden="true"
-                  />
-                  <strong className="mt-3 block text-[18px] font-extrabold text-[var(--foreground)]">
-                    Despesa
-                  </strong>
-                  <span className="mt-1 block text-[13px] leading-[1.35] text-[var(--text-muted)]">
-                    Gastos, contas
-                    <br />
-                    e despesas
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, type: 'INCOME' })}
-                  disabled={loading || isEditing}
-                  aria-pressed={formData.type === 'INCOME'}
-                  className={`min-h-[164px] rounded-[12px] border p-4 text-center transition-colors ${
-                    formData.type === 'INCOME'
-                      ? 'border-2 border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_34%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_18%,var(--surface))_100%)] shadow-[0_12px_30px_color-mix(in_srgb,var(--orbit-primary)_18%,transparent)]'
-                      : 'border-[var(--border)] bg-[var(--surface)]'
-                  }`}
-                >
-                  <FaArrowUp
-                    className={`mx-auto mt-1 text-[38px] ${
-                      formData.type === 'INCOME'
-                        ? 'text-[var(--orbit-primary)]'
-                        : 'text-[var(--text-muted)]'
-                    }`}
-                    aria-hidden="true"
-                  />
-                  <strong className="mt-3 block text-[18px] font-extrabold text-[var(--foreground)]">
-                    Receita
-                  </strong>
-                  <span className="mt-1 block text-[13px] leading-[1.35] text-[var(--text-muted)]">
-                    Entradas
-                    <br />
-                    de dinheiro
-                  </span>
-                </button>
-              </div>
-            </fieldset>
-
-            <div className="mt-auto pt-10">
-              <Button
-                size="cta"
-                fullWidth
-                onClick={goToMobileStep2}
-                disabled={loading}
-                icon={<FaArrowRight aria-hidden="true" />}
-                iconPosition="right"
-              >
-                Continuar
-              </Button>
-
-              <div className="mt-12 flex items-center justify-center gap-3" aria-hidden="true">
-                <span className="h-3.5 w-3.5 rounded-full bg-[var(--orbit-primary)]" />
-                <span className="h-3.5 w-3.5 rounded-full bg-[color-mix(in_srgb,var(--orbit-primary)_22%,var(--surface-raised))]" />
-              </div>
-            </div>
-          </section>
+        {!isEditing && (
+          <div className="-mt-1 flex flex-wrap items-center gap-2" aria-label="Sugestões de nome">
+            <span className="text-sm text-[var(--text-muted)]">Sugestões:</span>
+            {categoryNameSuggestions(formData.type).map((name) => (
+              <Chip key={name} onClick={() => setFormData({ ...formData, name })} disabled={loading} className="font-medium">
+                {name}
+              </Chip>
+            ))}
+          </div>
         )}
 
-        {mobileStep === 2 && (
-          <section
-            className="mt-8 flex min-h-[560px] flex-col"
-            aria-labelledby="mobile-category-step-two"
-          >
-            <div>
-              <h2
-                id="mobile-category-step-two"
-                className="text-[30px] font-extrabold leading-[1.12] tracking-tight text-[var(--foreground)]"
-              >
-                Dê personalidade
-              </h2>
-              <p className="mt-2 max-w-[350px] text-[16px] leading-[1.5] text-[var(--text-muted)]">
-                Escolha uma cor, um ícone e, se quiser, adicione uma descrição.
-              </p>
-            </div>
-
-            <fieldset className="mt-8">
-              <legend className="mb-3 text-[16px] font-bold text-[var(--foreground)]">
-                Cor
-              </legend>
-              <div className="flex flex-wrap gap-3">
-                {mobileColorOptions.map((color) => {
-                  const selected = formData.color.toUpperCase() === color.toUpperCase();
-                  return (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, color })}
-                      disabled={loading}
-                      aria-label={`Selecionar cor ${color}`}
-                      aria-pressed={selected}
-                      className={`grid h-11 w-11 place-items-center rounded-full border-2 transition-transform ${
-                        selected
-                          ? 'scale-110 border-[var(--foreground)]'
-                          : 'border-transparent'
-                      }`}
-                    >
-                      <span
-                        className="h-8 w-8 rounded-full shadow-[inset_0_0_0_1px_var(--border)]"
-                        style={{ backgroundColor: color }}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-
-            <fieldset className="mt-7">
-              <legend className="mb-3 text-[16px] font-bold text-[var(--foreground)]">
-                Ícone
-              </legend>
-              <div className="grid grid-cols-5 gap-2.5">
-                {mobileIconOptions.map((icon) => {
-                  const selected = formData.icon === icon;
-                  return (
-                    <button
-                      key={icon}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, icon })}
-                      disabled={loading}
-                      aria-label={`Selecionar ícone ${icon}`}
-                      aria-pressed={selected}
-                      className={`grid h-[54px] place-items-center rounded-[12px] border text-[20px] transition-colors ${
-                        selected
-                          ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
-                          : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
-                      }`}
-                    >
-                      <IconRenderer iconName={icon} size={21} />
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-
-            <div className="mt-7">
-              <Input
-                label="Descrição (opcional)"
-                maxLength={CATEGORY_DESCRIPTION_MAX_LENGTH}
-                value={formData.description}
-                onChange={(event) =>
-                  setFormData({ ...formData, description: event.target.value })
-                }
-                disabled={loading}
-                className="min-h-[58px] text-[16px]"
-                placeholder="Ex: Alimentação do dia a dia"
-              />
-            </div>
-
-            {isEditing && (
-              <div className="mt-7 rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
-                <ActiveToggle
-                  isActive={formData.isActive}
-                  onToggle={(isActive) => setFormData({ ...formData, isActive })}
-                  disabled={loading}
-                  label="Categoria ativa"
-                />
-              </div>
-            )}
-
-            <div className="mt-auto pt-10">
-              <div className="grid grid-cols-[.9fr_1.4fr] gap-3">
-              <Button
-                size="cta"
-                variant="secondary"
-                onClick={() => setMobileStep(1)}
-                disabled={loading}
-              >
-                Voltar
-              </Button>
-              <Button size="cta" type="submit" disabled={loading}>
-                {loading
-                  ? isEditing
-                    ? 'Salvando...'
-                    : 'Criando...'
-                  : isEditing
-                    ? 'Salvar alterações'
-                    : 'Criar categoria'}
-              </Button>
-              </div>
-
-              <div className="mt-10 flex items-center justify-center gap-3" aria-hidden="true">
-                <span className="h-3.5 w-3.5 rounded-full bg-[color-mix(in_srgb,var(--orbit-primary)_22%,var(--surface-raised))]" />
-                <span className="h-3.5 w-3.5 rounded-full bg-[var(--orbit-primary)]" />
-              </div>
-            </div>
-          </section>
-        )}
-      </div>
-    </form>
-  );
-
-  return (
-    <>
-      {!isDesktop && mobileWizard}
-
-      {isDesktop && (
-      <div>
-        <FormContainer
-          onSubmit={handleSubmit}
-          error={submitError}
-          onClearError={() => setSubmitError(null)}
-          className="mt-2 gap-0"
-        >
-          <section className="space-y-4 pb-5" aria-labelledby="category-main-fields">
-            <div>
-              <h2 id="category-main-fields" className="text-xl font-semibold text-[var(--foreground)]">
-                Dados da categoria
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-                O tipo é a referência financeira usada quando esta categoria participa da criação ou edição de uma transação.
-              </p>
-            </div>
-
-            <Input
-              label="Nome da categoria"
-              maxLength={CATEGORY_NAME_MAX_LENGTH}
-              value={formData.name}
-              onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-              disabled={loading}
-              required
-              icon={<FaInfoCircle />}
-              placeholder="Ex.: Alimentação, Salário, Transporte"
-            />
-
-            <RadioGroup
-              required
-              label="Tipo da categoria"
-              name="categoryType"
-              value={formData.type}
-              onChange={(value) => setFormData({ ...formData, type: value as CategoryType })}
-              options={categoryTypeOptions}
-              disabled={loading || isEditing}
-            />
-            {isEditing && (
-              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-                O tipo financeiro é definido na criação para preservar o histórico das movimentações.
-              </p>
-            )}
-          </section>
-
-          <section
-            className="space-y-4 border-t border-[var(--border)] py-5"
-            aria-labelledby="category-visual-identity"
-          >
-            <div>
-              <h2 id="category-visual-identity" className="flex items-center gap-2 text-xl font-semibold text-[var(--foreground)]">
-                <FaPalette className="text-[var(--primary)]" aria-hidden="true" />
-                Identidade visual
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-                Escolha cor e ícone para reconhecimento rápido. Nome e tipo continuam sendo os sinais semânticos principais.
-              </p>
-            </div>
-
-            <ColorIconSelector
-              color={formData.color}
-              icon={formData.icon}
-              onColorChange={(color) => setFormData({ ...formData, color })}
-              onIconChange={(icon) => setFormData({ ...formData, icon })}
-              disabled={loading}
-            />
-
+        <details className="group rounded-[14px] border border-[var(--border)] bg-[var(--surface)]">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-[14px] px-4 text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+            <span>Mais opções</span>
+            <span className="text-sm font-normal text-[var(--text-muted)]">descrição{isEditing ? ' e status' : ''}</span>
+          </summary>
+          <div className="grid gap-4 px-4 pb-4">
             <Input
               label="Descrição"
               maxLength={CATEGORY_DESCRIPTION_MAX_LENGTH}
@@ -495,33 +127,25 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
               disabled={loading}
               multiline
               rows={3}
-              placeholder="Adicione um contexto opcional para esta categoria"
+              placeholder="Algo para lembrar o que entra nesta categoria"
             />
-          </section>
-
-          {isEditing && (
-            <section
-              className="border-t border-[var(--border)] py-5"
-              aria-labelledby="category-status-heading"
-            >
-              <div className="mb-4">
-                <h2 id="category-status-heading" className="text-xl font-semibold text-[var(--foreground)]">
-                  Status da categoria
-                </h2>
-                <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-                  Categorias inativas permanecem disponíveis no histórico, mas são diferenciadas nas listagens.
+            {isEditing && (
+              <div>
+                <p className="mb-2 text-sm text-[var(--text-muted)]">
+                  Inativar guarda o histórico e tira a categoria dos lançamentos novos.
                 </p>
+                <ActiveToggle
+                  isActive={formData.isActive}
+                  onToggle={(isActive) => setFormData({ ...formData, isActive })}
+                  disabled={loading}
+                  label="Categoria ativa"
+                />
               </div>
+            )}
+          </div>
+        </details>
 
-              <ActiveToggle
-                isActive={formData.isActive}
-                onToggle={(isActive) => setFormData({ ...formData, isActive })}
-                disabled={loading}
-                label="Categoria ativa"
-              />
-            </section>
-          )}
-
+        <div className="max-lg:sticky max-lg:bottom-0 max-lg:-mx-1 max-lg:bg-[var(--background)] max-lg:px-1 max-lg:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <FormActions
             isEditing={isEditing}
             loading={loading}
@@ -529,9 +153,8 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
             createLabel="Criar categoria"
             submitLabel="Salvar alterações"
           />
-        </FormContainer>
-      </div>
-      )}
-    </>
+        </div>
+      </FormContainer>
+    </div>
   );
 }
