@@ -576,7 +576,7 @@ function detailActions(account: AccountModel): Array<{ label: string; href: stri
 
   if (account.type === 'CREDIT_CARD') {
     return [
-      { label: 'Pagar fatura', href: show, icon: <FaExternalLinkAlt aria-hidden="true" />, primary: true },
+      { label: 'Faturas', href: show, icon: <FaExternalLinkAlt aria-hidden="true" />, primary: true },
       { label: 'Lançar compra', href: '/transacoes/nova', icon: <FaPlus aria-hidden="true" /> },
       transactions,
       edit,
