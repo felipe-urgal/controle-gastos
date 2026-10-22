@@ -44,7 +44,7 @@ export default function Show({ id }: { id: string }) {
       setIsDeleteModalOpen={setIsDeleteModalOpen}
       onDelete={handleDelete}
       emptyRedirectTo="/contas"
-      hideHeaderDelete={account?.type !== 'CREDIT_CARD'}
+      hideHeaderDelete
       mobileContent={
         account ? (
           account.type === 'CREDIT_CARD' ? (

@@ -1,7 +1,15 @@
 'use client';
 
 import { ShowBelow } from '@/app/components/ui';
-import { Button, Input, Select } from '@/app/components/ui';
+import { Button, Chip, Input, Select } from '@/app/components/ui';
+import {
+  closingDistanceLabel,
+  dueDistanceLabel,
+  isPayableStatement,
+  limitTone,
+  pickStatementToPay,
+  usagePercent,
+} from '@/app/components/pages/account/show/credit-card-overview/card-show-model';
 import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -32,6 +40,13 @@ function localIsoDate() {
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+function localLogicalDate() {
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+}
+
+type CardTab = 'current' | 'future' | 'history';
 
 function logicalIso(date: { year: number; month: number; day: number }) {
   return `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`;
@@ -70,6 +85,7 @@ export default function CreditCardOverview({
   const [loadingPaymentAccounts, setLoadingPaymentAccounts] = useState(false);
   const [paymentKey, setPaymentKey] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
+  const [tab, setTab] = useState<CardTab>('current');
 
   const loadPaymentAccounts = useCallback(async () => {
     setLoadingPaymentAccounts(true);
@@ -217,88 +233,133 @@ export default function CreditCardOverview({
     );
   }
 
-  const usagePercent =
-    data.card.creditLimit > 0
-      ? Math.min(100, Math.round((data.card.usedLimit / data.card.creditLimit) * 100))
-      : 0;
+  const today = localLogicalDate();
+  const toPay = pickStatementToPay(data, today);
+  const focus = toPay ?? data.current;
+  const percent = usagePercent(data.card);
+  const tone = limitTone(data.card);
+  const meterTone = { ok: 'bg-[var(--orbit-primary)]', near: 'bg-[var(--warning)]', over: 'bg-[var(--expense)]' } as const;
+  const tabs: Array<{ key: CardTab; label: string }> = [
+    { key: 'current', label: 'Fatura atual' },
+    ...(data.future.length > 0 ? [{ key: 'future' as const, label: 'Próximas faturas' }] : []),
+    { key: 'history', label: 'Histórico de faturas' },
+  ];
 
   return (
-    <div className={`mx-auto w-full space-y-5 transition-opacity ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
+    <div className={`mx-auto w-full max-w-4xl space-y-4 pb-5 transition-opacity ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href={backUrl}
-          aria-label="Voltar para contas"
-          className="grid h-11 w-11 place-items-center rounded-full text-[var(--foreground)]"
-        >
-          <FaArrowLeft aria-hidden="true" />
-        </Link>
-        <h1 className={`text-center ${appBarTitleClassName}`}>
-          {account.name}
-        </h1>
-        <Link
-          href={editUrl}
-          aria-label="Editar cartão"
-          className="grid h-11 w-11 place-items-center rounded-full text-[var(--orbit-primary)]"
-        >
-          <FaPen aria-hidden="true" />
-        </Link>
-      </div>
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            href={backUrl}
+            aria-label="Voltar para contas"
+            className="grid h-11 w-11 place-items-center rounded-full text-[var(--foreground)]"
+          >
+            <FaArrowLeft aria-hidden="true" />
+          </Link>
+          <h1 className={`text-center ${appBarTitleClassName}`}>
+            {account.name}
+          </h1>
+          <Link
+            href={editUrl}
+            aria-label="Editar cartão"
+            className="grid h-11 w-11 place-items-center rounded-full text-[var(--orbit-primary)]"
+          >
+            <FaPen aria-hidden="true" />
+          </Link>
+        </div>
       </ShowBelow>
 
-      <section className="overflow-hidden rounded-[24px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_46%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_20%,black)_48%,color-mix(in_srgb,var(--surface)_40%,black)_100%)] p-5 text-white shadow-[0_18px_42px_color-mix(in_srgb,var(--orbit-primary)_20%,transparent)] sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-4">
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[16px] bg-white/10 text-2xl">
-              <FaCreditCard aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <h2 className="truncate text-2xl font-extrabold">{account.name}</h2>
-              <p className="mt-1 text-sm text-white/70">
-                Fecha dia {data.card.statementClosingDay} · vence dia {data.card.statementDueDay}
-              </p>
-            </div>
-          </div>
-          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-sm font-bold">
-            {account.currency}
+      <section
+        aria-label="Resumo do cartão"
+        className="grid gap-5 rounded-[20px] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+        style={{ ['--account-color' as string]: account.color || 'var(--orbit-primary)' }}
+      >
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
+          <span className="grid h-12 w-12 place-items-center rounded-[14px] text-white" style={{ backgroundColor: account.color || 'var(--orbit-primary)' }} aria-hidden="true">
+            <FaCreditCard />
           </span>
-        </div>
-
-        <div className="mt-7 grid gap-4 sm:grid-cols-3">
-          <Metric label="Limite total" value={money(data.card.creditLimit)} />
-          <Metric label="Em uso" value={money(data.card.usedLimit)} />
-          <Metric label="Disponível" value={money(data.card.availableLimit)} />
-        </div>
-
-        <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/15">
-          <div className="h-full rounded-full bg-white" style={{ width: `${usagePercent}%` }} />
-        </div>
-        <div className="mt-2 flex justify-between text-xs font-semibold text-white/65">
-          <span>{usagePercent}% utilizado</span>
-          {data.card.overLimit > 0 && (
-            <span>Excedido em <span className="money">{money(data.card.overLimit)}</span></span>
-          )}
-        </div>
-      </section>
-
-      <StatementCard
-        title="Fatura atual"
-        statement={data.current}
-        currency={account.currency}
-        showValues={showValues}
-        onPay={openPayment}
-        emphasize
-      />
-
-      {data.future.length > 0 && (
-        <section className="ds-panel overflow-hidden">
-          <div className="border-b border-[var(--border)] px-5 py-4">
-            <h3 className="text-lg font-bold text-[var(--foreground)]">Próximas faturas</h3>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Parcelas e compras futuras já materializadas.
+          <div className="min-w-0">
+            <h2 className="break-words text-xl font-bold tracking-tight">{account.name}</h2>
+            <p className="text-sm text-[var(--text-muted)]">
+              Fecha dia {data.card.statementClosingDay} · vence dia {data.card.statementDueDay} · {account.currency}
             </p>
           </div>
-          <div className="divide-y divide-[var(--border)]">
+        </div>
+
+        <div className="grid items-end gap-5 md:grid-cols-2">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[var(--text-muted)]">
+              {toPay ? `Fatura para pagar · ${dueDistanceLabel(toPay.dueDate, today)}` : `Fatura atual · ${closingDistanceLabel(data.current.closingDate, today)}`}
+            </p>
+            <strong className="money mt-1 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl">
+              {money(focus.total)}
+            </strong>
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
+              Fecha {logicalLabel(focus.closingDate)} · vence {logicalLabel(focus.dueDate)}
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${percent}% do limite usado`}>
+              <div className={`h-full rounded-full ${meterTone[tone]}`} style={{ width: `${percent}%` }} />
+            </div>
+            <dl className="grid gap-1 text-sm">
+              <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Limite total</dt><dd className="money font-semibold">{money(data.card.creditLimit)}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Em uso</dt><dd className="money font-semibold">{money(data.card.usedLimit)} <span className="font-normal text-[var(--text-muted)]">({percent}%)</span></dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Disponível</dt><dd className="money font-semibold">{money(data.card.availableLimit)}</dd></div>
+              {data.card.overLimit > 0 && (
+                <div className="flex justify-between gap-3 text-[var(--expense)]"><dt>Excedido em</dt><dd className="money font-semibold">{money(data.card.overLimit)}</dd></div>
+              )}
+            </dl>
+          </div>
+        </div>
+
+        <nav aria-label="Ações do cartão" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {toPay ? (
+            <Button type="button" variant="accent" size="xs" className="w-full" onClick={() => openPayment(toPay)}>
+              Pagar fatura
+            </Button>
+          ) : (
+            <Button as="a" href="/transacoes/nova" variant="accent" size="xs" className="w-full">
+              Lançar compra
+            </Button>
+          )}
+          {toPay && (
+            <Button as="a" href="/transacoes/nova" variant="outline" size="xs" className="w-full">
+              Lançar compra
+            </Button>
+          )}
+          <Button as="a" href={`/transacoes?accountId=${encodeURIComponent(account.id)}`} variant="outline" size="xs" className="w-full">
+            Compras
+          </Button>
+          <Button as="a" href={editUrl} variant="outline" size="xs" className="w-full">
+            Editar
+          </Button>
+        </nav>
+      </section>
+
+      <section className="overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
+        <div className="flex flex-wrap gap-2 px-4 pb-3 pt-4 sm:px-5" role="group" aria-label="Faturas">
+          {tabs.map((item) => (
+            <Chip key={item.key} selected={tab === item.key} onClick={() => setTab(item.key)}>
+              {item.label}
+            </Chip>
+          ))}
+        </div>
+
+        {tab === 'current' && (
+          <CurrentStatementPanel
+            statement={data.current}
+            accountId={account.id}
+            currency={account.currency}
+            showValues={showValues}
+            payable={isPayableStatement(data.current, today)}
+            onPay={openPayment}
+          />
+        )}
+
+        {tab === 'future' && (
+          <div className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
             {data.future.map((statement) => (
               <CompactStatement
                 key={logicalIso(statement.closingDate)}
@@ -308,69 +369,62 @@ export default function CreditCardOverview({
               />
             ))}
           </div>
-        </section>
-      )}
+        )}
 
-      <section className="ds-panel overflow-hidden">
-        <div className="border-b border-[var(--border)] px-5 py-4">
-          <h3 className="text-lg font-bold text-[var(--foreground)]">Histórico de faturas</h3>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Até 12 ciclos anteriores, com pagamento quando disponível.
-          </p>
-        </div>
-        {data.history.length === 0 ? (
-          <p className="px-5 py-6 text-sm text-[var(--text-muted)]">Nenhuma fatura anterior.</p>
-        ) : (
-          <div className="divide-y divide-[var(--border)]">
-            {data.history.map((statement) => (
-              <div key={logicalIso(statement.closingDate)} className="px-5 py-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-bold text-[var(--foreground)]">
-                      Fechamento {logicalLabel(statement.closingDate)}
-                    </p>
-                    <p className="mt-1 text-sm text-[var(--text-muted)]">
-                      Vencimento {logicalLabel(statement.dueDate)} · {statement.transactionCount} lançamento{statement.transactionCount === 1 ? '' : 's'}
-                    </p>
+        {tab === 'history' && (
+          <div className="border-t border-[var(--border)]">
+            {data.history.length === 0 ? (
+              <p className="px-5 py-6 text-sm text-[var(--text-muted)]">Nenhuma fatura anterior.</p>
+            ) : (
+              <div className="divide-y divide-[var(--border)]">
+                {data.history.map((statement) => (
+                  <div key={logicalIso(statement.closingDate)} className="px-4 py-4 sm:px-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-[var(--foreground)]">
+                          Fechamento {logicalLabel(statement.closingDate)}
+                        </p>
+                        <p className="mt-1 text-sm text-[var(--text-muted)]">
+                          Vencimento {logicalLabel(statement.dueDate)} · {statement.transactionCount} lançamento{statement.transactionCount === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-extrabold text-[var(--foreground)]">
+                          <span className="money">{money(statement.total)}</span>
+                        </p>
+                        <span className={statement.status === 'PAID'
+                          ? 'mt-1 inline-flex items-center gap-1 text-xs font-bold text-[var(--income)]'
+                          : 'mt-1 inline-flex items-center gap-1 text-xs font-bold text-[var(--expense)]'}>
+                          {statement.status === 'PAID' ? <FaCheckCircle aria-hidden="true" /> : <FaCalendarAlt aria-hidden="true" />}
+                          {statement.status === 'PAID' ? 'Paga' : 'Em aberto'}
+                        </span>
+                      </div>
+                    </div>
+                    {isPayableStatement(statement, today) && (
+                      <Button variant="outline" size="sm" className="mt-3" type="button" onClick={() => openPayment(statement)}>
+                        Pagar esta fatura
+                      </Button>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg font-extrabold text-[var(--foreground)]">
-                      <span className="money">{money(statement.total)}</span>
-                    </p>
-                    <span className={statement.status === 'PAID'
-                      ? 'mt-1 inline-flex items-center gap-1 text-xs font-bold text-[var(--income)]'
-                      : 'mt-1 inline-flex items-center gap-1 text-xs font-bold text-[var(--expense)]'}>
-                      {statement.status === 'PAID' ? <FaCheckCircle aria-hidden="true" /> : <FaCalendarAlt aria-hidden="true" />}
-                      {statement.status === 'PAID' ? 'Paga' : 'Em aberto'}
-                    </span>
-                  </div>
-                </div>
-                {statement.status === 'OPEN' && statement.total > 0 && (
-                  <Button variant="accent" pill size="sm" className="mt-3"
-                    type="button"
-                    onClick={() => openPayment(statement)}
-                  >
-                    Pagar fatura
-                  </Button>
-                )}
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Link
-          href={editUrl}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] px-4 font-bold text-[var(--orbit-primary)]"
-        >
-          <FaPen aria-hidden="true" />
-          Editar cartão
-        </Link>
-        <Button variant="danger" pill size="lg" onClick={onDeleteRequest}>
-          Excluir cartão
-        </Button>
-      </div>
+      <details className="group rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center px-4 text-sm text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
+          Zona de risco
+        </summary>
+        <div className="grid gap-3 px-4 pb-4 text-sm text-[var(--text-muted)] sm:px-5">
+          <p>Inativar guarda o histórico e tira o cartão dos lançamentos novos. Excluir só é possível quando o cartão não tem movimentações.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button as="a" href={editUrl} variant="outline" size="sm">Inativar cartão</Button>
+            <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest}>Excluir cartão</Button>
+          </div>
+        </div>
+      </details>
 
       {payingStatement && (
         <ModalShell
@@ -451,80 +505,72 @@ export default function CreditCardOverview({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-white/60">{label}</p>
-      <p className="money mt-1 text-xl font-extrabold">{value}</p>
-    </div>
-  );
-}
-
-function StatementCard({
-  title,
+function CurrentStatementPanel({
   statement,
+  accountId,
   currency,
   showValues,
+  payable,
   onPay,
-  emphasize = false,
 }: {
-  title: string;
   statement: CreditCardStatementItem;
+  accountId: string;
   currency: string;
   showValues: boolean;
+  payable: boolean;
   onPay: (statement: CreditCardStatementItem) => void;
-  emphasize?: boolean;
 }) {
-  const money = showValues ? formatCurrency(statement.total, currency) : '••••';
+  const visible = statement.transactions.slice(0, 8);
+
   return (
-    <section className={emphasize ? 'ds-panel border-[var(--orbit-primary)] p-5' : 'ds-panel p-5'}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold text-[var(--orbit-primary)]">{title}</p>
-          <h3 className="mt-1 text-2xl font-extrabold text-[var(--foreground)]">{money}</h3>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">
-            Fecha {logicalLabel(statement.closingDate)} · vence {logicalLabel(statement.dueDate)}
-          </p>
-        </div>
-        <span className={statement.status === 'PAID'
-          ? 'rounded-full bg-[var(--primary-subtle)] px-3 py-1 text-xs font-bold text-[var(--income)]'
-          : 'rounded-full bg-[var(--surface-raised)] px-3 py-1 text-xs font-bold text-[var(--text-muted)]'}>
+    <div className="border-t border-[var(--border)]">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
+        <p className="text-sm text-[var(--text-muted)]">
+          Fecha {logicalLabel(statement.closingDate)} · vence {logicalLabel(statement.dueDate)} · {statement.transactionCount} {statement.transactionCount === 1 ? 'compra' : 'compras'}
+        </p>
+        <span className={statement.status === 'PAID' ? 'text-xs font-bold text-[var(--income)]' : 'text-xs font-bold text-[var(--text-muted)]'}>
           {statement.status === 'PAID' ? 'Paga' : 'Em aberto'}
         </span>
       </div>
 
-      {statement.transactions.length > 0 && (
-        <div className="mt-5 divide-y divide-[var(--border)] border-t border-[var(--border)]">
-          {statement.transactions.slice(0, 5).map((transaction) => {
+      {visible.length === 0 ? (
+        <p className="px-4 pb-5 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma compra nesta fatura ainda.</p>
+      ) : (
+        <ul className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
+          {visible.map((transaction) => {
             const isCredit = transaction.type === 'INCOME';
             return (
-              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="flex min-h-14 items-center justify-between gap-3 py-2 text-sm">
-                <span className="min-w-0">
-                  <span className="block truncate font-semibold text-[var(--foreground)]">{transaction.description}</span>
-                  {isCredit && (
-                    <span className="mt-0.5 block text-xs font-semibold text-[var(--income)]">
-                      Crédito/estorno · reduz a fatura
+              <li key={transaction.id}>
+                <Link href={`/transacoes/show/${transaction.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5">
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold text-[var(--foreground)]">{transaction.description}</span>
+                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                      {String(transaction.day).padStart(2, '0')}/{String(transaction.month).padStart(2, '0')}
+                      {isCredit ? ' · crédito/estorno, reduz a fatura' : ''}
                     </span>
-                  )}
-                </span>
-                <span className={`flex shrink-0 items-center gap-2 font-bold ${isCredit ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
-                  {showValues
-                    ? `${isCredit ? '−' : ''}${formatCurrency(transaction.amount, currency)}`
-                    : '••••'}
-                  <FaChevronRight className="text-[var(--text-muted)]" aria-hidden="true" />
-                </span>
-              </Link>
+                  </span>
+                  <span className={`money flex shrink-0 items-center gap-2 font-semibold ${isCredit ? 'text-[var(--income)]' : 'text-[var(--foreground)]'}`}>
+                    {showValues ? `${isCredit ? '−' : ''}${formatCurrency(transaction.amount, currency)}` : '••••'}
+                    <FaChevronRight className="text-[var(--text-muted)]" aria-hidden="true" />
+                  </span>
+                </Link>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
 
-      {statement.status === 'OPEN' && statement.total > 0 && compareStatementToToday(statement) <= 0 && (
-        <Button variant="accent" pill size="sm" className="mt-4" type="button" onClick={() => onPay(statement)}>
-          Pagar fatura
-        </Button>
-      )}
-    </section>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3 sm:px-5">
+        <Link href={`/transacoes?accountId=${encodeURIComponent(accountId)}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]">
+          {statement.transactionCount > visible.length ? 'Ver todas as compras' : 'Ver no extrato'}
+        </Link>
+        {payable && (
+          <Button variant="outline" size="sm" type="button" onClick={() => onPay(statement)}>
+            Pagar esta fatura
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -552,8 +598,4 @@ function CompactStatement({
       </strong>
     </div>
   );
-}
-
-function compareStatementToToday(statement: CreditCardStatementItem) {
-  return logicalIso(statement.closingDate).localeCompare(localIsoDate());
 }
