@@ -6,26 +6,23 @@ import { useMediaQuery } from '@/app/hooks/use-media-query';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import {
-  FaChartBar,
   FaChevronLeft,
   FaChevronRight,
-  FaEye,
   FaExternalLinkAlt,
   FaList,
   FaPen,
   FaPlus,
   FaSearch,
-  FaUniversity,
 } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
+import { AccountsOverview } from '@/app/components/pages/account/index/accounts-overview';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Pagination } from '@/app/components/navigation';
 import { Button, Chip, ChipRow, IconButton, IconRenderer, Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
 import {
-  accountTransactionDateKey,
   getAccountPrimaryValue,
   latestAccountTransaction,
   sortAccountTransactions,
@@ -86,24 +83,6 @@ function MobileAccountsCenter({
     ? accounts.filter((account) => account.id !== selectedAccount.id)
     : [];
 
-  const balancesByCurrency = useMemo(
-    () =>
-      summary?.balancesByCurrency.map((item) => [item.currency, item.value] as const) ??
-      [],
-    [summary],
-  );
-
-  const summaryCurrency =
-    balancesByCurrency.length === 1 ? balancesByCurrency[0][0] : null;
-  const summaryBalance =
-    balancesByCurrency.length === 1 ? balancesByCurrency[0][1] : null;
-  const bankBalance = summaryCurrency
-    ? summary?.bankBalancesByCurrency.find((item) => item.currency === summaryCurrency)?.value ?? 0
-    : null;
-  const investmentBalance = summaryCurrency
-    ? summary?.investmentBalancesByCurrency.find((item) => item.currency === summaryCurrency)?.value ?? 0
-    : null;
-
   function moveSelection(offset: number) {
     if (accounts.length < 2 || selectedIndex < 0) return;
     const nextIndex = (selectedIndex + offset + accounts.length) % accounts.length;
@@ -131,79 +110,12 @@ function MobileAccountsCenter({
         </Link>
       </header>
 
-      <section
-        aria-label="Resumo das contas no mobile"
-        className="relative overflow-hidden rounded-[22px] border border-[var(--orbit-primary)]/55 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--orbit-primary)_34%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_30%,black)_58%,color-mix(in_srgb,var(--surface)_40%,black)_100%)] p-[18px] shadow-[var(--shadow-surface)]"
-      >
-        <svg
-          viewBox="0 0 180 90"
-          className="pointer-events-none absolute -right-2 top-1 h-28 w-44 text-[var(--orbit-primary)] opacity-80"
-          aria-hidden="true"
-        >
-          <path
-            d="M0 82 C28 76 29 56 56 60 C84 63 84 39 110 43 C137 48 139 10 180 8"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-        </svg>
-
-        <div className="relative z-[1]">
-          <div className="flex items-center gap-2 text-lg font-bold">
-            <span>Meu dinheiro</span>
-            <FaEye className="text-[var(--text-muted)]" aria-hidden="true" />
-          </div>
-
-          <strong className="mt-3 block break-words text-[36px] font-extrabold leading-none tracking-tight text-white min-[360px]:text-[38px]">
-            {loading
-              ? '—'
-              : summaryCurrency && summaryBalance !== null
-                ? money(summaryBalance, summaryCurrency, showValues)
-                : balancesByCurrency.length > 1
-                  ? `${balancesByCurrency.length} moedas`
-                  : '—'}
-          </strong>
-
-          <p className="mt-2 text-sm text-white/70">
-            {loading
-              ? 'Carregando contas'
-              : balancesByCurrency.length > 1
-                ? `${summary?.totalCount ?? accounts.length} contas · Sem conversão entre moedas`
-                : `${summary?.totalCount ?? accounts.length} ${(summary?.totalCount ?? accounts.length) === 1 ? 'conta' : 'contas'} · Atualizado agora`}
-          </p>
-
-          <div className="mt-5 grid grid-cols-1 gap-3 border-t border-white/15 pt-4 min-[360px]:grid-cols-2 min-[360px]:divide-x min-[360px]:divide-white/15">
-            <div className="flex min-w-0 items-center gap-3 min-[360px]:pr-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[11px] bg-white/10 text-lg text-[var(--orbit-primary)]">
-                <FaUniversity aria-hidden="true" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm text-white/70">Bancos</p>
-                <strong className="block tabular-nums text-lg font-bold text-white">
-                  {summaryCurrency && bankBalance !== null
-                    ? money(bankBalance, summaryCurrency, showValues)
-                    : '—'}
-                </strong>
-              </div>
-            </div>
-
-            <div className="flex min-w-0 items-center gap-3 min-[360px]:pl-4">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[11px] bg-white/10 text-lg text-[var(--orbit-primary)]">
-                <FaChartBar aria-hidden="true" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm text-white/70">Investimentos</p>
-                <strong className="block tabular-nums text-lg font-bold text-white">
-                  {summaryCurrency && investmentBalance !== null
-                    ? money(investmentBalance, summaryCurrency, showValues)
-                    : '—'}
-                </strong>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <AccountsOverview
+        summary={summary}
+        loading={loading}
+        showValues={showValues}
+        ariaLabel="Resumo das contas no mobile"
+      />
 
       <section aria-labelledby="mobile-accounts-title">
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -458,30 +370,6 @@ export default function OrbitAccounts() {
     accounts.find((account) => account.id === selectedAccountId) ?? accounts[0] ?? null;
 
   const accountSummary = summary as AccountListSummary | undefined;
-  const balancesByCurrency = useMemo(
-    () =>
-      accountSummary?.balancesByCurrency.map(
-        (item) => [item.currency, item.value] as [string, number],
-      ) ?? [],
-    [accountSummary],
-  );
-
-  const activeCount = accountSummary?.activeCount ?? 0;
-  const negativeCount = accountSummary?.negativeCount ?? 0;
-  const latestActivity = useMemo(() => {
-    return (
-      accounts
-        .flatMap((account) => {
-          const transaction = latestAccountTransaction(account);
-          return transaction ? [{ account, transaction }] : [];
-        })
-        .sort(
-          (left, right) =>
-            accountTransactionDateKey(right.transaction) - accountTransactionDateKey(left.transaction),
-        )[0] ?? null
-    );
-  }, [accounts]);
-
   const grouped = useMemo(
     () =>
       [
@@ -619,15 +507,14 @@ export default function OrbitAccounts() {
         </div>
       </header>
 
-      <AccountSummary
-        balancesByCurrency={balancesByCurrency}
-        activeCount={activeCount}
-        totalCount={accountSummary?.totalCount ?? total ?? 0}
-        negativeCount={negativeCount}
-        latestActivity={latestActivity}
-        showValues={showValues}
-        loading={loading}
-      />
+      <div className="mt-[22px]">
+        <AccountsOverview
+          summary={accountSummary}
+          loading={loading}
+          showValues={showValues}
+          ariaLabel="Resumo das contas"
+        />
+      </div>
 
       <section
         className={`my-[18px] flex flex-col gap-2.5 sm:flex-row sm:items-center ${orbitActionTokens}`}
@@ -716,101 +603,6 @@ export default function OrbitAccounts() {
         </>
       )}
     </ProtectedRoute>
-  );
-}
-
-function AccountSummary({
-  balancesByCurrency,
-  activeCount,
-  totalCount,
-  negativeCount,
-  latestActivity,
-  showValues,
-  loading,
-}: {
-  balancesByCurrency: Array<[string, number]>;
-  activeCount: number;
-  totalCount: number;
-  negativeCount: number;
-  latestActivity: { account: AccountModel; transaction: AccountRecentTransaction } | null;
-  showValues: boolean;
-  loading: boolean;
-}) {
-  const metric =
-    'rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:px-[18px] sm:py-[17px]';
-
-  return (
-    <section
-      className="mt-[22px] grid grid-cols-2 gap-2 lg:grid-cols-[1.35fr_.8fr_.8fr_1fr] lg:gap-3"
-      aria-label="Resumo das contas"
-    >
-      <article className={`${metric} col-span-2 lg:col-span-1`}>
-        <p className="text-xs text-[var(--text-muted)]">SALDOS POR MOEDA</p>
-        {loading ? (
-          <div className="mt-2 h-8 animate-pulse rounded bg-[var(--skeleton)]" />
-        ) : balancesByCurrency.length === 0 ? (
-          <strong className="mt-2 block text-2xl">—</strong>
-        ) : (
-          balancesByCurrency.map(([currency, value]) => (
-            <strong
-              key={currency}
-              className={`mt-2 mr-3 inline-block text-xl font-bold sm:text-2xl ${
-                value < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
-              }`}
-            >
-              <span className="money">{money(value, currency, showValues)}</span>
-            </strong>
-          ))
-        )}
-        <small className="mt-1 block text-xs text-[var(--text-muted)]">
-          Sem conversão entre moedas
-        </small>
-      </article>
-
-      <article className={metric}>
-        <p className="text-xs text-[var(--text-muted)]">CONTAS ATIVAS</p>
-        <strong className="mt-2 block text-2xl font-bold">{loading ? '—' : activeCount}</strong>
-        <small className="text-xs text-[var(--text-muted)]">de {totalCount} no recorte</small>
-      </article>
-
-      <article className={metric}>
-        <p className="text-xs text-[var(--text-muted)]">SALDO NEGATIVO</p>
-        <strong
-          className={`mt-2 block text-2xl font-bold ${
-            negativeCount ? 'text-[var(--expense)]' : ''
-          }`}
-        >
-          {loading ? '—' : negativeCount}
-        </strong>
-        <small className="text-xs text-[var(--text-muted)]">
-          {negativeCount === 1 ? '1 conta' : `${negativeCount} contas`}
-        </small>
-      </article>
-
-      <article className={metric}>
-        <p className="text-xs text-[var(--text-muted)]">ÚLTIMA ATIVIDADE</p>
-        <strong
-          className={`mt-2 block truncate text-xl font-bold ${
-            latestActivity?.transaction?.type === 'INCOME'
-              ? 'text-[var(--income)]'
-              : latestActivity
-                ? 'text-[var(--expense)]'
-                : ''
-          }`}
-        >
-          {latestActivity
-            ? transactionMoney(
-                latestActivity.transaction,
-                latestActivity.account.currency,
-                showValues,
-              )
-            : '—'}
-        </strong>
-        <small className="block truncate text-xs text-[var(--text-muted)]">
-          {latestActivity?.transaction?.description ?? 'Nenhuma movimentação'}
-        </small>
-      </article>
-    </section>
   );
 }
 

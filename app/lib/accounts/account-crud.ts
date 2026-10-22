@@ -7,6 +7,8 @@ import {
   validateAccountUpdateState,
 } from "@/app/lib/accounts/account-schema";
 import { toAccountDTO } from "@/app/lib/accounts/account-dto";
+import { buildAccountAttention } from "@/app/lib/accounts/account-attention";
+import type { AccountCardStatusDTO } from "@/app/lib/accounts/account-dto";
 import { buildAccountPortfolioSummary } from "@/app/lib/accounts/account-summary";
 import {
   withDerivedAccountBalance,
@@ -18,6 +20,8 @@ import {
   assertAccountDeletable,
   lockOwnedAccountForMutation,
 } from "@/app/lib/accounts/account-structure";
+import { getCreditCardStatuses, type CreditCardStatus } from "@/app/lib/cards/credit-card-status";
+import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
 import { HttpError } from "@/app/lib/http-error";
 import { getInvestmentAccountValuesForUser } from "@/app/lib/investments/investment-account-valuation";
 import { prisma } from "@/app/lib/prisma";
@@ -44,6 +48,24 @@ const recentTransactionAccountSelect = {
   color: true,
   icon: true,
 } as const;
+
+function toCardStatusDTO(status: CreditCardStatus, creditLimit: number | null): AccountCardStatusDTO {
+  const next = status.nextStatement;
+  return {
+    usedLimit: status.usedLimit,
+    availableLimit: creditLimit === null ? null : Math.max(0, creditLimit - status.usedLimit),
+    overLimit: creditLimit === null ? 0 : Math.max(0, status.usedLimit - creditLimit),
+    nextStatement: next
+      ? {
+          amount: next.amount,
+          closingDate: next.closingDate,
+          dueDate: next.dueDate,
+          transactionCount: next.transactionCount,
+        }
+      : null,
+    overdueCount: status.overdueStatements.length,
+  };
+}
 
 export const accountCrud = baseCrudHandler({
   model: (db) => db.account,
@@ -182,10 +204,17 @@ export const accountCrud = baseCrudHandler({
       userId,
       investmentAccountIds,
     );
+    const cardStatuses = await getCreditCardStatuses({
+      userId,
+      cards: items.filter((account) => account.type === "CREDIT_CARD"),
+      asOf: logicalDateFromUtcInstant(new Date()),
+    });
     return enriched.map((account) => {
       const value = values.get(account.id);
+      const cardStatus = cardStatuses.get(account.id);
       return {
         ...account,
+        cardStatus: cardStatus ? toCardStatusDTO(cardStatus, account.creditLimit) : null,
         investmentValueCents:
           account.type === "INVESTMENT" ? value?.valueCents ?? 0 : null,
         investmentValueSource:
@@ -217,7 +246,7 @@ export const accountCrud = baseCrudHandler({
       investmentAccountIds,
     );
 
-    return buildAccountPortfolioSummary(
+    const portfolio = buildAccountPortfolioSummary(
       accounts.map((account) => {
         const balance =
           withBalances.find((candidate) => candidate.id === account.id)?.balance ?? 0;
@@ -230,6 +259,54 @@ export const accountCrud = baseCrudHandler({
         };
       }),
     );
+
+    // Faturas e avisos olham a carteira inteira: filtro ou busca não escondem um vencimento.
+    const asOf = logicalDateFromUtcInstant(new Date());
+    const active = await prisma.account.findMany({
+      where: { userId, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        currency: true,
+        isActive: true,
+        creditLimit: true,
+        statementClosingDay: true,
+        statementDueDay: true,
+      },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+    });
+    const activeCards = active.filter((account) => account.type === "CREDIT_CARD");
+    const cardStatuses = await getCreditCardStatuses({ userId, cards: activeCards, asOf });
+    const activeBalances = await withDerivedAccountBalances(
+      active.filter((account) => account.type === "CREDIT_DEBIT"),
+      userId,
+    );
+    const balanceById = new Map(activeBalances.map((account) => [account.id, account.balance] as const));
+
+    const openStatements = new Map<string, number>();
+    for (const card of activeCards) {
+      const amount = cardStatuses.get(card.id)?.nextStatement?.amount ?? 0;
+      if (amount > 0) openStatements.set(card.currency, (openStatements.get(card.currency) ?? 0) + amount);
+    }
+
+    return {
+      ...portfolio,
+      openStatementsByCurrency: [...openStatements.entries()].map(([currency, value]) => ({ currency, value })),
+      attention: buildAccountAttention({
+        asOf,
+        cardStatuses,
+        accounts: active.map((account) => ({
+          id: account.id,
+          name: account.name,
+          type: account.type,
+          currency: account.currency,
+          isActive: account.isActive,
+          balance: balanceById.get(account.id) ?? 0,
+          creditLimit: account.creditLimit,
+        })),
+      }),
+    };
   },
   mapper: toAccountDTO,
 });

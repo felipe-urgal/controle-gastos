@@ -41,6 +41,38 @@ export interface AccountRecentTransaction {
   updatedAt: string;
 }
 
+export interface AccountLogicalDate {
+  year: number;
+  month: number;
+  day: number;
+}
+
+export interface AccountCardStatus {
+  usedLimit: number;
+  availableLimit: number | null;
+  overLimit: number;
+  nextStatement: {
+    amount: number;
+    closingDate: AccountLogicalDate;
+    dueDate: AccountLogicalDate;
+    transactionCount: number;
+  } | null;
+  overdueCount: number;
+}
+
+export type AccountAttentionKind = 'CARD_OVERDUE' | 'CARD_DUE_SOON' | 'NEGATIVE_BALANCE' | 'CARD_NEAR_LIMIT';
+
+export interface AccountAttentionItem {
+  kind: AccountAttentionKind;
+  accountId: string;
+  name: string;
+  currency: string;
+  amount: number;
+  dueDate: AccountLogicalDate | null;
+  daysUntilDue: number | null;
+  limitUsedPercent: number | null;
+}
+
 export interface AccountModel {
   id: string;
   name: string;
@@ -49,6 +81,7 @@ export interface AccountModel {
   investmentValueCents?: number | null;
   investmentValueSource?: 'MARKET' | 'COST' | 'MIXED' | null;
   investmentPositionCount?: number;
+  cardStatus?: AccountCardStatus | null;
   currency: string;
   isActive: boolean;
   color?: string | null;
@@ -80,4 +113,6 @@ export interface AccountListSummary {
   negativeCount: number;
   totalCount: number;
   typeCounts: Record<AccountType, number>;
+  openStatementsByCurrency: Array<{ currency: string; value: number }>;
+  attention: AccountAttentionItem[];
 }
