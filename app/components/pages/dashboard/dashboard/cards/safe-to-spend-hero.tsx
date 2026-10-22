@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FaChartLine, FaChevronRight } from 'react-icons/fa';
+import { FaChartLine, FaChevronRight, FaMagic } from 'react-icons/fa';
 
 import { SectionMessage } from '@/app/components/pages/dashboard/dashboard/cards/section-message';
 import { dashboardLogicalDateLabel, displayMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
@@ -34,6 +34,7 @@ export function SafeToSpendHero({
   currency,
   onOpenForecast,
   forecastEnabled,
+  onOpenAssistant,
   onRetry,
 }: {
   cashTotal: number;
@@ -47,6 +48,7 @@ export function SafeToSpendHero({
   currency: string;
   onOpenForecast: () => void;
   forecastEnabled: boolean;
+  onOpenAssistant: () => void;
   onRetry?: () => void;
 }) {
   const through = safeToSpend?.through ?? horizonEnd;
@@ -149,17 +151,28 @@ export function SafeToSpendHero({
             </span>
           </span>
         </Link>
-        <Button
-          type="button"
-          size="xs"
-          variant="outline"
-          onClick={onOpenForecast}
-          disabled={!forecastEnabled}
-          icon={<FaChartLine aria-hidden="true" />}
-          aria-label="Ver projeção"
-        >
-          Ver projeção
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="xs"
+            variant="outline"
+            onClick={onOpenAssistant}
+            icon={<FaMagic aria-hidden="true" />}
+          >
+            Assistente
+          </Button>
+          <Button
+            type="button"
+            size="xs"
+            variant="outline"
+            onClick={onOpenForecast}
+            disabled={!forecastEnabled}
+            icon={<FaChartLine aria-hidden="true" />}
+            aria-label="Ver projeção"
+          >
+            Ver projeção
+          </Button>
+        </div>
       </div>
     </section>
   );

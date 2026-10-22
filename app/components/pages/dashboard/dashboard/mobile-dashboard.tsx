@@ -1,19 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { FaCalendarAlt, FaChartPie, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaBullseye } from 'react-icons/fa';
-import { LocalFinancialAssistantCard } from '@/app/components/pages/dashboard/dashboard/local-financial-assistant-card';
+import { FaCalendarAlt, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaBullseye } from 'react-icons/fa';
 import { Button, IconRenderer, Select } from '@/app/components/ui';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { DashboardHome, DashboardNetWorthSummary, DashboardRecentTransaction, MonthlyDashboard } from '@/app/types/dashboard';
 import { SupportedCurrency } from '@/app/types/financial-summary';
-import { FinancialInsightsData } from '@/app/types/financial-insight';
-import { ForecastData } from '@/app/types/forecast';
 import { FinancialCommitment } from '@/app/types/financial-commitment';
 import { commitmentBadge, compactMonthLabel, dashboardLogicalDateLabel, displayMoney, groupCommitments, monthLabel, transactionDateLabel } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
+import { MonthPaceCard } from '@/app/components/pages/dashboard/dashboard/cards/month-pace-card';
+import { CategoryBudgetBar } from '@/app/components/pages/dashboard/dashboard/cards/category-budget';
 import { NetWorthSummaryCard } from '@/app/components/pages/dashboard/dashboard/insight-cards';
-import { PlanningMetric } from '@/app/components/pages/dashboard/dashboard/desktop-cards';
 
 /** Estado de erro padrão dos cards: mensagem + "Tentar novamente" quando houver retry. */
 function CardError({ message, onRetry, tone = 'plain' }: { message: string; onRetry?: () => void; tone?: 'plain' | 'box' }) {
@@ -79,22 +77,15 @@ export function MobileDashboardHeader({
 export function MobileDashboardHome({
   home,
   showValues,
-  forecast,
   commitments,
   recentTransactions,
   topCategories,
   netWorth,
-  insights,
   onRetry,
 }: {
   home: DashboardHome;
   onRetry?: () => void;
   showValues: boolean;
-  forecast: {
-    data: ForecastData | null;
-    loading: boolean;
-    error: string;
-  };
   commitments: {
     data: import('@/app/types/financial-commitment').FinancialCommitmentsData | null;
     loading: boolean;
@@ -111,11 +102,6 @@ export function MobileDashboardHome({
     loading: boolean;
     error: string;
   };
-  insights: {
-    data: FinancialInsightsData | null;
-    loading: boolean;
-    error: string;
-  };
 }) {
   const data = home.monthly;
   const cashAccounts = home.current.cash.accounts;
@@ -123,63 +109,13 @@ export function MobileDashboardHome({
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
   const expenseWidth = flowTotal > 0 ? (data.summary.expense / flowTotal) * 100 : 50;
-  const hasPlanning =
-    data.planning.budget > 0 ||
-    data.planning.realized > 0 ||
-    data.planning.committed > 0 ||
-    data.planning.expectedIncome > 0;
-
   return (
     <div className="space-y-3">
-      {(data.cards.length > 0 || data.goals.length > 0 || hasPlanning) && (
-        <details className="group rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[16px] px-4 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
-            <span>Ver mais: cartões, metas e planejamento</span>
-            <FaChevronRight className="shrink-0 text-xs text-[var(--text-muted)] transition-transform group-open:rotate-90" aria-hidden="true" />
-          </summary>
-          <div className="space-y-3 px-3 pb-3">
-            {data.cards.length > 0 && (
-              <MobileCreditCardsCard
-                cards={data.cards}
-                showValues={showValues}
-                currency={data.currency}
-              />
-            )}
-
-            {data.goals.length > 0 && (
-              <MobileFinancialGoalsCard
-                goals={data.goals}
-                showValues={showValues}
-                currency={data.currency}
-              />
-            )}
-
-            {hasPlanning && (
-              <MobileMonthlyPlanningCard
-                planning={data.planning}
-                showValues={showValues}
-                currency={data.currency}
-              />
-            )}
-          </div>
-        </details>
-      )}
-
-      <NetWorthSummaryCard
-        currency={data.currency}
+      <MonthPaceCard
+        data={data}
+        relation={home.scope.selectedPeriodRelation}
+        today={home.scope.currentAsOf.day}
         showValues={showValues}
-        summary={netWorth}
-        period={data.period}
-      />
-
-      <LocalFinancialAssistantCard
-        key={`mobile-${data.period.year}-${data.period.month}-${data.currency}`}
-        dashboard={data}
-        insights={insights.data}
-        forecast={forecast.data}
-        showValues={showValues}
-        compact
-        contextReady={Boolean(forecast.data) && Boolean(insights.data)}
       />
 
       <MobileUpcomingCard
@@ -194,6 +130,7 @@ export function MobileDashboardHome({
 
       <MobileCategoriesCard
         categories={topCategories}
+        limits={data.limits}
         showValues={showValues}
         currency={data.currency}
       />
@@ -206,6 +143,37 @@ export function MobileDashboardHome({
         showValues={showValues}
         currency={data.currency}
       />
+
+      <details className="group rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[16px] px-4 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+          <span>Ver mais: cartões, metas e patrimônio</span>
+          <FaChevronRight className="shrink-0 text-xs text-[var(--text-muted)] transition-transform group-open:rotate-90" aria-hidden="true" />
+        </summary>
+        <div className="space-y-3 px-3 pb-3">
+          {data.cards.length > 0 && (
+            <MobileCreditCardsCard
+              cards={data.cards}
+              showValues={showValues}
+              currency={data.currency}
+            />
+          )}
+
+          {data.goals.length > 0 && (
+            <MobileFinancialGoalsCard
+              goals={data.goals}
+              showValues={showValues}
+              currency={data.currency}
+            />
+          )}
+
+          <NetWorthSummaryCard
+            currency={data.currency}
+            showValues={showValues}
+            summary={netWorth}
+            period={data.period}
+          />
+        </div>
+      </details>
 
       <div className="sr-only" aria-live="polite">
         Saldo realizado em {cashAccounts.length} conta{cashAccounts.length === 1 ? '' : 's'} corrente{cashAccounts.length === 1 ? '' : 's'}: {displayMoney(availableNow, showValues, data.currency)}.
@@ -301,10 +269,12 @@ export function MobileUpcomingCard({
 
 export function MobileCategoriesCard({
   categories,
+  limits,
   showValues,
   currency,
 }: {
   categories: MonthlyDashboard['categories'];
+  limits: MonthlyDashboard['limits'];
   showValues: boolean;
   currency: string;
 }) {
@@ -319,11 +289,14 @@ export function MobileCategoriesCard({
         {categories.length === 0 ? (
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma despesa categorizada neste período.</p>
         ) : (
-          categories.slice(0, 5).map((category) => (
+          categories.slice(0, 5).map((category) => {
+            const limit = limits.find((item) => item.category.id === category.id);
+
+            return (
             <Link
               key={category.id}
               href={`/categorias/show/${encodeURIComponent(category.id)}`}
-              className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto_12px] items-center gap-2 py-1.5"
+              className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto_12px] items-center gap-x-2 gap-y-1 py-1.5"
             >
               <span className="flex min-w-0 items-center gap-2.5">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: category.color }}>
@@ -333,8 +306,14 @@ export function MobileCategoriesCard({
               </span>
               <strong className="text-right text-sm"><span className="money">{displayMoney(category.realized, showValues, currency)}</span></strong>
               <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+              {limit && (
+                <span className="col-span-3 pl-[42px]">
+                  <CategoryBudgetBar limit={limit} showValues={showValues} currency={currency} />
+                </span>
+              )}
             </Link>
-          ))
+            );
+          })
         )}
       </div>
     </article>
@@ -413,48 +392,6 @@ export function MobileRecentTransactionsCard({
         )}
       </div>
     </article>
-  );
-}
-
-export function MobileMonthlyPlanningCard({
-  planning,
-  showValues,
-  currency,
-}: {
-  planning: MonthlyDashboard['planning'];
-  showValues: boolean;
-  currency: string;
-}) {
-  return (
-    <Link
-      href="/categorias"
-      className="block rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-base font-bold">
-          <FaChartPie className="text-[var(--orbit-primary)]" aria-hidden="true" />
-          Planejamento
-        </h2>
-        <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-        <PlanningMetric label="Orçamento" value={displayMoney(planning.budget, showValues, currency)} />
-        <PlanningMetric
-          label="Disponível"
-          value={displayMoney(planning.available, showValues, currency)}
-          danger={planning.available < 0}
-        />
-        <PlanningMetric label="Realizado" value={displayMoney(planning.realized, showValues, currency)} />
-        <PlanningMetric label="Comprometido" value={displayMoney(planning.committed, showValues, currency)} />
-      </div>
-
-      {planning.overBudgetCategories > 0 && (
-        <p className="mt-3 text-xs font-semibold text-[var(--expense)]">
-          {planning.overBudgetCategories} categoria{planning.overBudgetCategories === 1 ? '' : 's'} acima do orçamento
-        </p>
-      )}
-    </Link>
   );
 }
 

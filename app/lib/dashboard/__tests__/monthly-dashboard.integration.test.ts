@@ -281,6 +281,11 @@ describe('monthly dashboard integration', () => {
     });
     expect(dashboard.comparison.income).toEqual({ difference: 50_000, percentage: 100 });
     expect(dashboard.comparison.expense).toEqual({ difference: 40_000, percentage: 400 });
+    // O gasto diário fecha com o resumo do mês e com o mês anterior da comparação.
+    expect(dashboard.spending.current).toHaveLength(30);
+    expect(dashboard.spending.current.reduce((sum, value) => sum + value, 0)).toBe(dashboard.summary.expense);
+    expect(dashboard.spending.previous).toHaveLength(31);
+    expect(dashboard.spending.previous.reduce((sum, value) => sum + value, 0)).toBe(10_000);
     expect(dashboard.categories).toEqual([
       expect.objectContaining({
         id: foodCategory.id,

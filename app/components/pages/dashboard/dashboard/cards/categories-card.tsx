@@ -3,17 +3,20 @@
 import { SectionMessage } from '@/app/components/pages/dashboard/dashboard/cards/section-message';
 import Link from 'next/link';
 import { IconRenderer } from '@/app/components/ui';
+import { CategoryBudgetBar } from '@/app/components/pages/dashboard/dashboard/cards/category-budget';
 import { MonthlyDashboard } from '@/app/types/dashboard';
 import { FaChevronRight } from 'react-icons/fa';
 import { displayMoney, monthLabel } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 
 export function CategoriesCard({
   categories,
+  limits,
   showValues,
   currency,
   period,
 }: {
   categories: MonthlyDashboard['categories'];
+  limits: MonthlyDashboard['limits'];
   showValues: boolean;
   currency: string;
   period: MonthlyDashboard['period'];
@@ -28,7 +31,10 @@ export function CategoriesCard({
         {categories.length === 0 ? (
           <SectionMessage tone="empty">Nenhuma despesa categorizada neste período.</SectionMessage>
         ) : (
-          categories.map((category) => (
+          categories.map((category) => {
+            const limit = limits.find((item) => item.category.id === category.id);
+
+            return (
             <Link
               key={category.id}
               href={`/categorias/show/${encodeURIComponent(category.id)}`}
@@ -39,12 +45,21 @@ export function CategoriesCard({
                 <span className="truncate text-sm font-semibold">{category.name}</span>
               </span>
               <strong className="text-right text-sm sm:text-left"><span className="money">{displayMoney(category.realized, showValues, currency)}</span></strong>
-              <span className="hidden h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)] sm:block">
-                <span className="block h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${Math.min(100, category.sharePercentage)}%` }} />
-              </span>
-              <span className="hidden text-right text-xs font-semibold text-[var(--text-muted)] sm:block">{category.sharePercentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
+              {limit ? (
+                <span className="col-span-full hidden sm:col-span-2 sm:block">
+                  <CategoryBudgetBar limit={limit} showValues={showValues} currency={currency} />
+                </span>
+              ) : (
+                <>
+                  <span className="hidden h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)] sm:block">
+                    <span className="block h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${Math.min(100, category.sharePercentage)}%` }} />
+                  </span>
+                  <span className="hidden text-right text-xs font-semibold text-[var(--text-muted)] sm:block">{category.sharePercentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
+                </>
+              )}
             </Link>
-          ))
+            );
+          })
         )}
       </div>
       <Link href="/categorias" className="mt-2 flex min-h-11 items-center justify-between rounded-[10px] border border-[var(--border-strong)] px-3 text-sm font-semibold">

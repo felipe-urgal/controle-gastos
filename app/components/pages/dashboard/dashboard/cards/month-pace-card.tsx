@@ -1,0 +1,210 @@
+'use client';
+
+import Link from 'next/link';
+import { FaArrowDown, FaArrowUp } from 'react-icons/fa';
+
+import { MonthMetric } from '@/app/components/pages/dashboard/dashboard/cards/month-metric';
+import { PlanningMetric } from '@/app/components/pages/dashboard/dashboard/cards/planning-metric';
+import { buildMonthPace, type MonthPace, type PaceStatus } from '@/app/components/pages/dashboard/dashboard/dashboard-pace';
+import { displayMoney, monthLabel, signedMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
+import { ComparisonDetail } from '@/app/components/pages/dashboard/dashboard/insight-cards';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
+import type { DashboardPeriodRelation, MonthlyDashboard } from '@/app/types/dashboard';
+
+const WIDTH = 640;
+const HEIGHT = 210;
+const PAD = { left: 48, right: 14, top: 16, bottom: 24 };
+
+const compact = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
+
+function statusMessage(status: PaceStatus, hasBudget: boolean): { text: string; tone: 'good' | 'warn' | 'bad' | 'neutral' } {
+  switch (status) {
+    case 'OVER_BUDGET':
+      return { text: 'O gasto já passou do orçamento do mês', tone: 'bad' };
+    case 'AHEAD':
+      return { text: hasBudget ? 'Gastando mais rápido do que o orçamento comporta' : 'Gastando mais do que no mês passado até aqui', tone: 'warn' };
+    case 'ON_TRACK':
+      return { text: hasBudget ? 'No ritmo do orçamento' : 'Em linha com o mês passado', tone: 'good' };
+    case 'FINISHED':
+      return { text: 'Mês encerrado', tone: 'neutral' };
+    case 'NOT_STARTED':
+      return { text: 'Este mês ainda não começou', tone: 'neutral' };
+    default:
+      return { text: 'Sem despesas registradas neste mês', tone: 'neutral' };
+  }
+}
+
+const toneClass = {
+  good: 'bg-[var(--surface-subtle)] text-[var(--income)]',
+  warn: 'bg-[var(--warning-subtle)] text-[var(--warning)]',
+  bad: 'bg-[var(--danger-subtle)] text-[var(--expense)]',
+  neutral: 'bg-[var(--surface-subtle)] text-[var(--text-muted)]',
+} as const;
+
+function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues: boolean; currency: string }) {
+  const { daysInMonth, elapsedDays, cumulative, previousCumulative, budget, projected, spent } = pace;
+  const max = Math.max(budget, projected ?? 0, spent, previousCumulative[previousCumulative.length - 1] ?? 0, 1_000);
+  const top = max * 1.08;
+  const x = (day: number) => PAD.left + ((day - 1) / Math.max(daysInMonth - 1, 1)) * (WIDTH - PAD.left - PAD.right);
+  const y = (value: number) => PAD.top + (1 - value / top) * (HEIGHT - PAD.top - PAD.bottom);
+  const line = (values: number[]) => values.map((value, index) => `${index === 0 ? 'M' : 'L'} ${x(index + 1).toFixed(1)} ${y(value).toFixed(1)}`).join(' ');
+  const ticks = [0, 0.5, 1].map((fraction) => Math.round((top * fraction) / 1000) * 1000);
+  const xTicks = [1, Math.ceil(daysInMonth / 4), Math.ceil(daysInMonth / 2), Math.ceil((daysInMonth * 3) / 4), daysInMonth];
+  const money = (cents: number) => (showValues ? formatCurrency(cents, currency) : '••••');
+  const hasToday = elapsedDays > 0;
+  const mono = 'var(--font-numeric), monospace';
+
+  return (
+    <svg
+      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+      className="h-auto w-full"
+      role="img"
+      aria-label={`Gasto acumulado no mês: ${money(spent)} em ${elapsedDays} de ${daysInMonth} dias${budget > 0 ? `, orçamento de ${money(budget)}` : ''}${projected !== null ? `, projeção de ${money(projected)} no fim do mês` : ''}.`}
+    >
+      {ticks.map((tick) => (
+        <g key={tick}>
+          <line x1={PAD.left} x2={WIDTH - PAD.right} y1={y(tick)} y2={y(tick)} stroke="var(--border)" strokeOpacity={tick === 0 ? 1 : 0.7} />
+          {showValues && (
+            <text x={PAD.left - 8} y={y(tick) + 4} textAnchor="end" fontSize="11" fill="var(--text-muted)" fontFamily={mono}>
+              {compact.format(tick / 100)}
+            </text>
+          )}
+        </g>
+      ))}
+      {xTicks.map((day, index) => (
+        <text key={`${day}-${index}`} x={x(day)} y={HEIGHT - 6} textAnchor={index === 0 ? 'start' : index === xTicks.length - 1 ? 'end' : 'middle'} fontSize="11" fill="var(--text-muted)" fontFamily={mono}>
+          {day}
+        </text>
+      ))}
+
+      {budget > 0 && (
+        <g>
+          <line x1={PAD.left} x2={WIDTH - PAD.right} y1={y(budget)} y2={y(budget)} stroke="var(--warning)" strokeWidth="1.2" strokeDasharray="5 4" />
+          <text x={WIDTH - PAD.right} y={y(budget) - 6} textAnchor="end" fontSize="11" fill="var(--warning)">orçamento</text>
+        </g>
+      )}
+      {previousCumulative.length > 1 && (
+        <path d={line(previousCumulative)} fill="none" stroke="var(--text-subtle)" strokeWidth="1.4" strokeOpacity="0.8" />
+      )}
+      {hasToday && cumulative.length > 0 && (
+        <>
+          <path d={`${line(cumulative)} L ${x(elapsedDays)} ${y(0)} L ${x(1)} ${y(0)} Z`} fill="var(--orbit-primary)" fillOpacity="0.13" />
+          <path d={line(cumulative)} fill="none" stroke="var(--orbit-primary)" strokeWidth="2.2" strokeLinejoin="round" />
+        </>
+      )}
+      {hasToday && projected !== null && elapsedDays < daysInMonth && (
+        <path d={`M ${x(elapsedDays)} ${y(spent)} L ${x(daysInMonth)} ${y(projected)}`} fill="none" stroke="var(--orbit-primary)" strokeWidth="1.6" strokeDasharray="3 4" />
+      )}
+      {hasToday && (
+        <circle cx={x(elapsedDays)} cy={y(spent)} r="4.5" fill="var(--orbit-primary)" stroke="var(--surface)" strokeWidth="2" />
+      )}
+    </svg>
+  );
+}
+
+export function MonthPaceCard({
+  data,
+  relation,
+  today,
+  showValues,
+}: {
+  data: MonthlyDashboard;
+  relation: DashboardPeriodRelation;
+  /** Dia do mês de hoje (referência atual), usado quando o mês selecionado é o atual. */
+  today: number;
+  showValues: boolean;
+}) {
+  const pace = buildMonthPace({
+    current: data.spending.current,
+    previous: data.spending.previous,
+    budget: data.planning.budget,
+    relation,
+    today,
+  });
+  const previous = data.comparison.previousPeriod;
+  const status = statusMessage(pace.status, data.planning.budget > 0);
+  const money = (cents: number) => displayMoney(cents, showValues, data.currency);
+  const periodValue = `${data.period.year}-${String(data.period.month).padStart(2, '0')}`;
+  const hasPlanning = data.planning.budget > 0 || data.planning.committed > 0;
+
+  return (
+    <section
+      className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
+      aria-labelledby="dashboard-pace-title"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 id="dashboard-pace-title" className="text-lg font-bold">Ritmo do mês</h2>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">Seu dinheiro em {monthLabel(periodValue)}.</p>
+        </div>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${toneClass[status.tone]}`}>{status.text}</span>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-3 sm:divide-x sm:divide-[var(--border)]">
+        <MonthMetric
+          icon={<FaArrowUp aria-hidden="true" />}
+          label="Receitas"
+          value={money(data.summary.income)}
+          detail={
+            <ComparisonDetail
+              percentage={data.comparison.income.percentage}
+              previousMonth={previous.month}
+              previousYear={previous.year}
+              tone={data.comparison.income.percentage !== null && data.comparison.income.percentage >= 0 ? 'income' : 'expense'}
+            />
+          }
+          tone="income"
+        />
+        <MonthMetric
+          icon={<FaArrowDown aria-hidden="true" />}
+          label="Despesas"
+          value={money(data.summary.expense)}
+          detail={
+            <ComparisonDetail
+              percentage={data.comparison.expense.percentage}
+              previousMonth={previous.month}
+              previousYear={previous.year}
+            />
+          }
+          tone="expense"
+        />
+        <MonthMetric
+          icon={<span aria-hidden="true">−</span>}
+          label="Saldo do mês"
+          value={signedMoney(data.summary.balance, showValues, data.currency)}
+          detail={data.summary.balance < 0 ? 'Você gastou mais que recebeu.' : 'O mês está positivo até aqui.'}
+          tone={data.summary.balance < 0 ? 'expense' : 'income'}
+          iconTone="neutral"
+        />
+      </div>
+
+      <div className="mt-5">
+        <PaceChart pace={pace} showValues={showValues} currency={data.currency} />
+        <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-[var(--text-muted)]">
+          <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-[var(--orbit-primary)]" aria-hidden="true" />Este mês</span>
+          <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-[var(--text-subtle)]" aria-hidden="true" />{monthLabel(`${previous.year}-${String(previous.month).padStart(2, '0')}`)}</span>
+          {pace.budget > 0 && <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded border-t border-dashed border-[var(--warning)]" aria-hidden="true" />Orçamento</span>}
+          {pace.projected !== null && (
+            <span className="ml-auto">
+              Projeção no ritmo atual: <strong className="money text-[var(--foreground)]">{money(pace.projected)}</strong>
+            </span>
+          )}
+        </div>
+      </div>
+
+      {hasPlanning && (
+        <div className="mt-4 grid gap-2 sm:grid-cols-4">
+          <PlanningMetric label="Orçamento" value={money(data.planning.budget)} />
+          <PlanningMetric label="Realizado" value={money(data.planning.realized)} />
+          <PlanningMetric label="Comprometido" value={money(data.planning.committed)} />
+          <PlanningMetric label="Disponível" value={money(data.planning.available)} danger={data.planning.available < 0} />
+        </div>
+      )}
+      <div className="mt-3 flex justify-end">
+        <Link href="/categorias" className="inline-flex min-h-11 items-center text-xs font-semibold text-[var(--orbit-primary)]">
+          Ajustar orçamento
+        </Link>
+      </div>
+    </section>
+  );
+}

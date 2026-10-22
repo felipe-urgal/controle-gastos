@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 
 import { Button, IconButton, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -35,8 +36,7 @@ function cardFallback(height: number) {
 }
 const CreditCardsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/credit-cards-card').then((m) => m.CreditCardsCard), { ssr: false, loading: cardFallback(160) });
 const FinancialGoalsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/financial-goals-card').then((m) => m.FinancialGoalsCard), { ssr: false, loading: cardFallback(160) });
-const MonthlyPlanningCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/monthly-planning-card').then((m) => m.MonthlyPlanningCard), { ssr: false, loading: cardFallback(200) });
-const MonthOverviewCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/month-overview-card').then((m) => m.MonthOverviewCard), { ssr: false, loading: cardFallback(252) });
+const MonthPaceCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/month-pace-card').then((m) => m.MonthPaceCard), { ssr: false, loading: cardFallback(420) });
 const CategoriesCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/categories-card').then((m) => m.CategoriesCard), { ssr: false, loading: cardFallback(252) });
 const RecentTransactionsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/recent-transactions-card').then((m) => m.RecentTransactionsCard), { ssr: false, loading: cardFallback(244) });
 const ForecastDialog = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/forecast-dialog').then((m) => m.ForecastDialog), { ssr: false });
@@ -157,6 +157,7 @@ function DashboardHome({
   onRetry: () => void;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const data = home.monthly;
   const forecast = sectionState(home.current.forecast);
@@ -175,9 +176,6 @@ function DashboardHome({
     .sort((left, right) => right.realized - left.realized)
     .slice(0, 5);
   const commitmentItems = commitments.data?.items ?? [];
-  const flowTotal = data.summary.income + data.summary.expense;
-  const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
-  const expenseWidth = flowTotal > 0 ? (data.summary.expense / flowTotal) * 100 : 50;
   const attentionItems = buildAttentionItems({
     cards: data.cards,
     recentTransactions: recentTransactions.data ?? [],
@@ -226,6 +224,7 @@ function DashboardHome({
           currency={data.currency}
           onOpenForecast={() => setForecastOpen(true)}
           forecastEnabled={Boolean(forecast.data) && !forecast.loading}
+          onOpenAssistant={() => setAssistantOpen(true)}
           onRetry={onRetry}
         />
         <AttentionCard
@@ -240,12 +239,10 @@ function DashboardHome({
           <MobileDashboardHome
             home={home}
             showValues={showValues}
-            forecast={forecast}
             commitments={commitments}
             recentTransactions={recentTransactions}
             topCategories={topCategories}
             netWorth={netWorth}
-            insights={insights}
             onRetry={onRetry}
           />
         </div>
@@ -253,14 +250,14 @@ function DashboardHome({
 
       {isDesktop && (
         <>
-        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-          <MonthOverviewCard
+        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+          <MonthPaceCard
             data={data}
+            relation={home.scope.selectedPeriodRelation}
+            today={home.scope.currentAsOf.day}
             showValues={showValues}
-            incomeWidth={incomeWidth}
-            expenseWidth={expenseWidth}
           />
-          <CategoriesCard categories={topCategories} showValues={showValues} currency={data.currency} period={data.period} />
+          <CategoriesCard categories={topCategories} limits={data.limits} showValues={showValues} currency={data.currency} period={data.period} />
         </section>
 
         <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1.36fr)]">
@@ -283,58 +280,34 @@ function DashboardHome({
           />
         </section>
 
-        {data.cards.length > 0 && (
-          <div className="mt-[14px]">
-            <CreditCardsCard
-              cards={data.cards}
-              showValues={showValues}
+        <section className="mt-[14px] grid items-start gap-[14px] xl:grid-cols-3" aria-label="Visão geral">
+          {data.cards.length > 0 && (
+            <div className="min-w-0">
+              <CreditCardsCard
+                cards={data.cards}
+                showValues={showValues}
+                currency={data.currency}
+              />
+            </div>
+          )}
+          {data.goals.length > 0 && (
+            <div className="min-w-0">
+              <FinancialGoalsCard
+                goals={data.goals}
+                showValues={showValues}
+                currency={data.currency}
+              />
+            </div>
+          )}
+          <div className="min-w-0">
+            <NetWorthSummaryCard
               currency={data.currency}
+              showValues={showValues}
+              summary={netWorth}
+              period={data.period}
             />
           </div>
-        )}
-
-        {data.goals.length > 0 && (
-          <div className="mt-[14px]">
-            <FinancialGoalsCard
-              goals={data.goals}
-              showValues={showValues}
-              currency={data.currency}
-            />
-          </div>
-        )}
-
-        {(data.planning.budget > 0 ||
-          data.planning.realized > 0 ||
-          data.planning.committed > 0 ||
-          data.planning.expectedIncome > 0) && (
-          <div className="mt-[14px]">
-            <MonthlyPlanningCard
-              planning={data.planning}
-              showValues={showValues}
-              currency={data.currency}
-            />
-          </div>
-        )}
-
-        <div className="mt-[14px]">
-          <NetWorthSummaryCard
-            currency={data.currency}
-            showValues={showValues}
-            summary={netWorth}
-            period={data.period}
-          />
-        </div>
-
-        <div className="mt-[14px]">
-          <LocalFinancialAssistantCard
-            key={`${data.period.year}-${data.period.month}-${data.currency}`}
-            dashboard={data}
-            insights={insights.data}
-            forecast={forecast.data}
-            showValues={showValues}
-            contextReady={Boolean(forecast.data) && Boolean(insights.data)}
-          />
-        </div>
+        </section>
         </>
       )}
 
@@ -348,6 +321,26 @@ function DashboardHome({
             showValues={showValues}
           />
         </div>
+      )}
+
+      {assistantOpen && (
+        <ModalShell
+          title="Assistente financeiro"
+          eyebrow="IA local"
+          closeLabel="Fechar assistente"
+          maxWidthClass="sm:max-w-[640px]"
+          onClose={() => setAssistantOpen(false)}
+        >
+          <LocalFinancialAssistantCard
+            key={`${data.period.year}-${data.period.month}-${data.currency}`}
+            dashboard={data}
+            insights={insights.data}
+            forecast={forecast.data}
+            showValues={showValues}
+            compact
+            contextReady={Boolean(forecast.data) && Boolean(insights.data)}
+          />
+        </ModalShell>
       )}
 
       {forecastOpen && forecast.data && (

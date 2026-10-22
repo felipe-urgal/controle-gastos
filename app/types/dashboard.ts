@@ -110,6 +110,11 @@ export type MonthlyDashboard = {
   period: DashboardPeriod;
   currency: SupportedCurrency;
   summary: DashboardSummary;
+  /** Despesa realizada por dia (centavos), índice 0 = dia 1; mesma base de `summary.expense`. */
+  spending: {
+    current: number[];
+    previous: number[];
+  };
   comparison: DashboardComparison;
   accounts: DashboardAccountBalance[];
   cards: DashboardCreditCard[];
