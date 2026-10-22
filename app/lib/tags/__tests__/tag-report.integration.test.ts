@@ -9,7 +9,9 @@ vi.mock("@/app/lib/auth", () => ({
 }));
 
 import { prisma } from "@/app/lib/prisma";
+import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
 import { getTagReport } from "@/app/lib/tags/tag-report";
+import { tagHistoryWindow } from "@/app/lib/tags/tag-report-model";
 import { createTransferForUser } from "@/app/lib/transfers/create-transfer";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
 
@@ -219,5 +221,53 @@ describe("tag report integration", () => {
         balance: -2_000,
       },
     ]);
+  });
+
+  it("filtra o relatório por período e devolve seis meses de histórico", async () => {
+    const owner = await factory.user();
+    const account = await factory.account(owner.id);
+    const category = await factory.category(owner.id, { type: "EXPENSE" });
+    const tag = await prisma.tag.create({
+      data: { userId: owner.id, name: "viagem", normalizedName: "viagem" },
+    });
+    const today = logicalDateFromUtcInstant(new Date());
+    const previous = tagHistoryWindow(today)[4];
+    const old = { year: today.year - 2, month: 1 };
+
+    for (const [period, amount] of [
+      [today, 3_000],
+      [previous, 1_000],
+      [old, 7_000],
+    ] as const) {
+      const transaction = await factory.transaction({
+        userId: owner.id,
+        accountId: account.id,
+        categoryId: category.id,
+        overrides: { amount, type: "EXPENSE", year: period.year, month: period.month },
+      });
+      await prisma.transactionTag.create({
+        data: { userId: owner.id, transactionId: transaction.id, tagId: tag.id },
+      });
+    }
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const read = async (period: string) => {
+      const response = await getTagReport(
+        new Request(`http://localhost/api/tags/${tag.id}/report?period=${period}`),
+        { params: Promise.resolve({ id: tag.id }) },
+      );
+      expect(response.status).toBe(200);
+      return (await response.json()).data;
+    };
+
+    expect((await read("month")).currencies[0]).toMatchObject({ transactionCount: 1, expense: 3_000 });
+    expect((await read("all")).currencies[0]).toMatchObject({ transactionCount: 3, expense: 11_000 });
+
+    const report = await read("all");
+    expect(report.period).toBe("all");
+    expect(report.history).toHaveLength(1);
+    expect(report.history[0].points).toHaveLength(6);
+    expect(report.history[0].points[5].expense).toBe(3_000);
+    expect(report.history[0].points[4].expense).toBe(1_000);
   });
 });

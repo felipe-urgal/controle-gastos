@@ -125,7 +125,7 @@ test('tags: criar, renomear, relatar, filtrar e preservar lifecycle', async ({
   await page
     .getByRole('button', { name: `Relatório da tag ${renamedTagName}` })
     .click();
-  await expect(page.getByText('Todo o histórico', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tudo', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
   const openTransactions = page.getByRole('link', { name: 'Abrir transações' });
   await expect(openTransactions).toHaveAttribute(
