@@ -140,4 +140,27 @@ describe('toAccountDTO', () => {
       counterpartAccount: null,
     });
   });
+
+  it('repassa se a conta tem histórico financeiro e usa null quando a leitura não informa', () => {
+    const now = new Date('2026-09-10T12:00:00.000Z');
+    const base = {
+      id: 'account-1',
+      name: 'Conta principal',
+      type: 'CREDIT_DEBIT',
+      balance: 0,
+      currency: 'BRL',
+      isActive: true,
+      color: '#111111',
+      icon: 'wallet',
+      description: null,
+      userId: 'user-1',
+      createdAt: now,
+      updatedAt: now,
+      transactions: [],
+    };
+
+    expect(toAccountDTO({ ...base, hasFinancialHistory: true } as any).hasFinancialHistory).toBe(true);
+    expect(toAccountDTO({ ...base, hasFinancialHistory: false } as any).hasFinancialHistory).toBe(false);
+    expect(toAccountDTO(base as any).hasFinancialHistory).toBeNull();
+  });
 });

@@ -178,9 +178,13 @@ export const accountCrud = baseCrudHandler({
   },
   afterRead: async (account, userId) => {
     const enriched = await withDerivedAccountBalance(account, userId);
+    // Tipo, moeda e ciclo do cartão travam com qualquer histórico financeiro; a tela de edição avisa antes de salvar.
+    const usage = await getAccountFinancialUsage(prisma, userId, account.id);
+    const hasFinancialHistory = Object.values(usage).some((count) => count > 0);
     if (account.type !== "INVESTMENT") {
       return {
         ...enriched,
+        hasFinancialHistory,
         investmentValueCents: null,
         investmentValueSource: null,
         investmentPositionCount: 0,
@@ -190,6 +194,7 @@ export const accountCrud = baseCrudHandler({
     const value = values.get(account.id);
     return {
       ...enriched,
+      hasFinancialHistory,
       investmentValueCents: value?.valueCents ?? 0,
       investmentValueSource: value?.source ?? null,
       investmentPositionCount: value?.positionCount ?? 0,

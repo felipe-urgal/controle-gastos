@@ -8,6 +8,7 @@ type AccountWithDerivedBalance = Account & {
   investmentValueSource?: "MARKET" | "COST" | "MIXED" | null;
   investmentPositionCount?: number;
   cardStatus?: AccountCardStatusDTO | null;
+  hasFinancialHistory?: boolean;
   transactions: RecentTransactionRecord[];
 };
 
@@ -82,6 +83,7 @@ export function toAccountDTO(account: AccountWithDerivedBalance) {
     investmentValueSource: account.investmentValueSource ?? null,
     investmentPositionCount: account.investmentPositionCount ?? 0,
     cardStatus: account.cardStatus ?? null,
+    hasFinancialHistory: account.hasFinancialHistory ?? null,
     currency: account.currency,
     isActive: account.isActive,
     color: account.color,

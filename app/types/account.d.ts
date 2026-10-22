@@ -82,6 +82,8 @@ export interface AccountModel {
   investmentValueSource?: 'MARKET' | 'COST' | 'MIXED' | null;
   investmentPositionCount?: number;
   cardStatus?: AccountCardStatus | null;
+  /** Só vem na leitura de uma conta. Com histórico, tipo, moeda e ciclo do cartão ficam travados. */
+  hasFinancialHistory?: boolean | null;
   currency: string;
   isActive: boolean;
   color?: string | null;
