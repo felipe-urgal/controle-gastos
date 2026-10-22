@@ -18,6 +18,7 @@ vi.mock("@/app/lib/investments/brapi-client", () => ({
 import {
   createInvestmentAsset,
   createInvestmentFiscalCostAdjustment,
+  createInvestmentIncome,
   createInvestmentOperation,
   getInvestmentPortfolio,
   refreshInvestmentQuotes,
@@ -276,6 +277,54 @@ describe("investments integration", () => {
     expect((await conflict.json()).error.code).toBe(
       "IDEMPOTENCY_PAYLOAD_CONFLICT",
     );
+  });
+
+  it("registers a manual income without touching positions or transactions, replaying idempotent retries", async () => {
+    const owner = await fixtures.user({ name: "Income Owner" });
+    const other = await fixtures.user({ name: "Income Other" });
+    const account = await fixtures.account(owner.id, {
+      type: "INVESTMENT",
+      currency: "BRL",
+    });
+    const asset = await createAsset(owner.id);
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const body = {
+      type: "DIVIDEND",
+      accountId: account.id,
+      assetId: asset.body.data.id,
+      quantity: "100",
+      unitValueCents: 85,
+      netAmountCents: 8_500,
+      date: "2026-10-01",
+    };
+    const request = (payload: unknown, key = "investment-income-retry") =>
+      new Request("http://localhost/api/investments/incomes", {
+        method: "POST",
+        headers: { "content-type": "application/json", "Idempotency-Key": key },
+        body: JSON.stringify(payload),
+      });
+
+    const first = await createInvestmentIncome(request(body));
+    const second = await createInvestmentIncome(request(body));
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect((await first.json()).data.id).toBe((await second.json()).data.id);
+    expect(
+      await prisma.investmentIncome.count({ where: { userId: owner.id } }),
+    ).toBe(1);
+    expect(
+      await prisma.transaction.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+
+    const conflict = await createInvestmentIncome(
+      request({ ...body, netAmountCents: 9_000 }),
+    );
+    expect(conflict.status).toBe(409);
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(other.id);
+    const foreign = await createInvestmentIncome(request(body, "other-key"));
+    expect(foreign.status).toBe(404);
   });
 
   it("persists assets and derives a fractional position without creating transactions", async () => {

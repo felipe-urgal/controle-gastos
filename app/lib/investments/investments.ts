@@ -21,6 +21,7 @@ import {
 import {
   createInvestmentAssetSchema,
   createInvestmentFiscalCostAdjustmentSchema,
+  createInvestmentIncomeSchema,
   createInvestmentOperationSchema,
   updateInvestmentFiscalEventSchema,
 } from "@/app/lib/investments/investment-schema";
@@ -1036,6 +1037,100 @@ async function createOperationInTransaction(
     where: { id: created.id },
     include: operationInclude,
   });
+}
+
+async function createIncomeInTransaction(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  input: ReturnType<typeof createInvestmentIncomeSchema.parse>,
+) {
+  const [account, asset] = await Promise.all([
+    tx.account.findFirst({
+      where: { id: input.accountId, userId },
+      select: { id: true, currency: true, type: true, isActive: true },
+    }),
+    tx.investmentAsset.findFirst({
+      where: { id: input.assetId, userId },
+      select: { id: true, currency: true },
+    }),
+  ]);
+
+  if (!account) {
+    throw new HttpError("Conta de investimento não encontrada", 404);
+  }
+  if (account.type !== "INVESTMENT") {
+    throw new HttpError(
+      "Proventos só podem usar contas do tipo investimento",
+      409,
+      "INVESTMENT_ACCOUNT_REQUIRED",
+    );
+  }
+  if (!account.isActive) {
+    throw new HttpError(
+      "Não é possível registrar provento em conta de investimento inativa",
+      409,
+      "INVESTMENT_ACCOUNT_INACTIVE",
+    );
+  }
+  if (!asset) throw new HttpError("Ativo não encontrado", 404);
+  if (account.currency !== asset.currency) {
+    throw new HttpError(
+      "A moeda do ativo deve ser igual à moeda da conta de investimento",
+      409,
+      "INVESTMENT_CURRENCY_MISMATCH",
+    );
+  }
+
+  const quantityUnits = parseInvestmentQuantity(input.quantity);
+  if (quantityUnits === null) {
+    throw new HttpError("Quantidade inválida", 400);
+  }
+
+  return tx.investmentIncome.create({
+    data: {
+      userId,
+      accountId: account.id,
+      assetId: asset.id,
+      type: input.type,
+      quantityUnits,
+      unitValueCents: input.unitValueCents,
+      netAmountCents: input.netAmountCents,
+      ...dateParts(input.date),
+      note: input.note,
+    },
+    include: incomeInclude,
+  });
+}
+
+export async function createInvestmentIncome(request: Request) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const input = createInvestmentIncomeSchema.parse(
+      await parseJsonBody(request),
+    );
+    const result = await runInvestmentIdempotentMutation({
+      request,
+      userId,
+      scope: "INVESTMENT_INCOME_CREATE",
+      payload: input,
+      execute: async (tx) => {
+        const created = await createIncomeInTransaction(tx, userId, input);
+        return { resourceId: created.id, value: created };
+      },
+      replay: (tx, resourceId) =>
+        tx.investmentIncome.findFirst({
+          where: { id: resourceId, userId },
+          include: incomeInclude,
+        }),
+    });
+    return success(
+      toIncome(result.value),
+      result.replayed ? "Provento já registrado" : "Provento criado com sucesso",
+      201,
+    );
+  } catch (error) {
+    return handleInvestmentError(error, "Erro ao criar provento");
+  }
 }
 
 export async function createInvestmentOperation(request: Request) {

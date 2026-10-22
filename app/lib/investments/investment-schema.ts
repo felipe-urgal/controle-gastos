@@ -63,6 +63,31 @@ export const createInvestmentOperationSchema = z.object({
   note: optionalTrimmed(500),
 });
 
+export const createInvestmentIncomeSchema = z.object({
+  type: z.enum(["DIVIDEND", "INTEREST", "INCOME", "OTHER"]),
+  accountId: z.string().uuid("Conta inválida"),
+  assetId: z.string().uuid("Ativo inválido"),
+  quantity: z
+    .string()
+    .trim()
+    .min(1, "Informe a quantidade")
+    .refine((value) => parseInvestmentQuantity(value) !== null, {
+      message: "Quantidade deve ser positiva e ter no máximo 8 casas decimais",
+    }),
+  unitValueCents: z
+    .number()
+    .int()
+    .positive("Valor unitário deve ser positivo")
+    .max(MAX_CENTS),
+  netAmountCents: z
+    .number()
+    .int()
+    .positive("Valor líquido deve ser positivo")
+    .max(MAX_CENTS),
+  date: z.string().refine(validLogicalDate, "Data inválida"),
+  note: optionalTrimmed(500),
+});
+
 export type CreateInvestmentAssetInput = z.infer<
   typeof createInvestmentAssetSchema
 >;

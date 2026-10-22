@@ -17,8 +17,8 @@ import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 
 import { investmentService, type InvestmentAssetInput } from '@/app/services/investment-service';
 import type { InvestmentAsset, InvestmentFiscalEventType, InvestmentIncome, InvestmentOperation, InvestmentPortfolio } from '@/app/types/investment';
-import { AssetForm, FiscalCostForm, OperationForm, emptyAsset, emptyFiscalCost, emptyOperation, today } from '@/app/components/pages/investment/investments-helpers';
-import { AssetModal, DeleteConfirmModal, FiscalClassificationModal, FiscalCostModal, HistoryModal, OperationModal } from '@/app/components/pages/investment/investment-modals';
+import { AssetForm, FiscalCostForm, IncomeForm, OperationForm, emptyAsset, emptyFiscalCost, emptyIncome, emptyOperation, today } from '@/app/components/pages/investment/investments-helpers';
+import { AssetModal, DeleteConfirmModal, FiscalClassificationModal, FiscalCostModal, HistoryModal, IncomeModal, OperationModal } from '@/app/components/pages/investment/investment-modals';
 import { AssetsCard, FiscalCostCard, IncomesCard, OperationsCard, PositionsCard, TotalsCard } from '@/app/components/pages/investment/investment-cards';
 
 
@@ -53,6 +53,8 @@ export default function InvestmentsCenter() {
     useState<OperationForm>(emptyOperation);
   const [assetModal, setAssetModal] = useState(false);
   const [operationModal, setOperationModal] = useState(false);
+  const [incomeForm, setIncomeForm] = useState<IncomeForm>(emptyIncome);
+  const [incomeModal, setIncomeModal] = useState(false);
   const [importModal, setImportModal] = useState(false);
   const [historyAssetId, setHistoryAssetId] = useState<string | null>(null);
   const [historyOperations, setHistoryOperations] = useState<InvestmentOperation[]>([]);
@@ -178,6 +180,17 @@ export default function InvestmentsCenter() {
     (account) => account.id === operationForm.accountId,
   );
 
+  const incomeAccount = portfolio?.accounts.find(
+    (account) => account.id === incomeForm.accountId,
+  );
+  const incomeCompatibleAssets = useMemo(
+    () =>
+      portfolio?.assets.filter(
+        (asset) => !incomeAccount || asset.currency === incomeAccount.currency,
+      ) ?? [],
+    [portfolio?.assets, incomeAccount],
+  );
+
   const compatibleAssets = useMemo(
     () =>
       portfolio?.assets.filter(
@@ -269,6 +282,61 @@ export default function InvestmentsCenter() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleIncomeSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setError('');
+    const unitValueCents = parseMoneyInputToCents(incomeForm.unitValue);
+    const netAmountCents = parseMoneyInputToCents(incomeForm.netAmount);
+
+    if (unitValueCents === null || unitValueCents <= 0) {
+      setError('Informe um valor por cota válido.');
+      return;
+    }
+    if (netAmountCents === null || netAmountCents <= 0) {
+      setError('Informe um valor líquido válido.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await investmentService.createIncome({
+        type: incomeForm.type,
+        accountId: incomeForm.accountId,
+        assetId: incomeForm.assetId,
+        quantity: incomeForm.quantity,
+        unitValueCents,
+        netAmountCents,
+        date: incomeForm.date,
+        note: incomeForm.note || null,
+      });
+      setIncomeForm({ ...emptyIncome, date: today() });
+      setIncomeModal(false);
+      await load();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível registrar o provento',
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function openIncomeModal() {
+    const firstAccount = portfolio?.accounts.find((account) => account.isActive);
+    const firstAsset = portfolio?.assets.find(
+      (asset) => !firstAccount || asset.currency === firstAccount.currency,
+    );
+    setIncomeForm({
+      ...emptyIncome,
+      accountId: firstAccount?.id ?? '',
+      assetId: firstAsset?.id ?? '',
+      date: today(),
+    });
+    setIncomeModal(true);
   }
 
   function openFiscalModal(operation: InvestmentOperation) {
@@ -483,6 +551,18 @@ export default function InvestmentsCenter() {
             >
               Nova operação
             </Button>
+            <Button
+              variant="outline"
+              pill
+              icon={<FaPlus aria-hidden="true" />}
+              onClick={openIncomeModal}
+              disabled={
+                !portfolio?.accounts.some((account) => account.isActive) ||
+                !portfolio?.assets.length
+              }
+            >
+              Novo provento
+            </Button>
           </div>
         </header>
 
@@ -634,6 +714,18 @@ export default function InvestmentsCenter() {
             saving={saving}
             onSubmit={handleOperationSubmit}
             onClose={() => setOperationModal(false)}
+          />
+        )}
+
+        {incomeModal && portfolio && (
+          <IncomeModal
+            portfolio={portfolio}
+            incomeForm={incomeForm}
+            setIncomeForm={setIncomeForm}
+            compatibleAssets={incomeCompatibleAssets}
+            saving={saving}
+            onSubmit={handleIncomeSubmit}
+            onClose={() => setIncomeModal(false)}
           />
         )}
 

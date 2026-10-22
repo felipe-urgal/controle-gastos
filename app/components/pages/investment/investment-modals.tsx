@@ -4,12 +4,12 @@ import type { Dispatch, FormEvent, SetStateAction } from 'react';
 
 import { PageLoading } from '@/app/components/feedback';
 import { IncomeRow, InvestmentModal, ModalActions, OperationRow, SelectField } from '@/app/components/pages/investment/investment-cards';
-import { AssetForm, FiscalCostForm, OperationForm, assetTypes, dateLabel, fiscalEventTypes, quantityLabel } from '@/app/components/pages/investment/investments-helpers';
+import { AssetForm, FiscalCostForm, IncomeForm, OperationForm, assetTypes, incomeTypes, dateLabel, fiscalEventTypes, quantityLabel } from '@/app/components/pages/investment/investments-helpers';
 import { Button, Input } from '@/app/components/ui';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
-import type { InvestmentAsset, InvestmentAssetType, InvestmentFiscalEventType, InvestmentIncome, InvestmentOperation, InvestmentOperationType, InvestmentPortfolio, InvestmentTaxLocation } from '@/app/types/investment';
+import type { InvestmentAsset, InvestmentAssetType, InvestmentFiscalEventType, InvestmentIncome, InvestmentOperation, InvestmentIncomeType, InvestmentOperationType, InvestmentPortfolio, InvestmentTaxLocation } from '@/app/types/investment';
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
 type Submit = (event: FormEvent) => void | Promise<void>;
@@ -284,6 +284,130 @@ export function OperationModal({ portfolio, operationForm, setOperationForm, com
               />
             </form>
           </InvestmentModal>
+  );
+}
+
+export function IncomeModal({ portfolio, incomeForm, setIncomeForm, compatibleAssets, saving, onSubmit, onClose }: {
+  portfolio: InvestmentPortfolio;
+  incomeForm: IncomeForm;
+  setIncomeForm: Setter<IncomeForm>;
+  compatibleAssets: InvestmentAsset[];
+  saving: boolean;
+  onSubmit: Submit;
+  onClose: () => void;
+}) {
+  return (
+    <InvestmentModal title="Novo provento" onClose={() => onClose()}>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            label="Tipo"
+            value={incomeForm.type}
+            disabled={saving}
+            onChange={(value) =>
+              setIncomeForm({ ...incomeForm, type: value as InvestmentIncomeType })
+            }
+            options={incomeTypes}
+          />
+          <SelectField
+            label="Conta"
+            value={incomeForm.accountId}
+            disabled={saving}
+            onChange={(value) => {
+              const account = portfolio.accounts.find((item) => item.id === value);
+              const firstAsset = portfolio.assets.find(
+                (asset) => asset.currency === account?.currency,
+              );
+              setIncomeForm({
+                ...incomeForm,
+                accountId: value,
+                assetId: firstAsset?.id ?? '',
+              });
+            }}
+            options={portfolio.accounts
+              .filter((account) => account.isActive)
+              .map((account) => ({
+                value: account.id,
+                label: `${account.name} · ${account.currency}`,
+              }))}
+          />
+        </div>
+        <SelectField
+          label="Ativo"
+          value={incomeForm.assetId}
+          disabled={saving}
+          onChange={(value) => setIncomeForm({ ...incomeForm, assetId: value })}
+          options={compatibleAssets.map((asset) => ({
+            value: asset.id,
+            label: `${asset.symbol} · ${asset.currency}`,
+          }))}
+        />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Input
+            label="Quantidade de cotas"
+            value={incomeForm.quantity}
+            onChange={(event) =>
+              setIncomeForm({ ...incomeForm, quantity: event.target.value })
+            }
+            inputMode="decimal"
+            required
+            placeholder="100"
+            disabled={saving}
+          />
+          <Input
+            label="Valor por cota"
+            value={incomeForm.unitValue}
+            onChange={(event) =>
+              setIncomeForm({ ...incomeForm, unitValue: event.target.value })
+            }
+            inputMode="decimal"
+            required
+            placeholder="0,85"
+            disabled={saving}
+          />
+          <Input
+            label="Valor líquido recebido"
+            value={incomeForm.netAmount}
+            onChange={(event) =>
+              setIncomeForm({ ...incomeForm, netAmount: event.target.value })
+            }
+            inputMode="decimal"
+            required
+            placeholder="85,00"
+            disabled={saving}
+          />
+        </div>
+        <Input
+          label="Data do pagamento"
+          type="date"
+          value={incomeForm.date}
+          onChange={(event) =>
+            setIncomeForm({ ...incomeForm, date: event.target.value })
+          }
+          required
+          disabled={saving}
+        />
+        <Input
+          label="Observação"
+          value={incomeForm.note}
+          onChange={(event) =>
+            setIncomeForm({ ...incomeForm, note: event.target.value })
+          }
+          multiline
+          rows={3}
+          maxLength={500}
+          disabled={saving}
+        />
+        <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+          O provento não altera a posição nem o saldo da conta. Nenhuma transação financeira é criada automaticamente.
+        </p>
+        <ModalActions
+          saving={saving}
+          onClose={() => onClose()}
+          submitLabel="Registrar"
+        />
+      </form>
+    </InvestmentModal>
   );
 }
 
