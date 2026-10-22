@@ -198,7 +198,8 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
     page.getByText('Inativa', { exact: true }).filter({ visible: true }).first(),
   ).toBeVisible();
 
-  await page.getByRole('button', { name: 'Excluir', exact: true }).click();
+  await page.getByText('Zona de risco', { exact: true }).click();
+  await page.getByRole('button', { name: 'Excluir categoria', exact: true }).click();
   const deleteDialog = page.getByRole('dialog', { name: 'Excluir categoria', exact: true });
   await expect(deleteDialog).toBeVisible();
   await deleteDialog.getByRole('button', { name: 'Excluir', exact: true }).click();
@@ -239,7 +240,8 @@ test('categorias: invariantes, planejamento, divisões e UX desktop/mobile', asy
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`/categorias/show/${fixture.empty.id}`);
-  await page.getByRole('button', { name: 'Excluir', exact: true }).click();
+  await page.getByText('Zona de risco', { exact: true }).click();
+  await page.getByRole('button', { name: 'Excluir categoria', exact: true }).click();
   const emptyDeleteDialog = page.getByRole('dialog', {
     name: 'Excluir categoria',
     exact: true,

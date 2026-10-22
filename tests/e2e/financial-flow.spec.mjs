@@ -409,34 +409,23 @@ async function assertCategoryShowMobile(page, categoryId, categoryName) {
 
   await expect(page.getByRole('heading', { name: categoryName, exact: true }).first()).toBeVisible();
   await expect(page.getByRole('region', { name: 'Resumo da categoria', exact: true })).toBeVisible();
-  await expect(page.getByRole('navigation', { name: 'Seções da categoria', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Visão geral', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('heading', { name: 'Regra financeira', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Atividade', exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Editar categoria', exact: true }).last()).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Ações da categoria', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Últimos 6 meses', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Movimentações de / })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sobre a categoria', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Editar categoria', exact: true }).first()).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Controle de Gastos', exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 
-  await page.getByRole('button', { name: 'Uso', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Uso da categoria', exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Ver movimentações', exact: true })).toBeVisible();
-
-  await page.getByRole('button', { name: 'Sobre', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Sobre', exact: true })).toBeVisible();
-  await expect(page.getByText('Criada em', { exact: true })).toBeVisible();
-  await expect(page.getByText('Atualizada', { exact: true })).toBeVisible();
-
-  await page.getByRole('button', { name: 'Mais ações', exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Editar categoria', exact: true }).first()).toBeVisible();
+  await page.getByText('Zona de risco', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Excluir categoria', exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto(`/categorias/show/${categoryId}`);
+  await expect(page.getByRole('heading', { name: 'Detalhes da categoria', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: categoryName, exact: true })).toBeVisible();
-  await expect(page.getByText('Regra financeira', { exact: true })).toBeVisible();
-  await expect(page.getByRole('navigation', { name: 'Seções da categoria', exact: true })).toHaveCount(0);
 }
 
 async function assertTransactionShowMobile(page, transactionDescription) {

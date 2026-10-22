@@ -10,7 +10,6 @@ export { default as New } from '@/app/components/pages/category/new';
 
 // show
 export { default as Show } from '@/app/components/pages/category/show';
-export { default as CategoryInfo } from '@/app/components/pages/category/show/category-info';
 
 // form
 export { default as CategoryForm } from '@/app/components/pages/category/form';

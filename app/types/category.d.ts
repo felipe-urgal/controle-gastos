@@ -1,5 +1,26 @@
 export type CategoryType = "INCOME" | "EXPENSE";
 
+export interface CategoryActivity {
+  /** Moeda dos valores; as demais com movimento aparecem em `otherCurrencies`. */
+  currency: "BRL" | "USD" | "EUR";
+  otherCurrencies: Array<"BRL" | "USD" | "EUR">;
+  month: { year: number; month: number; realized: number; committed: number; limit: number | null };
+  /** Seis meses, do mais antigo para o atual. */
+  history: Array<{ year: number; month: number; realized: number }>;
+  previousAverage: number;
+  recent: Array<{
+    id: string;
+    amount: number;
+    type: "INCOME" | "EXPENSE";
+    status: "PENDING" | "COMPLETED";
+    description: string;
+    year: number;
+    month: number;
+    day: number;
+    account: { id: string; name: string; currency: string };
+  }>;
+}
+
 export interface CategoryModel {
   id: string;
   name: string;
@@ -14,6 +35,8 @@ export interface CategoryModel {
    */
   position: number;
   transactionsCount: number;
+  /** Só vem na leitura de uma categoria. */
+  activity?: CategoryActivity | null;
   createdAt: string;
   updatedAt: string;
 }

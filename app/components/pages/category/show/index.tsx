@@ -2,8 +2,7 @@
 
 import { useCategories } from "@/app/hooks/categories/category-show";
 import { ShowPage } from "@/app/components/base-pages";
-import CategoryInfo from '@/app/components/pages/category/show/category-info';
-import MobileCategoryShow from "@/app/components/pages/category/show/mobile-category-show";
+import CategoryShowView from '@/app/components/pages/category/show/category-show-view';
 
 export default function Show({ id }: { id: string }) {
   const {
@@ -16,6 +15,16 @@ export default function Show({ id }: { id: string }) {
     handleDelete,
     handleBack,
   } = useCategories({ id });
+
+  const view = category ? (
+    <CategoryShowView
+      category={category}
+      backUrl={handleBack}
+      editUrl={`/categorias/alterar/${id}`}
+      isDeleting={isDeleting}
+      onDeleteRequest={() => setIsDeleteModalOpen(true)}
+    />
+  ) : null;
 
   return (
     <ShowPage
@@ -32,22 +41,10 @@ export default function Show({ id }: { id: string }) {
       deleteError={deleteError}
       deleteWarning="Categorias com transações, divisões, limites, regras de importação ou modelos vinculados não podem ser excluídas. Para preservar o histórico, você pode inativar a categoria."
       emptyRedirectTo="/categorias"
-      mobileContent={
-        category ? (
-          <MobileCategoryShow
-            category={category}
-            backUrl={handleBack}
-            editUrl={`/categorias/alterar/${id}`}
-            isDeleting={isDeleting}
-            onDeleteRequest={() => setIsDeleteModalOpen(true)}
-          />
-        ) : null
-      }
+      hideHeaderDelete
+      mobileContent={view}
     >
-      <CategoryInfo
-        category={category!}
-        isDeleting={isDeleting}
-      />
+      {view}
     </ShowPage>
   );
 };
