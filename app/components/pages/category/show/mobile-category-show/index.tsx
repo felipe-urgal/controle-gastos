@@ -75,7 +75,7 @@ export default function MobileCategoryShow({
 
   return (
     <div
-      className={`mx-auto w-full max-w-xl pb-5 transition-opacity duration-150 ${
+      className={`w-full pb-5 transition-opacity duration-150 ${
         isDeleting ? 'pointer-events-none opacity-50' : ''
       }`}
     >

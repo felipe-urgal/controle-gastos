@@ -35,7 +35,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
   }
 
   return (
-    <div className={`mx-auto w-full max-w-2xl ${orbitSelectionTokens}`}>
+    <div className={`w-full ${orbitSelectionTokens}`}>
       <ShowBelow breakpoint="lg">
         <header className="mb-4 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
           <IconButton
