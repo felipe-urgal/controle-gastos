@@ -1,5 +1,5 @@
 import { createBaseService } from "@/app/services/base-service";
-import type { MerchantDTO } from "@/app/types/merchant";
+import type { MerchantDTO, MerchantMonthSummary } from "@/app/types/merchant";
 
 type MerchantListResponse = {
   items: MerchantDTO[];
@@ -7,6 +7,7 @@ type MerchantListResponse = {
   page?: number;
   pageSize?: number;
   totalPages?: number;
+  summary?: MerchantMonthSummary;
 };
 
 const baseMerchantService =

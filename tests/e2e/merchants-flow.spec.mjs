@@ -103,12 +103,14 @@ test('estabelecimentos: CRUD de alias, conflito, move e mobile sem overflow', as
   );
 
   for (const name of [merchantA, merchantB]) {
-    await page.getByLabel('Nome', { exact: true }).fill(name);
+    await page.getByLabel('Novo estabelecimento', { exact: true }).fill(name);
     await page.getByRole('button', { name: 'Adicionar', exact: true }).click();
     await expect(
       merchantList.getByText(name, { exact: true }),
     ).toBeVisible();
   }
+
+  await page.getByText('Reconhecimento automático', { exact: true }).click();
 
   async function selectAliasMerchant(name) {
     const search = page.getByLabel('Buscar estabelecimento', { exact: true });

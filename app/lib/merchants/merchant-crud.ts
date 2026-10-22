@@ -7,6 +7,7 @@ import {
   createMerchantSchema,
   updateMerchantSchema,
 } from "@/app/lib/merchants/merchant-schema";
+import { getMerchantMonthSummary, monthSpendForMerchants } from "@/app/lib/merchants/merchant-spend";
 import { prisma } from "@/app/lib/prisma";
 
 const merchantInclude = {
@@ -67,6 +68,11 @@ export const merchantCrud = baseCrudHandler({
   orderBy: [{ isActive: "desc" }, { name: "asc" }, { id: "asc" }],
   limit: true,
   include: merchantInclude,
+  async afterList({ items, userId }) {
+    const spend = await monthSpendForMerchants(userId, items.map((item) => item.id));
+    return items.map((item) => ({ ...item, monthSpend: spend.get(item.id) ?? [] }));
+  },
+  summary: ({ userId }) => getMerchantMonthSummary(userId),
   async beforeCreate(data, userId) {
     await assertUniqueMerchantName(userId, data.name);
     try {
