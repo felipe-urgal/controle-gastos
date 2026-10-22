@@ -20,10 +20,6 @@ function shiftMonth(period, offset) {
   };
 }
 
-function monthValue(period) {
-  return String(period.year) + '-' + String(period.month).padStart(2, '0');
-}
-
 function payload({ period, currency, income, asOf, status }) {
   return {
     period,
@@ -168,18 +164,18 @@ test('fechamento: troca de filtros nunca exibe dados antigos sob a nova seleçã
   await page.goto('/fechamento');
 
   await expect(
-    page.getByRole('heading', { name: 'Fechamento mensal', exact: true }),
+    page.getByRole('heading', { name: /^Fechamento de /, level: 1 }),
   ).toBeVisible();
   await expect(page.getByText(/R\$\s*100,00/).first()).toBeVisible();
 
-  await page.locator('input[type="month"]').fill(monthValue(previous));
+  await page.getByRole('button', { name: 'Mês anterior', exact: true }).click();
 
   await expect(
     page.getByRole('status').filter({ hasText: 'Carregando revisão do período' }),
   ).toBeVisible();
   await expect(page.getByText(/R\$\s*100,00/)).toHaveCount(0);
 
-  await page.getByLabel('Moeda', { exact: true }).selectOption('EUR');
+  await page.getByRole('group', { name: 'Moeda' }).getByRole('button', { name: 'EUR', exact: true }).click();
 
   await expect(page.getByText(/300,00/).first()).toBeVisible();
   await expect(

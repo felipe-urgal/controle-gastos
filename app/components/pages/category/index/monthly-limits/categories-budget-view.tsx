@@ -60,8 +60,8 @@ function BudgetRow({ item, currency, showValues, disabled, onEditLimit }: {
         <IconRenderer iconName={item.category.icon || 'tag'} size={16} />
       </span>
       <div className="min-w-0">
-        <Link href={`/categorias/show/${encodeURIComponent(item.category.id)}`} className="block truncate text-sm font-semibold text-[var(--foreground)] hover:underline">
-          {item.category.name}
+        <Link href={`/categorias/show/${encodeURIComponent(item.category.id)}`} className="flex min-h-11 items-center text-sm font-semibold text-[var(--foreground)] hover:underline">
+          <span className="truncate">{item.category.name}</span>
         </Link>
         <p className={`truncate text-xs ${stateTextClass(state)}`}>
           {!item.category.isActive && <span className="mr-2 font-semibold text-[var(--text-muted)]">Inativa</span>}

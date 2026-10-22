@@ -1,68 +1,34 @@
 'use client';
 
-import { PageContainer, PageTitle } from '@/app/components/base-pages';
-import { ProtectedRoute } from '@/app/components/layout';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
+import { PageContainer } from '@/app/components/base-pages';
+import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { PageError } from '@/app/components/feedback';
-import { Input, Select } from '@/app/components/ui';
+import { ProtectedRoute } from '@/app/components/layout';
+import MonthlyClosingView from '@/app/components/pages/monthly-closing/monthly-closing-view';
+import {
+  countItemsToReview,
+  monthName,
+  monthTitle,
+  periodValue,
+  shiftPeriod,
+} from '@/app/components/pages/monthly-closing/monthly-closing-model';
+import { Chip, IconButton } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
-import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { monthlyClosingService } from '@/app/services/monthly-closing-service';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
-import type {
-  MonthlyClosingCardStatementState,
-  MonthlyClosingData,
-  MonthlyClosingLogicalDate,
-  MonthlyClosingReconciliationStatus,
-} from '@/app/types/monthly-closing';
+import type { MonthlyClosingData } from '@/app/types/monthly-closing';
 
 const CURRENCIES: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
 
 const PERIOD_STATUS_LABELS = {
-  IN_PROGRESS: 'Em andamento',
+  IN_PROGRESS: 'Mês em andamento',
   REVIEWABLE: 'Pronto para revisão',
   FUTURE: 'Período futuro',
 } as const;
-
-const RECONCILIATION_LABELS: Record<
-  MonthlyClosingReconciliationStatus,
-  string
-> = {
-  RECONCILED: 'Reconciliada até o fim do período',
-  PARTIAL: 'Reconciliação parcial',
-  NEVER_RECONCILED: 'Nunca reconciliada',
-  UNRECONCILED_ITEMS: 'Possui lançamentos não reconciliados',
-};
-
-const CARD_STATE_LABELS: Record<MonthlyClosingCardStatementState, string> = {
-  PAID: 'Paga',
-  OPEN: 'Em aberto',
-  OVERDUE: 'Vencida',
-};
-
-function displayMoney(
-  amount: number,
-  currency: SupportedCurrency,
-  showValues: boolean,
-) {
-  return showValues ? formatCurrency(amount, currency) : '••••';
-}
-
-function periodValue(year: number, month: number) {
-  return String(year) + '-' + String(month).padStart(2, '0');
-}
-
-function formatLogicalDate(date: MonthlyClosingLogicalDate) {
-  return (
-    String(date.day).padStart(2, '0') +
-    '/' +
-    String(date.month).padStart(2, '0') +
-    '/' +
-    String(date.year)
-  );
-}
 
 export default function MonthlyClosingPage() {
   const now = useMemo(() => new Date(), []);
@@ -115,12 +81,10 @@ export default function MonthlyClosingPage() {
     };
   }, [currency, month, queryKey, reloadToken, year]);
 
-  function handlePeriod(value: string) {
-    const [nextYear, nextMonth] = value.split('-').map(Number);
-    if (Number.isInteger(nextYear) && Number.isInteger(nextMonth)) {
-      setYear(nextYear);
-      setMonth(nextMonth);
-    }
+  function goTo(offset: number) {
+    const next = shiftPeriod(year, month, offset);
+    setYear(next.year);
+    setMonth(next.month);
   }
 
   function retry() {
@@ -130,485 +94,86 @@ export default function MonthlyClosingPage() {
   }
 
   const retrospective = data?.retrospective ?? null;
-  const transactionsHref =
-    '/transacoes?year=' + year + '&month=' + month;
-  const pendingHref = transactionsHref + '&status=PENDING';
-  const isEmpty =
-    retrospective?.summary.income === 0 &&
-    retrospective.summary.expense === 0;
+  const transactionsHref = '/transacoes?year=' + year + '&month=' + month;
+  const atCurrentMonth = year === currentYear && month === currentMonth;
+  const pendingItems = retrospective ? countItemsToReview(retrospective.readiness) : 0;
 
   return (
     <ProtectedRoute>
-    <PageContainer>
-      <PageTitle
-        eyebrow="Revisão mensal"
-        title="Fechamento mensal"
-        description="Retrospectiva calculada a partir dos dados financeiros atuais. Alterações retroativas podem mudar esta revisão."
-        actions={
-          <>
-          <div className="w-44">
-            <Input
-              aria-label="Período do fechamento"
-              type="month"
-              max={periodValue(currentYear, currentMonth)}
-              value={periodValue(year, month)}
-              onChange={(event) => handlePeriod(event.target.value)}
-            />
-          </div>
-          <div className="w-28">
-            <Select
-              ariaLabel="Moeda"
-              value={currency}
-              onChange={(value) => setCurrency(value as SupportedCurrency)}
-              options={CURRENCIES.map((item) => ({ value: item, label: item }))}
-            />
-          </div>
-          </>
-        }
-      />
-
-      {loading && (
-        <div
-          role="status"
-          className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center text-sm text-[var(--text-muted)]"
-        >
-          Carregando revisão do período…
-        </div>
-      )}
-
-      {error && (
-        <PageError message={error} buttonText="Tentar novamente" onRetry={retry} />
-      )}
-
-      {data && (
-        <div className="mt-5 space-y-5">
-          <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                Status do período
-              </p>
-              <p className="mt-1 font-bold text-[var(--foreground)]">
-                {PERIOD_STATUS_LABELS[data.status]}
-              </p>
+      <PageContainer>
+        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div className="grid gap-1">
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Revisão mensal</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className={`text-balance ${pageTitleClassName}`}>Fechamento de {monthName(month)}</h1>
+              {data && (
+                <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--orbit-primary)]">
+                  {PERIOD_STATUS_LABELS[data.status]}
+                </span>
+              )}
+              {data && retrospective && (
+                <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${pendingItems === 0 ? 'bg-[var(--primary-subtle)] text-[var(--income)]' : 'bg-[var(--warning-subtle)] text-[var(--warning)]'}`}>
+                  {pendingItems === 0 ? 'Tudo conferido' : pendingItems === 1 ? '1 item para revisar' : pendingItems + ' itens para revisar'}
+                </span>
+              )}
             </div>
-            <p className="text-sm text-[var(--text-muted)]">
-              Dados recalculados com referência em {formatLogicalDate(data.asOf)}.
-            </p>
-          </section>
+          </div>
 
-          {data.status === 'FUTURE' && (
-            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
-              <h2 className="text-lg font-bold text-[var(--foreground)]">
-                Este período ainda é futuro
-              </h2>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="inline-flex items-center rounded-[12px] border border-[var(--border)] bg-[var(--surface)]" role="group" aria-label="Período do fechamento">
+              <IconButton label="Mês anterior" icon={<FaChevronLeft />} onClick={() => goTo(-1)} />
+              <output className="min-w-[150px] text-center text-sm font-bold capitalize">{monthTitle(year, month)}</output>
+              <IconButton label="Próximo mês" icon={<FaChevronRight />} disabled={atCurrentMonth} onClick={() => goTo(1)} />
+            </div>
+            <div className="flex gap-2" role="group" aria-label="Moeda">
+              {CURRENCIES.map((item) => (
+                <Chip key={item} selected={item === currency} onClick={() => setCurrency(item)}>
+                  {item}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        </header>
+
+        <div className="mt-5">
+          {loading && (
+            <div role="status" className="space-y-4" aria-live="polite">
+              <p className="text-sm text-[var(--text-muted)]">Carregando revisão do período…</p>
+              <div className="animate-pulse space-y-4" aria-hidden="true">
+                <div className="h-56 rounded-[20px] bg-[var(--skeleton)]" />
+                <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
+                  <div className="h-64 rounded-[16px] bg-[var(--skeleton)]" />
+                  <div className="h-64 rounded-[16px] bg-[var(--skeleton)]" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {error && <PageError message={error} buttonText="Tentar novamente" onRetry={retry} />}
+
+          {data?.status === 'FUTURE' && (
+            <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-6">
+              <h2 className="text-lg font-bold">Este período ainda é futuro</h2>
               <p className="mt-2 text-sm text-[var(--text-muted)]">
-                Fechamento é uma retrospectiva. Use Planejamento e Compromissos
-                para consultar projeções futuras.
+                Fechamento é uma retrospectiva. Use Planejamento e Compromissos para consultar projeções futuras.
               </p>
-              <Link
-                href="/compromissos"
-                className="mt-4 inline-flex min-h-11 items-center font-bold text-[var(--orbit-primary)]"
-              >
+              <Link href="/compromissos" className="mt-3 inline-flex min-h-11 items-center font-bold text-[var(--orbit-primary)]">
                 Ver compromissos
               </Link>
             </section>
           )}
 
-          {retrospective && (
-            <>
-              {isEmpty && (
-                <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-                  <h2 className="font-bold text-[var(--foreground)]">
-                    Sem movimentação realizada
-                  </h2>
-                  <p className="mt-1 text-sm text-[var(--text-muted)]">
-                    Não há receitas ou despesas realizadas nesta moeda para o período.
-                    Pendências e sinais de conferência continuam listados abaixo.
-                  </p>
-                </section>
-              )}
-
-              <section className="grid gap-3 md:grid-cols-3">
-                {[
-                  {
-                    label: 'Receitas realizadas',
-                    amount: retrospective.summary.income,
-                  },
-                  {
-                    label: 'Despesas realizadas',
-                    amount: retrospective.summary.expense,
-                  },
-                  {
-                    label: 'Resultado financeiro',
-                    amount: retrospective.summary.balance,
-                  },
-                ].map((item) => (
-                  <article
-                    key={item.label}
-                    className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"
-                  >
-                    <p className="text-sm text-[var(--text-muted)]">
-                      {item.label}
-                    </p>
-                    <strong className="mt-2 block text-2xl text-[var(--foreground)]">
-                      <span className="money">{displayMoney(item.amount, currency, showValues)}</span>
-                    </strong>
-                  </article>
-                ))}
-              </section>
-
-              <p className="text-xs text-[var(--text-muted)]">
-                Resultado financeiro reconhece compras de cartão no período da compra;
-                pagamento da fatura não é contado como uma nova despesa e este valor
-                não representa, por si só, variação de caixa.
-              </p>
-
-              <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold text-[var(--foreground)]">
-                      Prontidão da revisão
-                    </h2>
-                    <p className="mt-1 text-sm text-[var(--text-muted)]">
-                      Conferências informativas: nada aqui bloqueia alterações no mês.
-                    </p>
-                  </div>
-                  <strong className="text-sm text-[var(--foreground)]">
-                    {retrospective.readiness.status === 'READY'
-                      ? 'Sem pendências conhecidas'
-                      : 'Há itens para revisar'}
-                  </strong>
-                </div>
-
-                <div className="mt-5 grid gap-4 lg:grid-cols-3">
-                  <article className="rounded-xl bg-[var(--surface-raised)] p-4">
-                    <h3 className="font-bold text-[var(--foreground)]">
-                      Lançamentos pendentes
-                    </h3>
-                    <p className="mt-2 text-sm text-[var(--text-muted)]">
-                      {retrospective.readiness.pendingTransactions.totalCount === 0
-                        ? 'Nenhum lançamento pendente no período.'
-                        : retrospective.readiness.pendingTransactions.totalCount +
-                          ' lançamento(ões) ainda pendente(s).'}
-                    </p>
-                    <dl className="mt-3 space-y-2 text-sm">
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-[var(--text-muted)]">
-                          Receitas
-                        </dt>
-                        <dd className="font-semibold text-[var(--foreground)]">
-                          <span className="money">{displayMoney(
-                            retrospective.readiness.pendingTransactions.income.amount,
-                            currency,
-                            showValues,
-                          )}</span>
-                        </dd>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-[var(--text-muted)]">
-                          Despesas
-                        </dt>
-                        <dd className="font-semibold text-[var(--foreground)]">
-                          <span className="money">{displayMoney(
-                            retrospective.readiness.pendingTransactions.expense.amount,
-                            currency,
-                            showValues,
-                          )}</span>
-                        </dd>
-                      </div>
-                    </dl>
-                    <Link
-                      href={pendingHref}
-                      className="mt-3 inline-flex min-h-11 items-center text-sm font-bold text-[var(--orbit-primary)]"
-                    >
-                      Revisar pendências
-                    </Link>
-                  </article>
-
-                  <article className="rounded-xl bg-[var(--surface-raised)] p-4">
-                    <h3 className="font-bold text-[var(--foreground)]">
-                      Reconciliação
-                    </h3>
-                    <p className="mt-2 text-sm text-[var(--text-muted)]">
-                      {retrospective.readiness.reconciliation.accountCount === 0
-                        ? 'Nenhuma conta com lançamentos concluídos exige conferência.'
-                        : retrospective.readiness.reconciliation.reconciledCount +
-                          ' de ' +
-                          retrospective.readiness.reconciliation.accountCount +
-                          ' conta(s) cobrem o fim do período.'}
-                    </p>
-                    <div className="mt-3 space-y-2">
-                      {retrospective.readiness.reconciliation.accounts.map(
-                        (account) => (
-                          <Link
-                            key={account.accountId}
-                            href={account.href}
-                            className="flex min-h-11 flex-col justify-center rounded-lg border border-[var(--border)] px-3 hover:bg-[var(--surface-hover)]"
-                          >
-                            <span className="text-sm font-semibold text-[var(--foreground)]">
-                              {account.accountName}
-                            </span>
-                            <span className="text-xs text-[var(--text-muted)]">
-                              {RECONCILIATION_LABELS[account.status]}
-                              {account.unreconciledCount > 0
-                                ? ' · ' +
-                                  account.unreconciledCount +
-                                  ' não reconciliado(s)'
-                                : ''}
-                            </span>
-                          </Link>
-                        ),
-                      )}
-                    </div>
-                  </article>
-
-                  <article className="rounded-xl bg-[var(--surface-raised)] p-4">
-                    <h3 className="font-bold text-[var(--foreground)]">
-                      Faturas do período
-                    </h3>
-                    <p className="mt-2 text-sm text-[var(--text-muted)]">
-                      {retrospective.readiness.cardStatements.count === 0
-                        ? 'Nenhuma fatura com valor a revisar neste período.'
-                        : retrospective.readiness.cardStatements.openCount +
-                          ' em aberto · ' +
-                          retrospective.readiness.cardStatements.overdueCount +
-                          ' vencida(s).'}
-                    </p>
-                    <div className="mt-3 space-y-2">
-                      {retrospective.readiness.cardStatements.items.map(
-                        (statement) => (
-                          <Link
-                            key={
-                              statement.cardId +
-                              '-' +
-                              periodValue(
-                                statement.closingDate.year,
-                                statement.closingDate.month,
-                              )
-                            }
-                            href={statement.href}
-                            className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-[var(--border)] px-3 hover:bg-[var(--surface-hover)]"
-                          >
-                            <span className="min-w-0">
-                              <span className="block truncate text-sm font-semibold text-[var(--foreground)]">
-                                {statement.cardName}
-                              </span>
-                              <span className="block text-xs text-[var(--text-muted)]">
-                                Vence {formatLogicalDate(statement.dueDate)} ·{' '}
-                                {CARD_STATE_LABELS[statement.state]}
-                              </span>
-                            </span>
-                            <span className="shrink-0 text-sm font-semibold text-[var(--foreground)]">
-                              <span className="money">{displayMoney(
-                                statement.amount,
-                                currency,
-                                showValues,
-                              )}</span>
-                            </span>
-                          </Link>
-                        ),
-                      )}
-                    </div>
-                  </article>
-                </div>
-              </section>
-
-              <section className="grid gap-4 lg:grid-cols-2">
-                <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-                  <h2 className="text-lg font-bold text-[var(--foreground)]">
-                    Planejamento
-                  </h2>
-                  <dl className="mt-4 grid gap-3">
-                    {[
-                      {
-                        label: 'Orçado',
-                        amount: retrospective.planning.budget,
-                      },
-                      {
-                        label: 'Realizado',
-                        amount: retrospective.planning.realized,
-                      },
-                      {
-                        label:
-                          data.status === 'REVIEWABLE'
-                            ? 'Despesa ainda pendente'
-                            : 'Comprometido',
-                        amount: retrospective.planning.committed,
-                      },
-                      {
-                        label: 'Disponível',
-                        amount: retrospective.planning.available,
-                      },
-                      {
-                        label:
-                          data.status === 'REVIEWABLE'
-                            ? 'Receita ainda pendente'
-                            : 'Receita esperada',
-                        amount: retrospective.planning.expectedIncome,
-                      },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        className="flex items-center justify-between gap-4 border-b border-[var(--border)] pb-2 last:border-0"
-                      >
-                        <dt className="text-sm text-[var(--text-muted)]">
-                          {item.label}
-                        </dt>
-                        <dd className="font-semibold text-[var(--foreground)]">
-                          <span className="money">{displayMoney(item.amount, currency, showValues)}</span>
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                </article>
-
-                <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-                  <h2 className="text-lg font-bold text-[var(--foreground)]">
-                    Patrimônio
-                  </h2>
-                  {retrospective.netWorth ? (
-                    <dl className="mt-4 grid gap-3">
-                      <div className="flex justify-between gap-4">
-                        <dt className="text-[var(--text-muted)]">
-                          Mês anterior
-                        </dt>
-                        <dd className="font-semibold">
-                          <span className="money">{displayMoney(
-                            retrospective.netWorth.previous,
-                            currency,
-                            showValues,
-                          )}</span>
-                        </dd>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <dt className="text-[var(--text-muted)]">
-                          Fim do período
-                        </dt>
-                        <dd className="font-semibold">
-                          <span className="money">{displayMoney(
-                            retrospective.netWorth.current,
-                            currency,
-                            showValues,
-                          )}</span>
-                        </dd>
-                      </div>
-                      <div className="flex justify-between gap-4 border-t border-[var(--border)] pt-3">
-                        <dt className="font-semibold">Variação</dt>
-                        <dd className="font-black">
-                          <span className="money">{displayMoney(
-                            retrospective.netWorth.difference,
-                            currency,
-                            showValues,
-                          )}</span>
-                        </dd>
-                      </div>
-                    </dl>
-                  ) : (
-                    <p className="mt-4 text-sm text-[var(--text-muted)]">
-                      Ainda não há dois pontos comparáveis de patrimônio nessa
-                      moeda para calcular a variação.
-                    </p>
-                  )}
-                  <p className="mt-4 text-xs text-[var(--text-muted)]">
-                    {retrospective.netWorthMethodology.description}
-                  </p>
-                </article>
-              </section>
-
-              <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <h2 className="text-lg font-bold text-[var(--foreground)]">
-                    Maiores categorias
-                  </h2>
-                  <Link
-                    href={transactionsHref}
-                    className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]"
-                  >
-                    Ver transações
-                  </Link>
-                </div>
-                {retrospective.topCategories.length === 0 ? (
-                  <p className="mt-4 text-sm text-[var(--text-muted)]">
-                    Nenhuma despesa realizada no período.
-                  </p>
-                ) : (
-                  <div className="mt-4 grid grid-cols-1 gap-2">
-                    {retrospective.topCategories.map((category) => (
-                      <Link
-                        key={category.id}
-                        href={
-                          transactionsHref +
-                          '&categoryId=' +
-                          encodeURIComponent(category.id)
-                        }
-                        className="flex min-h-12 items-center justify-between gap-4 rounded-xl border border-[var(--border)] px-4 hover:bg-[var(--surface-hover)]"
-                      >
-                        <span className="min-w-0 truncate font-semibold text-[var(--foreground)]">
-                          {category.name}
-                        </span>
-                        <span className="shrink-0 text-sm text-[var(--text-muted)]">
-                          <span className="money">{displayMoney(
-                            category.realized,
-                            currency,
-                            showValues,
-                          )}</span>{' '}
-                          · {category.sharePercentage}%
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-                <h2 className="text-lg font-bold text-[var(--foreground)]">
-                  Comparação com o mês anterior
-                </h2>
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  {[
-                    {
-                      label: 'Receitas',
-                      metric: retrospective.comparison.income,
-                    },
-                    {
-                      label: 'Despesas',
-                      metric: retrospective.comparison.expense,
-                    },
-                    {
-                      label: 'Resultado',
-                      metric: retrospective.comparison.balance,
-                    },
-                  ].map(({ label, metric }) => (
-                    <div
-                      key={label}
-                      className="rounded-xl bg-[var(--surface-raised)] p-4"
-                    >
-                      <p className="text-xs text-[var(--text-muted)]">
-                        {label}
-                      </p>
-                      <strong className="mt-1 block text-[var(--foreground)]">
-                        <span className="money">{displayMoney(
-                          metric.difference,
-                          currency,
-                          showValues,
-                        )}</span>
-                      </strong>
-                      <span className="text-xs text-[var(--text-muted)]">
-                        {metric.percentage === null
-                          ? 'Sem base comparável'
-                          : (metric.percentage > 0 ? '+' : '') +
-                            metric.percentage +
-                            '%'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </>
+          {data && retrospective && (
+            <MonthlyClosingView
+              data={data}
+              retrospective={retrospective}
+              currency={currency}
+              showValues={showValues}
+              transactionsHref={transactionsHref}
+            />
           )}
         </div>
-      )}
-    </PageContainer>
+      </PageContainer>
     </ProtectedRoute>
   );
 }
