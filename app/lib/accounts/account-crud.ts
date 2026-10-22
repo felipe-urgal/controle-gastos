@@ -7,6 +7,7 @@ import {
   validateAccountUpdateState,
 } from "@/app/lib/accounts/account-schema";
 import { toAccountDTO } from "@/app/lib/accounts/account-dto";
+import { getAccountActivity } from "@/app/lib/accounts/account-activity";
 import { buildAccountAttention } from "@/app/lib/accounts/account-attention";
 import type { AccountCardStatusDTO } from "@/app/lib/accounts/account-dto";
 import { buildAccountPortfolioSummary } from "@/app/lib/accounts/account-summary";
@@ -67,6 +68,45 @@ function toCardStatusDTO(status: CreditCardStatus, creditLimit: number | null): 
   };
 }
 
+/** Na lista cada conta traz poucas movimentações; a página da conta traz mais. */
+const RECENT_TRANSACTIONS_IN_LIST = 5;
+const RECENT_TRANSACTIONS_IN_DETAIL = 12;
+
+const recentTransactionsQuery = {
+  orderBy: [
+    { year: "desc" },
+    { month: "desc" },
+    { day: "desc" },
+    { createdAt: "desc" },
+    { id: "desc" },
+  ],
+  include: {
+    category: {
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        color: true,
+        icon: true,
+      },
+    },
+    transfer: {
+      select: {
+        transactions: {
+          select: {
+            id: true,
+            userId: true,
+            transferRole: true,
+            account: {
+              select: recentTransactionAccountSelect,
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.TransactionFindManyArgs;
+
 export const accountCrud = baseCrudHandler({
   model: (db) => db.account,
   entityName: "Conta",
@@ -118,41 +158,7 @@ export const accountCrud = baseCrudHandler({
         investmentOperations: true,
       },
     },
-    transactions: {
-      orderBy: [
-        { year: "desc" },
-        { month: "desc" },
-        { day: "desc" },
-        { createdAt: "desc" },
-        { id: "desc" },
-      ],
-      take: 5,
-      include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            color: true,
-            icon: true,
-          },
-        },
-        transfer: {
-          select: {
-            transactions: {
-              select: {
-                id: true,
-                userId: true,
-                transferRole: true,
-                account: {
-                  select: recentTransactionAccountSelect,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    transactions: { ...recentTransactionsQuery, take: RECENT_TRANSACTIONS_IN_LIST },
   },
   customDelete: async (account, userId) => {
     try {
@@ -181,9 +187,25 @@ export const accountCrud = baseCrudHandler({
     // Tipo, moeda e ciclo do cartão travam com qualquer histórico financeiro; a tela de edição avisa antes de salvar.
     const usage = await getAccountFinancialUsage(prisma, userId, account.id);
     const hasFinancialHistory = Object.values(usage).some((count) => count > 0);
+    const transactions = await prisma.transaction.findMany({
+      where: { userId, accountId: account.id },
+      ...recentTransactionsQuery,
+      take: RECENT_TRANSACTIONS_IN_DETAIL,
+    });
+    const activity =
+      account.type === "CREDIT_DEBIT"
+        ? await getAccountActivity({
+            userId,
+            accountId: account.id,
+            currentBalance: enriched.balance,
+            asOf: logicalDateFromUtcInstant(new Date()),
+          })
+        : null;
     if (account.type !== "INVESTMENT") {
       return {
         ...enriched,
+        transactions,
+        activity,
         hasFinancialHistory,
         investmentValueCents: null,
         investmentValueSource: null,
@@ -194,6 +216,8 @@ export const accountCrud = baseCrudHandler({
     const value = values.get(account.id);
     return {
       ...enriched,
+      transactions,
+      activity,
       hasFinancialHistory,
       investmentValueCents: value?.valueCents ?? 0,
       investmentValueSource: value?.source ?? null,

@@ -9,7 +9,16 @@ type AccountWithDerivedBalance = Account & {
   investmentPositionCount?: number;
   cardStatus?: AccountCardStatusDTO | null;
   hasFinancialHistory?: boolean;
+  activity?: AccountActivityDTO | null;
   transactions: RecentTransactionRecord[];
+};
+
+export type AccountActivityDTO = {
+  monthIncome: number;
+  monthExpense: number;
+  pendingNet: number;
+  pendingCount: number;
+  balanceSeries: number[];
 };
 
 type LogicalDateDTO = { year: number; month: number; day: number };
@@ -84,6 +93,7 @@ export function toAccountDTO(account: AccountWithDerivedBalance) {
     investmentPositionCount: account.investmentPositionCount ?? 0,
     cardStatus: account.cardStatus ?? null,
     hasFinancialHistory: account.hasFinancialHistory ?? null,
+    activity: account.activity ?? null,
     currency: account.currency,
     isActive: account.isActive,
     color: account.color,

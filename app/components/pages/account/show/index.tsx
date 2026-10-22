@@ -1,8 +1,7 @@
 'use client';
 
 import { ShowPage } from '@/app/components/base-pages';
-import AccountInfo from '@/app/components/pages/account/show/account-info';
-import MobileAccountShow from '@/app/components/pages/account/show/mobile-account-show';
+import AccountShowView from '@/app/components/pages/account/show/account-show-view';
 import CreditCardOverview from '@/app/components/pages/account/show/credit-card-overview';
 import { useAccounts } from '@/app/hooks/accounts/account-show';
 
@@ -19,6 +18,18 @@ export default function Show({ id }: { id: string }) {
     refreshAccount,
   } = useAccounts({ id });
 
+  const accountView = account ? (
+    <AccountShowView
+      account={account}
+      typeLabels={typeLabels}
+      backUrl={handleBack}
+      editUrl={`/contas/alterar/${id}`}
+      isDeleting={isDeleting}
+      onDeleteRequest={() => setIsDeleteModalOpen(true)}
+      onReconciliationChange={refreshAccount}
+    />
+  ) : null;
+
   return (
     <ShowPage
       entity={account}
@@ -33,6 +44,7 @@ export default function Show({ id }: { id: string }) {
       setIsDeleteModalOpen={setIsDeleteModalOpen}
       onDelete={handleDelete}
       emptyRedirectTo="/contas"
+      hideHeaderDelete={account?.type !== 'CREDIT_CARD'}
       mobileContent={
         account ? (
           account.type === 'CREDIT_CARD' ? (
@@ -44,15 +56,7 @@ export default function Show({ id }: { id: string }) {
               onDeleteRequest={() => setIsDeleteModalOpen(true)}
             />
           ) : (
-            <MobileAccountShow
-              account={account}
-              typeLabels={typeLabels}
-              backUrl={handleBack}
-              editUrl={`/contas/alterar/${id}`}
-              isDeleting={isDeleting}
-              onDeleteRequest={() => setIsDeleteModalOpen(true)}
-              onReconciliationChange={refreshAccount}
-            />
+            accountView
           )
         ) : null
       }
@@ -66,12 +70,7 @@ export default function Show({ id }: { id: string }) {
           onDeleteRequest={() => setIsDeleteModalOpen(true)}
         />
       ) : (
-        <AccountInfo
-          account={account!}
-          isDeleting={isDeleting}
-          typeLabels={typeLabels}
-          onReconciliationChange={refreshAccount}
-        />
+        accountView
       )}
     </ShowPage>
   );
