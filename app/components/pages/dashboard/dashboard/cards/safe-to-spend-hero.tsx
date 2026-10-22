@@ -136,7 +136,7 @@ export function SafeToSpendHero({
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-3">
         <Link
           href="/contas"
-          className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          className="flex min-h-11 min-w-[14rem] flex-1 items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
         >
           <span className="min-w-0">
             <span className="block truncate">
