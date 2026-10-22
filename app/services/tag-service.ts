@@ -1,6 +1,6 @@
 import { apiClient } from "@/app/services/api-client";
 import { ApiResponse, createBaseService } from "@/app/services/base-service";
-import type { TagDTO, TagReport } from "@/app/types/tag";
+import type { TagDTO, TagReport, TagReportPeriod } from "@/app/types/tag";
 
 export type TagListResponse = {
   items: TagDTO[];
@@ -23,7 +23,7 @@ export const tagService = {
     });
   },
 
-  async report(id: string): Promise<ApiResponse<TagReport>> {
-    return apiClient<ApiResponse<TagReport>>(`/api/tags/${id}/report`, { method: "GET" });
+  async report(id: string, period: TagReportPeriod = "all"): Promise<ApiResponse<TagReport>> {
+    return apiClient<ApiResponse<TagReport>>(`/api/tags/${id}/report?period=${period}`, { method: "GET" });
   },
 };

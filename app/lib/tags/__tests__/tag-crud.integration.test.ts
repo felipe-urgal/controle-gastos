@@ -8,6 +8,7 @@ vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
 
+import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
 import { tagCrud } from "@/app/lib/tags/tag-crud";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
@@ -174,5 +175,64 @@ describe("tag CRUD canonical identity", () => {
         where: { userId: owner.id, normalizedName: "destino" },
       }),
     ).toBe(1);
+  });
+
+  it("lista o gasto do mês de cada tag por moeda, sem misturar outro usuário", async () => {
+    const owner = await factory.user();
+    const other = await factory.user();
+    const [brl, usd] = await Promise.all([
+      factory.account(owner.id),
+      factory.account(owner.id, { currency: "USD" }),
+    ]);
+    const category = await factory.category(owner.id, { type: "EXPENSE" });
+    const tag = await prisma.tag.create({
+      data: { userId: owner.id, name: "casa", normalizedName: "casa" },
+    });
+    await prisma.tag.create({
+      data: { userId: owner.id, name: "vazia", normalizedName: "vazia" },
+    });
+    const today = logicalDateFromUtcInstant(new Date());
+
+    for (const [account, amount, month] of [
+      [brl, 4_000, today.month],
+      [usd, 900, today.month],
+      [brl, 50_000, today.month === 1 ? 12 : today.month - 1],
+    ] as const) {
+      const transaction = await factory.transaction({
+        userId: owner.id,
+        accountId: account.id,
+        categoryId: category.id,
+        overrides: {
+          amount,
+          type: "EXPENSE",
+          year: month > today.month ? today.year - 1 : today.year,
+          month,
+        },
+      });
+      await prisma.transactionTag.create({
+        data: { userId: owner.id, transactionId: transaction.id, tagId: tag.id },
+      });
+    }
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+    const response = await tagCrud.list(
+      new Request("http://localhost/api/tags?page=1&pageSize=50"),
+    );
+    const items = (await response.json()).data.items as Array<{
+      name: string;
+      monthExpenses: Array<{ currency: string; expense: number }>;
+    }>;
+
+    expect(items.find((item) => item.name === "casa")?.monthExpenses).toEqual([
+      { currency: "BRL", expense: 4_000 },
+      { currency: "USD", expense: 900 },
+    ]);
+    expect(items.find((item) => item.name === "vazia")?.monthExpenses).toEqual([]);
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(other.id);
+    const otherBody = await (
+      await tagCrud.list(new Request("http://localhost/api/tags?page=1&pageSize=50"))
+    ).json();
+    expect(otherBody.data.items).toEqual([]);
   });
 });

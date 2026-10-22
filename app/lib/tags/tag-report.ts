@@ -6,16 +6,23 @@ import { apiFailureFromError } from "@/app/lib/api/api-error-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
-import { transactionFinancialImpact } from "@/app/lib/transactions/financial-impact";
+import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import {
+  aggregateTagCurrencies,
+  aggregateTagHistory,
+  parseTagReportPeriod,
+  type TagReportRow,
+} from "@/app/lib/tags/tag-report-model";
 
 export async function getTagReport(
-  _request: Request,
+  request: Request,
   context?: { params: Promise<{ id: string }> },
 ) {
   try {
     const userId = await getAuthenticatedUserId();
     if (!context) throw new HttpError("Tag não encontrada", 404);
     const { id } = await context.params;
+    const period = parseTagReportPeriod(new URL(request.url).searchParams.get("period"));
 
     const tag = await prisma.tag.findFirst({
       where: { id, userId },
@@ -27,6 +34,8 @@ export async function getTagReport(
       currency: string;
       accountType: AccountType;
       type: TransactionType;
+      year: number;
+      month: number;
       count: bigint;
       total: bigint;
     }>>`
@@ -34,6 +43,8 @@ export async function getTagReport(
         a."currency" AS "currency",
         a."type"::text AS "accountType",
         t."type"::text AS "type",
+        t."year" AS "year",
+        t."month" AS "month",
         COUNT(*)::bigint AS "count",
         COALESCE(SUM(t."amount"), 0)::bigint AS "total"
       FROM "transaction_tags" tt
@@ -48,40 +59,22 @@ export async function getTagReport(
         AND tt."tag_id" = ${id}
         AND t."kind" = 'NORMAL'
         AND t."status" = 'COMPLETED'
-      GROUP BY a."currency", a."type", t."type"
-      ORDER BY a."currency" ASC, a."type" ASC, t."type" ASC
+      GROUP BY a."currency", a."type", t."type", t."year", t."month"
     `;
 
-    const currencies = new Map<string, {
-      currency: string;
-      transactionCount: number;
-      income: number;
-      expense: number;
-      balance: number;
-    }>();
+    const today = logicalDateFromUtcInstant(new Date());
+    const reportRows: TagReportRow[] = rows.map((row) => ({
+      ...row,
+      count: Number(row.count),
+      total: Number(row.total),
+    }));
 
-    for (const row of rows) {
-      const current = currencies.get(row.currency) ?? {
-        currency: row.currency,
-        transactionCount: 0,
-        income: 0,
-        expense: 0,
-        balance: 0,
-      };
-      current.transactionCount += Number(row.count);
-
-      const impact = transactionFinancialImpact(
-        row.accountType,
-        row.type,
-        Number(row.total),
-      );
-      current.income += impact.income;
-      current.expense += impact.expense;
-      current.balance = current.income - current.expense;
-      currencies.set(row.currency, current);
-    }
-
-    return success({ tag, currencies: [...currencies.values()] });
+    return success({
+      tag,
+      period,
+      currencies: aggregateTagCurrencies(reportRows, period, today),
+      history: aggregateTagHistory(reportRows, today),
+    });
   } catch (error) {
     return apiFailureFromError(error, { fallbackMessage: "Erro ao gerar relatório da tag" });
   }

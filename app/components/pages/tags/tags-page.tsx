@@ -1,11 +1,9 @@
 'use client';
 
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
-import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FaArchive,
-  FaChartBar,
   FaEdit,
   FaPlus,
   FaRedo,
@@ -16,14 +14,16 @@ import {
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { Alert } from '@/app/components/feedback';
-import { Button, IconButton, Input } from '@/app/components/ui';
+import TagReportPanel from '@/app/components/pages/tags/tag-report-panel';
+import { monthExpenseLabel, statusFilterParam, type TagStatusFilter } from '@/app/components/pages/tags/tags-model';
+import { Button, Chip, IconButton, Input } from '@/app/components/ui';
 import ConfirmationModal from '@/app/components/overlays/confirmation-modal';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { normalizeTagDisplayName } from '@/app/lib/tags/tag-name';
 import { ApiClientError } from '@/app/services/api-client';
 import { tagService } from '@/app/services/tag-service';
-import type { TagDTO, TagReport } from '@/app/types/tag';
+import type { TagDTO, TagReport, TagReportPeriod } from '@/app/types/tag';
 
 function messageFromError(error: unknown, fallback: string) {
   return error instanceof ApiClientError || error instanceof Error
@@ -67,6 +67,8 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
   const [notice, setNotice] = useState('');
   const [actionFeedbackTagId, setActionFeedbackTagId] = useState<string | null>(null);
 
+  const [statusFilter, setStatusFilter] = useState<TagStatusFilter>('all');
+  const [reportPeriod, setReportPeriod] = useState<TagReportPeriod>('all');
   const [report, setReport] = useState<TagReport | null>(null);
   const [selectedReportTagId, setSelectedReportTagId] = useState<string | null>(null);
   const [reportLoadingTagId, setReportLoadingTagId] = useState<string | null>(null);
@@ -85,6 +87,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
         page,
         pageSize: TAG_PAGE_SIZE,
         search: search || undefined,
+        isActive: statusFilterParam(statusFilter),
       });
       const nextTotalPages = Math.max(1, response.data.totalPages ?? 1);
       if (page > nextTotalPages) {
@@ -99,7 +102,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
     } finally {
       setLoadingTags(false);
     }
-  }, [page, search]);
+  }, [page, search, statusFilter]);
 
   useEffect(() => {
     let active = true;
@@ -109,6 +112,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
         page,
         pageSize: TAG_PAGE_SIZE,
         search: search || undefined,
+        isActive: statusFilterParam(statusFilter),
       })
       .then((response) => {
         if (!active) return;
@@ -134,7 +138,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
     return () => {
       active = false;
     };
-  }, [page, search]);
+  }, [page, search, statusFilter]);
 
   useEffect(() => {
     if (!focusTagId) return;
@@ -290,15 +294,13 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
     }
   }
 
-  async function loadReport(tag: TagDTO) {
-    if (reportLoadingTagId) return;
-
+  async function loadReport(tag: TagDTO, period: TagReportPeriod = reportPeriod) {
     setSelectedReportTagId(tag.id);
     setReportLoadingTagId(tag.id);
     setReportError('');
     setReport(null);
     try {
-      const response = await tagService.report(tag.id);
+      const response = await tagService.report(tag.id, period);
       setReport(response.data);
     } catch (error) {
       setReportError(messageFromError(error, 'Erro ao carregar relatório'));
@@ -307,18 +309,56 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
     }
   }
 
+  function selectTag(tag: TagDTO) {
+    void loadReport(tag);
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      window.requestAnimationFrame(() => {
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        document.getElementById('tag-report')?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+      });
+    }
+  }
+
+  function changeReportPeriod(period: TagReportPeriod) {
+    setReportPeriod(period);
+    if (selectedReportTag) void loadReport(selectedReportTag, period);
+  }
+
+  function changeStatusFilter(filter: TagStatusFilter) {
+    setLoadingTags(true);
+    setListError('');
+    setPage(1);
+    setStatusFilter(filter);
+  }
+
+  const statusOptions: Array<{ value: TagStatusFilter; label: string }> = [
+    { value: 'all', label: 'Todas' },
+    { value: 'active', label: 'Ativas' },
+    { value: 'archived', label: 'Arquivadas' },
+  ];
+
   return (
     <ProtectedRoute>
       <PageContainer>
         <PageTitle eyebrow="Contexto" title="Tags" description="Classifique transações por contexto sem alterar categoria, saldo ou tipo financeiro." />
 
+        <section className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          <section className="ds-panel p-4" aria-labelledby="tag-list-title">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <FaTag className="text-[var(--orbit-primary)]" aria-hidden="true" />
+                <h2 id="tag-list-title" className="font-bold">Suas tags</h2>
+              </div>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Filtro de tags">
+                {statusOptions.map((option) => (
+                  <Chip key={option.value} selected={statusFilter === option.value} onClick={() => changeStatusFilter(option.value)}>
+                    {option.label}
+                  </Chip>
+                ))}
+              </div>
+            </div>
 
-        <section className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,.8fr)]">
-          <div className="space-y-4">
-            <form
-              onSubmit={createTag}
-              className="ds-panel flex flex-col gap-3 p-4 sm:flex-row sm:items-end"
-            >
+            <form onSubmit={createTag} className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
               <div className="min-w-0 flex-1">
                 <Input
                   label="Nova tag"
@@ -340,332 +380,139 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
               </Button>
             </form>
 
-            {notice && actionFeedbackTagId === null ? (
-              <Alert variant="info" message={notice} />
-            ) : null}
+            {notice && actionFeedbackTagId === null ? <div className="mt-3"><Alert variant="info" message={notice} /></div> : null}
+            {actionError && actionFeedbackTagId === null ? <div className="mt-3"><Alert variant="error" message={actionError} /></div> : null}
 
-            {actionError && actionFeedbackTagId === null ? (
-              <Alert variant="error" message={actionError} />
-            ) : null}
-
-            <section className="ds-panel p-4" aria-labelledby="tag-list-title">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <FaTag className="text-[var(--orbit-primary)]" aria-hidden="true" />
-                  <h2 id="tag-list-title" className="font-bold">
-                    Tags cadastradas
-                  </h2>
-                </div>
-                {listError ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    icon={<FaRedo aria-hidden="true" />}
-                    onClick={() => void loadTags()}
-                    disabled={loadingTags}
-                  >
-                    Tentar novamente
-                  </Button>
-                ) : null}
+            <form onSubmit={applySearch} className="mt-4 flex flex-col gap-2 sm:flex-row" role="search">
+              <div className="min-w-0 flex-1">
+                <Input
+                  value={searchDraft}
+                  onChange={(event) => setSearchDraft(event.target.value)}
+                  placeholder="Buscar tag pelo nome"
+                  aria-label="Buscar tags"
+                  type="search"
+                  enterKeyHint="search"
+                />
               </div>
+              <Button type="submit" variant="outline" size="sm" disabled={loadingTags}>Buscar</Button>
+              {search ? <Button type="button" variant="ghost" size="sm" onClick={clearSearch} disabled={loadingTags}>Limpar</Button> : null}
+            </form>
 
-              <form
-                onSubmit={applySearch}
-                className="mt-4 flex flex-col gap-2 sm:flex-row"
-                role="search"
-              >
-                <div className="min-w-0 flex-1">
-                  <Input
-                    value={searchDraft}
-                    onChange={(event) => setSearchDraft(event.target.value)}
-                    placeholder="Buscar tag pelo nome"
-                    aria-label="Buscar tags"
-                    type="search"
-                    enterKeyHint="search"
-                  />
-                </div>
-                <Button type="submit" variant="outline" size="sm" disabled={loadingTags}>
-                  Buscar
+            {!loadingTags && !listError ? (
+              <p className="mt-3 text-xs text-[var(--text-muted)]">
+                {total === 1 ? '1 tag encontrada' : `${total} tags encontradas`}
+                {search ? ` para “${search}”` : ''}.
+              </p>
+            ) : null}
+
+            {listError ? (
+              <div className="mt-4 grid gap-2">
+                <Alert variant="error" message={listError} />
+                <Button variant="outline" size="sm" icon={<FaRedo aria-hidden="true" />} onClick={() => void loadTags()} disabled={loadingTags}>
+                  Tentar novamente
                 </Button>
-                {search ? (
-                  <Button type="button" variant="ghost" size="sm" onClick={clearSearch} disabled={loadingTags}>
-                    Limpar
-                  </Button>
-                ) : null}
-              </form>
-
-              {!loadingTags && !listError ? (
-                <p className="mt-3 text-xs text-[var(--text-muted)]">
-                  {total === 1 ? '1 tag encontrada' : `${total} tags encontradas`}
-                  {search ? ` para “${search}”` : ''}.
-                </p>
-              ) : null}
-
-              {listError ? (
-                <div className="mt-4">
-                  <Alert variant="error" message={listError} />
-                </div>
-              ) : loadingTags ? (
-                <p className="mt-4 text-sm text-[var(--text-muted)]">Carregando tags…</p>
-              ) : tags.length === 0 ? (
-                <p className="mt-4 text-sm text-[var(--text-muted)]">
-                  {search ? 'Nenhuma tag encontrada para esta busca.' : 'Nenhuma tag cadastrada.'}
-                </p>
-              ) : (
-                <ul className="mt-4 divide-y divide-[var(--border)]">
-                  {tags.map((tag) => (
-                    <li
-                      key={tag.id}
-                      className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
-                    >
+              </div>
+            ) : loadingTags ? (
+              <p className="mt-4 text-sm text-[var(--text-muted)]">Carregando tags…</p>
+            ) : tags.length === 0 ? (
+              <p className="mt-4 text-sm text-[var(--text-muted)]">
+                {search || statusFilter !== 'all' ? 'Nenhuma tag encontrada para esta busca.' : 'Nenhuma tag cadastrada.'}
+              </p>
+            ) : (
+              <ul className="mt-4 divide-y divide-[var(--border)] border-t border-[var(--border)]">
+                {tags.map((tag) => {
+                  const spent = monthExpenseLabel(tag.monthExpenses, (cents, currency) => (showValues ? formatCurrency(cents, currency) : '••••'));
+                  const selected = selectedReportTagId === tag.id;
+                  return (
+                    <li key={tag.id} className={`flex flex-col gap-2 py-3 ${selected ? 'bg-[var(--surface-subtle)]' : ''}`}>
                       {editing?.id === tag.id ? (
-                        <form
-                          onSubmit={saveRename}
-                          className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row"
-                        >
+                        <form onSubmit={saveRename} className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
                           <div className="min-w-0 flex-1">
                             <Input
                               autoFocus
                               value={editing.name}
-                              onChange={(event) =>
-                                setEditing({ id: tag.id, name: event.target.value })
-                              }
+                              onChange={(event) => setEditing({ id: tag.id, name: event.target.value })}
                               maxLength={41}
                               aria-label="Novo nome da tag"
                               enterKeyHint="done"
                               disabled={renamingId === tag.id}
                             />
                           </div>
-                          <Button
-                            type="submit"
-                            variant="outline"
-                            size="sm"
-                            disabled={
-                              renamingId === tag.id ||
-                              !normalizeTagDisplayName(editing.name)
-                            }
-                          >
+                          <Button type="submit" variant="outline" size="sm" disabled={renamingId === tag.id || !normalizeTagDisplayName(editing.name)}>
                             {renamingId === tag.id ? 'Salvando…' : 'Salvar'}
                           </Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(null)} disabled={renamingId === tag.id}>Cancelar</Button>
+                        </form>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <Button
                             type="button"
                             variant="ghost"
-                            size="sm"
-                            onClick={() => setEditing(null)}
-                            disabled={renamingId === tag.id}
+                            onClick={() => selectTag(tag)}
+                            aria-label={`Relatório da tag ${tag.name}`}
+                            aria-pressed={selected}
+                            className="min-w-0 flex-1 basis-48 flex-col items-start justify-center gap-0 text-left font-normal"
                           >
-                            Cancelar
-                          </Button>
-                        </form>
-                      ) : (
-                        <>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex min-w-0 items-center gap-2">
-                              <strong
-                                className="min-w-0 truncate text-sm text-[var(--foreground)]"
-                                title={`#${tag.name}`}
-                              >
-                                #{tag.name}
-                              </strong>
+                            <span className="flex w-full min-w-0 items-center gap-2">
+                              <strong className="min-w-0 truncate text-sm text-[var(--foreground)]" title={`#${tag.name}`}>#{tag.name}</strong>
                               <span className="shrink-0 rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">
                                 {tag.isActive ? 'Ativa' : 'Arquivada'}
                               </span>
-                            </div>
-                            <p className="mt-1 text-xs text-[var(--text-muted)]">
-                              {tag.transactionCount === 1
-                                ? '1 transação vinculada'
-                                : `${tag.transactionCount} transações vinculadas`}
-                            </p>
-                          </div>
+                            </span>
+                            <span className="text-xs text-[var(--text-muted)]">
+                              {tag.transactionCount === 1 ? '1 transação vinculada' : `${tag.transactionCount} transações vinculadas`}
+                              {spent ? <> · <span className="money">{spent}</span> no mês</> : null}
+                            </span>
+                          </Button>
 
-                          <div className="flex flex-wrap items-center gap-1 self-end sm:self-auto">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <IconButton label={`Renomear tag ${tag.name}`} icon={<FaEdit />} onClick={() => setEditing({ id: tag.id, name: tag.name })} disabled={renamingId !== null} />
                             <IconButton
-                              label={`Relatório da tag ${tag.name}`}
-                              icon={<FaChartBar />}
-                              onClick={() => void loadReport(tag)}
-                              disabled={reportLoadingTagId !== null}
-                            />
-                            <IconButton
-                              label={`Renomear tag ${tag.name}`}
-                              icon={<FaEdit />}
-                              onClick={() => setEditing({ id: tag.id, name: tag.name })}
-                              disabled={renamingId !== null}
-                            />
-                            <IconButton
-                              label={
-                                tag.isActive
-                                  ? `Arquivar tag ${tag.name}`
-                                  : `Reativar tag ${tag.name}`
-                              }
+                              label={tag.isActive ? `Arquivar tag ${tag.name}` : `Reativar tag ${tag.name}`}
                               icon={tag.isActive ? <FaArchive /> : <FaUndo />}
                               onClick={() => void toggleArchive(tag)}
                               disabled={lifecycleId !== null}
                             />
                             <IconButton
-                              label={
-                                tag.transactionCount > 0
-                                  ? `Não é possível excluir ${tag.name}; arquive para preservar o histórico`
-                                  : `Excluir tag ${tag.name}`
-                              }
-                              title={
-                                tag.transactionCount > 0
-                                  ? 'Tag em uso: arquive para preservar o histórico'
-                                  : 'Excluir permanentemente'
-                              }
+                              label={tag.transactionCount > 0 ? `Não é possível excluir ${tag.name}; arquive para preservar o histórico` : `Excluir tag ${tag.name}`}
+                              title={tag.transactionCount > 0 ? 'Tag em uso: arquive para preservar o histórico' : 'Excluir permanentemente'}
                               tone="danger"
                               icon={<FaTrash />}
                               onClick={() => setDeleteCandidate(tag)}
                               disabled={tag.transactionCount > 0 || deletingId !== null}
                             />
                           </div>
-                        </>
+                        </div>
                       )}
 
                       {actionFeedbackTagId === tag.id && (notice || actionError) ? (
-                        <div className="basis-full">
-                          <Alert
-                            variant={actionError ? 'error' : 'info'}
-                            message={actionError || notice}
-                          />
-                        </div>
+                        <Alert variant={actionError ? 'error' : 'info'} message={actionError || notice} />
                       ) : null}
                     </li>
-                  ))}
-                </ul>
-              )}
-
-              {!loadingTags && !listError && totalPages > 1 ? (
-                <nav
-                  className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4"
-                  aria-label="Paginação de tags"
-                >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => changePage(Math.max(1, page - 1))}
-                    disabled={page <= 1}
-                  >
-                    Anterior
-                  </Button>
-                  <span className="text-xs font-semibold text-[var(--text-muted)]">
-                    Página {page} de {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => changePage(Math.min(totalPages, page + 1))}
-                    disabled={page >= totalPages}
-                  >
-                    Próxima
-                  </Button>
-                </nav>
-              ) : null}
-            </section>
-          </div>
-
-          <aside className="ds-panel h-fit p-4" aria-labelledby="tag-report-title">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 id="tag-report-title" className="font-bold">
-                  Relatório por tag
-                </h2>
-                <p className="mt-1 text-xs font-semibold text-[var(--text-muted)]">
-                  Todo o histórico
-                </p>
-              </div>
-              {report && !reportLoadingTagId ? (
-                <Link
-                  href={`/transacoes?tagId=${encodeURIComponent(report.tag.id)}`}
-                  className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-[var(--orbit-primary)]"
-                >
-                  Abrir transações
-                </Link>
-              ) : null}
-            </div>
-
-            <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
-              Tags podem se sobrepor na mesma transação. Por isso, totais de tags diferentes
-              não devem ser somados entre si.
-            </p>
-
-            {reportLoadingTagId ? (
-              <p className="mt-4 text-sm text-[var(--text-muted)]">
-                Carregando relatório
-                {selectedReportTag ? ` de #${selectedReportTag.name}` : ''}…
-              </p>
-            ) : reportError ? (
-              <div className="mt-4 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3">
-                <p role="alert" className="text-sm text-[var(--expense)]">
-                  {reportError}
-                </p>
-                {selectedReportTag ? (
-                  <Button
-                    className="mt-3"
-                    variant="outline"
-                    size="sm"
-                    icon={<FaRedo aria-hidden="true" />}
-                    onClick={() => void loadReport(selectedReportTag)}
-                  >
-                    Tentar novamente
-                  </Button>
-                ) : null}
-              </div>
-            ) : !report ? (
-              <p className="mt-4 text-sm text-[var(--text-muted)]">
-                Selecione o ícone de relatório de uma tag para ver receitas e despesas
-                concluídas, separadas por moeda.
-              </p>
-            ) : (
-              <div className="mt-4 space-y-3">
-                <strong className="block break-words [overflow-wrap:anywhere]">#{report.tag.name}</strong>
-                {report.currencies.length === 0 ? (
-                  <p className="text-sm text-[var(--text-muted)]">
-                    Sem transações concluídas nesta tag.
-                  </p>
-                ) : (
-                  report.currencies.map((item) => (
-                    <dl
-                      key={item.currency}
-                      className="rounded-xl border border-[var(--border)] p-3 text-sm"
-                    >
-                      <div className="flex justify-between gap-3">
-                        <dt>Moeda</dt>
-                        <dd className="font-bold">{item.currency}</dd>
-                      </div>
-                      <div className="mt-2 flex justify-between gap-3">
-                        <dt>Transações</dt>
-                        <dd>{item.transactionCount}</dd>
-                      </div>
-                      <div className="mt-2 flex justify-between gap-3">
-                        <dt>Receitas</dt>
-                        <dd>
-                          {showValues
-                            ? formatCurrency(item.income, item.currency)
-                            : '••••'}
-                        </dd>
-                      </div>
-                      <div className="mt-2 flex justify-between gap-3">
-                        <dt>Despesas</dt>
-                        <dd>
-                          {showValues
-                            ? formatCurrency(item.expense, item.currency)
-                            : '••••'}
-                        </dd>
-                      </div>
-                      <div className="mt-2 flex justify-between gap-3 border-t border-[var(--border)] pt-2">
-                        <dt>Resultado</dt>
-                        <dd className="font-bold">
-                          {showValues
-                            ? formatCurrency(item.balance, item.currency)
-                            : '••••'}
-                        </dd>
-                      </div>
-                    </dl>
-                  ))
-                )}
-              </div>
+                  );
+                })}
+              </ul>
             )}
-          </aside>
+
+            {!loadingTags && !listError && totalPages > 1 ? (
+              <nav className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4" aria-label="Paginação de tags">
+                <Button variant="outline" size="sm" onClick={() => changePage(Math.max(1, page - 1))} disabled={page <= 1}>Anterior</Button>
+                <span className="text-xs font-semibold text-[var(--text-muted)]">Página {page} de {totalPages}</span>
+                <Button variant="outline" size="sm" onClick={() => changePage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>Próxima</Button>
+              </nav>
+            ) : null}
+          </section>
+
+          <TagReportPanel
+            tag={selectedReportTag}
+            report={report}
+            period={reportPeriod}
+            loading={reportLoadingTagId !== null}
+            error={reportError}
+            showValues={showValues}
+            onPeriodChange={changeReportPeriod}
+            onRetry={() => selectedReportTag && void loadReport(selectedReportTag)}
+          />
         </section>
 
         <ConfirmationModal
