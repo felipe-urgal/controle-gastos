@@ -65,6 +65,8 @@ export type ForecastSafeToSpend = {
   transferNet: number;
   safeToSpend: number;
   accounts: ForecastSafeToSpendAccount[];
+  /** Último dia considerado no cálculo (fim do horizonte ou fim do mês no dashboard). */
+  through?: ForecastLogicalDate;
 };
 
 export type ForecastData = {

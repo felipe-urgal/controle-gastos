@@ -4,6 +4,7 @@ import {
   getForecastForUser,
   logicalDateFromUtcInstant,
 } from "@/app/lib/forecast/forecast";
+import { lastDayOfMonth } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
 
@@ -230,6 +231,43 @@ describe("forecast integration", () => {
     expect(
       await prisma.transaction.count({ where: { userId: owner.id } })
     ).toBe(transactionCountBefore);
+  });
+
+  it("limits safe-to-spend to the requested date without changing the forecast horizon", async () => {
+    const { owner } = await createForecastFixture();
+    const now = new Date("2028-04-10T23:30:00.000Z");
+    const input = { currency: "BRL" as const, days: 30 as const };
+
+    const untilMonthEnd = await getForecastForUser(owner.id, input, now, {
+      safeToSpendThrough: lastDayOfMonth({ year: 2028, month: 4, day: 10 }),
+    });
+    expect(untilMonthEnd.horizonEnd).toEqual({ year: 2028, month: 5, day: 9 });
+    expect(untilMonthEnd.safeToSpend).toMatchObject({
+      through: { year: 2028, month: 4, day: 30 },
+      pendingExpenses: 35_000,
+      safeToSpend: 45_000,
+    });
+
+    const beforeFutureExpense = await getForecastForUser(owner.id, input, now, {
+      safeToSpendThrough: { year: 2028, month: 4, day: 15 },
+    });
+    expect(beforeFutureExpense.safeToSpend).toMatchObject({
+      pendingExpenses: 5_000,
+      safeToSpend: 75_000,
+    });
+
+    // Além dos 30 dias o cálculo usa horizonte maior; a projeção devolvida continua em 30.
+    const beyondHorizon = await getForecastForUser(owner.id, input, now, {
+      safeToSpendThrough: { year: 2028, month: 5, day: 31 },
+    });
+    expect(beyondHorizon.horizonDays).toBe(30);
+    expect(beyondHorizon.safeToSpend).toMatchObject({
+      pendingExpenses: 134_000,
+      safeToSpend: -54_000,
+    });
+
+    const defaultThrough = await getForecastForUser(owner.id, input, now);
+    expect(defaultThrough.safeToSpend.through).toEqual(defaultThrough.horizonEnd);
   });
 
   it("keeps card purchases out of cash accounts and exposes each open statement once", async () => {

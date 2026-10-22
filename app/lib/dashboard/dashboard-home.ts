@@ -1,5 +1,5 @@
 import { getFinancialCommitmentsFromForecastForUser } from '@/app/lib/commitments/financial-commitments';
-import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
+import { lastDayOfMonth, logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import {
   getMonthlyDashboardForUser,
 } from '@/app/lib/dashboard/monthly-dashboard';
@@ -190,7 +190,10 @@ export async function getDashboardHomeForUser(
   ] = await Promise.all([
     getMonthlyDashboardForUser(userId, period, currency, now),
     captureSection(
-      () => getForecastForUser(userId, { currency, days: 30 }, now),
+      () =>
+        getForecastForUser(userId, { currency, days: 30 }, now, {
+          safeToSpendThrough: lastDayOfMonth(logicalDateFromUtcInstant(now)),
+        }),
       'Não foi possível carregar a projeção atual.',
     ),
     captureSection(

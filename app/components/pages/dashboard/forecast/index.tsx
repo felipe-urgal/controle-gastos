@@ -1,13 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   FaArrowDown,
   FaArrowUp,
   FaChartLine,
-  FaClock,
+  FaChevronDown,
   FaCreditCard,
-  FaExclamationTriangle,
 } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
@@ -17,13 +16,18 @@ import { useForecast } from '@/app/hooks/dashboard/use-forecast';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import ForecastScenarioPanel from './forecast-scenario-panel';
+import { ForecastBalanceChart } from './forecast-balance-chart';
+import {
+  buildBalanceSeries,
+  buildTimelineEntries,
+  type BalanceSeries,
+  type TimelineEntry,
+} from './forecast-series';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type {
   ForecastAccount,
   ForecastData,
-  ForecastCardCommitment,
   ForecastHorizonDays,
-  ForecastItem,
   ForecastLogicalDate,
 } from '@/app/types/forecast';
 
@@ -72,6 +76,9 @@ export default function ForecastPanel({
     () => new Map(data?.accounts.map((account) => [account.id, account.name]) ?? []),
     [data?.accounts],
   );
+
+  const series = useMemo(() => (data ? buildBalanceSeries(data) : null), [data]);
+  const timeline = useMemo(() => (data ? buildTimelineEntries(data, accountNames) : []), [data, accountNames]);
 
   const content = (
     <section
@@ -158,61 +165,59 @@ export default function ForecastPanel({
             </span>
           </div>
 
-          <SafeToSpendCard
-            safeToSpend={data.safeToSpend}
-            horizonEnd={data.horizonEnd}
-            currency={data.currency}
-            showValues={showValues}
-          />
-
-          <ForecastScenarioPanel key={data.currency} data={data} showValues={showValues} />
-
-          {data.accounts.length === 0 ? (
-            <div className="ds-panel p-5 text-sm text-[var(--text-muted)]">
-              Nenhuma conta ativa em {data.currency} para projetar.
-            </div>
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {data.accounts.map((account) => (
-                <ForecastAccountCard
-                  key={account.id}
-                  account={account}
-                  currency={data.currency}
-                  showValues={showValues}
-                />
-              ))}
-            </div>
+          {series && (
+            <ForecastSummary series={series} currency={data.currency} showValues={showValues} />
           )}
 
-          <ForecastCardCommitments
-            overdue={data.cardCommitments.overdue}
-            upcoming={data.cardCommitments.upcoming}
-            currency={data.currency}
-            showValues={showValues}
-          />
+          {series && (
+            <section className="ds-panel p-4 sm:p-5" aria-labelledby="forecast-chart-title">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 id="forecast-chart-title" className="font-semibold text-[var(--foreground)]">
+                  Como o saldo evolui
+                </h3>
+                <p className="text-xs text-[var(--text-muted)]">
+                  Soma das contas · só lançamentos pendentes já cadastrados
+                </p>
+              </div>
+              <div className="mt-3">
+                <ForecastBalanceChart series={series} currency={data.currency} showValues={showValues} />
+              </div>
+            </section>
+          )}
 
-          <div className="grid gap-4 xl:grid-cols-2">
-            <ForecastList
-              id="forecast-overdue"
-              title="Pendências vencidas"
-              description="Continuam pendentes; esta leitura não muda data nem status."
-              items={data.overdue}
-              accountNames={accountNames}
+          <ForecastTimeline entries={timeline} currency={data.currency} showValues={showValues} horizonDays={data.horizonDays} />
+
+          <Disclosure title="Por conta" hint={`${data.accounts.length} ${data.accounts.length === 1 ? 'conta' : 'contas'}`}>
+            {data.accounts.length === 0 ? (
+              <p className="text-sm text-[var(--text-muted)]">
+                Nenhuma conta ativa em {data.currency} para projetar.
+              </p>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {data.accounts.map((account) => (
+                  <ForecastAccountCard
+                    key={account.id}
+                    account={account}
+                    currency={data.currency}
+                    showValues={showValues}
+                  />
+                ))}
+              </div>
+            )}
+          </Disclosure>
+
+          <Disclosure title="Simular um cenário" hint="Não salva nada">
+            <ForecastScenarioPanel key={data.currency} data={data} showValues={showValues} />
+          </Disclosure>
+
+          <Disclosure title="Como calculamos o disponível para gastar">
+            <SafeToSpendCard
+              safeToSpend={data.safeToSpend}
+              horizonEnd={data.safeToSpend.through ?? data.horizonEnd}
               currency={data.currency}
               showValues={showValues}
-              tone="warning"
             />
-            <ForecastList
-              id="forecast-upcoming"
-              title="Próximos lançamentos"
-              description={`Pendências concretas dentro dos próximos ${data.horizonDays} dias.`}
-              items={data.upcoming}
-              accountNames={accountNames}
-              currency={data.currency}
-              showValues={showValues}
-              tone="default"
-            />
-          </div>
+          </Disclosure>
         </div>
       ) : null}
     </section>
@@ -261,7 +266,7 @@ function SafeToSpendCard({
               : 'text-[var(--foreground)]'
           }`}
         >
-          {displayMoney(safeToSpend.safeToSpend, showValues, currency)}
+          <span className="money">{displayMoney(safeToSpend.safeToSpend, showValues, currency)}</span>
         </strong>
       </div>
 
@@ -269,27 +274,27 @@ function SafeToSpendCard({
         <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Saldo realizado</dt>
           <dd className="mt-1 font-semibold text-[var(--foreground)]">
-            {displayMoney(safeToSpend.realizedBalance, showValues, currency)}
+            <span className="money">{displayMoney(safeToSpend.realizedBalance, showValues, currency)}</span>
           </dd>
         </div>
         <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Pendências</dt>
           <dd className="mt-1 font-semibold text-[var(--expense)]">
             {safeToSpend.pendingExpenses > 0 ? '- ' : ''}
-            {displayMoney(safeToSpend.pendingExpenses, showValues, currency)}
+            <span className="money">{displayMoney(safeToSpend.pendingExpenses, showValues, currency)}</span>
           </dd>
         </div>
         <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Faturas em aberto</dt>
           <dd className="mt-1 font-semibold text-[var(--expense)]">
             {safeToSpend.cardCommitments > 0 ? '- ' : ''}
-            {displayMoney(safeToSpend.cardCommitments, showValues, currency)}
+            <span className="money">{displayMoney(safeToSpend.cardCommitments, showValues, currency)}</span>
           </dd>
         </div>
         <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Transferências líquidas</dt>
           <dd
-            className={`mt-1 font-semibold ${
+            className={`money mt-1 font-semibold ${
               transferValue > 0
                 ? 'text-[var(--income)]'
                 : transferValue < 0
@@ -313,7 +318,7 @@ function SafeToSpendCard({
                 key={account.id}
                 className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)]"
               >
-                {account.name}: {displayMoney(account.safeToSpend, showValues, currency)}
+                {account.name}: <span className="money">{displayMoney(account.safeToSpend, showValues, currency)}</span>
               </span>
             ))}
           </div>
@@ -360,7 +365,7 @@ function ForecastAccountCard({
         <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
           <dt className="text-sm text-[var(--text-muted)]">Realizado</dt>
           <dd className="mt-1 font-semibold text-[var(--foreground)]">
-            {displayMoney(account.realizedBalance, showValues, currency)}
+            <span className="money">{displayMoney(account.realizedBalance, showValues, currency)}</span>
           </dd>
         </div>
         <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
@@ -372,7 +377,7 @@ function ForecastAccountCard({
                 : 'text-[var(--foreground)]'
             }`}
           >
-            {displayMoney(account.projectedBalance, showValues, currency)}
+            <span className="money">{displayMoney(account.projectedBalance, showValues, currency)}</span>
           </dd>
         </div>
         <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-3">
@@ -381,7 +386,7 @@ function ForecastAccountCard({
             Pendências de entrada
           </dt>
           <dd className="mt-1 font-medium text-[var(--income)]">
-            {displayMoney(account.pendingIncome, showValues, currency)}
+            <span className="money">{displayMoney(account.pendingIncome, showValues, currency)}</span>
           </dd>
         </div>
         <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-3">
@@ -390,7 +395,7 @@ function ForecastAccountCard({
             Pendências de saída
           </dt>
           <dd className="mt-1 font-medium text-[var(--expense)]">
-            {displayMoney(account.pendingExpense, showValues, currency)}
+            <span className="money">{displayMoney(account.pendingExpense, showValues, currency)}</span>
           </dd>
         </div>
       </dl>
@@ -405,7 +410,7 @@ function ForecastAccountCard({
                 : 'text-[var(--foreground)]'
             }
           >
-            {displayMoney(account.lowestProjectedBalance, showValues, currency)}
+            <span className="money">{displayMoney(account.lowestProjectedBalance, showValues, currency)}</span>
           </strong>
         </div>
         <p className="mt-1 text-[var(--text-subtle)]">
@@ -416,174 +421,168 @@ function ForecastAccountCard({
   );
 }
 
-function ForecastList({
-  id,
+function Disclosure({
   title,
-  description,
-  items,
-  accountNames,
-  currency,
-  showValues,
-  tone,
+  hint,
+  children,
 }: {
-  id: string;
   title: string;
-  description: string;
-  items: ForecastItem[];
-  accountNames: Map<string, string>;
-  currency: string;
-  showValues: boolean;
-  tone: 'warning' | 'default';
+  hint?: string;
+  children: React.ReactNode;
 }) {
-  const visibleItems = items.slice(0, 6);
-
   return (
-    <section className="ds-panel p-5" aria-labelledby={id}>
-      <div className="flex items-start gap-2">
-        {tone === 'warning' ? (
-          <FaExclamationTriangle
-            className="mt-1 text-[var(--warning)]"
-            aria-hidden="true"
-          />
-        ) : (
-          <FaClock
-            className="mt-1 text-[var(--orbit-primary)]"
-            aria-hidden="true"
-          />
-        )}
-        <div>
-          <h3 id={id} className="font-semibold text-[var(--foreground)]">
-            {title}
-          </h3>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">{description}</p>
-        </div>
-      </div>
-
-      {items.length === 0 ? (
-        <p className="mt-4 rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
-          Nenhum lançamento neste grupo.
-        </p>
-      ) : (
-        <ul className="mt-4 divide-y divide-[var(--border)]">
-          {visibleItems.map((item) => (
-            <li
-              key={item.id}
-              className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
-            >
-              <div className="min-w-0">
-                <p className="break-words text-sm font-medium text-[var(--foreground)]">
-                  {item.description}
-                </p>
-                <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-                  {formatLogicalDate(item)} ·{' '}
-                  {accountNames.get(item.accountId) ?? 'Conta'}
-                  {item.kind === 'TRANSFER' ? ' · Transferência' : ''}
-                </p>
-              </div>
-              <span
-                className={`shrink-0 text-sm font-semibold ${
-                  item.type === 'INCOME'
-                    ? 'text-[var(--income)]'
-                    : 'text-[var(--expense)]'
-                }`}
-              >
-                {item.type === 'INCOME' ? '+' : '-'}
-                {displayMoney(item.amount, showValues, currency)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {items.length > visibleItems.length ? (
-        <p className="mt-4 text-sm text-[var(--text-muted)]">
-          +{items.length - visibleItems.length} lançamento(s) no horizonte. A lista
-          visual é resumida; o cálculo usa todos.
-        </p>
-      ) : null}
-    </section>
+    <details className="group ds-panel">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-[var(--radius-lg)] px-4 py-3 font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
+        <span>{title}</span>
+        <span className="flex items-center gap-3 text-sm font-normal text-[var(--text-muted)]">
+          {hint}
+          <FaChevronDown className="text-xs transition-transform group-open:rotate-180" aria-hidden="true" />
+        </span>
+      </summary>
+      <div className="px-4 pb-4 sm:px-5 sm:pb-5">{children}</div>
+    </details>
   );
 }
 
-function ForecastCardCommitments({
-  overdue,
-  upcoming,
+function ForecastSummary({
+  series,
   currency,
   showValues,
 }: {
-  overdue: ForecastCardCommitment[];
-  upcoming: ForecastCardCommitment[];
+  series: BalanceSeries;
   currency: string;
   showValues: boolean;
 }) {
-  const items = [...overdue, ...upcoming];
-  if (items.length === 0) return null;
-
-  const overdueKeys = new Set(
-    overdue.map(
-      (item) =>
-        `${item.cardId}:${item.closingDate.year}-${item.closingDate.month}-${item.closingDate.day}`,
-    ),
-  );
+  const drops = series.lowest.balance < series.startBalance;
+  const change = series.endBalance - series.startBalance;
+  const tones = (value: number) => (value < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]');
 
   return (
-    <section className="ds-panel p-5" aria-labelledby="forecast-card-commitments">
-      <div className="flex items-start gap-2">
-        <FaCreditCard
-          className="mt-1 text-[var(--orbit-primary)]"
-          aria-hidden="true"
-        />
-        <div>
-          <h3
-            id="forecast-card-commitments"
-            className="font-semibold text-[var(--foreground)]"
-          >
-            Faturas de cartão
-          </h3>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Compromissos reais por vencimento. Não alteram o saldo projetado de
-            uma conta até o pagamento definir a conta pagadora.
-          </p>
-        </div>
+    <dl className="grid gap-3 sm:grid-cols-3">
+      <div className="ds-panel p-4">
+        <dt className="text-sm text-[var(--text-muted)]">Saldo hoje</dt>
+        <dd className={`mt-1 text-xl font-semibold tabular-nums ${tones(series.startBalance)}`}>
+          <span className="money">{displayMoney(series.startBalance, showValues, currency)}</span>
+        </dd>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">Realizado, em {formatLogicalDate(series.asOf)}</p>
+      </div>
+      <div className={`ds-panel p-4 ${series.lowest.balance < 0 ? 'border-[var(--expense)]/45' : ''}`}>
+        <dt className="text-sm text-[var(--text-muted)]">Menor saldo no período</dt>
+        <dd className={`mt-1 text-xl font-semibold tabular-nums ${tones(series.lowest.balance)}`}>
+          <span className="money">{displayMoney(series.lowest.balance, showValues, currency)}</span>
+        </dd>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          {drops
+            ? series.lowest.balance < 0
+              ? `Fica negativo em ${formatLogicalDate(series.lowest.date)}`
+              : `Em ${formatLogicalDate(series.lowest.date)}`
+            : 'Sem queda prevista abaixo do saldo de hoje'}
+        </p>
+      </div>
+      <div className="ds-panel p-4">
+        <dt className="text-sm text-[var(--text-muted)]">Saldo em {formatLogicalDate(series.horizonEnd)}</dt>
+        <dd className={`mt-1 text-xl font-semibold tabular-nums ${tones(series.endBalance)}`}>
+          <span className="money">{displayMoney(series.endBalance, showValues, currency)}</span>
+        </dd>
+        <p className={`mt-1 text-xs ${change < 0 ? 'text-[var(--expense)]' : change > 0 ? 'text-[var(--income)]' : 'text-[var(--text-muted)]'}`}>
+          {change === 0
+            ? 'Igual ao saldo de hoje'
+            : <><span className="money">{change > 0 ? '+' : '−'} {displayMoney(Math.abs(change), showValues, currency)}</span> no período</>}
+        </p>
+      </div>
+    </dl>
+  );
+}
+
+const TIMELINE_PREVIEW = 8;
+
+function ForecastTimeline({
+  entries,
+  currency,
+  showValues,
+  horizonDays,
+}: {
+  entries: TimelineEntry[];
+  currency: string;
+  showValues: boolean;
+  horizonDays: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? entries : entries.slice(0, TIMELINE_PREVIEW);
+  const overdueCount = entries.filter((entry) => entry.overdue).length;
+
+  const groups: Array<{ key: string; label: string; overdue: boolean; items: TimelineEntry[] }> = [];
+  for (const entry of visible) {
+    const key = entry.overdue ? 'overdue' : `${entry.date.year}-${entry.date.month}-${entry.date.day}`;
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) {
+      last.items.push(entry);
+    } else {
+      groups.push({ key, label: entry.overdue ? 'Vencidos' : formatLogicalDate(entry.date), overdue: entry.overdue, items: [entry] });
+    }
+  }
+
+  return (
+    <section className="ds-panel p-4 sm:p-5" aria-labelledby="forecast-timeline-title">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 id="forecast-timeline-title" className="font-semibold text-[var(--foreground)]">
+          O que vem pela frente
+        </h3>
+        <p className="text-xs text-[var(--text-muted)]">
+          Próximos {horizonDays} dias{overdueCount > 0 ? ` · ${overdueCount} vencido${overdueCount === 1 ? '' : 's'}` : ''}
+        </p>
       </div>
 
-      <ul className="mt-4 divide-y divide-[var(--border)]">
-        {items.slice(0, 8).map((item) => {
-          const key = `${item.cardId}:${item.closingDate.year}-${item.closingDate.month}-${item.closingDate.day}`;
-          const isOverdue = overdueKeys.has(key);
+      {entries.length === 0 ? (
+        <p className="mt-3 rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
+          Nenhum lançamento pendente neste período.
+        </p>
+      ) : (
+        <div className="mt-3 space-y-4">
+          {groups.map((group) => (
+            <div key={group.key}>
+              <p className={`text-xs font-semibold uppercase tracking-[0.08em] ${group.overdue ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>
+                {group.label}
+              </p>
+              {group.overdue && (
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                  Continuam pendentes; esta leitura não muda data nem status.
+                </p>
+              )}
+              <ul className="mt-1 divide-y divide-[var(--border)]">
+                {group.items.map((entry) => (
+                  <li key={entry.id} className="flex items-start justify-between gap-3 py-2.5">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      {entry.kind === 'CARD' && (
+                        <FaCreditCard className="mt-1 shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="break-words text-sm font-medium text-[var(--foreground)]">{entry.title}</p>
+                        <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                          {entry.subtitle}
+                          {entry.overdue ? ` · ${formatLogicalDate(entry.date)}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`shrink-0 text-sm font-semibold tabular-nums ${entry.amount > 0 ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
+                      {entry.amount > 0 ? '+ ' : '− '}
+                      <span className="money">{displayMoney(Math.abs(entry.amount), showValues, currency)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
 
-          return (
-            <li
-              key={key}
-              className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[var(--foreground)]">
-                  {item.cardName}
-                </p>
-                <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-                  Vence {formatLogicalDate(item.dueDate)} · {item.transactionCount}{' '}
-                  lançamento{item.transactionCount === 1 ? '' : 's'}
-                </p>
-              </div>
-              <div className="text-right">
-                <strong className="text-sm text-[var(--expense)]">
-                  {displayMoney(item.amount, showValues, currency)}
-                </strong>
-                <p
-                  className={`mt-0.5 text-xs font-semibold ${
-                    isOverdue
-                      ? 'text-[var(--expense)]'
-                      : 'text-[var(--text-muted)]'
-                  }`}
-                >
-                  {isOverdue ? 'Vencida' : 'Em aberto'}
-                </p>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      {entries.length > TIMELINE_PREVIEW && (
+        <div className="mt-3">
+          <Button type="button" size="sm" variant="outline" onClick={() => setExpanded((value) => !value)} aria-expanded={expanded}>
+            {expanded ? 'Mostrar menos' : `Mostrar todos (${entries.length})`}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

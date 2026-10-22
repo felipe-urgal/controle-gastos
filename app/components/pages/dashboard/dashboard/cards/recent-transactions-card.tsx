@@ -64,7 +64,7 @@ export function RecentTransactionsCard({
                     ? `${transaction.account.name} → ${transaction.counterpartAccount.name}`
                     : `${transaction.account.name}${isCardPayment ? ' · Pagamento de fatura' : ''}${statusLabel ? ` · ${statusLabel}` : ''}`}
                 </span>
-                <strong className={`shrink-0 text-xs ${tone}`}>
+                <strong className={`money shrink-0 text-xs ${tone}`}>
                   {showValues ? `${isIncome ? '+' : isTransfer || isCardPayment ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
                 </strong>
               </Link>

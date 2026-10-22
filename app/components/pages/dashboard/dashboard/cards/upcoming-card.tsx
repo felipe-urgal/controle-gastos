@@ -61,7 +61,7 @@ export function UpcomingCard({
                       <div className="min-w-0">
                         <p className="truncate text-xs font-bold">{item.title}</p>
                         <p className="mt-1 text-xs text-[var(--text-muted)]">
-                          {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
+                          {item.amount === null ? 'Marco sem valor financeiro' : <span className="money">{displayMoney(item.amount, showValues, currency)}</span>}
                         </p>
                       </div>
                       <span className={`rounded-[8px] px-2.5 py-1.5 text-xs font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>

@@ -80,18 +80,18 @@ export function PeriodicSummaryCard({
           </div>
         </div>
         <strong className={`text-xl font-black ${summary.totals.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
-          {money(summary.totals.balance, showValues, summary.currency)}
+          <span className="money">{money(summary.totals.balance, showValues, summary.currency)}</span>
         </strong>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
           <span className="block text-[var(--text-muted)]">Entradas</span>
-          <strong className="mt-1 block text-[var(--income)]">{money(summary.totals.income, showValues, summary.currency)}</strong>
+          <strong className="mt-1 block text-[var(--income)]"><span className="money">{money(summary.totals.income, showValues, summary.currency)}</span></strong>
         </div>
         <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
           <span className="block text-[var(--text-muted)]">Saídas líquidas</span>
-          <strong className="mt-1 block text-[var(--expense)]">{money(summary.totals.expense, showValues, summary.currency)}</strong>
+          <strong className="mt-1 block text-[var(--expense)]"><span className="money">{money(summary.totals.expense, showValues, summary.currency)}</span></strong>
         </div>
       </div>
 
@@ -102,7 +102,7 @@ export function PeriodicSummaryCard({
             {summary.topCategories.slice(0, 3).map((item) => (
               <div key={item.categoryId} className="flex items-center justify-between gap-3 text-sm">
                 <span className="truncate text-[var(--foreground)]">{item.categoryName}</span>
-                <strong className="shrink-0">{money(item.amount, showValues, summary.currency)}</strong>
+                <strong className="shrink-0"><span className="money">{money(item.amount, showValues, summary.currency)}</span></strong>
               </div>
             ))}
           </div>

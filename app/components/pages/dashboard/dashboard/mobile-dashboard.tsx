@@ -1,19 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { FaArrowUp, FaBarcode, FaCalendarAlt, FaChartLine, FaChartPie, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaEye, FaBullseye, FaPlus } from 'react-icons/fa';
-import { LocalFinancialAssistantCard } from '@/app/components/pages/dashboard/dashboard/local-financial-assistant-card';
+import { FaCalendarAlt, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaBullseye } from 'react-icons/fa';
 import { Button, IconRenderer, Select } from '@/app/components/ui';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { DashboardHome, DashboardNetWorthSummary, DashboardRecentTransaction, MonthlyDashboard } from '@/app/types/dashboard';
 import { SupportedCurrency } from '@/app/types/financial-summary';
-import { FinancialInsightsData } from '@/app/types/financial-insight';
-import { ForecastData } from '@/app/types/forecast';
 import { FinancialCommitment } from '@/app/types/financial-commitment';
-import { commitmentBadge, compactMonthLabel, dashboardLogicalDateLabel, displayMoney, groupCommitments, monthLabel, signedMoney, transactionDateLabel } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
-import { FinancialInsightsCard, NetWorthSummaryCard } from '@/app/components/pages/dashboard/dashboard/insight-cards';
-import { PlanningMetric } from '@/app/components/pages/dashboard/dashboard/desktop-cards';
+import { commitmentBadge, compactMonthLabel, dashboardLogicalDateLabel, displayMoney, groupCommitments, monthLabel, transactionDateLabel } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
+import { MonthPaceCard } from '@/app/components/pages/dashboard/dashboard/cards/month-pace-card';
+import { CategoryBudgetBar } from '@/app/components/pages/dashboard/dashboard/cards/category-budget';
+import { NetWorthSummaryCard } from '@/app/components/pages/dashboard/dashboard/insight-cards';
 
 /** Estado de erro padrão dos cards: mensagem + "Tentar novamente" quando houver retry. */
 function CardError({ message, onRetry, tone = 'plain' }: { message: string; onRetry?: () => void; tone?: 'plain' | 'box' }) {
@@ -79,24 +77,15 @@ export function MobileDashboardHeader({
 export function MobileDashboardHome({
   home,
   showValues,
-  forecast,
   commitments,
   recentTransactions,
   topCategories,
   netWorth,
-  insights,
-  onOpenForecast,
   onRetry,
 }: {
   home: DashboardHome;
   onRetry?: () => void;
   showValues: boolean;
-  onOpenForecast: () => void;
-  forecast: {
-    data: ForecastData | null;
-    loading: boolean;
-    error: string;
-  };
   commitments: {
     data: import('@/app/types/financial-commitment').FinancialCommitmentsData | null;
     loading: boolean;
@@ -113,11 +102,6 @@ export function MobileDashboardHome({
     loading: boolean;
     error: string;
   };
-  insights: {
-    data: FinancialInsightsData | null;
-    loading: boolean;
-    error: string;
-  };
 }) {
   const data = home.monthly;
   const cashAccounts = home.current.cash.accounts;
@@ -125,102 +109,13 @@ export function MobileDashboardHome({
   const flowTotal = data.summary.income + data.summary.expense;
   const incomeWidth = flowTotal > 0 ? (data.summary.income / flowTotal) * 100 : 50;
   const expenseWidth = flowTotal > 0 ? (data.summary.expense / flowTotal) * 100 : 50;
-  const hasPlanning =
-    data.planning.budget > 0 ||
-    data.planning.realized > 0 ||
-    data.planning.committed > 0 ||
-    data.planning.expectedIncome > 0;
-
   return (
     <div className="space-y-3">
-      <MobileBalanceCard
-        cashTotal={availableNow}
-        cashAccounts={cashAccounts}
-        asOf={home.scope.currentAsOf}
+      <MonthPaceCard
+        data={data}
+        relation={home.scope.selectedPeriodRelation}
+        today={home.scope.currentAsOf.day}
         showValues={showValues}
-        summary={data.summary}
-        currency={data.currency}
-      />
-
-      <MobileQuickActions />
-
-      <MobileSafeToSpendCard
-        safeToSpend={forecast.data?.safeToSpend ?? null}
-        horizonEnd={forecast.data?.horizonEnd ?? null}
-        showValues={showValues}
-        currency={data.currency}
-        loading={forecast.loading}
-        error={forecast.error}
-        onRetry={onRetry}
-      />
-
-      <Button
-        type="button"
-        variant="outline"
-        fullWidth
-        onClick={onOpenForecast}
-        disabled={!forecast.data}
-        icon={<FaChartLine aria-hidden="true" />}
-      >
-        Ver projeção
-      </Button>
-
-      {(data.cards.length > 0 || data.goals.length > 0 || hasPlanning) && (
-        <details className="group rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[16px] px-4 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
-            <span>Ver mais: cartões, metas e planejamento</span>
-            <FaChevronRight className="shrink-0 text-xs text-[var(--text-muted)] transition-transform group-open:rotate-90" aria-hidden="true" />
-          </summary>
-          <div className="space-y-3 px-3 pb-3">
-            {data.cards.length > 0 && (
-              <MobileCreditCardsCard
-                cards={data.cards}
-                showValues={showValues}
-                currency={data.currency}
-              />
-            )}
-
-            {data.goals.length > 0 && (
-              <MobileFinancialGoalsCard
-                goals={data.goals}
-                showValues={showValues}
-                currency={data.currency}
-              />
-            )}
-
-            {hasPlanning && (
-              <MobileMonthlyPlanningCard
-                planning={data.planning}
-                showValues={showValues}
-                currency={data.currency}
-              />
-            )}
-          </div>
-        </details>
-      )}
-
-      <NetWorthSummaryCard
-        currency={data.currency}
-        showValues={showValues}
-        summary={netWorth}
-        period={data.period}
-      />
-
-      <FinancialInsightsCard
-        insights={insights}
-        showValues={showValues}
-        currency={data.currency}
-        compact
-      />
-
-      <LocalFinancialAssistantCard
-        key={`mobile-${data.period.year}-${data.period.month}-${data.currency}`}
-        dashboard={data}
-        insights={insights.data}
-        forecast={forecast.data}
-        showValues={showValues}
-        compact
-        contextReady={Boolean(forecast.data) && Boolean(insights.data)}
       />
 
       <MobileUpcomingCard
@@ -235,6 +130,7 @@ export function MobileDashboardHome({
 
       <MobileCategoriesCard
         categories={topCategories}
+        limits={data.limits}
         showValues={showValues}
         currency={data.currency}
       />
@@ -248,200 +144,42 @@ export function MobileDashboardHome({
         currency={data.currency}
       />
 
+      <details className="group rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[16px] px-4 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+          <span>Ver mais: cartões, metas e patrimônio</span>
+          <FaChevronRight className="shrink-0 text-xs text-[var(--text-muted)] transition-transform group-open:rotate-90" aria-hidden="true" />
+        </summary>
+        <div className="space-y-3 px-3 pb-3">
+          {data.cards.length > 0 && (
+            <MobileCreditCardsCard
+              cards={data.cards}
+              showValues={showValues}
+              currency={data.currency}
+            />
+          )}
+
+          {data.goals.length > 0 && (
+            <MobileFinancialGoalsCard
+              goals={data.goals}
+              showValues={showValues}
+              currency={data.currency}
+            />
+          )}
+
+          <NetWorthSummaryCard
+            currency={data.currency}
+            showValues={showValues}
+            summary={netWorth}
+            period={data.period}
+          />
+        </div>
+      </details>
+
       <div className="sr-only" aria-live="polite">
         Saldo realizado em {cashAccounts.length} conta{cashAccounts.length === 1 ? '' : 's'} corrente{cashAccounts.length === 1 ? '' : 's'}: {displayMoney(availableNow, showValues, data.currency)}.
         Receitas representam {incomeWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do fluxo do mês selecionado e despesas {expenseWidth.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%.
       </div>
     </div>
-  );
-}
-
-export function MobileSafeToSpendCard({
-  safeToSpend,
-  horizonEnd,
-  showValues,
-  currency,
-  loading,
-  error,
-  onRetry,
-}: {
-  onRetry?: () => void;
-  safeToSpend: ForecastData['safeToSpend'] | null;
-  horizonEnd: ForecastData['horizonEnd'] | null;
-  showValues: boolean;
-  currency: string;
-  loading: boolean;
-  error: string;
-}) {
-  const horizonLabel = horizonEnd
-    ? `${String(horizonEnd.day).padStart(2, '0')}/${String(horizonEnd.month).padStart(2, '0')}`
-    : '30 dias';
-
-  return (
-    <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="mobile-safe-to-spend-title">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">Próximos 30 dias</p>
-          <h2 id="mobile-safe-to-spend-title" className="mt-1 text-sm font-bold">Disponível para gastar</h2>
-        </div>
-        <span className="text-xs text-[var(--text-muted)]">até {horizonLabel}</span>
-      </div>
-
-      {error ? (
-        <CardError message={error} onRetry={onRetry} />
-      ) : loading ? (
-        <div className="mt-3 h-16 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando disponível para gastar" />
-      ) : safeToSpend ? (
-        <>
-          <strong className={`mt-2 block text-2xl font-black ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
-            {displayMoney(safeToSpend.safeToSpend, showValues, currency)}
-          </strong>
-          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-            <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
-              <span className="block text-xs text-[var(--text-muted)]">Pendências</span>
-              <strong className="mt-0.5 block text-base text-[var(--expense)]">
-                {safeToSpend.pendingExpenses > 0 ? '- ' : ''}{displayMoney(safeToSpend.pendingExpenses, showValues, currency)}
-              </strong>
-            </div>
-            <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
-              <span className="block text-xs text-[var(--text-muted)]">Faturas</span>
-              <strong className="mt-0.5 block text-base text-[var(--expense)]">
-                {safeToSpend.cardCommitments > 0 ? '- ' : ''}{displayMoney(safeToSpend.cardCommitments, showValues, currency)}
-              </strong>
-            </div>
-          </div>
-        </>
-      ) : (
-        <p className="mt-3 text-sm text-[var(--text-muted)]">Sem dados elegíveis nesta moeda.</p>
-      )}
-    </section>
-  );
-}
-
-export function MobileBalanceCard({
-  cashTotal,
-  cashAccounts,
-  asOf,
-  showValues,
-  summary,
-  currency,
-}: {
-  cashTotal: number;
-  cashAccounts: DashboardHome['current']['cash']['accounts'];
-  asOf: DashboardHome['scope']['currentAsOf'];
-  showValues: boolean;
-  summary: MonthlyDashboard['summary'];
-  currency: string;
-}) {
-  return (
-    <section className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4" aria-labelledby="mobile-balance-title">
-      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">
-        Hoje · {dashboardLogicalDateLabel(asOf)}
-      </p>
-      <p id="mobile-balance-title" className="mt-1 flex items-center gap-2 text-sm text-[var(--text-muted)]">
-        Saldo realizado em contas correntes <FaEye className="text-xs" aria-hidden="true" />
-      </p>
-
-      <strong className={`mt-1 block text-4xl font-black leading-none tracking-tight ${cashTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
-        {displayMoney(cashTotal, showValues, currency)}
-      </strong>
-
-      <Link
-        href="/contas"
-        className="mt-4 flex min-h-11 items-center gap-3 rounded-[11px] border border-[var(--border)] bg-[var(--surface-raised)]/55 px-3 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-      >
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]">
-          <IconRenderer iconName="wallet" size={14} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <strong className="block truncate text-sm">
-            {cashAccounts.length === 0
-              ? 'Nenhuma conta corrente ativa'
-              : `${cashAccounts.length} ${cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}`}
-          </strong>
-          <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
-            Investimentos ficam no patrimônio e não entram neste saldo.
-          </span>
-        </span>
-        <FaChevronRight className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-      </Link>
-
-      <dl className="mt-4 divide-y divide-[var(--border)] border-t border-[var(--border)]">
-        <div className="flex min-h-11 items-center justify-between gap-3 py-2">
-          <dt className="text-sm text-[var(--text-muted)]">Receitas do mês</dt>
-          <dd className="tabular-nums text-base font-extrabold text-[var(--income)]">
-            {displayMoney(summary.income, showValues, currency)}
-          </dd>
-        </div>
-        <div className="flex min-h-11 items-center justify-between gap-3 py-2">
-          <dt className="text-sm text-[var(--text-muted)]">Despesas do mês</dt>
-          <dd className="tabular-nums text-base font-extrabold text-[var(--expense)]">
-            {displayMoney(summary.expense, showValues, currency)}
-          </dd>
-        </div>
-        <div className="flex min-h-11 items-center justify-between gap-3 py-2">
-          <dt className="text-sm text-[var(--text-muted)]">Saldo do mês</dt>
-          <dd className={`tabular-nums text-base font-extrabold ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
-            {signedMoney(summary.balance, showValues, currency)}
-          </dd>
-        </div>
-      </dl>
-    </section>
-  );
-}
-
-export function MobileQuickActions() {
-  const actions = [
-    {
-      href: '/transacoes/nova?type=expense',
-      label: 'Nova transação',
-      icon: <FaPlus aria-hidden="true" />,
-      primary: true,
-    },
-    {
-      href: '/transacoes/nova?mode=transfer',
-      label: 'Transferir',
-      icon: <FaExchangeAlt aria-hidden="true" />,
-      primary: false,
-    },
-    {
-      href: '/transacoes/nova?type=expense',
-      label: 'Pagar',
-      icon: <FaBarcode aria-hidden="true" />,
-      primary: false,
-    },
-    {
-      href: '/transacoes/nova?type=income',
-      label: 'Adicionar',
-      icon: <FaArrowUp aria-hidden="true" />,
-      primary: false,
-    },
-  ];
-
-  return (
-    <section className="grid grid-cols-2 gap-2" aria-label="Ações rápidas">
-      {actions.map((action) => (
-        <Link
-          key={action.label}
-          href={action.href}
-          className={`flex min-h-[62px] items-center gap-3 rounded-[12px] border px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-            action.primary
-              ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]'
-              : 'border-[var(--border-strong)] bg-[var(--surface)] text-[var(--foreground)]'
-          }`}
-        >
-          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
-            action.primary
-              ? 'bg-white/90 text-[var(--orbit-primary)]'
-              : 'bg-[var(--surface-raised)] text-[var(--foreground)]'
-          }`}>
-            {action.icon}
-          </span>
-          <span className="min-w-0 flex-1 leading-tight">{action.label}</span>
-          <FaChevronRight className="hidden shrink-0 text-xs opacity-70 min-[360px]:block" aria-hidden="true" />
-        </Link>
-      ))}
-    </section>
   );
 }
 
@@ -512,7 +250,7 @@ export function MobileUpcomingCard({
                     <span className="min-w-0">
                       <strong className="block truncate text-sm">{item.title}</strong>
                       <span className="mt-1 block text-sm text-[var(--text-muted)]">
-                        {item.amount === null ? 'Marco sem valor financeiro' : displayMoney(item.amount, showValues, currency)}
+                        {item.amount === null ? 'Marco sem valor financeiro' : <span className="money">{displayMoney(item.amount, showValues, currency)}</span>}
                       </span>
                     </span>
                     <span className={`rounded-full px-2 py-1 text-xs font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
@@ -531,10 +269,12 @@ export function MobileUpcomingCard({
 
 export function MobileCategoriesCard({
   categories,
+  limits,
   showValues,
   currency,
 }: {
   categories: MonthlyDashboard['categories'];
+  limits: MonthlyDashboard['limits'];
   showValues: boolean;
   currency: string;
 }) {
@@ -549,11 +289,14 @@ export function MobileCategoriesCard({
         {categories.length === 0 ? (
           <p className="py-4 text-sm text-[var(--text-muted)]">Nenhuma despesa categorizada neste período.</p>
         ) : (
-          categories.slice(0, 5).map((category) => (
+          categories.slice(0, 5).map((category) => {
+            const limit = limits.find((item) => item.category.id === category.id);
+
+            return (
             <Link
               key={category.id}
               href={`/categorias/show/${encodeURIComponent(category.id)}`}
-              className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto_12px] items-center gap-2 py-1.5"
+              className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto_12px] items-center gap-x-2 gap-y-1 py-1.5"
             >
               <span className="flex min-w-0 items-center gap-2.5">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: category.color }}>
@@ -561,10 +304,16 @@ export function MobileCategoriesCard({
                 </span>
                 <span className="truncate text-sm font-semibold">{category.name}</span>
               </span>
-              <strong className="text-right text-sm">{displayMoney(category.realized, showValues, currency)}</strong>
+              <strong className="text-right text-sm"><span className="money">{displayMoney(category.realized, showValues, currency)}</span></strong>
               <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+              {limit && (
+                <span className="col-span-3 pl-[42px]">
+                  <CategoryBudgetBar limit={limit} showValues={showValues} currency={currency} />
+                </span>
+              )}
             </Link>
-          ))
+            );
+          })
         )}
       </div>
     </article>
@@ -633,7 +382,7 @@ export function MobileRecentTransactionsCard({
                     </span>
                   </span>
                 </span>
-                <strong className={`shrink-0 text-sm ${tone}`}>
+                <strong className={`money shrink-0 text-sm ${tone}`}>
                   {showValues ? `${isIncome ? '+' : isTransfer || isCardPayment ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
                 </strong>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
@@ -643,48 +392,6 @@ export function MobileRecentTransactionsCard({
         )}
       </div>
     </article>
-  );
-}
-
-export function MobileMonthlyPlanningCard({
-  planning,
-  showValues,
-  currency,
-}: {
-  planning: MonthlyDashboard['planning'];
-  showValues: boolean;
-  currency: string;
-}) {
-  return (
-    <Link
-      href="/categorias"
-      className="block rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-base font-bold">
-          <FaChartPie className="text-[var(--orbit-primary)]" aria-hidden="true" />
-          Planejamento
-        </h2>
-        <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-        <PlanningMetric label="Orçamento" value={displayMoney(planning.budget, showValues, currency)} />
-        <PlanningMetric
-          label="Disponível"
-          value={displayMoney(planning.available, showValues, currency)}
-          danger={planning.available < 0}
-        />
-        <PlanningMetric label="Realizado" value={displayMoney(planning.realized, showValues, currency)} />
-        <PlanningMetric label="Comprometido" value={displayMoney(planning.committed, showValues, currency)} />
-      </div>
-
-      {planning.overBudgetCategories > 0 && (
-        <p className="mt-3 text-xs font-semibold text-[var(--expense)]">
-          {planning.overBudgetCategories} categoria{planning.overBudgetCategories === 1 ? '' : 's'} acima do orçamento
-        </p>
-      )}
-    </Link>
   );
 }
 
@@ -719,7 +426,7 @@ export function MobileFinancialGoalsCard({
             <span className="min-w-0">
               <strong className="block truncate text-sm">{goal.name}</strong>
               <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                {displayMoney(goal.currentAmount, showValues, currency)} de {displayMoney(goal.targetAmount, showValues, currency)}
+                <span className="money">{displayMoney(goal.currentAmount, showValues, currency)}</span> de <span className="money">{displayMoney(goal.targetAmount, showValues, currency)}</span>
               </span>
             </span>
             <span className="text-right">
@@ -727,7 +434,7 @@ export function MobileFinancialGoalsCard({
                 {goal.percentage.toLocaleString('pt-BR')}%
               </strong>
               <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                falta {displayMoney(goal.remainingAmount, showValues, currency)}
+                falta <span className="money">{displayMoney(goal.remainingAmount, showValues, currency)}</span>
               </span>
             </span>
           </Link>
@@ -775,11 +482,11 @@ export function MobileCreditCardsCard({
             <span className="min-w-0">
               <strong className="block truncate text-sm">{card.name}</strong>
               <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-                Disponível {displayMoney(card.availableLimit, showValues, currency)}
+                Disponível <span className="money">{displayMoney(card.availableLimit, showValues, currency)}</span>
               </span>
             </span>
             <span className="text-right">
-              <strong className="block text-sm text-[var(--foreground)]">
+              <strong className="money block text-sm text-[var(--foreground)]">
                 {card.nextStatement
                   ? displayMoney(card.nextStatement.amount, showValues, currency)
                   : 'Sem fatura'}

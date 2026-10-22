@@ -60,6 +60,37 @@ export function getDashboardFlowPeriods(period: DashboardPeriod) {
   );
 }
 
+type DailyRow = {
+  year: number;
+  month: number;
+  day: number;
+  _sum: { amount: number | null };
+};
+
+/**
+ * Despesa realizada por dia do mês (centavos), na mesma base de `summarizeDashboardPeriod`:
+ * estornos em cartão reduzem a despesa do dia em que foram lançados.
+ */
+export function buildDailyExpense(
+  expenseRows: DailyRow[],
+  cardCreditRows: DailyRow[],
+  period: DashboardPeriod,
+): number[] {
+  const days = new Date(Date.UTC(period.year, period.month, 0)).getUTCDate();
+  const totals = Array.from({ length: days }, () => 0);
+  const apply = (rows: DailyRow[], sign: 1 | -1) => {
+    for (const row of rows) {
+      if (row.year !== period.year || row.month !== period.month) continue;
+      if (row.day < 1 || row.day > days) continue;
+      totals[row.day - 1] += sign * (row._sum.amount ?? 0);
+    }
+  };
+
+  apply(expenseRows, 1);
+  apply(cardCreditRows, -1);
+  return totals;
+}
+
 export function summarizeDashboardPeriod(
   rows: SummaryRow[],
   period: DashboardPeriod,
@@ -133,6 +164,8 @@ export async function getMonthlyDashboardForUser(
     cardCreditPeriodRows,
     planning,
     activeGoals,
+    dailyExpenseRows,
+    dailyCardCreditRows,
   ] = await Promise.all([
     prisma.account.findMany({
       where: { userId, type: { not: 'CREDIT_CARD' } },
@@ -218,6 +251,25 @@ export async function getMonthlyDashboardForUser(
         { targetDay: 'asc' },
         { createdAt: 'asc' },
       ],
+    }),
+    prisma.transaction.groupBy({
+      by: ['year', 'month', 'day'],
+      where: {
+        ...ownedCompletedTransaction,
+        type: 'EXPENSE',
+        OR: [period, previousPeriod].map(({ year, month }) => ({ year, month })),
+      },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.groupBy({
+      by: ['year', 'month', 'day'],
+      where: {
+        ...ownedCompletedTransaction,
+        type: 'INCOME',
+        account: { is: { userId, currency, type: 'CREDIT_CARD' } },
+        OR: [period, previousPeriod].map(({ year, month }) => ({ year, month })),
+      },
+      _sum: { amount: true },
     }),
   ]);
 
@@ -460,6 +512,10 @@ export async function getMonthlyDashboardForUser(
     period,
     currency,
     summary,
+    spending: {
+      current: buildDailyExpense(dailyExpenseRows, dailyCardCreditRows, period),
+      previous: buildDailyExpense(dailyExpenseRows, dailyCardCreditRows, previousPeriod),
+    },
     comparison: {
       previousPeriod,
       income: dashboardComparisonMetric(summary.income, previousSummary.income),

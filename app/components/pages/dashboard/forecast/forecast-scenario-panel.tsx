@@ -198,16 +198,16 @@ export default function ForecastScenarioPanel({
                   <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
                     <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
                       <dt className="text-[var(--text-muted)]">Atual</dt>
-                      <dd className="mt-1 font-semibold">{money(current.projectedBalance, showValues, data.currency)}</dd>
+                      <dd className="mt-1 font-semibold"><span className="money">{money(current.projectedBalance, showValues, data.currency)}</span></dd>
                     </div>
                     <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
                       <dt className="text-[var(--text-muted)]">Simulado</dt>
-                      <dd className="mt-1 font-semibold">{money(simulated.projectedBalance, showValues, data.currency)}</dd>
+                      <dd className="mt-1 font-semibold"><span className="money">{money(simulated.projectedBalance, showValues, data.currency)}</span></dd>
                     </div>
                     <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
                       <dt className="text-[var(--text-muted)]">Diferença</dt>
                       <dd className={`mt-1 font-semibold ${difference < 0 ? 'text-[var(--expense)]' : difference > 0 ? 'text-[var(--income)]' : ''}`}>
-                        {showValues ? `${difference > 0 ? '+' : ''}${formatCurrency(difference, data.currency)}` : '••••'}
+                        <span className="money">{showValues ? `${difference > 0 ? '+' : ''}${formatCurrency(difference, data.currency)}` : '••••'}</span>
                       </dd>
                     </div>
                   </dl>
@@ -232,7 +232,7 @@ export default function ForecastScenarioPanel({
                   <div className="flex items-center gap-3">
                     <strong className={movement.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}>
                       {movement.type === 'INCOME' ? '+' : '-'}
-                      {money(movement.amount, showValues, data.currency)}
+                      <span className="money">{money(movement.amount, showValues, data.currency)}</span>
                     </strong>
                     <IconButton
                       label={`Remover cenário ${movement.description}`}
