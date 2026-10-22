@@ -84,7 +84,7 @@ export default function MobileMoreMenu({
             </h3>
             <div
               className={
-                'ml-[7px] grid grid-cols-1 gap-1.5 border-l pl-3 min-[380px]:grid-cols-2 ' +
+                'ml-[7px] grid grid-cols-1 gap-1.5 border-l pl-3 sm:grid-cols-2 ' +
                 (groupActive ? 'border-[var(--primary)]/40' : 'border-[var(--border)]')
               }
             >
