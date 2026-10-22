@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { MoneyText } from '@/app/components/ui';
 import { FaCheckCircle, FaChevronRight, FaExclamationCircle, FaInfoCircle } from 'react-icons/fa';
 
 import type { AttentionItem, AttentionTone } from '@/app/components/pages/dashboard/dashboard/dashboard-attention';
@@ -60,7 +61,7 @@ export function AttentionCard({
                 <span className="min-w-0 flex-1">
                   <strong className="block text-sm leading-snug text-[var(--foreground)]">{item.title}</strong>
                   {item.detail && (
-                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">{item.detail}</span>
+                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]"><MoneyText>{item.detail}</MoneyText></span>
                   )}
                 </span>
                 {item.href && (

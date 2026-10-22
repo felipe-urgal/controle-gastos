@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/app/components/base-pages';
 import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
-import { Button, Input, Select } from '@/app/components/ui';
+import { Button, Input, MoneyText, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import {
@@ -675,7 +675,7 @@ export default function ImportRuleManagementPage({ focusRuleId }: { focusRuleId?
                             {typeLabel(rule.transactionType)} · descrição {operatorLabel(rule.descriptionOperator)} “{rule.descriptionPattern}”
                           </p>
                           <p className="mt-1 text-sm text-[var(--text-muted)]">
-                            {account?.name ?? (rule.accountId ? 'Conta indisponível' : 'Qualquer conta')} · {amountRangeLabel(rule, showValues, account?.currency)}
+                            {account?.name ?? (rule.accountId ? 'Conta indisponível' : 'Qualquer conta')} · <MoneyText>{amountRangeLabel(rule, showValues, account?.currency)}</MoneyText>
                           </p>
                           <p className="mt-1 text-sm text-[var(--text-muted)]">
                             Categoria: {category?.name ?? 'Categoria indisponível'}

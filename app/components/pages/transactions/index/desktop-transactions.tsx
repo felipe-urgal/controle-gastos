@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ReactNode } from 'react';
 import { FaArrowDown, FaArrowRight, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaClock, FaCreditCard, FaExchangeAlt } from 'react-icons/fa';
-import { Button, IconRenderer, Select } from '@/app/components/ui';
+import { Button, IconRenderer, MoneyText, Select } from '@/app/components/ui';
 import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
@@ -313,7 +313,7 @@ export function MonthOverview({
         </span>
         <div>
           <strong className="block text-sm">{insightTitle}</strong>
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{insightText}</p>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]"><MoneyText>{insightText}</MoneyText></p>
         </div>
       </div>
     </article>

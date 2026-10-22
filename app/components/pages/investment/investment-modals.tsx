@@ -5,7 +5,7 @@ import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import { PageLoading } from '@/app/components/feedback';
 import { IncomeRow, InvestmentModal, ModalActions, OperationRow, SelectField } from '@/app/components/pages/investment/investment-cards';
 import { AssetForm, FiscalCostForm, IncomeForm, OperationForm, assetTypes, incomeTypes, dateLabel, fiscalEventTypes, quantityLabel } from '@/app/components/pages/investment/investments-helpers';
-import { Button, Input } from '@/app/components/ui';
+import { Button, Input, MoneyText } from '@/app/components/ui';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
@@ -526,14 +526,16 @@ export function FiscalCostModal({ portfolio, fiscalCostForm, setFiscalCostForm, 
                             {dateLabel(item.date)} · {quantityLabel(item.quantity)} un.
                           </strong>
                           {' · '}
-                          {showValues
-                            ? formatCurrency(
-                                item.costBasisCents,
-                                portfolio.assets.find(
-                                  (asset) => asset.id === item.assetId,
-                                )?.currency ?? 'BRL',
-                              )
-                            : '••••'}
+                          <MoneyText>
+                            {showValues
+                              ? formatCurrency(
+                                  item.costBasisCents,
+                                  portfolio.assets.find(
+                                    (asset) => asset.id === item.assetId,
+                                  )?.currency ?? 'BRL',
+                                )
+                              : '••••'}
+                          </MoneyText>
                           {' · '}
                           {item.reason}
                         </div>
