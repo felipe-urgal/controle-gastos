@@ -107,7 +107,7 @@ export function DistributionCard({
                         : 'block text-sm text-[var(--foreground)]'
                     }
                   >
-                    {displayMoney(account.balance, showValues, currency)}
+                    <span className="money">{displayMoney(account.balance, showValues, currency)}</span>
                   </strong>
                   <span className="mt-1 block text-xs text-[var(--text-muted)]">
                     {share.toLocaleString('pt-BR')}%

@@ -119,7 +119,7 @@ export function AnnualIncomeReportCard({
                     Total anual · {currency}
                   </span>
                   <strong className="mt-1 block text-xl text-[var(--foreground)]">
-                    {showValues ? formatCurrency(amount, currency) : '••••'}
+                    <span className="money">{showValues ? formatCurrency(amount, currency) : '••••'}</span>
                   </strong>
                   <span className="mt-1 block text-xs text-[var(--text-muted)]">
                     {report.eventCount} pagamento(s) no relatório

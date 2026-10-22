@@ -433,7 +433,7 @@ function Metric({
     <span className="min-w-[100px] sm:text-right">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="text-[var(--foreground)]">
-        {showValues ? formatCurrency(amount, currency) : '••••'}
+        <span className="money">{showValues ? formatCurrency(amount, currency) : '••••'}</span>
       </strong>
     </span>
   );

@@ -251,7 +251,7 @@ export default function MonthlyClosingPage() {
                       {item.label}
                     </p>
                     <strong className="mt-2 block text-2xl text-[var(--foreground)]">
-                      {displayMoney(item.amount, currency, showValues)}
+                      <span className="money">{displayMoney(item.amount, currency, showValues)}</span>
                     </strong>
                   </article>
                 ))}
@@ -297,11 +297,11 @@ export default function MonthlyClosingPage() {
                           Receitas
                         </dt>
                         <dd className="font-semibold text-[var(--foreground)]">
-                          {displayMoney(
+                          <span className="money">{displayMoney(
                             retrospective.readiness.pendingTransactions.income.amount,
                             currency,
                             showValues,
-                          )}
+                          )}</span>
                         </dd>
                       </div>
                       <div className="flex justify-between gap-3">
@@ -309,11 +309,11 @@ export default function MonthlyClosingPage() {
                           Despesas
                         </dt>
                         <dd className="font-semibold text-[var(--foreground)]">
-                          {displayMoney(
+                          <span className="money">{displayMoney(
                             retrospective.readiness.pendingTransactions.expense.amount,
                             currency,
                             showValues,
-                          )}
+                          )}</span>
                         </dd>
                       </div>
                     </dl>
@@ -399,11 +399,11 @@ export default function MonthlyClosingPage() {
                               </span>
                             </span>
                             <span className="shrink-0 text-sm font-semibold text-[var(--foreground)]">
-                              {displayMoney(
+                              <span className="money">{displayMoney(
                                 statement.amount,
                                 currency,
                                 showValues,
-                              )}
+                              )}</span>
                             </span>
                           </Link>
                         ),
@@ -455,7 +455,7 @@ export default function MonthlyClosingPage() {
                           {item.label}
                         </dt>
                         <dd className="font-semibold text-[var(--foreground)]">
-                          {displayMoney(item.amount, currency, showValues)}
+                          <span className="money">{displayMoney(item.amount, currency, showValues)}</span>
                         </dd>
                       </div>
                     ))}
@@ -473,11 +473,11 @@ export default function MonthlyClosingPage() {
                           Mês anterior
                         </dt>
                         <dd className="font-semibold">
-                          {displayMoney(
+                          <span className="money">{displayMoney(
                             retrospective.netWorth.previous,
                             currency,
                             showValues,
-                          )}
+                          )}</span>
                         </dd>
                       </div>
                       <div className="flex justify-between gap-4">
@@ -485,21 +485,21 @@ export default function MonthlyClosingPage() {
                           Fim do período
                         </dt>
                         <dd className="font-semibold">
-                          {displayMoney(
+                          <span className="money">{displayMoney(
                             retrospective.netWorth.current,
                             currency,
                             showValues,
-                          )}
+                          )}</span>
                         </dd>
                       </div>
                       <div className="flex justify-between gap-4 border-t border-[var(--border)] pt-3">
                         <dt className="font-semibold">Variação</dt>
                         <dd className="font-black">
-                          {displayMoney(
+                          <span className="money">{displayMoney(
                             retrospective.netWorth.difference,
                             currency,
                             showValues,
-                          )}
+                          )}</span>
                         </dd>
                       </div>
                     </dl>
@@ -547,11 +547,11 @@ export default function MonthlyClosingPage() {
                           {category.name}
                         </span>
                         <span className="shrink-0 text-sm text-[var(--text-muted)]">
-                          {displayMoney(
+                          <span className="money">{displayMoney(
                             category.realized,
                             currency,
                             showValues,
-                          )}{' '}
+                          )}</span>{' '}
                           · {category.sharePercentage}%
                         </span>
                       </Link>
@@ -587,11 +587,11 @@ export default function MonthlyClosingPage() {
                         {label}
                       </p>
                       <strong className="mt-1 block text-[var(--foreground)]">
-                        {displayMoney(
+                        <span className="money">{displayMoney(
                           metric.difference,
                           currency,
                           showValues,
-                        )}
+                        )}</span>
                       </strong>
                       <span className="text-xs text-[var(--text-muted)]">
                         {metric.percentage === null

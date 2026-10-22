@@ -466,7 +466,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
             <article key={currency} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
               <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Saldo devedor · {currency}</span>
               <strong className="mt-1 block break-words text-2xl tabular-nums text-[var(--foreground)]">
-                {showValues ? formatCurrency(totals[currency] ?? 0, currency) : '••••'}
+                <span className="money">{showValues ? formatCurrency(totals[currency] ?? 0, currency) : '••••'}</span>
               </strong>
             </article>
           ))}
@@ -619,7 +619,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
                         </p>
                       </div>
                       <strong className={adjustment.delta <= 0 ? 'text-[var(--income)]' : 'text-[var(--expense)]'}>
-                        {showValues ? `${adjustment.delta > 0 ? '+' : ''}${formatCurrency(adjustment.delta, historyDebt.currency)}` : '••••'}
+                        <span className="money">{showValues ? `${adjustment.delta > 0 ? '+' : ''}${formatCurrency(adjustment.delta, historyDebt.currency)}` : '••••'}</span>
                       </strong>
                     </div>
                     <p className="mt-2 text-xs text-[var(--text-muted)]">
@@ -729,7 +729,7 @@ function DebtCard({
           Saldo devedor
         </span>
         <strong className="mt-1 block break-words text-3xl font-extrabold tabular-nums text-[var(--foreground)]">
-          {showValues ? formatCurrency(debt.balance, debt.currency) : '••••'}
+          <span className="money">{showValues ? formatCurrency(debt.balance, debt.currency) : '••••'}</span>
         </strong>
       </div>
 
@@ -739,7 +739,7 @@ function DebtCard({
             <div className="rounded-xl bg-[var(--surface-raised)] p-3">
               <span className="text-xs text-[var(--text-muted)]">Próxima parcela</span>
               <strong className="mt-1 block text-[var(--foreground)]">
-                {showValues ? formatCurrency(debt.installmentAmount, debt.currency) : '••••'}
+                <span className="money">{showValues ? formatCurrency(debt.installmentAmount, debt.currency) : '••••'}</span>
               </strong>
             </div>
             <div className="rounded-xl bg-[var(--surface-raised)] p-3">

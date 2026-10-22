@@ -298,11 +298,11 @@ function Totals({ data, showValues }: { data: RecurrencesData; showValues: boole
         <article key={total.currency} className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">
           <span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">{total.currency}</span>
           <strong className="mt-2 block text-2xl font-extrabold text-[var(--foreground)]">
-            {displayMoney(total.monthlyEquivalent, showValues, total.currency)}
+            <span className="money">{displayMoney(total.monthlyEquivalent, showValues, total.currency)}</span>
             <span className="ml-1 text-xs font-semibold text-[var(--text-muted)]">/ mês</span>
           </strong>
           <span className="mt-1 block text-sm text-[var(--text-muted)]">
-            {displayMoney(total.annualEquivalent, showValues, total.currency)} / ano
+            <span className="money">{displayMoney(total.annualEquivalent, showValues, total.currency)}</span> / ano
           </span>
         </article>
       ))}
@@ -335,7 +335,7 @@ function FormalCard({
           <p className="mt-1 text-sm text-[var(--text-muted)]">{item.category.name} · {item.account.name}</p>
         </div>
         <strong className="shrink-0 text-right text-base text-[var(--foreground)]">
-          {displayMoney(item.amount, showValues, item.currency)}
+          <span className="money">{displayMoney(item.amount, showValues, item.currency)}</span>
         </strong>
       </div>
 
@@ -534,7 +534,7 @@ function CandidateCard({
         </div>
         <div className="text-right">
           <strong className="block text-base text-[var(--foreground)]">
-            {displayMoney(candidate.amount, showValues, candidate.currency)}
+            <span className="money">{displayMoney(candidate.amount, showValues, candidate.currency)}</span>
           </strong>
           {candidate.variableAmount && (
             <span className="mt-1 block text-xs font-semibold text-[var(--warning)]">valor variável</span>
@@ -554,7 +554,7 @@ function CandidateCard({
 
       {candidate.variableAmount && (
         <p className="mt-2 text-xs text-[var(--text-muted)]">
-          Faixa observada: {displayMoney(candidate.minAmount, showValues, candidate.currency)} a {displayMoney(candidate.maxAmount, showValues, candidate.currency)}.
+          Faixa observada: {displayMoney(candidate.minAmount, showValues, candidate.currency)} a <span className="money">{displayMoney(candidate.maxAmount, showValues, candidate.currency)}</span>.
         </p>
       )}
 
@@ -567,7 +567,7 @@ function CandidateCard({
             <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
               <span>{dateLabel(item)} · {item.description}</span>
               <strong className="text-[var(--foreground)]">
-                {displayMoney(item.amount, showValues, candidate.currency)}
+                <span className="money">{displayMoney(item.amount, showValues, candidate.currency)}</span>
               </strong>
             </li>
           ))}
@@ -611,7 +611,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
-      <strong className="mt-1 block text-sm text-[var(--foreground)]">{value}</strong>
+      <strong className="money mt-1 block text-sm text-[var(--foreground)]">{value}</strong>
     </div>
   );
 }

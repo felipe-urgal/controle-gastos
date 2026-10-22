@@ -149,17 +149,17 @@ export function ConsolidationCard({
                   )}
                 </div>
                 <span className="text-sm font-bold text-[var(--foreground)]">
-                  {displayMoney(
+                  <span className="money">{displayMoney(
                     item.original.amount,
                     showValues,
                     item.original.currency,
-                  )}
+                  )}</span>
                   {' → '}
-                  {displayMoney(
+                  <span className="money">{displayMoney(
                     item.converted.amount,
                     showValues,
                     item.converted.currency,
-                  )}
+                  )}</span>
                 </span>
               </div>
             ))}

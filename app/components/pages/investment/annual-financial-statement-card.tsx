@@ -361,7 +361,7 @@ export function AnnualFinancialStatementCard({
                         </strong>
                         <p className="mt-1 text-[var(--text-muted)]">
                           31/12: {quantity(position.currentYearQuantity)} un. · custo{' '}
-                          {money(position.currentYearCostCents, showValues)}
+                          <span className="money">{money(position.currentYearCostCents, showValues)}</span>
                           {position.currentYearBalanceCents !== null
                             ? ' · saldo ' + money(position.currentYearBalanceCents, showValues)
                             : ''}
@@ -580,8 +580,8 @@ export function AnnualFinancialStatementCard({
                               {income.symbol ?? income.descriptions[0] ?? 'Rendimento'}
                             </strong>
                             <p className="mt-1 text-xs text-[var(--text-muted)]">
-                              Sistema {money(income.internalAmountCents, showValues)} · Informe{' '}
-                              {money(income.statementAmountCents, showValues)}
+                              Sistema <span className="money">{money(income.internalAmountCents, showValues)}</span> · Informe{' '}
+                              <span className="money">{money(income.statementAmountCents, showValues)}</span>
                             </p>
                           </div>
                           <span
@@ -636,8 +636,8 @@ export function AnnualFinancialStatementCard({
                                 {item.symbol ?? item.descriptions[0] ?? 'IRRF'}
                               </strong>
                               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                Sistema {money(item.internalAmountCents, showValues)} · Informe{' '}
-                                {money(item.statementAmountCents, showValues)}
+                                Sistema <span className="money">{money(item.internalAmountCents, showValues)}</span> · Informe{' '}
+                                <span className="money">{money(item.statementAmountCents, showValues)}</span>
                               </p>
                             </div>
                             <span

@@ -293,14 +293,14 @@ export function MonthOverview({
           <div className="flex items-start gap-2">
             <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--income)]" />
             <div>
-              <strong className="block text-base text-[var(--income)]">{displayMoney(summary.income, showValues, summary.currency)}</strong>
+              <strong className="block text-base text-[var(--income)]"><span className="money">{displayMoney(summary.income, showValues, summary.currency)}</span></strong>
               <span className="text-xs text-[var(--text-muted)]">Entradas</span>
             </div>
           </div>
           <div className="flex items-start gap-2">
             <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-[3px] border-[var(--expense)]" />
             <div>
-              <strong className="block text-base text-[var(--expense)]">{displayMoney(summary.expense, showValues, summary.currency)}</strong>
+              <strong className="block text-base text-[var(--expense)]"><span className="money">{displayMoney(summary.expense, showValues, summary.currency)}</span></strong>
               <span className="text-xs text-[var(--text-muted)]">Saídas</span>
             </div>
           </div>

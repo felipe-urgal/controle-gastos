@@ -233,7 +233,7 @@ function SummaryCard({
   return (
     <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
       <p className="text-xs font-semibold text-[var(--text-muted)]">{label}</p>
-      <strong className="mt-1 block text-2xl text-[var(--foreground)]">{value}</strong>
+      <strong className="money mt-1 block text-2xl text-[var(--foreground)]">{value}</strong>
       <p className="mt-1 text-xs text-[var(--text-muted)]">{detail}</p>
     </article>
   );

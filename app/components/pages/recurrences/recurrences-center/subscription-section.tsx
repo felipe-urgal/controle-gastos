@@ -110,11 +110,11 @@ export function SubscriptionSection({
                 Assinaturas ativas · {total.currency}
               </span>
               <strong className="mt-2 block text-2xl font-extrabold text-[var(--foreground)]">
-                {displayMoney(total.monthlyEquivalent, showValues, total.currency)}
+                <span className="money">{displayMoney(total.monthlyEquivalent, showValues, total.currency)}</span>
                 <span className="ml-1 text-xs font-semibold text-[var(--text-muted)]">/ mês</span>
               </strong>
               <span className="mt-1 block text-sm text-[var(--text-muted)]">
-                {displayMoney(total.annualEquivalent, showValues, total.currency)} / ano
+                <span className="money">{displayMoney(total.annualEquivalent, showValues, total.currency)}</span> / ano
               </span>
             </article>
           ))}
@@ -223,7 +223,7 @@ function SubscriptionCard({
           </p>
         </div>
         <strong className="shrink-0 text-right text-base text-[var(--foreground)]">
-          {displayMoney(item.currentAmount, showValues, item.currency)}
+          <span className="money">{displayMoney(item.currentAmount, showValues, item.currency)}</span>
         </strong>
       </div>
 
@@ -265,7 +265,7 @@ function SubscriptionCard({
             <li key={evidence.id} className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
               <span>{dateLabel(evidence)} · {evidence.description}</span>
               <strong className="text-[var(--foreground)]">
-                {displayMoney(evidence.amount, showValues, item.currency)}
+                <span className="money">{displayMoney(evidence.amount, showValues, item.currency)}</span>
               </strong>
             </li>
           ))}
@@ -344,10 +344,10 @@ function PriceChange({ item, showValues }: { item: SubscriptionItem; showValues:
     <div className="rounded-[12px] bg-[var(--surface-raised)] p-3 text-sm">
       <strong className="text-[var(--foreground)]">{item.description}</strong>
       <p className="mt-1 text-[var(--text-muted)]">
-        {displayMoney(change.previousAmount, showValues, item.currency)} → {displayMoney(change.currentAmount, showValues, item.currency)}
+        <span className="money">{displayMoney(change.previousAmount, showValues, item.currency)}</span> → <span className="money">{displayMoney(change.currentAmount, showValues, item.currency)}</span>
       </p>
       <span className={change.difference > 0 ? 'font-bold text-[var(--expense)]' : 'font-bold text-[var(--income)]'}>
-        {sign}{displayMoney(change.difference, showValues, item.currency)} ({sign}{change.percent}%)
+        {sign}<span className="money">{displayMoney(change.difference, showValues, item.currency)}</span> ({sign}{change.percent}%)
       </span>
     </div>
   );
@@ -357,7 +357,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
-      <strong className="mt-1 block text-sm text-[var(--foreground)]">{value}</strong>
+      <strong className="money mt-1 block text-sm text-[var(--foreground)]">{value}</strong>
     </div>
   );
 }

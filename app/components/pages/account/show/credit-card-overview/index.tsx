@@ -276,7 +276,7 @@ export default function CreditCardOverview({
         <div className="mt-2 flex justify-between text-xs font-semibold text-white/65">
           <span>{usagePercent}% utilizado</span>
           {data.card.overLimit > 0 && (
-            <span>Excedido em {money(data.card.overLimit)}</span>
+            <span>Excedido em <span className="money">{money(data.card.overLimit)}</span></span>
           )}
         </div>
       </section>
@@ -335,7 +335,7 @@ export default function CreditCardOverview({
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-extrabold text-[var(--foreground)]">
-                      {money(statement.total)}
+                      <span className="money">{money(statement.total)}</span>
                     </p>
                     <span className={statement.status === 'PAID'
                       ? 'mt-1 inline-flex items-center gap-1 text-xs font-bold text-[var(--income)]'
@@ -455,7 +455,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-xs font-semibold uppercase tracking-wide text-white/60">{label}</p>
-      <p className="mt-1 text-xl font-extrabold">{value}</p>
+      <p className="money mt-1 text-xl font-extrabold">{value}</p>
     </div>
   );
 }
@@ -548,7 +548,7 @@ function CompactStatement({
         </p>
       </div>
       <strong className="text-right text-[var(--foreground)]">
-        {showValues ? formatCurrency(statement.total, currency) : '••••'}
+        <span className="money">{showValues ? formatCurrency(statement.total, currency) : '••••'}</span>
       </strong>
     </div>
   );

@@ -97,7 +97,7 @@ export function MobileTransactionsPrototype2({
             <strong className={`mt-1 block text-3xl font-black tracking-tight ${
               summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
             }`}>
-              {displayMoney(summary.balance, showValues, summary.currency)}
+              <span className="money">{displayMoney(summary.balance, showValues, summary.currency)}</span>
             </strong>
             <p className="mt-1 text-xs text-[var(--text-muted)]">{balanceMessage}</p>
           </div>
@@ -111,7 +111,7 @@ export function MobileTransactionsPrototype2({
             <div className="min-w-0">
               <p className="text-xs text-[var(--text-muted)]">Entradas</p>
               <strong className="mt-0.5 block tabular-nums text-sm text-[var(--income)]">
-                {displayMoney(summary.income, showValues, summary.currency)}
+                <span className="money">{displayMoney(summary.income, showValues, summary.currency)}</span>
               </strong>
             </div>
           </div>
@@ -122,7 +122,7 @@ export function MobileTransactionsPrototype2({
             <div className="min-w-0">
               <p className="text-xs text-[var(--text-muted)]">Saídas</p>
               <strong className="mt-0.5 block tabular-nums text-sm text-[var(--expense)]">
-                {displayMoney(summary.expense, showValues, summary.currency)}
+                <span className="money">{displayMoney(summary.expense, showValues, summary.currency)}</span>
               </strong>
             </div>
           </div>

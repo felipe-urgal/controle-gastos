@@ -323,7 +323,7 @@ export function GoalDetailModal({
                       }
                     >
                       {entry.type === 'CONTRIBUTION' ? '+' : '-'}
-                      {money(entry.amount)}
+                      <span className="money">{money(entry.amount)}</span>
                     </strong>
                   </div>
                 ))}
@@ -376,7 +376,7 @@ export function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
       <span className="text-xs text-[var(--text-muted)]">{label}</span>
-      <strong className="mt-1 block text-base text-[var(--foreground)]">{value}</strong>
+      <strong className="money mt-1 block text-base text-[var(--foreground)]">{value}</strong>
     </div>
   );
 }
@@ -438,13 +438,13 @@ export function GoalCard({
               Progresso
             </span>
             <strong className="mt-1 block break-words text-2xl font-extrabold tabular-nums text-[var(--foreground)]">
-              {money(goal.currentAmount)}
+              <span className="money">{money(goal.currentAmount)}</span>
             </strong>
           </div>
           <div className="text-right">
             <span className="text-xs text-[var(--text-muted)]">de</span>
             <strong className="ml-1 text-sm text-[var(--foreground)]">
-              {money(goal.targetAmount)}
+              <span className="money">{money(goal.targetAmount)}</span>
             </strong>
           </div>
         </div>
@@ -460,7 +460,7 @@ export function GoalCard({
             {goal.percentage.toLocaleString('pt-BR')}%
           </span>
           <span className="text-[var(--text-muted)]">
-            Falta {money(goal.remainingAmount)}
+            Falta <span className="money">{money(goal.remainingAmount)}</span>
           </span>
         </div>
       </button>
@@ -469,7 +469,7 @@ export function GoalCard({
         <p className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs leading-relaxed text-[var(--text-muted)]">
           Para distribuir o restante até o prazo: aproximadamente{' '}
           <strong className="text-[var(--foreground)]">
-            {money(goal.monthlyContributionSuggestion)}
+            <span className="money">{money(goal.monthlyContributionSuggestion)}</span>
           </strong>{' '}
           por mês.
         </p>

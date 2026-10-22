@@ -175,7 +175,7 @@ export function InvestmentTaxPaymentReconciliationSection({
                   ) : null}
                 </div>
                 <strong className="text-sm text-[var(--foreground)]">
-                  {showValues ? formatCurrency(item.amountCents, item.currency) : '••••'}
+                  <span className="money">{showValues ? formatCurrency(item.amountCents, item.currency) : '••••'}</span>
                 </strong>
               </div>
 
