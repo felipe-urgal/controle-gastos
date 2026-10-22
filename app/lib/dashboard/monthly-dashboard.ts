@@ -4,13 +4,10 @@ import { ZodError } from 'zod';
 import { failure, success } from '@/app/lib/api-response';
 import { parseQuery } from '@/app/lib/api/query';
 import { calculateAccountBalanceMap } from '@/app/lib/accounts/account-balance';
-import { buildCreditCardCommitments } from '@/app/lib/cards/credit-card-commitments';
+import { getCreditCardStatuses } from '@/app/lib/cards/credit-card-status';
 import { listCategoryMonthlyLimitsForUser } from '@/app/lib/category-limits/category-monthly-limits';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
-import {
-  compareLogicalDates,
-  logicalDateFromUtcInstant,
-} from '@/app/lib/date/logical-date';
+import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import {
   calculateGoalPercentage,
@@ -135,7 +132,6 @@ export async function getMonthlyDashboardForUser(
   now: Date = new Date(),
 ): Promise<MonthlyDashboard> {
   const asOf = logicalDateFromUtcInstant(now);
-  const currentPeriod = { year: asOf.year, month: asOf.month };
   const flowPeriods = getDashboardFlowPeriods(period);
   const previousPeriod = shiftDashboardPeriod(period, -1);
   const periodFilter = flowPeriods.map(({ year, month }) => ({ year, month }));
@@ -273,129 +269,7 @@ export async function getMonthlyDashboardForUser(
     }),
   ]);
 
-  const cardIds = cardAccounts.map((card) => card.id);
-  const statementPeriods = Array.from({ length: 5 }, (_, index) =>
-    shiftDashboardPeriod(currentPeriod, index - 1),
-  );
-
-  const [cardFlowRows, cardPaymentRows, cardTransactions, cardPayments] =
-    await Promise.all([
-          cardIds.length === 0
-            ? []
-            : prisma.transaction.groupBy({
-                by: ['accountId', 'type'],
-                where: {
-                  userId,
-                  accountId: { in: cardIds },
-                  kind: 'NORMAL',
-                  status: { not: 'CANCELLED' },
-                },
-                _sum: { amount: true },
-              }),
-          cardIds.length === 0
-            ? []
-            : prisma.creditCardPayment.groupBy({
-                by: ['cardAccountId'],
-                where: { userId, cardAccountId: { in: cardIds } },
-                _sum: { amount: true },
-              }),
-          cardIds.length === 0
-            ? []
-            : prisma.transaction.findMany({
-                where: {
-                  userId,
-                  accountId: { in: cardIds },
-                  kind: 'NORMAL',
-                  status: { not: 'CANCELLED' },
-                  OR: statementPeriods,
-                },
-            select: {
-              id: true,
-              accountId: true,
-              amount: true,
-              year: true,
-              month: true,
-              day: true,
-              type: true,
-              status: true,
-              description: true,
-              seriesId: true,
-              seriesIndex: true,
-            },
-            orderBy: [
-              { year: 'asc' },
-              { month: 'asc' },
-              { day: 'asc' },
-              { id: 'asc' },
-            ],
-          }),
-          cardIds.length === 0
-            ? []
-            : prisma.creditCardPayment.findMany({
-                where: {
-                  userId,
-                  cardAccountId: { in: cardIds },
-                  OR: statementPeriods.map(({ year, month }) => ({
-                    closingYear: year,
-                    closingMonth: month,
-                  })),
-                },
-            select: {
-              cardAccountId: true,
-              closingYear: true,
-              closingMonth: true,
-              closingDay: true,
-            },
-          }),
-        ]);
-
-  const cardNetTotals = new Map<string, number>();
-  for (const row of cardFlowRows) {
-    const current = cardNetTotals.get(row.accountId) ?? 0;
-    const amount = row._sum.amount ?? 0;
-    cardNetTotals.set(
-      row.accountId,
-      current + (row.type === 'INCOME' ? -amount : amount),
-    );
-  }
-  const cardPaymentTotals = new Map<string, number>(
-    cardPaymentRows.map(
-      (row) => [row.cardAccountId, row._sum.amount ?? 0] as const,
-    ),
-  );
-  const transactionsByCard = new Map<string, typeof cardTransactions>();
-  for (const transaction of cardTransactions) {
-    const list = transactionsByCard.get(transaction.accountId) ?? [];
-    list.push(transaction);
-    transactionsByCard.set(transaction.accountId, list);
-  }
-
-  const cardCommitments = buildCreditCardCommitments({
-    asOf,
-    historyLimit: 2,
-    cards: cardAccounts.flatMap((card) =>
-      card.statementClosingDay !== null && card.statementDueDay !== null
-        ? [{
-            id: card.id,
-            name: card.name,
-            statementClosingDay: card.statementClosingDay,
-            statementDueDay: card.statementDueDay,
-          }]
-        : [],
-    ),
-    transactionsByCard,
-    payments: cardPayments,
-  });
-
-  const nextCommitmentByCard = new Map<string, (typeof cardCommitments)[number]>();
-  for (const commitment of cardCommitments) {
-    if (compareLogicalDates(commitment.dueDate, asOf) < 0) {
-      continue;
-    }
-    if (!nextCommitmentByCard.has(commitment.cardId)) {
-      nextCommitmentByCard.set(commitment.cardId, commitment);
-    }
-  }
+  const cardStatuses = await getCreditCardStatuses({ userId, cards: cardAccounts, asOf });
 
   const summaryRows: SummaryRow[] = [
     ...periodRows.map((row) => ({
@@ -537,14 +411,11 @@ export async function getMonthlyDashboardForUser(
         return [];
       }
 
-      const usedLimit = Math.max(
-        0,
-        (cardNetTotals.get(card.id) ?? 0) -
-          (cardPaymentTotals.get(card.id) ?? 0),
-      );
+      const status = cardStatuses.get(card.id);
+      const usedLimit = status?.usedLimit ?? 0;
       const availableLimit = Math.max(0, card.creditLimit - usedLimit);
       const overLimit = Math.max(0, usedLimit - card.creditLimit);
-      const nextStatement = nextCommitmentByCard.get(card.id) ?? null;
+      const nextStatement = status?.nextStatement ?? null;
 
       return [{
         id: card.id,

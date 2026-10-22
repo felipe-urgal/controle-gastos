@@ -7,7 +7,24 @@ type AccountWithDerivedBalance = Account & {
   investmentValueCents?: number | null;
   investmentValueSource?: "MARKET" | "COST" | "MIXED" | null;
   investmentPositionCount?: number;
+  cardStatus?: AccountCardStatusDTO | null;
   transactions: RecentTransactionRecord[];
+};
+
+type LogicalDateDTO = { year: number; month: number; day: number };
+
+export type AccountCardStatusDTO = {
+  usedLimit: number;
+  /** Null quando o cartão não tem limite configurado. */
+  availableLimit: number | null;
+  overLimit: number;
+  nextStatement: {
+    amount: number;
+    closingDate: LogicalDateDTO;
+    dueDate: LogicalDateDTO;
+    transactionCount: number;
+  } | null;
+  overdueCount: number;
 };
 
 type RecentTransactionAccount = {
@@ -64,6 +81,7 @@ export function toAccountDTO(account: AccountWithDerivedBalance) {
     investmentValueCents: account.investmentValueCents ?? null,
     investmentValueSource: account.investmentValueSource ?? null,
     investmentPositionCount: account.investmentPositionCount ?? 0,
+    cardStatus: account.cardStatus ?? null,
     currency: account.currency,
     isActive: account.isActive,
     color: account.color,
