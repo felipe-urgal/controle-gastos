@@ -146,6 +146,7 @@ test('cartão: criar, comprar, visualizar fatura e pagar', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Confirmar', exact: true }).click();
 
   await expect(dialog).toBeHidden();
+  await page.getByRole('button', { name: 'Histórico de faturas', exact: true }).click();
   await expect(
     page.getByText('Paga', { exact: true }).filter({ visible: true }).first(),
   ).toBeVisible();
