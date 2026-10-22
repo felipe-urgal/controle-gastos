@@ -40,9 +40,6 @@ Comandos úteis:
     pnpm typecheck
     pnpm test
     pnpm build
-    pnpm test:e2e
-
-Não execute E2E indiscriminadamente; use-o para fluxos relevantes ou antes de mudanças com maior risco de regressão.
 
 ## Cron de resumo financeiro
 
@@ -81,11 +78,8 @@ Mantenha somente documentação viva. Decisões concluídas, planos antigos e re
 
 ## Layout mobile e guardrails de design
 
-- `pnpm test:e2e layout-smoke --project=chromium`: percorre as rotas autenticadas em 360 e 390 px e falha em rolagem horizontal, mais de um `h1` visível ou aumento de alvos de toque menores que 44×44 px. As listas `KNOWN_*` do spec só podem diminuir; `LAYOUT_SMOKE_REPORT=1` imprime o detalhe dos alvos pequenos.
 - `scripts/__tests__/design-ratchet.test.ts`: limites por arquivo para overlays `fixed inset-0` fora do `ModalShell` e cores hex literais. Ao migrar um arquivo, reduza ou remova a entrada.
-- `VISUAL_REVIEW=1 SHOTS_DIR=/tmp/shots pnpm test:e2e visual-review --project=chromium`: gera capturas das telas principais a 360px (claro/escuro, com dados semeados) para revisão visual; não roda por padrão.
 - **Teclado virtual:** formulários longos e telas de autenticação usam `useVisualViewportInset` (`scroll-padding-bottom` no `<html>` enquanto o teclado está aberto); a busca global é uma sheet de tela cheia no mobile (`h-dvh`) e reserva o inset do teclado no fim da lista. Ao adicionar um formulário mobile, teste com a viewport reduzida (ver `shell-visual`, teste "360×640 com teclado aberto").
-- Specs `*-visual` (`pnpm test:e2e <modulo>-visual --project=chromium`): larguras 320–1280 × claro/escuro × `showValues`, usando `tests/e2e/support/layout-measure.mjs` (overflow, alvos < 44 px, campos < 16 px, texto < 12 px). Rodam no push para a `main`, não nos PRs; `SHOTS_DIR=/tmp/shots` grava as capturas.
 
 ## Design: breakpoints, camadas e tokens
 
@@ -103,21 +97,8 @@ Mantenha somente documentação viva. Decisões concluídas, planos antigos e re
 
 ## Performance (baseline mobile)
 
-`PERF_BASELINE=1 pnpm test:e2e perf-baseline --project=chromium` mede, em 390px com CPU 4× mais lenta e rede 4G (150 ms, 9 Mbps), cache frio e 240 transações no mês: JS baixado, nós DOM, LCP e tarefas longas (TBT aproximado) por rota (`PERF_FILES=1` lista os arquivos JS). Referência (#885):
-
-| Rota | JS antes | JS depois | LCP | TBT~ |
-| --- | --- | --- | --- | --- |
-| /transacoes | 1341 KiB | 1083 KiB | ~1,05 s | 150–260 ms (240 itens, 1300 nós) |
-| /contas | 1341 KiB | 1124 KiB | ~1,2 s | 0 |
-| /categorias | 1436 KiB | 1174 KiB | ~1,1 s | 0 |
-| /dashboard | 1469–1814 KiB | ~1230–1310 KiB | ~1,35 s | 0 |
-
 - **Importe pelos módulos, não pelo barrel** (`pages/transactions/index.ts` etc.): o barrel arrastava formulário, edição e detalhe para a listagem e para as outras rotas do módulo (-16% a -19% de JS). As páginas em `app/(pages)` importam o componente direto.
 - `next/dynamic` só vale quando a medição mostra ganho: o modal de importação de investimentos (-2 KiB) e o painel de projeção do Dashboard (dentro do ruído de ±50 KiB por prefetch) não compensaram e ficaram estáticos.
 - Listas: paginadas (240 itens = ~1300 nós DOM, LCP ~1 s); virtualização não é necessária com esse volume.
 - `BackgroundParticles` só existe na splash e no 404; já usa 24 partículas com `prefers-reduced-motion` (desenho estático) e 50 em telas estreitas.
 - Nenhum arquivo de componente passa de 1200 linhas (`find app/components -name '*.tsx' | xargs wc -l | sort -rn | head`).
-
-## Smoke de layout mobile no CI
-
-Os PRs rodam `layout-smoke` (rotas autenticadas sem dados, 320/360/390/430/768/1024/1280px), `layout-smoke-public` (landing e autenticação), `layout-smoke-data` (usuário com 80 transações e as rotas `[id]` de transação, conta e categoria, em 6 larguras) e `transactions-mobile`/`mobile-overlay-shell` em **chromium e webkit (Safari/iOS)**. Localmente o webkit exige as bibliotecas do sistema (`sudo npx playwright install-deps webkit`); sem elas use `--project=chromium`.

@@ -7,7 +7,7 @@ Aplicação web de finanças pessoais para contas, transações, categorias, cal
 - Next.js 16 + React 19 + TypeScript
 - Prisma + PostgreSQL
 - Tailwind CSS
-- Vitest + Playwright
+- Vitest
 - pnpm / Node.js 24.x
 
 ## Desenvolvimento
@@ -18,10 +18,6 @@ Aplicação web de finanças pessoais para contas, transações, categorias, cal
 Gate principal:
 
     pnpm check
-
-E2E quando o fluxo alterado exigir:
-
-    pnpm test:e2e
 
 ## Princípios de domínio
 
