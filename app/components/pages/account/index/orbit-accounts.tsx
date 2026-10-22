@@ -23,6 +23,7 @@ import { Button, Chip, ChipRow, IconButton, IconRenderer, Input } from '@/app/co
 import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
 import {
+  creditCardRowSummary,
   getAccountPrimaryValue,
   latestAccountTransaction,
   sortAccountTransactions,
@@ -61,6 +62,11 @@ function transactionMoney(
   return `${transaction.type === 'INCOME' ? '+' : '-'}${formatCurrency(Number(transaction.amount ?? 0), currency)}`;
 }
 
+
+/** Subtotal do grupo só quando há uma moeda: somar moedas diferentes seria um número sem sentido. */
+function groupTotal(items: Array<{ currency: string; value: number }> | undefined) {
+  return items && items.length === 1 && items[0].value !== 0 ? items[0] : null;
+}
 
 function MobileAccountsCenter({
   accounts,
@@ -377,19 +383,25 @@ export default function OrbitAccounts() {
           key: 'credit-debit',
           title: 'Bancos e carteiras',
           items: accounts.filter((account) => account.type === 'CREDIT_DEBIT'),
-        },
-        {
-          key: 'investment',
-          title: 'Investimentos',
-          items: accounts.filter((account) => account.type === 'INVESTMENT'),
+          total: groupTotal(accountSummary?.bankBalancesByCurrency),
+          totalLabel: '',
         },
         {
           key: 'credit-card',
           title: 'Cartões de crédito',
           items: accounts.filter((account) => account.type === 'CREDIT_CARD'),
+          total: groupTotal(accountSummary?.openStatementsByCurrency),
+          totalLabel: 'em fatura',
+        },
+        {
+          key: 'investment',
+          title: 'Investimentos',
+          items: accounts.filter((account) => account.type === 'INVESTMENT'),
+          total: groupTotal(accountSummary?.investmentBalancesByCurrency),
+          totalLabel: '',
         },
       ].filter((group) => group.items.length > 0),
-    [accounts],
+    [accounts, accountSummary],
   );
 
   const accountFilter = (filters.type ?? '') as '' | AccountType;
@@ -563,8 +575,14 @@ export default function OrbitAccounts() {
           ) : (
             grouped.map((group) => (
               <section key={group.key} aria-label={group.title}>
-                <h2 className="px-[18px] pb-2 pt-4 text-sm font-bold text-[var(--text-muted)]">
+                <h2 className="flex items-baseline justify-between gap-3 px-[18px] pb-2 pt-4 text-sm font-bold text-[var(--text-muted)]">
                   {group.title}
+                  {group.total && (
+                    <span className="money text-xs font-medium">
+                      {money(group.total.value, group.total.currency, showValues)}
+                      {group.totalLabel ? ` ${group.totalLabel}` : ''}
+                    </span>
+                  )}
                 </h2>
                 {group.items.map((account) => (
                   <AccountRow
@@ -606,6 +624,12 @@ export default function OrbitAccounts() {
   );
 }
 
+function dueShortLabel(date: { month: number; day: number }) {
+  return `${String(date.day).padStart(2, '0')}/${String(date.month).padStart(2, '0')}`;
+}
+
+const rowMeterTone = { ok: 'bg-[var(--orbit-primary)]', near: 'bg-[var(--warning)]', over: 'bg-[var(--expense)]' } as const;
+
 function AccountRow({
   account,
   selected,
@@ -618,23 +642,25 @@ function AccountRow({
   onSelect: (account: AccountModel) => void;
 }) {
   const latest = latestAccountTransaction(account);
-  const displayedValue =
-    account.type === 'CREDIT_CARD'
-      ? account.creditLimit ?? 0
-      : getAccountPrimaryValue(account);
-  const valueLabel =
-    account.type === 'INVESTMENT'
+  const card = creditCardRowSummary(account);
+  const displayedValue = card ? card.statementAmount ?? 0 : getAccountPrimaryValue(account);
+  const valueLabel = card
+    ? card.statementDueDate
+      ? `Fatura · vence ${dueShortLabel(card.statementDueDate)}`
+      : 'Sem fatura aberta'
+    : account.type === 'INVESTMENT'
       ? 'Patrimônio'
-      : account.type === 'CREDIT_CARD'
-        ? 'Limite'
-        : 'Disponível';
+      : 'Disponível';
+  const negative = account.type === 'CREDIT_DEBIT' && account.balance < 0;
+  const flag = !account.isActive ? 'Inativa' : card && card.overdueCount > 0 ? 'Fatura vencida' : negative ? 'Negativa' : null;
+  const flagClass = flag === 'Inativa' ? 'text-[var(--text-muted)]' : 'text-[var(--expense)]';
 
   return (
     <button
       type="button"
       onClick={() => onSelect(account)}
       aria-pressed={selected}
-      className={`grid min-h-[68px] w-full grid-cols-[minmax(0,1fr)_105px_20px] items-center gap-2 border-t border-[var(--border)] px-3.5 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:grid-cols-[minmax(0,1fr)_150px_100px_34px] sm:gap-3.5 sm:px-[18px] ${
+      className={`grid min-h-[68px] w-full grid-cols-[minmax(0,1fr)_minmax(105px,auto)_20px] items-center gap-2 border-t border-[var(--border)] px-3.5 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:grid-cols-[minmax(0,1fr)_minmax(120px,auto)_minmax(70px,.5fr)_20px] ${
         selected
           ? 'bg-[var(--orbit-primary-subtle)] shadow-[inset_3px_0_0_var(--orbit-primary)]'
           : 'hover:bg-[var(--surface-hover)]'
@@ -648,31 +674,55 @@ function AccountRow({
         >
           <IconRenderer iconName={account.icon || 'wallet'} size={18} />
         </span>
-        <div className="min-w-0">
-          <p className="line-clamp-2 break-words text-sm font-bold sm:text-base">{account.name}</p>
-          <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
-            {typeLabels[account.type]} · {account.currency}
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-2 break-words text-sm font-bold sm:text-base">
+            {account.name}
+            {flag && <span className={`ml-2 align-middle text-xs font-semibold ${flagClass}`}>{flag}</span>}
           </p>
+          {card ? (
+            <>
+              <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                <span className="money">{money(card.usedLimit, account.currency, showValues)}</span>
+                {card.creditLimit !== null && (
+                  <>
+                    {' '}de <span className="money">{money(card.creditLimit, account.currency, showValues)}</span>
+                  </>
+                )}{' '}
+                usados
+              </p>
+              {card.usedPercent !== null && (
+                <div
+                  className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]"
+                  role="img"
+                  aria-label={`${card.usedPercent}% do limite usado`}
+                >
+                  <span className={`block h-full rounded-full ${rowMeterTone[card.tone]}`} style={{ width: `${Math.min(100, card.usedPercent)}%` }} />
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+              {typeLabels[account.type]} · {account.currency}
+            </p>
+          )}
         </div>
       </div>
-
       <div className="text-right sm:text-left">
         <p
           className={`truncate text-sm font-bold sm:text-base ${
-            account.type === 'CREDIT_CARD'
+            card || account.type === 'CREDIT_CARD'
               ? 'text-[var(--foreground)]'
               : displayedValue < 0
                 ? 'text-[var(--expense)]'
                 : 'text-[var(--income)]'
           }`}
         >
-          <span className="money">{money(displayedValue, account.currency, showValues)}</span>
+          <span className="money">{card && card.statementAmount === null ? '—' : money(displayedValue, account.currency, showValues)}</span>
         </p>
         <small className="text-xs text-[var(--text-muted)]">
           {valueLabel}
         </small>
       </div>
-
       <div className="hidden min-w-0 sm:block">
         <small className="text-xs text-[var(--text-muted)]">
           {latest ? 'Recente' : 'Sem atividade'}
@@ -686,10 +736,9 @@ function AccountRow({
                 : 'text-[var(--text-muted)]'
           }`}
         >
-          {latest ? transactionMoney(latest, account.currency, showValues) : '—'}
+          <span className="money">{latest ? transactionMoney(latest, account.currency, showValues) : '—'}</span>
         </p>
       </div>
-
       <FaChevronRight className="justify-self-end text-[var(--text-muted)]" aria-hidden="true" />
     </button>
   );

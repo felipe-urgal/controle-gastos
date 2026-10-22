@@ -1,3 +1,4 @@
+import { ACCOUNT_NEAR_LIMIT_RATIO } from "@/app/lib/accounts/account-attention";
 import type {
   AccountModel,
   AccountRecentTransaction,
@@ -32,4 +33,41 @@ export function sortAccountTransactions(
 
 export function latestAccountTransaction(account: AccountModel) {
   return sortAccountTransactions(account.transactions)[0] ?? null;
+}
+
+export type CreditCardRowSummary = {
+  /** Valor da próxima fatura; null quando não há fatura aberta ou o ciclo não está configurado. */
+  statementAmount: number | null;
+  statementDueDate: { year: number; month: number; day: number } | null;
+  usedLimit: number;
+  creditLimit: number | null;
+  /** Percentual do limite usado (arredondado); null sem limite configurado. */
+  usedPercent: number | null;
+  tone: "ok" | "near" | "over";
+  overdueCount: number;
+};
+
+/** Resumo do cartão para a linha da lista de Contas; null quando a API não trouxe o status. */
+export function creditCardRowSummary(account: AccountModel): CreditCardRowSummary | null {
+  const status = account.cardStatus;
+  if (account.type !== "CREDIT_CARD" || !status) return null;
+
+  const limit = account.creditLimit ?? null;
+  const usedPercent = limit !== null && limit > 0 ? Math.round((status.usedLimit / limit) * 100) : null;
+  const tone =
+    limit !== null && status.usedLimit > limit
+      ? "over"
+      : limit !== null && limit > 0 && status.usedLimit >= limit * ACCOUNT_NEAR_LIMIT_RATIO
+        ? "near"
+        : "ok";
+
+  return {
+    statementAmount: status.nextStatement?.amount ?? null,
+    statementDueDate: status.nextStatement?.dueDate ?? null,
+    usedLimit: status.usedLimit,
+    creditLimit: limit,
+    usedPercent,
+    tone,
+    overdueCount: status.overdueCount,
+  };
 }
