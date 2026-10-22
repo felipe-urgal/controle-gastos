@@ -1,11 +1,10 @@
 import { getFinancialCommitmentsFromForecastForUser } from '@/app/lib/commitments/financial-commitments';
-import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
+import { lastDayOfMonth, logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import {
   getMonthlyDashboardForUser,
 } from '@/app/lib/dashboard/monthly-dashboard';
 import {
   getForecastForUser,
-  lastDayOfMonth,
   type ForecastForUserResult,
 } from '@/app/lib/forecast/forecast';
 import { getFinancialInsightsFromContext } from '@/app/lib/insights/financial-insights';

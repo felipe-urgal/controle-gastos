@@ -2,9 +2,9 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import {
   getForecastForUser,
-  lastDayOfMonth,
   logicalDateFromUtcInstant,
 } from "@/app/lib/forecast/forecast";
+import { lastDayOfMonth } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
 

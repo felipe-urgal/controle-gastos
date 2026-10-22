@@ -54,12 +54,6 @@ function monthWindow(start: LogicalDate, end: LogicalDate) {
   return periods;
 }
 
-/** Último dia do mês de `date`. */
-export function lastDayOfMonth(date: LogicalDate): LogicalDate {
-  const day = new Date(Date.UTC(date.year, date.month, 0)).getUTCDate();
-  return { year: date.year, month: date.month, day };
-}
-
 export async function getForecastForUser(
   userId: string,
   input: ForecastQueryInput,

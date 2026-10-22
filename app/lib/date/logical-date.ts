@@ -79,3 +79,9 @@ export function daysBetweenLogicalDates(from: LogicalDate, to: LogicalDate) {
       86_400_000,
   );
 }
+
+/** Último dia do mês de `date`. */
+export function lastDayOfMonth(date: LogicalDate): LogicalDate {
+  const day = new Date(Date.UTC(date.year, date.month, 0)).getUTCDate();
+  return { year: date.year, month: date.month, day };
+}
