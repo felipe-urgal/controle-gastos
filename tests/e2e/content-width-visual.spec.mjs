@@ -7,7 +7,7 @@ const VIEWPORTS = [
   { width: 1440, height: 900 },
   { width: 1920, height: 1000 },
 ];
-// Telas de listagem/painel: todas devem ocupar a largura do shell (`--orbit-page-max-width`).
+// Telas de listagem/painel: todas devem ocupar a largura do shell (`.orbit-page-container`).
 const ROUTES = [
   '/dashboard',
   '/transacoes',

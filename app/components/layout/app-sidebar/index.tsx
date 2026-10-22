@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { IconButton } from '@/app/components/ui';
 import { usePathname } from 'next/navigation';
 import {
+  FaChevronDown,
   FaMoon,
   FaSearch,
   FaSignOutAlt,
@@ -11,9 +13,72 @@ import {
   FaWallet,
 } from 'react-icons/fa';
 
-import { getAppNavigation } from '@/app/components/layout/app-navigation';
+import {
+  getAppNavigation,
+  mobileMoreNavigationGroups,
+  mobilePrimaryNavigationKeys,
+  type AppNavigationItem,
+} from '@/app/components/layout/app-navigation';
 import OfflinePendingBadge from '@/app/components/pwa/offline-pending-badge';
 import { useAuth, useTheme } from '@/app/context';
+
+const GROUPS_STORAGE_KEY = 'sidebar-closed-groups';
+
+function readClosedGroups(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(GROUPS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((value) => typeof value === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function SidebarLink({
+  item,
+  active,
+  collapsed,
+  indented = false,
+}: {
+  item: AppNavigationItem;
+  active: boolean;
+  collapsed: boolean;
+  indented?: boolean;
+}) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? 'page' : undefined}
+      title={collapsed ? item.label : undefined}
+      className={`
+        group relative flex min-h-10 items-center rounded-[var(--radius-md)] py-2
+        text-[0.9375rem] font-medium transition-[background-color,color] duration-150
+        focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]
+        ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}
+        ${
+          active
+            ? 'bg-[var(--primary-subtle)] text-[var(--foreground)]'
+            : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+        }
+      `}
+    >
+      {active && (
+        <span
+          aria-hidden="true"
+          className={`absolute top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--primary)] ${indented ? '-left-[9px]' : 'left-0'}`}
+        />
+      )}
+      <Icon
+        className={`h-[18px] w-[18px] shrink-0 transition-colors ${active ? 'text-[var(--primary)]' : 'text-[var(--text-subtle)] group-hover:text-[var(--foreground)]'}`}
+        aria-hidden="true"
+      />
+      <span className={collapsed ? 'sr-only' : 'truncate'}>{item.label}</span>
+    </Link>
+  );
+}
 
 export default function AppSidebar({
   collapsed = false,
@@ -30,6 +95,36 @@ export default function AppSidebar({
   const navigation = getAppNavigation().filter((item) => item.key !== 'profile');
   const profileHref = '/usuario';
   const profileActive = pathname === '/usuario' || pathname.startsWith('/usuario/');
+  // O shell só renderiza a sidebar após a hidratação, então ler o localStorage aqui é seguro.
+  const [closedGroups, setClosedGroups] = useState<string[]>(readClosedGroups);
+
+  const byKey = new Map(navigation.map((item) => [item.key, item]));
+  const primaryItems = mobilePrimaryNavigationKeys
+    .map((key) => byKey.get(key))
+    .filter((item): item is AppNavigationItem => Boolean(item));
+  const groups = [{ label: 'Principal', items: primaryItems }, ...mobileMoreNavigationGroups
+    .map((group) => ({
+      label: group.label,
+      items: (group.keys as readonly string[])
+        .map((key) => byKey.get(key as AppNavigationItem['key']))
+        .filter((item): item is AppNavigationItem => Boolean(item)),
+    }))
+    .filter((group) => group.items.length > 0)];
+
+  const toggleGroup = (label: string) => {
+    setClosedGroups((current) => {
+      const next = current.includes(label)
+        ? current.filter((value) => value !== label)
+        : [...current, label];
+      try {
+        window.localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // preferência visual: segue sem persistência
+      }
+      return next;
+    });
+  };
+
   const initial = user?.name?.trim().charAt(0).toUpperCase() || 'U';
 
   const toggleTheme = () => {
@@ -50,7 +145,7 @@ export default function AppSidebar({
           aria-expanded={!collapsed}
           title={collapsed ? 'Expandir barra lateral' : 'Recolher barra lateral'}
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] text-[var(--on-primary)]">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-hover)] text-[var(--on-primary)] shadow-sm">
             <FaWallet aria-hidden="true" />
           </span>
           <span className={collapsed ? 'sr-only' : 'min-w-0 text-left'}>
@@ -70,7 +165,7 @@ export default function AppSidebar({
           onClick={onOpenGlobalSearch}
           aria-label="Abrir busca global"
           title={collapsed ? 'Busca global' : undefined}
-          className={`mb-3 flex min-h-11 w-full items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] py-2.5 text-base font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--primary)]/35 hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
+          className={`mb-4 flex min-h-10 w-full items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] py-2.5 text-base font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--primary)]/35 hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
         >
           <FaSearch className="h-5 w-5 shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
           <span className={collapsed ? 'sr-only' : 'min-w-0 flex-1 truncate text-left'}>
@@ -83,42 +178,62 @@ export default function AppSidebar({
           )}
         </button>
 
-        <p className={collapsed ? 'sr-only' : 'px-3 pb-2 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]'}>
-          Navegação
-        </p>
+        {groups.map((group, index) => {
+          const hasActive = group.items.some((item) => item.isActive(pathname));
+          const open = collapsed || !closedGroups.includes(group.label);
+          const panelId = `sidebar-group-${group.label}`;
 
-        <div className="space-y-1">
-          {navigation.map((item) => {
-            const active = item.isActive(pathname);
-            const Icon = item.icon;
-
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-                title={collapsed ? item.label : undefined}
-                className={`
-                  flex min-h-11 items-center rounded-[var(--radius-md)] border py-2.5
-                  text-base font-medium transition-[background-color,border-color,color] duration-150
-                  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]
-                  ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}
-                  ${
-                    active
-                      ? 'border-[var(--primary)]/45 bg-[var(--primary-subtle)] text-[var(--foreground)]'
-                      : 'border-transparent text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+          return (
+            <div
+              key={group.label}
+              className={
+                index === 0
+                  ? collapsed ? 'space-y-0.5' : ''
+                  : collapsed ? 'mt-3 space-y-0.5 border-t border-[var(--border)] pt-3' : 'mt-4'
+              }
+            >
+              {!collapsed && (
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.label)}
+                  aria-expanded={open}
+                  aria-controls={panelId}
+                  className={`mb-1 flex w-full items-center justify-between rounded-[var(--radius-sm)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+                    hasActive
+                      ? 'text-[var(--primary)]'
+                      : 'text-[var(--text-subtle)] hover:text-[var(--foreground)]'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      aria-hidden="true"
+                      className={`h-1.5 w-1.5 rounded-full transition-colors ${hasActive ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
+                    />
+                    {group.label}
+                  </span>
+                  <FaChevronDown
+                    className={`h-2.5 w-2.5 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+                    aria-hidden="true"
+                  />
+                </button>
+              )}
+              {open && (
+                <div
+                  id={panelId}
+                  className={
+                    collapsed
+                      ? 'space-y-0.5'
+                      : `ml-[17px] space-y-0.5 border-l pl-2 ${hasActive ? 'border-[var(--primary)]/40' : 'border-[var(--border)]'}`
                   }
-                `}
-              >
-                <Icon
-                  className={`h-5 w-5 shrink-0 ${active ? 'text-[var(--primary)]' : 'text-[var(--text-subtle)]'}`}
-                  aria-hidden="true"
-                />
-                <span className={collapsed ? 'sr-only' : 'truncate'}>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
+                >
+                  {group.items.map((item) => (
+                    <SidebarLink key={item.key} item={item} active={item.isActive(pathname)} collapsed={collapsed} indented={!collapsed} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       <div className={`border-t border-[var(--border)] ${collapsed ? 'p-2' : 'p-3'}`}>

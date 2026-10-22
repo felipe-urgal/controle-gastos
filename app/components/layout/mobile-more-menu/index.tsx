@@ -4,11 +4,9 @@ import { ModalShell } from '@/app/components/overlays/modal-shell';
 import Link from 'next/link';
 import { Input } from '@/app/components/ui';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   FaDownload,
-  FaFileImport,
-  FaPlus,
   FaSearch,
 } from 'react-icons/fa';
 
@@ -17,21 +15,6 @@ import {
   mobileMoreNavigationGroups,
   type AppNavigationItem,
 } from '@/app/components/layout/app-navigation';
-
-const quickActions = [
-  {
-    label: 'Nova transação',
-    description: 'Registrar uma receita ou despesa',
-    href: '/transacoes/nova',
-    icon: FaPlus,
-  },
-  {
-    label: 'Importar transações',
-    description: 'Importar arquivo CSV ou OFX',
-    href: '/transacoes/importar',
-    icon: FaFileImport,
-  },
-] as const;
 
 export default function MobileMoreMenu({
   onClose,
@@ -42,7 +25,6 @@ export default function MobileMoreMenu({
 }) {
   const pathname = usePathname();
   const [query, setQuery] = useState('');
-  const searchRef = useRef<HTMLInputElement>(null);
   const navigation = getAppNavigation();
   const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
 
@@ -60,49 +42,17 @@ export default function MobileMoreMenu({
     }))
     .filter((group) => group.items.length > 0);
 
-  useEffect(() => {
-    searchRef.current?.focus();
-  }, []);
-
   return (
     <ModalShell
       title="Mais opções"
       description="Acesse todas as áreas do aplicativo."
       closeLabel="Fechar menu"
       maxWidthClass="max-w-2xl"
+      variant="fullscreen-sheet"
       onClose={onClose}
     >
-    <section aria-labelledby="mobile-more-quick-actions">
-      <h3
-        id="mobile-more-quick-actions"
-        className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]"
-      >
-        Ações rápidas
-      </h3>
-      <div className="grid grid-cols-2 gap-2">
-        {quickActions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <Link
-              key={action.href}
-              href={action.href}
-              onClick={onClose}
-              className="flex min-h-[76px] flex-col justify-center rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 transition-colors hover:border-[var(--primary)]/35 hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-            >
-              <Icon className="mb-2 text-[var(--primary)]" aria-hidden="true" />
-              <strong className="text-sm text-[var(--foreground)]">{action.label}</strong>
-              <span className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-                {action.description}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </section>
-
-    <div className="mt-5">
+    <div>
       <Input
-        ref={searchRef}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         aria-label="Filtrar funcionalidades"
@@ -114,41 +64,59 @@ export default function MobileMoreMenu({
       />
     </div>
 
-    <nav className="mt-5 space-y-5" aria-label="Todas as funcionalidades">
-      {groups.map((group) => (
-        <section key={group.label}>
-          <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
-            {group.label}
-          </h3>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {group.items.map((item) => {
-              const Icon = item.icon;
-              const active = item.isActive(pathname);
+    <nav className="mt-5 space-y-4" aria-label="Todas as funcionalidades">
+      {groups.map((group) => {
+        const groupActive = group.items.some((item) => item.isActive(pathname));
 
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  onClick={onClose}
-                  aria-current={active ? 'page' : undefined}
-                  className={
-                    'flex min-h-12 items-center gap-3 rounded-[var(--radius-md)] border px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
-                    (active
-                      ? 'border-[var(--primary)]/45 bg-[var(--primary-subtle)] text-[var(--foreground)]'
-                      : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--primary)]/30 hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]')
-                  }
-                >
-                  <Icon
-                    className={active ? 'text-[var(--primary)]' : 'text-[var(--text-subtle)]'}
-                    aria-hidden="true"
-                  />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      ))}
+        return (
+          <section key={group.label}>
+            <h3
+              className={
+                'mb-2 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-[0.12em] ' +
+                (groupActive ? 'text-[var(--primary)]' : 'text-[var(--text-subtle)]')
+              }
+            >
+              <span
+                aria-hidden="true"
+                className={'h-1.5 w-1.5 rounded-full ' + (groupActive ? 'bg-[var(--primary)]' : 'bg-[var(--border)]')}
+              />
+              {group.label}
+            </h3>
+            <div
+              className={
+                'ml-[7px] grid grid-cols-1 gap-1.5 border-l pl-3 sm:grid-cols-2 ' +
+                (groupActive ? 'border-[var(--primary)]/40' : 'border-[var(--border)]')
+              }
+            >
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const active = item.isActive(pathname);
+
+                return (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    onClick={onClose}
+                    aria-current={active ? 'page' : undefined}
+                    className={
+                      'flex min-h-12 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                      (active
+                        ? 'bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                        : 'bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]')
+                    }
+                  >
+                    <Icon
+                      className={'shrink-0 ' + (active ? 'text-[var(--primary)]' : 'text-[var(--text-subtle)]')}
+                      aria-hidden="true"
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
     </nav>
 
     {groups.length === 0 && (

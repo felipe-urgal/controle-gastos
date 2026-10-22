@@ -1,6 +1,6 @@
 {
   "app/components/feedback/alert/index.tsx": 1,
-  "app/components/layout/app-sidebar/index.tsx": 3,
+  "app/components/layout/app-sidebar/index.tsx": 4,
   "app/components/layout/bottom-nav/index.tsx": 1,
   "app/components/layout/global-search-dialog/index.tsx": 6,
   "app/components/layout/mobile-more-menu/index.tsx": 1,
