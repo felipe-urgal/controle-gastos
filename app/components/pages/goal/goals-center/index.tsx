@@ -2,11 +2,11 @@
 
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FaBullseye, FaCalendarAlt, FaCheckCircle, FaPlus } from 'react-icons/fa';
+import { FaPlus } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
 
-import { Alert, PageEmpty } from '@/app/components/feedback';
+import { Alert } from '@/app/components/feedback';
 import { Button, Chip, ChipRow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 
@@ -17,7 +17,10 @@ import type { AccountModel } from '@/app/types/account';
 import type { FinancialGoal, FinancialGoalEntryType } from '@/app/types/financial-goal';
 
 import { GoalFilter, GoalFormState, emptyForm, moneyInputFromCents } from '@/app/components/pages/goal/goals-center/goals-helpers';
-import { GoalCard, GoalDetailModal, GoalEntryModal, GoalFormModal, GoalSkeleton, SimpleConfirmModal, SummaryCard } from '@/app/components/pages/goal/goals-center/goal-modals';
+import { GoalDetailModal, GoalEntryModal, GoalFormModal, GoalSkeleton, SimpleConfirmModal } from '@/app/components/pages/goal/goals-center/goal-modals';
+import GoalCard from '@/app/components/pages/goal/goals-center/goal-card';
+import GoalsHero from '@/app/components/pages/goal/goals-center/goals-hero';
+import { activeCurrencies, countByStatus, goalPace, sortGoals } from '@/app/components/pages/goal/goals-center/goals-model';
 
 export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
   const { user } = useAuth();
@@ -134,20 +137,25 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
     };
   }, []);
 
+  const now = useMemo(() => new Date(), []);
+  const [heroCurrency, setHeroCurrency] = useState<string | null>(null);
+
   const filteredGoals = useMemo(
     () =>
-      filter === 'ALL'
-        ? goals
-        : goals.filter((goal) => goal.status === filter),
+      sortGoals(
+        filter === 'ALL'
+          ? goals
+          : goals.filter((goal) => goal.status === filter),
+      ),
     [filter, goals],
   );
+  const counts = useMemo(() => countByStatus(goals), [goals]);
+  const currencies = useMemo(() => activeCurrencies(goals), [goals]);
+  const currency = currencies.find((item) => item === heroCurrency) ?? currencies[0] ?? 'BRL';
 
-  const activeGoals = goals.filter((goal) => goal.status === 'ACTIVE');
-  const completedGoals = goals.filter((goal) => goal.status === 'COMPLETED');
-
-  function openCreate() {
+  function openCreate(name = '') {
     setEditingGoal(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, name });
     setFormError(null);
     setFormOpen(true);
   }
@@ -367,7 +375,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
           title="Metas"
           description="Acompanhe objetivos sem misturar planejamento com saldo financeiro."
           actions={
-            <Button pill icon={<FaPlus aria-hidden="true" />} onClick={openCreate}>
+            <Button pill icon={<FaPlus aria-hidden="true" />} onClick={() => openCreate()}>
               Nova meta
             </Button>
           }
@@ -387,36 +395,34 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
           </div>
         )}
 
-        <section className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
-          <SummaryCard
-            label="Ativas"
-            value={String(activeGoals.length)}
-            icon={<FaBullseye />}
-          />
-          <SummaryCard
-            label="Concluídas"
-            value={String(completedGoals.length)}
-            icon={<FaCheckCircle />}
-          />
-          <SummaryCard
-            label="Total de metas"
-            value={String(goals.length)}
-            icon={<FaCalendarAlt />}
-          />
-        </section>
+        {goals.length > 0 && (
+          <div className="mt-5">
+            <GoalsHero
+              goals={goals}
+              currency={currency}
+              currencies={currencies}
+              onCurrency={setHeroCurrency}
+              completedCount={counts.COMPLETED}
+              now={now}
+              showValues={showValues}
+            />
+          </div>
+        )}
 
-        <ChipRow label="Filtrar metas por status" className="mt-5">
-          {[
-            ['ALL', 'Todas'],
-            ['ACTIVE', 'Ativas'],
-            ['COMPLETED', 'Concluídas'],
-            ['ARCHIVED', 'Arquivadas'],
-          ].map(([value, label]) => (
-            <Chip key={value} selected={filter === value} onClick={() => setFilter(value as GoalFilter)}>
-              {label}
-            </Chip>
-          ))}
-        </ChipRow>
+        {goals.length > 0 && (
+          <ChipRow label="Filtrar metas por status" className="mt-5">
+            {[
+              ['ALL', 'Todas'],
+              ['ACTIVE', 'Ativas'],
+              ['COMPLETED', 'Concluídas'],
+              ['ARCHIVED', 'Arquivadas'],
+            ].map(([value, label]) => (
+              <Chip key={value} selected={filter === value} onClick={() => setFilter(value as GoalFilter)}>
+                {label} <span className="text-xs opacity-80">{counts[value as keyof typeof counts]}</span>
+              </Chip>
+            ))}
+          </ChipRow>
+        )}
 
         <div className="mt-5">
           {loading ? (
@@ -425,17 +431,35 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
               <GoalSkeleton />
               <GoalSkeleton />
             </div>
+          ) : goals.length === 0 ? (
+            <section className="grid justify-items-center gap-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center">
+              <h2 className="text-lg font-bold">Nenhuma meta ainda</h2>
+              <p className="max-w-[52ch] text-sm text-[var(--text-muted)]">
+                Metas guardam um objetivo e o progresso até ele, sem mexer no saldo das suas contas. Comece por uma destas ou crie a sua.
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {['Reserva de emergência', 'Viagem', 'Entrada de imóvel'].map((name) => (
+                  <Chip key={name} onClick={() => openCreate(name)}>
+                    {name}
+                  </Chip>
+                ))}
+              </div>
+              <Button pill icon={<FaPlus aria-hidden="true" />} onClick={() => openCreate()}>
+                Criar meta
+              </Button>
+            </section>
           ) : filteredGoals.length === 0 ? (
-            <PageEmpty
-              title="Nenhuma meta nesta visão"
-              description="Crie uma meta ou altere o filtro para acompanhar outros objetivos."
-            />
+            <p className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]">
+              Nenhuma meta nesta visão. Altere o filtro para acompanhar outros objetivos.
+            </p>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filteredGoals.map((goal) => (
                 <GoalCard
                   key={goal.id}
                   goal={goal}
+                  pace={goalPace(goal, now)}
+                  now={now}
                   showValues={showValues}
                   onOpen={() => void openDetail(goal)}
                   onEdit={() => openEdit(goal)}
