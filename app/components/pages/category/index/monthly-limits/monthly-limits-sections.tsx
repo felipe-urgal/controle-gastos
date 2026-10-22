@@ -381,10 +381,10 @@ export function ExpenseCategoryRow({
         </div>
       </div>
 
-      <span className="text-xs font-semibold text-[var(--foreground)]">{displayMoney(item.realized, showValues, currency)}</span>
-      <span className="text-xs text-[var(--foreground)]">{displayMoney(item.limit?.amount ?? null, showValues, currency)}</span>
+      <span className="text-xs font-semibold text-[var(--foreground)]"><span className="money">{displayMoney(item.realized, showValues, currency)}</span></span>
+      <span className="text-xs text-[var(--foreground)]"><span className="money">{displayMoney(item.limit?.amount ?? null, showValues, currency)}</span></span>
       <span className={`text-xs font-semibold ${(item.remaining ?? 0) < 0 ? 'text-[var(--expense)]' : item.remaining === null ? 'text-[var(--text-muted)]' : 'text-[var(--income)]'}`}>
-        {displayMoney(item.remaining, showValues, currency)}
+        <span className="money">{displayMoney(item.remaining, showValues, currency)}</span>
       </span>
 
       <IconButton
@@ -460,7 +460,7 @@ export function DistributionCard({
           aria-label="Distribuição dos gastos por categoria"
         >
           <div className="absolute inset-[23px] grid place-content-center rounded-full bg-[var(--surface)] text-center">
-            <strong className="text-sm text-[var(--foreground)]">{displayMoney(realizedTotal, showValues, currency)}</strong>
+            <strong className="text-sm text-[var(--foreground)]"><span className="money">{displayMoney(realizedTotal, showValues, currency)}</span></strong>
             <span className="mt-1 text-xs text-[var(--text-muted)]">Total no mês</span>
           </div>
         </div>
@@ -541,7 +541,7 @@ export function CriticalCategories({
                   <div className="min-w-0">
                     <span className="block truncate text-sm font-bold text-[var(--foreground)]">{item.category.name}</span>
                     <small className="mt-0.5 block text-xs text-[var(--text-muted)]">
-                      {displayMoney(item.realized, showValues, currency)} / {displayMoney(item.limit?.amount ?? null, showValues, currency)}
+                      <span className="money">{displayMoney(item.realized, showValues, currency)}</span> / <span className="money">{displayMoney(item.limit?.amount ?? null, showValues, currency)}</span>
                     </small>
                   </div>
                   <strong className={stateTextClass(state)}>{categoryUsageLabel(item)}</strong>
@@ -630,7 +630,7 @@ export function CategoryContext({
           </p>
           {item.isOverBudget && (
             <p className="mt-2 font-semibold text-[var(--expense)]">
-              Orçamento excedido em {displayMoney(Math.abs(item.available ?? 0), showValues, currency)}.
+              Orçamento excedido em <span className="money">{displayMoney(Math.abs(item.available ?? 0), showValues, currency)}</span>.
             </p>
           )}
         </>
@@ -671,7 +671,7 @@ export function ContextMetric({
   return (
     <div className="rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] p-2.5">
       <dt className="text-xs text-[var(--text-muted)]">{label}</dt>
-      <dd className={`mt-1 text-xs font-bold sm:text-sm ${className}`}>{value}</dd>
+      <dd className={`money mt-1 text-xs font-bold sm:text-sm ${className}`}>{value}</dd>
     </div>
   );
 }

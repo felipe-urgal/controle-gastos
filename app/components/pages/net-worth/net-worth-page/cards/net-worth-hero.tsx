@@ -48,7 +48,7 @@ export function NetWorthHero({
           </span>
         </div>
         <strong className="mt-3 block break-words text-4xl font-extrabold leading-none tracking-tight sm:text-5xl">
-          {displayMoney(total, showValues, currency)}
+          <span className="money">{displayMoney(total, showValues, currency)}</span>
         </strong>
         <p className="mt-2 text-xs text-white/65">
           Snapshot em {logicalDateLabel(valuation.asOf)}.
@@ -63,7 +63,7 @@ export function NetWorthHero({
               Ativos
             </span>
             <strong className="mt-1 block text-lg">
-              {displayMoney(assetsTotal, showValues, currency)}
+              <span className="money">{displayMoney(assetsTotal, showValues, currency)}</span>
             </strong>
             <span className="mt-1 block text-xs text-white/60">
               {accountCount} {accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}
@@ -74,7 +74,7 @@ export function NetWorthHero({
               Passivos
             </span>
             <strong className="mt-1 block text-lg">
-              {displayMoney(liabilitiesTotal, showValues, currency)}
+              <span className="money">{displayMoney(liabilitiesTotal, showValues, currency)}</span>
             </strong>
             <span className="mt-1 block text-xs text-white/60">
               {debtCount} {debtCount === 1 ? 'dívida com saldo' : 'dívidas com saldo'}

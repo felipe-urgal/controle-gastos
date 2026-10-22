@@ -370,3 +370,8 @@ body {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
+
+/* Elementos já marcados com tabular-nums mostram valores (dinheiro, quantidades): mesma fonte numérica. */
+.tabular-nums {
+  font-family: var(--font-numeric), ui-monospace, "SFMono-Regular", Menlo, monospace;
+}

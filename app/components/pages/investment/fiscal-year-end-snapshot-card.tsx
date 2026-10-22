@@ -229,7 +229,7 @@ function SnapshotTotals({
             key={currency}
             className="mt-1 block text-lg text-[var(--foreground)]"
           >
-            {showValues ? formatCurrency(amount, currency) : '••••'} {currency}
+            <span className="money">{showValues ? formatCurrency(amount, currency) : '••••'}</span> {currency}
           </strong>
         ))
       )}
@@ -259,7 +259,7 @@ function SnapshotValue({
         {quantityLabel(quantity)} un.
       </strong>
       <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-        {showValues ? formatCurrency(costBasisCents, currency) : '••••'}
+        <span className="money">{showValues ? formatCurrency(costBasisCents, currency) : '••••'}</span>
       </span>
     </div>
   );

@@ -282,7 +282,7 @@ export default function MobileCategoriesCenter({
             </span>
             <div className="min-w-0">
               <strong className="block tabular-nums text-[18px] font-extrabold text-[var(--foreground)]">
-                {displayMoney(summary.realized, showValues, currency)}
+                <span className="money">{displayMoney(summary.realized, showValues, currency)}</span>
               </strong>
               <span className="mt-1 block text-sm text-[var(--text-muted)]">Realizado</span>
             </div>
@@ -294,7 +294,7 @@ export default function MobileCategoriesCenter({
             </span>
             <div className="min-w-0">
               <strong className="block tabular-nums text-[18px] font-extrabold text-[var(--foreground)]">
-                {displayMoney(summary.available, showValues, currency)}
+                <span className="money">{displayMoney(summary.available, showValues, currency)}</span>
               </strong>
               <span className="mt-1 block text-sm text-[var(--text-muted)]">Disponível</span>
             </div>
@@ -302,7 +302,7 @@ export default function MobileCategoriesCenter({
 
           <div className="col-span-2 mt-3 flex items-center justify-between border-t border-[var(--border)] pt-3 sm:col-span-1 sm:mt-0 sm:block sm:self-center sm:border-0 sm:pl-4 sm:pt-0 sm:text-right">
             <strong className="block text-sm text-[var(--foreground)]">
-              {displayMoney(summary.committed, showValues, currency)}
+              <span className="money">{displayMoney(summary.committed, showValues, currency)}</span>
             </strong>
             <span className="text-xs text-[var(--text-muted)]">comprometido</span>
           </div>
@@ -311,7 +311,7 @@ export default function MobileCategoriesCenter({
           <div className="rounded-[12px] bg-[var(--surface-subtle)] px-3 py-2">
             <span className="block text-xs text-[var(--text-muted)]">Receita esperada</span>
             <strong className="mt-1 block text-sm text-[var(--foreground)]">
-              {displayMoney(summary.expectedIncome, showValues, currency)}
+              <span className="money">{displayMoney(summary.expectedIncome, showValues, currency)}</span>
             </strong>
           </div>
           <Button
@@ -480,7 +480,7 @@ export default function MobileCategoriesCenter({
                         {budgetPercentage.toLocaleString('pt-BR')}%
                       </strong>
                       <span className="mt-1 block text-[17px] font-bold text-[var(--foreground)]">
-                        {displayMoney(summary.realized, showValues, currency)}
+                        <span className="money">{displayMoney(summary.realized, showValues, currency)}</span>
                       </span>
                       <span className="mt-1 block text-xs text-[var(--text-muted)]">do orçamento</span>
                     </div>
@@ -497,7 +497,7 @@ export default function MobileCategoriesCenter({
                           {entry.percentage.toLocaleString('pt-BR')}%
                         </strong>
                         <span className="text-xs text-[var(--text-muted)]">
-                          {displayMoney(entry.amount, showValues, currency)}
+                          <span className="money">{displayMoney(entry.amount, showValues, currency)}</span>
                         </span>
                       </div>
                     </div>

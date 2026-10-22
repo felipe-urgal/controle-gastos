@@ -511,7 +511,7 @@ function Metric({
   return (
     <div className={`rounded-[var(--radius-md)] border p-4 ${emphasized ? 'border-[var(--border-strong)] bg-[var(--surface-subtle)]' : 'border-[var(--border)] bg-[var(--surface-raised)]'}`}>
       <p className="text-sm font-medium text-[var(--text-muted)]">{label}</p>
-      <p className={`mt-2 break-words text-xl font-bold ${success ? 'text-[var(--income)]' : 'text-[var(--foreground)]'}`}>
+      <p className={`money mt-2 break-words text-xl font-bold ${success ? 'text-[var(--income)]' : 'text-[var(--foreground)]'}`}>
         {value}
       </p>
     </div>
@@ -558,7 +558,7 @@ function TransactionGroup({
                   {item.description || 'Sem descrição'}
                 </p>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  {itemDate(item)} · {item.kind === 'TRANSFER' ? 'Transferência' : item.type === 'INCOME' ? 'Receita' : 'Despesa'} · {item.type === 'INCOME' ? '+' : '-'}{showValues ? formatCurrency(item.amount, accountCurrency) : '••••'}
+                  {itemDate(item)} · {item.kind === 'TRANSFER' ? 'Transferência' : item.type === 'INCOME' ? 'Receita' : 'Despesa'} · {item.type === 'INCOME' ? '+' : '-'}<span className="money">{showValues ? formatCurrency(item.amount, accountCurrency) : '••••'}</span>
                 </p>
               </div>
               <Button

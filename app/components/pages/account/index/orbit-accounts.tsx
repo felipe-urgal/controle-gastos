@@ -309,11 +309,11 @@ function MobileAccountsCenter({
                     getAccountPrimaryValue(selectedAccount) < 0 ? 'text-[var(--expense)]' : 'text-white'
                   }`}
                 >
-                  {money(
+                  <span className="money">{money(
                     getAccountPrimaryValue(selectedAccount),
                     selectedAccount.currency,
                     showValues,
-                  )}
+                  )}</span>
                 </strong>
 
                 <nav
@@ -416,7 +416,7 @@ function MobileAccountsCenter({
                     getAccountPrimaryValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
                   }`}
                 >
-                  {money(getAccountPrimaryValue(account), account.currency, showValues)}
+                  <span className="money">{money(getAccountPrimaryValue(account), account.currency, showValues)}</span>
                 </strong>
                 <FaChevronRight
                   className="shrink-0 text-[var(--text-muted)]"
@@ -758,7 +758,7 @@ function AccountSummary({
                 value < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
               }`}
             >
-              {money(value, currency, showValues)}
+              <span className="money">{money(value, currency, showValues)}</span>
             </strong>
           ))
         )}
@@ -874,7 +874,7 @@ function AccountRow({
                 : 'text-[var(--income)]'
           }`}
         >
-          {money(displayedValue, account.currency, showValues)}
+          <span className="money">{money(displayedValue, account.currency, showValues)}</span>
         </p>
         <small className="text-xs text-[var(--text-muted)]">
           {valueLabel}
@@ -962,7 +962,7 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
                 : 'text-[var(--income)]'
             }`}
           >
-            {money(getAccountPrimaryValue(account), account.currency, showValues)}
+            <span className="money">{money(getAccountPrimaryValue(account), account.currency, showValues)}</span>
           </strong>
           <small className="mt-1 block text-xs text-[var(--text-muted)]">
             {account.type === 'CREDIT_CARD'

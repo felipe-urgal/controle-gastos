@@ -48,13 +48,13 @@ export function RealReturnCard({
         <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Patrimônio inicial</dt>
           <dd className="mt-1 font-bold text-[var(--foreground)]">
-            {displayMoney(data.initial, showValues, data.currency)}
+            <span className="money">{displayMoney(data.initial, showValues, data.currency)}</span>
           </dd>
         </div>
         <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Patrimônio final</dt>
           <dd className="mt-1 font-bold text-[var(--foreground)]">
-            {displayMoney(data.current, showValues, data.currency)}
+            <span className="money">{displayMoney(data.current, showValues, data.currency)}</span>
           </dd>
         </div>
         <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">

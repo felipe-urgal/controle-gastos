@@ -190,7 +190,7 @@ function MetricDifference({
   return (
     <div>
       <strong className="block">
-        {displayMoney(metric.difference, currency, showValues)}
+        <span className="money">{displayMoney(metric.difference, currency, showValues)}</span>
       </strong>
       <small className="text-xs text-[var(--text-muted)]">
         {metricTrend(metric)} · {metricPercentage(metric)}
@@ -609,18 +609,18 @@ export default function FinancialComparisonPage() {
                   >
                     <strong className="text-sm">{row.label}</strong>
                     <span>
-                      {displayMoney(
+                      <span className="money">{displayMoney(
                         row.a,
                         data.currency,
                         showValues,
-                      )}
+                      )}</span>
                     </span>
                     <span>
-                      {displayMoney(
+                      <span className="money">{displayMoney(
                         row.b,
                         data.currency,
                         showValues,
-                      )}
+                      )}</span>
                     </span>
                     <MetricDifference
                       metric={row.metric}
@@ -646,11 +646,11 @@ export default function FinancialComparisonPage() {
                           A · {formatRange(data.a.range)}
                         </dt>
                         <dd className="font-semibold">
-                          {displayMoney(
+                          <span className="money">{displayMoney(
                             row.a,
                             data.currency,
                             showValues,
-                          )}
+                          )}</span>
                         </dd>
                       </div>
                       <div>
@@ -658,11 +658,11 @@ export default function FinancialComparisonPage() {
                           B · {formatRange(data.b.range)}
                         </dt>
                         <dd className="font-semibold">
-                          {displayMoney(
+                          <span className="money">{displayMoney(
                             row.b,
                             data.currency,
                             showValues,
-                          )}
+                          )}</span>
                         </dd>
                       </div>
                       <div>
@@ -703,11 +703,11 @@ export default function FinancialComparisonPage() {
                           A
                         </small>
                         <strong className="block">
-                          {displayMoney(
+                          <span className="money">{displayMoney(
                             row.a,
                             data.currency,
                             showValues,
-                          )}
+                          )}</span>
                         </strong>
                       </div>
                       <div>
@@ -715,11 +715,11 @@ export default function FinancialComparisonPage() {
                           B
                         </small>
                         <strong className="block">
-                          {displayMoney(
+                          <span className="money">{displayMoney(
                             row.b,
                             data.currency,
                             showValues,
-                          )}
+                          )}</span>
                         </strong>
                       </div>
                     </div>
@@ -761,11 +761,11 @@ export default function FinancialComparisonPage() {
                         A · {formatLogicalDate(data.a.netWorthAsOf)}
                       </small>
                       <strong className="block">
-                        {displayMoney(
+                        <span className="money">{displayMoney(
                           data.a.netWorthEnd,
                           data.currency,
                           showValues,
-                        )}
+                        )}</span>
                       </strong>
                     </div>
                     <div>
@@ -773,11 +773,11 @@ export default function FinancialComparisonPage() {
                         B · {formatLogicalDate(data.b.netWorthAsOf)}
                       </small>
                       <strong className="block">
-                        {displayMoney(
+                        <span className="money">{displayMoney(
                           data.b.netWorthEnd,
                           data.currency,
                           showValues,
-                        )}
+                        )}</span>
                       </strong>
                     </div>
                     <div>
@@ -838,40 +838,40 @@ export default function FinancialComparisonPage() {
                         </strong>
                         <div>
                           <span className="block">
-                            {displayMoney(
+                            <span className="money">{displayMoney(
                               category.a.amount,
                               data.currency,
                               showValues,
-                            )}
+                            )}</span>
                           </span>
                           {!data.coverage.sameLength && (
                             <small className="text-xs text-[var(--text-muted)]">
                               média{' '}
-                              {displayMoney(
+                              <span className="money">{displayMoney(
                                 category.a.averageMonthlyAmount,
                                 data.currency,
                                 showValues,
-                              )}
+                              )}</span>
                               /mês
                             </small>
                           )}
                         </div>
                         <div>
                           <span className="block">
-                            {displayMoney(
+                            <span className="money">{displayMoney(
                               category.b.amount,
                               data.currency,
                               showValues,
-                            )}
+                            )}</span>
                           </span>
                           {!data.coverage.sameLength && (
                             <small className="text-xs text-[var(--text-muted)]">
                               média{' '}
-                              {displayMoney(
+                              <span className="money">{displayMoney(
                                 category.b.averageMonthlyAmount,
                                 data.currency,
                                 showValues,
-                              )}
+                              )}</span>
                               /mês
                             </small>
                           )}
@@ -911,19 +911,19 @@ export default function FinancialComparisonPage() {
                               Período A
                             </dt>
                             <dd className="font-semibold">
-                              {displayMoney(
+                              <span className="money">{displayMoney(
                                 category.a.amount,
                                 data.currency,
                                 showValues,
-                              )}
+                              )}</span>
                             </dd>
                             {!data.coverage.sameLength && (
                               <dd className="text-xs text-[var(--text-muted)]">
-                                {displayMoney(
+                                <span className="money">{displayMoney(
                                   category.a.averageMonthlyAmount,
                                   data.currency,
                                   showValues,
-                                )}
+                                )}</span>
                                 /mês
                               </dd>
                             )}
@@ -933,19 +933,19 @@ export default function FinancialComparisonPage() {
                               Período B
                             </dt>
                             <dd className="font-semibold">
-                              {displayMoney(
+                              <span className="money">{displayMoney(
                                 category.b.amount,
                                 data.currency,
                                 showValues,
-                              )}
+                              )}</span>
                             </dd>
                             {!data.coverage.sameLength && (
                               <dd className="text-xs text-[var(--text-muted)]">
-                                {displayMoney(
+                                <span className="money">{displayMoney(
                                   category.b.averageMonthlyAmount,
                                   data.currency,
                                   showValues,
-                                )}
+                                )}</span>
                                 /mês
                               </dd>
                             )}

@@ -126,7 +126,7 @@ export function RealizedResultReportCard({
                         <span>{String(sale.day).padStart(2, '0')}/{String(sale.month).padStart(2, '0')}/{sale.year}</span>
                       </div>
                       <div className="mt-1 text-[var(--text-muted)]">
-                        Líquido {showValues ? formatCurrency(sale.netProceedsCents, sale.currency) : '••••'} · custo {showValues ? formatCurrency(sale.allocatedCostCents, sale.currency) : '••••'}
+                        Líquido <span className="money">{showValues ? formatCurrency(sale.netProceedsCents, sale.currency) : '••••'}</span> · custo <span className="money">{showValues ? formatCurrency(sale.allocatedCostCents, sale.currency) : '••••'}</span>
                       </div>
                       {sale.pending[0] && <div className="mt-1 text-[var(--warning)]">{sale.pending[0]}</div>}
                     </div>
@@ -145,7 +145,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <span className="rounded-xl bg-[var(--surface-raised)] p-3">
       <span className="block text-[var(--text-muted)]">{label}</span>
-      <strong className="mt-1 block text-[var(--foreground)]">{value}</strong>
+      <strong className="money mt-1 block text-[var(--foreground)]">{value}</strong>
     </span>
   );
 }

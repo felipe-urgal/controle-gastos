@@ -212,7 +212,7 @@ export function TaxLossCarryforwardCard({
                   {assetTypeLabels[item.assetType]} · {item.currency}
                 </span>
                 <strong className="mt-1 block text-lg text-[var(--foreground)]">
-                  {showValues ? formatCurrency(item.closingLossCents, item.currency) : '••••'}
+                  <span className="money">{showValues ? formatCurrency(item.closingLossCents, item.currency) : '••••'}</span>
                 </strong>
                 <span className="mt-1 block text-xs text-[var(--text-muted)]">saldo de prejuízo</span>
               </div>
@@ -257,7 +257,7 @@ function Metric({
     <span className="min-w-[90px] sm:text-right">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="text-[var(--foreground)]">
-        {showValues ? formatCurrency(amount, currency) : '••••'}
+        <span className="money">{showValues ? formatCurrency(amount, currency) : '••••'}</span>
       </strong>
     </span>
   );

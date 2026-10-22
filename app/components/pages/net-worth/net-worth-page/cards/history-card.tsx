@@ -160,7 +160,7 @@ export function HistoryCard({
               />
               <title>
                 {monthShort(point.year, point.month)}:{' '}
-                {displayMoney(point.value, showValues, currency)}
+                <span className="money">{displayMoney(point.value, showValues, currency)}</span>
               </title>
             </g>
           ))}
@@ -177,7 +177,7 @@ export function HistoryCard({
               {monthShort(selectedPoint.year, selectedPoint.month)}
               {activeIndex === null ? ' (último mês)' : ''}:
             </span>{' '}
-            <strong>{displayMoney(selectedPoint.value, showValues, currency)}</strong>
+            <strong><span className="money">{displayMoney(selectedPoint.value, showValues, currency)}</span></strong>
           </>
         ) : (
           'Sem histórico no período.'
@@ -224,7 +224,7 @@ export function HistoryCard({
                     {monthShort(item.year, item.month)}
                   </td>
                   <td className="px-3 py-2 text-right font-semibold text-[var(--foreground)]">
-                    {displayMoney(item.value, showValues, currency)}
+                    <span className="money">{displayMoney(item.value, showValues, currency)}</span>
                   </td>
                 </tr>
               ))}

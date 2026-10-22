@@ -47,7 +47,7 @@ export function LiabilitiesCard({
                 </span>
               </span>
               <strong className="shrink-0 text-sm text-[var(--expense)]">
-                {displayMoney(debt.balance, showValues, currency)}
+                <span className="money">{displayMoney(debt.balance, showValues, currency)}</span>
               </strong>
             </Link>
           ))}

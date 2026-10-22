@@ -72,7 +72,7 @@ export function TotalsCard({
                 {currency}
               </span>
               <strong className="mt-1 block text-2xl font-black tabular-nums text-[var(--foreground)] sm:text-3xl">
-                {showValues ? formatCurrency(amount, currency) : '••••'}
+                <span className="money">{showValues ? formatCurrency(amount, currency) : '••••'}</span>
               </strong>
             </div>
           ))}
@@ -366,7 +366,7 @@ export function IncomesCard({
                 key={currency}
                 className="block text-sm text-[var(--foreground)]"
               >
-                {showValues ? formatCurrency(amount, currency) : '••••'} {currency}
+                <span className="money">{showValues ? formatCurrency(amount, currency) : '••••'}</span> {currency}
               </strong>
             ))}
           </div>

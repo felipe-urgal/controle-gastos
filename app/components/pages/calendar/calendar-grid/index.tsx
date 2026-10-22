@@ -292,7 +292,7 @@ export default function CalendarGrid({
                       </span>{' '}
                       {showValues && summary.income > 0 && (
                         <span className="text-[var(--income)]">
-                          + {formatCurrency(summary.income, summary.currency)}
+                          + <span className="money">{formatCurrency(summary.income, summary.currency)}</span>
                         </span>
                       )}
                       {showValues &&
@@ -302,7 +302,7 @@ export default function CalendarGrid({
                         : ''}
                       {showValues && summary.expense > 0 && (
                         <span className="text-[var(--expense)]">
-                          − {formatCurrency(summary.expense, summary.currency)}
+                          − <span className="money">{formatCurrency(summary.expense, summary.currency)}</span>
                         </span>
                       )}
                       {!showValues &&

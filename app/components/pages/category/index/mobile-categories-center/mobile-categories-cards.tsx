@@ -63,9 +63,9 @@ export function ExpenseCategoryCard({
           </div>
 
           <p className="mt-3 text-[16px] font-bold text-[var(--foreground)]">
-            {displayMoney(item.consumption, showValues, currency)}
+            <span className="money">{displayMoney(item.consumption, showValues, currency)}</span>
             <span className="font-medium text-[var(--text-muted)]">
-              {' '}/ {displayMoney(item.limit?.amount ?? null, showValues, currency)}
+              {' '}/ <span className="money">{displayMoney(item.limit?.amount ?? null, showValues, currency)}</span>
             </span>
           </p>
         </div>

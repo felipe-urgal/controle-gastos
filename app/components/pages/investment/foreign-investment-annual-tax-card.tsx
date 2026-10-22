@@ -480,10 +480,10 @@ export function ForeignInvestmentAnnualTaxCard({
                     </strong>
                     <span className="text-[var(--text-muted)]">
                       Base: {money(row.taxableBaseCents, showValues)} · Bruto:{' '}
-                      {money(row.taxDueCents, showValues)} · Crédito:{' '}
-                      {money(row.foreignTaxCreditAppliedCents, showValues)} · Líquido:{' '}
-                      {money(row.netTaxDueCents, showValues)} · Perda final:{' '}
-                      {money(row.closingLossCents, showValues)}
+                      <span className="money">{money(row.taxDueCents, showValues)}</span> · Crédito:{' '}
+                      <span className="money">{money(row.foreignTaxCreditAppliedCents, showValues)}</span> · Líquido:{' '}
+                      <span className="money">{money(row.netTaxDueCents, showValues)}</span> · Perda final:{' '}
+                      <span className="money">{money(row.closingLossCents, showValues)}</span>
                     </span>
                   </div>
                 ))}
@@ -509,7 +509,7 @@ function Metric({ label, value }: { label: string; value: string }) {
       <span className="text-xs font-semibold text-[var(--text-muted)]">
         {label}
       </span>
-      <strong className="mt-1 block text-sm text-[var(--foreground)]">
+      <strong className="money mt-1 block text-sm text-[var(--foreground)]">
         {value}
       </strong>
     </div>
