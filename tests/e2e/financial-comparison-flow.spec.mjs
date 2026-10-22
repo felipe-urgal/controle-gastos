@@ -227,16 +227,12 @@ test('comparar: desktop mantém comparação legível sem overflow', async ({
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/comparar?' + query);
 
-  const desktopHeader = page
-    .getByText('Métrica', { exact: true })
-    .locator('..');
-  await expect(desktopHeader).toBeVisible();
-  await expect(
-    desktopHeader.getByText('Diferença B − A', { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText('Coberturas diferentes.')).toBeVisible();
+  await expect(page.getByText('Em resumo', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Os períodos têm tamanhos diferentes/)).toBeVisible();
+  await page.getByRole('button', { name: 'Total', exact: true }).click();
   await expect(page.getByText(/1\.234,00/).first()).toBeVisible();
 
+  await page.getByRole('button', { name: 'Alterar período' }).first().click();
   await page.getByLabel('Início período A').fill('2025-04');
   await expect(page).toHaveURL(/aFrom=2025-04/);
   await expect(
@@ -278,17 +274,18 @@ test('comparar: mobile, stale request e histórico da URL permanecem coerentes',
   await expect(
     page.getByRole('heading', { name: 'Comparar períodos', exact: true }),
   ).toBeVisible();
-  await expect(page.getByText('Coberturas diferentes.')).toBeVisible();
+  await expect(page.getByText(/Os períodos têm tamanhos diferentes/)).toBeVisible();
+  await page.getByRole('button', { name: 'Total', exact: true }).click();
   await expect(mobileIncomeAmount(page, /1\.234,00/)).toBeVisible();
 
-  await page.getByLabel('Moeda', { exact: true }).selectOption('USD');
+  await page.getByRole('group', { name: 'Moeda' }).getByRole('button', { name: 'USD', exact: true }).click();
   await expect(page).toHaveURL(/currency=USD/);
   await expect(
     page.getByRole('status').filter({ hasText: 'Comparando períodos' }),
   ).toBeVisible();
   await expect(page.getByText(/1\.234,00/)).toHaveCount(0);
 
-  await page.getByLabel('Moeda', { exact: true }).selectOption('EUR');
+  await page.getByRole('group', { name: 'Moeda' }).getByRole('button', { name: 'EUR', exact: true }).click();
   await expect(page).toHaveURL(/currency=EUR/);
   await expect(mobileIncomeAmount(page, /3\.456,00/)).toBeVisible();
 

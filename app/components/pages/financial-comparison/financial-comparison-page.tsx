@@ -1,22 +1,24 @@
 'use client';
 
-import { Button, Input, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
-import { PageContainer, PageTitle } from '@/app/components/base-pages';
-import { ProtectedRoute } from '@/app/components/layout';
-import { PageError } from '@/app/components/feedback';
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import {
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { FaExchangeAlt } from 'react-icons/fa';
 
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
+import { PageError } from '@/app/components/feedback';
+import { ProtectedRoute } from '@/app/components/layout';
+import FinancialComparisonView from '@/app/components/pages/financial-comparison/financial-comparison-view';
+import {
+  activePreset,
+  defaultFilters,
+  monthValue,
+  presetFilters,
+  type ComparisonBasis,
+  type ComparisonFilters,
+  type ComparisonPreset,
+} from '@/app/components/pages/financial-comparison/financial-comparison-model';
+import { Button, Chip, IconButton, Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
-import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import {
   enumerateComparisonMonths,
@@ -28,39 +30,22 @@ import type {
   ComparisonMonth,
   ComparisonRange,
   FinancialComparisonData,
-  FinancialComparisonMetric,
 } from '@/app/types/financial-comparison';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
-
-type ComparisonFilters = {
-  aFrom: string;
-  aTo: string;
-  bFrom: string;
-  bTo: string;
-  currency: SupportedCurrency;
-};
 
 type SearchParamsLike = {
   get(name: string): string | null;
 };
 
-const SUPPORTED_CURRENCIES = new Set<SupportedCurrency>([
-  'BRL',
-  'USD',
-  'EUR',
-]);
+const CURRENCIES: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
+const SUPPORTED_CURRENCIES = new Set<SupportedCurrency>(CURRENCIES);
 
-function monthValue(period: ComparisonMonth) {
-  return `${period.year}-${String(period.month).padStart(2, '0')}`;
-}
-
-function shiftMonth(period: ComparisonMonth, offset: number): ComparisonMonth {
-  const absolute = period.year * 12 + period.month - 1 + offset;
-  return {
-    year: Math.floor(absolute / 12),
-    month: ((absolute % 12) + 12) % 12 + 1,
-  };
-}
+const PRESETS: Array<{ key: ComparisonPreset; label: string }> = [
+  { key: 'previous', label: 'Mês anterior × atual' },
+  { key: 'year-over-year', label: 'Mesmo mês, ano anterior' },
+  { key: 'ytd', label: 'Ano até agora × anterior' },
+  { key: 'closed-year', label: 'Anos fechados' },
+];
 
 function formatMonth(period: ComparisonMonth) {
   return new Intl.DateTimeFormat('pt-BR', {
@@ -71,50 +56,10 @@ function formatMonth(period: ComparisonMonth) {
 }
 
 function formatRange(range: ComparisonRange) {
-  if (
-    range.from.year === range.to.year &&
-    range.from.month === range.to.month
-  ) {
+  if (range.from.year === range.to.year && range.from.month === range.to.month) {
     return formatMonth(range.from);
   }
   return `${formatMonth(range.from)} – ${formatMonth(range.to)}`;
-}
-
-function formatLogicalDate(date: { year: number; month: number; day: number }) {
-  return [
-    String(date.day).padStart(2, '0'),
-    String(date.month).padStart(2, '0'),
-    date.year,
-  ].join('/');
-}
-
-function displayMoney(
-  value: number,
-  currency: SupportedCurrency,
-  showValues: boolean,
-) {
-  return showValues ? formatCurrency(value, currency) : '••••';
-}
-
-function metricTrend(metric: FinancialComparisonMetric) {
-  if (metric.difference > 0) return 'Aumentou';
-  if (metric.difference < 0) return 'Reduziu';
-  return 'Sem mudança';
-}
-
-function metricPercentage(metric: FinancialComparisonMetric) {
-  if (metric.percentage === null) return 'Sem base percentual';
-  return `${metric.percentage > 0 ? '+' : ''}${metric.percentage}%`;
-}
-
-function defaultFilters(current: ComparisonMonth): ComparisonFilters {
-  return {
-    aFrom: monthValue({ year: current.year - 1, month: 1 }),
-    aTo: monthValue({ year: current.year - 1, month: current.month }),
-    bFrom: monthValue({ year: current.year, month: 1 }),
-    bTo: monthValue(current),
-    currency: 'BRL',
-  };
 }
 
 function rangeFromValues(fromValue: string, toValue: string) {
@@ -123,20 +68,14 @@ function rangeFromValues(fromValue: string, toValue: string) {
   return from && to ? { from, to } : null;
 }
 
-function validateRangeValues(
-  fromValue: string,
-  toValue: string,
-  currentMonth: ComparisonMonth,
-) {
+function validateRangeValues(fromValue: string, toValue: string, currentMonth: ComparisonMonth) {
   const range = rangeFromValues(fromValue, toValue);
   if (!range) return 'Período inválido';
 
   try {
     enumerateComparisonMonths(range);
   } catch (cause) {
-    return cause instanceof Error
-      ? cause.message
-      : 'Período de comparação inválido';
+    return cause instanceof Error ? cause.message : 'Período de comparação inválido';
   }
 
   if (isComparisonRangeInFuture(range, currentMonth)) {
@@ -146,10 +85,7 @@ function validateRangeValues(
   return null;
 }
 
-function filtersFromSearch(
-  params: SearchParamsLike,
-  defaults: ComparisonFilters,
-): ComparisonFilters {
+function filtersFromSearch(params: SearchParamsLike, defaults: ComparisonFilters): ComparisonFilters {
   const monthOrDefault = (name: string, fallback: string) => {
     const value = params.get(name);
     return value && parseComparisonMonth(value) ? value : fallback;
@@ -161,10 +97,7 @@ function filtersFromSearch(
     aTo: monthOrDefault('aTo', defaults.aTo),
     bFrom: monthOrDefault('bFrom', defaults.bFrom),
     bTo: monthOrDefault('bTo', defaults.bTo),
-    currency:
-      currency && SUPPORTED_CURRENCIES.has(currency)
-        ? currency
-        : defaults.currency,
+    currency: currency && SUPPORTED_CURRENCIES.has(currency) ? currency : defaults.currency,
   };
 }
 
@@ -178,25 +111,8 @@ function serializeFilters(filters: ComparisonFilters) {
   return params.toString();
 }
 
-function MetricDifference({
-  metric,
-  currency,
-  showValues,
-}: {
-  metric: FinancialComparisonMetric;
-  currency: SupportedCurrency;
-  showValues: boolean;
-}) {
-  return (
-    <div>
-      <strong className="block">
-        <span className="money">{displayMoney(metric.difference, currency, showValues)}</span>
-      </strong>
-      <small className="text-xs text-[var(--text-muted)]">
-        {metricTrend(metric)} · {metricPercentage(metric)}
-      </small>
-    </div>
-  );
+function monthsLabel(months: number) {
+  return `${months} ${months === 1 ? 'mês' : 'meses'}`;
 }
 
 export default function FinancialComparisonPage() {
@@ -211,33 +127,19 @@ export default function FinancialComparisonPage() {
     const now = logicalDateFromUtcInstant(new Date());
     return { year: now.year, month: now.month };
   }, []);
-  const defaults = useMemo(
-    () => defaultFilters(currentMonth),
-    [currentMonth],
-  );
+  const defaults = useMemo(() => defaultFilters(currentMonth), [currentMonth]);
   const filters = useMemo(
-    () =>
-      filtersFromSearch(
-        new URLSearchParams(searchKey),
-        defaults,
-      ),
+    () => filtersFromSearch(new URLSearchParams(searchKey), defaults),
     [searchKey, defaults],
   );
 
-  const [result, setResult] = useState<{
-    key: string;
-    data: FinancialComparisonData;
-  } | null>(null);
-  const [failure, setFailure] = useState<{
-    key: string;
-    message: string;
-  } | null>(null);
+  const [result, setResult] = useState<{ key: string; data: FinancialComparisonData } | null>(null);
+  const [failure, setFailure] = useState<{ key: string; message: string } | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
+  const [basisOverride, setBasisOverride] = useState<ComparisonBasis | null>(null);
+  const [editing, setEditing] = useState<{ a: boolean; b: boolean }>({ a: false, b: false });
 
-  const queryKey = useMemo(
-    () => serializeFilters(filters),
-    [filters],
-  );
+  const queryKey = useMemo(() => serializeFilters(filters), [filters]);
   useEffect(() => {
     if (queryKey === searchKey) return;
 
@@ -246,16 +148,8 @@ export default function FinancialComparisonPage() {
 
   const validationError = useMemo(
     () =>
-      validateRangeValues(
-        filters.aFrom,
-        filters.aTo,
-        currentMonth,
-      ) ??
-      validateRangeValues(
-        filters.bFrom,
-        filters.bTo,
-        currentMonth,
-      ),
+      validateRangeValues(filters.aFrom, filters.aTo, currentMonth) ??
+      validateRangeValues(filters.bFrom, filters.bTo, currentMonth),
     [filters, currentMonth],
   );
 
@@ -282,10 +176,7 @@ export default function FinancialComparisonPage() {
         if (!active) return;
         setFailure({
           key: activeQuery,
-          message:
-            cause instanceof Error
-              ? cause.message
-              : 'Erro ao comparar períodos',
+          message: cause instanceof Error ? cause.message : 'Erro ao comparar períodos',
         });
       });
 
@@ -294,59 +185,11 @@ export default function FinancialComparisonPage() {
     };
   }, [filters, queryKey, retryNonce, validationError]);
 
-  const data =
-    result?.key === queryKey ? result.data : null;
-  const currentError =
-    validationError ??
-    (failure?.key === queryKey ? failure.message : null);
-  const hasCurrentData = data !== null;
-  const hasCurrentError = currentError !== null;
-  const showLoading = !hasCurrentData && !hasCurrentError;
-
-  const totalRows = hasCurrentData
-    ? [
-        {
-          label: 'Receitas',
-          a: data.a.income,
-          b: data.b.income,
-          metric: data.difference.income,
-        },
-        {
-          label: 'Despesas',
-          a: data.a.expense,
-          b: data.b.expense,
-          metric: data.difference.expense,
-        },
-        {
-          label: 'Resultado financeiro',
-          a: data.a.balance,
-          b: data.b.balance,
-          metric: data.difference.balance,
-        },
-      ]
-    : [];
-  const averageRows = hasCurrentData
-    ? [
-        {
-          label: 'Receita média mensal',
-          a: data.a.averageMonthlyIncome,
-          b: data.b.averageMonthlyIncome,
-          metric: data.difference.averageMonthlyIncome,
-        },
-        {
-          label: 'Despesa média mensal',
-          a: data.a.averageMonthlyExpense,
-          b: data.b.averageMonthlyExpense,
-          metric: data.difference.averageMonthlyExpense,
-        },
-        {
-          label: 'Resultado médio mensal',
-          a: data.a.averageMonthlyBalance,
-          b: data.b.averageMonthlyBalance,
-          metric: data.difference.averageMonthlyBalance,
-        },
-      ]
-    : [];
+  const data = result?.key === queryKey ? result.data : null;
+  const currentError = validationError ?? (failure?.key === queryKey ? failure.message : null);
+  const showLoading = data === null && currentError === null;
+  const preset = activePreset(filters, currentMonth);
+  const maxMonth = monthValue(currentMonth);
 
   function applyFilters(next: ComparisonFilters) {
     const nextKey = serializeFilters(next);
@@ -356,82 +199,8 @@ export default function FinancialComparisonPage() {
     }
   }
 
-  function updateFilter<K extends keyof ComparisonFilters>(
-    key: K,
-    value: ComparisonFilters[K],
-  ) {
-    applyFilters({
-      ...filters,
-      [key]: value,
-    });
-  }
-
-  function applyPreset(
-    preset: 'previous' | 'year-over-year' | 'ytd' | 'closed-year',
-  ) {
-    const previous = shiftMonth(currentMonth, -1);
-    let next: ComparisonFilters;
-
-    if (preset === 'previous') {
-      next = {
-        ...filters,
-        aFrom: monthValue(previous),
-        aTo: monthValue(previous),
-        bFrom: monthValue(currentMonth),
-        bTo: monthValue(currentMonth),
-      };
-    } else if (preset === 'year-over-year') {
-      const previousYear = {
-        year: currentMonth.year - 1,
-        month: currentMonth.month,
-      };
-      next = {
-        ...filters,
-        aFrom: monthValue(previousYear),
-        aTo: monthValue(previousYear),
-        bFrom: monthValue(currentMonth),
-        bTo: monthValue(currentMonth),
-      };
-    } else if (preset === 'ytd') {
-      next = {
-        ...filters,
-        aFrom: monthValue({
-          year: currentMonth.year - 1,
-          month: 1,
-        }),
-        aTo: monthValue({
-          year: currentMonth.year - 1,
-          month: currentMonth.month,
-        }),
-        bFrom: monthValue({
-          year: currentMonth.year,
-          month: 1,
-        }),
-        bTo: monthValue(currentMonth),
-      };
-    } else {
-      next = {
-        ...filters,
-        aFrom: monthValue({
-          year: currentMonth.year - 2,
-          month: 1,
-        }),
-        aTo: monthValue({
-          year: currentMonth.year - 2,
-          month: 12,
-        }),
-        bFrom: monthValue({
-          year: currentMonth.year - 1,
-          month: 1,
-        }),
-        bTo: monthValue({
-          year: currentMonth.year - 1,
-          month: 12,
-        }),
-      };
-    }
-
-    applyFilters(next);
+  function updateFilter<K extends keyof ComparisonFilters>(key: K, value: ComparisonFilters[K]) {
+    applyFilters({ ...filters, [key]: value });
   }
 
   function swapPeriods() {
@@ -444,539 +213,152 @@ export default function FinancialComparisonPage() {
     });
   }
 
-  const maxMonth = monthValue(currentMonth);
+  const rangeA = rangeFromValues(filters.aFrom, filters.aTo);
+  const rangeB = rangeFromValues(filters.bFrom, filters.bTo);
 
   return (
     <ProtectedRoute>
-    <PageContainer>
-      <PageTitle eyebrow="Análise" title="Comparar períodos" description="Compare realizado financeiro entre dois intervalos de até 24 meses na mesma moeda." />
-
-      <section
-        aria-label="Atalhos de comparação"
-        className="mt-5 flex flex-wrap gap-2"
-      >
-        <Button variant="outline" size="sm" onClick={() => applyPreset('previous')}>
-          Mês anterior × atual
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => applyPreset('year-over-year')}>
-          Mesmo mês ano anterior
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => applyPreset('ytd')}>
-          YTD × YTD anterior
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => applyPreset('closed-year')}>
-          Anos fechados
-        </Button>
-      </section>
-
-      <section className="mt-3 grid gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 lg:grid-cols-[1fr_auto_1fr_auto]">
-        <fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <legend className="mb-2 text-sm font-bold">
-            Período A · baseline
-          </legend>
-          <Input
-            aria-label="Início período A"
-            type="month"
-            max={maxMonth}
-            value={filters.aFrom}
-            onChange={(event) =>
-              updateFilter('aFrom', event.target.value)
-            }
-          />
-          <Input
-            aria-label="Fim período A"
-            type="month"
-            max={maxMonth}
-            value={filters.aTo}
-            onChange={(event) =>
-              updateFilter('aTo', event.target.value)
-            }
-          />
-        </fieldset>
-
-        <div className="flex items-end">
-          <Button variant="outline" size="sm" onClick={swapPeriods} aria-label="Inverter períodos A e B">
-            Inverter A ↔ B
-          </Button>
-        </div>
-
-        <fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <legend className="mb-2 text-sm font-bold">
-            Período B · comparação
-          </legend>
-          <Input
-            aria-label="Início período B"
-            type="month"
-            max={maxMonth}
-            value={filters.bFrom}
-            onChange={(event) =>
-              updateFilter('bFrom', event.target.value)
-            }
-          />
-          <Input
-            aria-label="Fim período B"
-            type="month"
-            max={maxMonth}
-            value={filters.bTo}
-            onChange={(event) =>
-              updateFilter('bTo', event.target.value)
-            }
-          />
-        </fieldset>
-
-        <div className="content-end">
-          <Select
-            label="Moeda"
-            value={filters.currency}
-            onChange={(value) => updateFilter('currency', value as SupportedCurrency)}
-            options={[
-              { value: 'BRL', label: 'BRL' },
-              { value: 'USD', label: 'USD' },
-              { value: 'EUR', label: 'EUR' },
-            ]}
-          />
-        </div>
-      </section>
-
-      {showLoading && (
-        <p
-          role="status"
-          className="py-12 text-center text-[var(--text-muted)]"
-        >
-          Comparando períodos…
-        </p>
-      )}
-
-      {!showLoading && hasCurrentError && (
-        <PageError
-          title={validationError ? 'Revise os períodos' : 'Erro ao comparar'}
-          message={currentError ?? undefined}
-          buttonText={validationError ? undefined : 'Tentar novamente'}
-          onRetry={
-            validationError
-              ? undefined
-              : () => {
-                  setFailure(null);
-                  setRetryNonce((value) => value + 1);
-                }
+      <PageContainer>
+        <PageTitle
+          eyebrow="Análise"
+          title="Comparar períodos"
+          description="Compare o realizado entre dois intervalos de até 24 meses, na mesma moeda."
+          actions={
+            <div className="flex gap-2" role="group" aria-label="Moeda">
+              {CURRENCIES.map((item) => (
+                <Chip key={item} selected={item === filters.currency} onClick={() => updateFilter('currency', item)}>
+                  {item}
+                </Chip>
+              ))}
+            </div>
           }
         />
-      )}
 
-      {!showLoading &&
-        !hasCurrentError &&
-        hasCurrentData &&
-        data && (
-          <div className="mt-5 space-y-5">
-            {!data.coverage.sameLength && (
-              <div
-                role="note"
-                className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-sm"
-              >
-                <strong>Coberturas diferentes.</strong>{' '}
-                Totais absolutos continuam visíveis, mas não são
-                diretamente equivalentes. Use as médias mensais para
-                comparar ritmo entre os períodos.
-              </div>
-            )}
+        <nav aria-label="Atalhos de comparação" className="mt-5 flex flex-wrap gap-2">
+          {PRESETS.map((item) => (
+            <Chip key={item.key} selected={preset === item.key} onClick={() => applyFilters(presetFilters(item.key, filters, currentMonth))}>
+              {item.label}
+            </Chip>
+          ))}
+        </nav>
 
-            {data.coverage.overlaps && (
-              <p className="rounded-xl border border-[var(--border)] p-3 text-sm text-[var(--text-muted)]">
-                Os períodos se sobrepõem; meses compartilhados entram nos
-                dois lados da comparação.
-              </p>
-            )}
-
-            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-              <ShowFrom breakpoint="md">
-              <div>
-                <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-2 border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">
-                  <span>Métrica</span>
-                  <span>
-                    A · {formatRange(data.a.range)} ({data.a.months}{' '}
-                    {data.a.months === 1 ? 'mês' : 'meses'})
-                  </span>
-                  <span>
-                    B · {formatRange(data.b.range)} ({data.b.months}{' '}
-                    {data.b.months === 1 ? 'mês' : 'meses'})
-                  </span>
-                  <span>Diferença B − A</span>
-                </div>
-                {totalRows.map((row) => (
-                  <div
-                    key={row.label}
-                    className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-2 border-b border-[var(--border)] px-4 py-4 last:border-0"
-                  >
-                    <strong className="text-sm">{row.label}</strong>
-                    <span>
-                      <span className="money">{displayMoney(
-                        row.a,
-                        data.currency,
-                        showValues,
-                      )}</span>
-                    </span>
-                    <span>
-                      <span className="money">{displayMoney(
-                        row.b,
-                        data.currency,
-                        showValues,
-                      )}</span>
-                    </span>
-                    <MetricDifference
-                      metric={row.metric}
-                      currency={data.currency}
-                      showValues={showValues}
-                    />
-                  </div>
-                ))}
-              </div>
-              </ShowFrom>
-
-              <ShowBelow breakpoint="md">
-              <div className="grid gap-3 p-3">
-                {totalRows.map((row) => (
-                  <article
-                    key={row.label}
-                    className="rounded-xl border border-[var(--border)] p-4"
-                  >
-                    <h2 className="font-bold">{row.label}</h2>
-                    <dl className="mt-3 grid gap-3 text-sm">
-                      <div>
-                        <dt className="text-[var(--text-muted)]">
-                          A · {formatRange(data.a.range)}
-                        </dt>
-                        <dd className="font-semibold">
-                          <span className="money">{displayMoney(
-                            row.a,
-                            data.currency,
-                            showValues,
-                          )}</span>
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-[var(--text-muted)]">
-                          B · {formatRange(data.b.range)}
-                        </dt>
-                        <dd className="font-semibold">
-                          <span className="money">{displayMoney(
-                            row.b,
-                            data.currency,
-                            showValues,
-                          )}</span>
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-[var(--text-muted)]">
-                          Diferença B − A
-                        </dt>
-                        <dd>
-                          <MetricDifference
-                            metric={row.metric}
-                            currency={data.currency}
-                            showValues={showValues}
-                          />
-                        </dd>
-                      </div>
-                    </dl>
-                  </article>
-                ))}
-              </div>
-              </ShowBelow>
-            </section>
-
-            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-              <h2 className="text-lg font-bold">Médias mensais</h2>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">
-                Normalizam cada total pela quantidade exata de meses do
-                respectivo período.
-              </p>
-              <div className="mt-4 grid gap-3 lg:grid-cols-3">
-                {averageRows.map((row) => (
-                  <article
-                    key={row.label}
-                    className="rounded-xl border border-[var(--border)] p-4"
-                  >
-                    <h3 className="text-sm font-bold">{row.label}</h3>
-                    <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <small className="text-xs text-[var(--text-muted)]">
-                          A
-                        </small>
-                        <strong className="block">
-                          <span className="money">{displayMoney(
-                            row.a,
-                            data.currency,
-                            showValues,
-                          )}</span>
-                        </strong>
-                      </div>
-                      <div>
-                        <small className="text-xs text-[var(--text-muted)]">
-                          B
-                        </small>
-                        <strong className="block">
-                          <span className="money">{displayMoney(
-                            row.b,
-                            data.currency,
-                            showValues,
-                          )}</span>
-                        </strong>
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <MetricDifference
-                        metric={row.metric}
-                        currency={data.currency}
-                        showValues={showValues}
-                      />
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className="grid gap-4 lg:grid-cols-2">
-              <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-                <h2 className="text-lg font-bold">
-                  Patrimônio no fim do período
-                </h2>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  Base {data.netWorthMethodology.basis} · série
-                  transacional comparável, sem reconstruir mercado
-                  retroativo.
-                </p>
-                {data.a.netWorthEnd === null ||
-                data.b.netWorthEnd === null ||
-                data.difference.netWorthEnd === null ? (
-                  <p className="mt-3 text-sm text-[var(--text-muted)]">
-                    {data.a.netWorthStatus === 'ERROR' ||
-                    data.b.netWorthStatus === 'ERROR'
-                      ? 'Patrimônio temporariamente indisponível para um dos períodos. O comparativo de receitas e despesas continua válido.'
-                      : 'Sem ponto patrimonial comparável nessa moeda para um dos períodos.'}
-                  </p>
-                ) : (
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    <div>
-                      <small className="text-xs text-[var(--text-muted)]">
-                        A · {formatLogicalDate(data.a.netWorthAsOf)}
-                      </small>
-                      <strong className="block">
-                        <span className="money">{displayMoney(
-                          data.a.netWorthEnd,
-                          data.currency,
-                          showValues,
-                        )}</span>
-                      </strong>
-                    </div>
-                    <div>
-                      <small className="text-xs text-[var(--text-muted)]">
-                        B · {formatLogicalDate(data.b.netWorthAsOf)}
-                      </small>
-                      <strong className="block">
-                        <span className="money">{displayMoney(
-                          data.b.netWorthEnd,
-                          data.currency,
-                          showValues,
-                        )}</span>
-                      </strong>
-                    </div>
-                    <div>
-                      <small className="text-xs text-[var(--text-muted)]">
-                        Diferença
-                      </small>
-                      <MetricDifference
-                        metric={data.difference.netWorthEnd}
-                        currency={data.currency}
-                        showValues={showValues}
-                      />
-                    </div>
-                  </div>
-                )}
-              </article>
-
-              <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-                <h2 className="text-lg font-bold">Cobertura</h2>
-                <p className="mt-3 text-sm text-[var(--text-muted)]">
-                  A: {formatRange(data.a.range)} · {data.a.months}{' '}
-                  {data.a.months === 1 ? 'mês' : 'meses'}
-                </p>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  B: {formatRange(data.b.range)} · {data.b.months}{' '}
-                  {data.b.months === 1 ? 'mês' : 'meses'}
-                </p>
-                <p className="mt-2 text-sm text-[var(--text-muted)]">
-                  A é o baseline. Percentuais não são inventados quando
-                  A é zero.
-                </p>
-              </article>
-            </section>
-
-            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-              <h2 className="text-lg font-bold">
-                Categorias de despesa
-              </h2>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">
-                Inclui divisões e créditos de cartão como redução da
-                despesa correspondente.
-              </p>
-
-              {data.categories.length === 0 ? (
-                <p className="mt-3 text-sm text-[var(--text-muted)]">
-                  Sem despesas nos períodos selecionados.
-                </p>
-              ) : (
-                <>
-                  <ShowFrom breakpoint="md">
-                  <div className="mt-4 grid gap-2">
-                    {data.categories.map((category) => (
-                      <div
-                        key={category.id}
-                        className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-2 rounded-xl border border-[var(--border)] px-4 py-3"
-                      >
-                        <strong className="truncate text-sm">
-                          {category.name}
-                        </strong>
-                        <div>
-                          <span className="block">
-                            <span className="money">{displayMoney(
-                              category.a.amount,
-                              data.currency,
-                              showValues,
-                            )}</span>
-                          </span>
-                          {!data.coverage.sameLength && (
-                            <small className="text-xs text-[var(--text-muted)]">
-                              média{' '}
-                              <span className="money">{displayMoney(
-                                category.a.averageMonthlyAmount,
-                                data.currency,
-                                showValues,
-                              )}</span>
-                              /mês
-                            </small>
-                          )}
-                        </div>
-                        <div>
-                          <span className="block">
-                            <span className="money">{displayMoney(
-                              category.b.amount,
-                              data.currency,
-                              showValues,
-                            )}</span>
-                          </span>
-                          {!data.coverage.sameLength && (
-                            <small className="text-xs text-[var(--text-muted)]">
-                              média{' '}
-                              <span className="money">{displayMoney(
-                                category.b.averageMonthlyAmount,
-                                data.currency,
-                                showValues,
-                              )}</span>
-                              /mês
-                            </small>
-                          )}
-                        </div>
-                        <div>
-                          <small className="text-xs block text-[var(--text-muted)]">
-                            {data.coverage.sameLength
-                              ? 'Diferença total'
-                              : 'Diferença da média mensal'}
-                          </small>
-                          <MetricDifference
-                            metric={
-                              data.coverage.sameLength
-                                ? category.difference
-                                : category.averageDifference
-                            }
-                            currency={data.currency}
-                            showValues={showValues}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  </ShowFrom>
-
-                  <ShowBelow breakpoint="md">
-                  <div className="mt-4 grid gap-3">
-                    {data.categories.map((category) => (
-                      <article
-                        key={category.id}
-                        className="rounded-xl border border-[var(--border)] p-4"
-                      >
-                        <h3 className="font-bold">{category.name}</h3>
-                        <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <dt className="text-[var(--text-muted)]">
-                              Período A
-                            </dt>
-                            <dd className="font-semibold">
-                              <span className="money">{displayMoney(
-                                category.a.amount,
-                                data.currency,
-                                showValues,
-                              )}</span>
-                            </dd>
-                            {!data.coverage.sameLength && (
-                              <dd className="text-xs text-[var(--text-muted)]">
-                                <span className="money">{displayMoney(
-                                  category.a.averageMonthlyAmount,
-                                  data.currency,
-                                  showValues,
-                                )}</span>
-                                /mês
-                              </dd>
-                            )}
-                          </div>
-                          <div>
-                            <dt className="text-[var(--text-muted)]">
-                              Período B
-                            </dt>
-                            <dd className="font-semibold">
-                              <span className="money">{displayMoney(
-                                category.b.amount,
-                                data.currency,
-                                showValues,
-                              )}</span>
-                            </dd>
-                            {!data.coverage.sameLength && (
-                              <dd className="text-xs text-[var(--text-muted)]">
-                                <span className="money">{displayMoney(
-                                  category.b.averageMonthlyAmount,
-                                  data.currency,
-                                  showValues,
-                                )}</span>
-                                /mês
-                              </dd>
-                            )}
-                          </div>
-                        </dl>
-                        <div className="mt-3">
-                          <small className="text-xs block text-[var(--text-muted)]">
-                            {data.coverage.sameLength
-                              ? 'Diferença total'
-                              : 'Diferença da média mensal'}
-                          </small>
-                          <MetricDifference
-                            metric={
-                              data.coverage.sameLength
-                                ? category.difference
-                                : category.averageDifference
-                            }
-                            currency={data.currency}
-                            showValues={showValues}
-                          />
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                  </ShowBelow>
-                </>
-              )}
-            </section>
+        <section aria-label="Períodos comparados" className="mt-3 grid items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+          <PeriodCard
+            side="A"
+            title="Período A · base"
+            range={rangeA ? formatRange(rangeA) : 'Período inválido'}
+            months={data ? monthsLabel(data.a.months) : null}
+            from={filters.aFrom}
+            to={filters.aTo}
+            maxMonth={maxMonth}
+            open={editing.a || validationError !== null}
+            onToggle={() => setEditing((value) => ({ ...value, a: !value.a }))}
+            onFrom={(value) => updateFilter('aFrom', value)}
+            onTo={(value) => updateFilter('aTo', value)}
+          />
+          <div className="grid place-items-center">
+            <IconButton
+              label="Inverter períodos A e B"
+              icon={<FaExchangeAlt />}
+              onClick={swapPeriods}
+              className="rounded-full border border-[var(--border-strong)] bg-[var(--surface)] rotate-90 lg:rotate-0"
+            />
           </div>
-        )}
-    </PageContainer>
+          <PeriodCard
+            side="B"
+            title="Período B · comparado"
+            range={rangeB ? formatRange(rangeB) : 'Período inválido'}
+            months={data ? monthsLabel(data.b.months) : null}
+            from={filters.bFrom}
+            to={filters.bTo}
+            maxMonth={maxMonth}
+            open={editing.b || validationError !== null}
+            onToggle={() => setEditing((value) => ({ ...value, b: !value.b }))}
+            onFrom={(value) => updateFilter('bFrom', value)}
+            onTo={(value) => updateFilter('bTo', value)}
+          />
+        </section>
+
+        <div className="mt-4">
+          {showLoading && (
+            <div role="status" className="space-y-4" aria-live="polite">
+              <p className="text-sm text-[var(--text-muted)]">Comparando períodos…</p>
+              <div className="animate-pulse space-y-4" aria-hidden="true">
+                <div className="h-36 rounded-[20px] bg-[var(--skeleton)]" />
+                <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
+                  <div className="h-72 rounded-[16px] bg-[var(--skeleton)]" />
+                  <div className="h-40 rounded-[16px] bg-[var(--skeleton)]" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!showLoading && currentError !== null && (
+            <PageError
+              title={validationError ? 'Revise os períodos' : 'Erro ao comparar'}
+              message={currentError}
+              buttonText={validationError ? undefined : 'Tentar novamente'}
+              onRetry={
+                validationError
+                  ? undefined
+                  : () => {
+                      setFailure(null);
+                      setRetryNonce((value) => value + 1);
+                    }
+              }
+            />
+          )}
+
+          {!showLoading && currentError === null && data && (
+            <FinancialComparisonView data={data} showValues={showValues} override={basisOverride} onOverride={setBasisOverride} />
+          )}
+        </div>
+      </PageContainer>
     </ProtectedRoute>
+  );
+}
+
+function PeriodCard({
+  side,
+  title,
+  range,
+  months,
+  from,
+  to,
+  maxMonth,
+  open,
+  onToggle,
+  onFrom,
+  onTo,
+}: {
+  side: 'A' | 'B';
+  title: string;
+  range: string;
+  months: string | null;
+  from: string;
+  to: string;
+  maxMonth: string;
+  open: boolean;
+  onToggle: () => void;
+  onFrom: (value: string) => void;
+  onTo: (value: string) => void;
+}) {
+  return (
+    <div className={`grid gap-1 rounded-[16px] border border-[var(--border)] border-t-4 bg-[var(--surface)] p-4 ${side === 'A' ? 'border-t-[var(--border-strong)]' : 'border-t-[var(--orbit-primary)]'}`}>
+      <span className="text-xs font-bold text-[var(--text-muted)]">{title}</span>
+      <span className="break-words text-xl font-extrabold tracking-tight">{range}</span>
+      <span className="min-h-5 text-[13px] text-[var(--text-muted)]">{months ?? ' '}</span>
+      <div>
+        <Button type="button" variant="ghost" size="sm" aria-expanded={open} onClick={onToggle}>
+          {open ? 'Fechar' : 'Alterar período'}
+        </Button>
+      </div>
+      {open && (
+        <div className="grid gap-2 pt-1 sm:grid-cols-2">
+          <Input aria-label={`Início período ${side}`} type="month" max={maxMonth} value={from} onChange={(event) => onFrom(event.target.value)} />
+          <Input aria-label={`Fim período ${side}`} type="month" max={maxMonth} value={to} onChange={(event) => onTo(event.target.value)} />
+        </div>
+      )}
+    </div>
   );
 }
