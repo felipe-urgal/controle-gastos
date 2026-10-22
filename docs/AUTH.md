@@ -1,7 +1,7 @@
 # Autenticação pública — contratos
 
 ## Sessão
-- Cookie HttpOnly, SameSite=Lax, Path=/, sem Domain. Em HTTPS o nome é `__Host-token` (Secure); em HTTP (dev/E2E) é `token`. A leitura aceita os dois nomes; logout/limpeza expira ambos.
+- Cookie HttpOnly, SameSite=Lax, Path=/, sem Domain. Em HTTPS o nome é `__Host-token` (Secure); em HTTP (dev) é `token`. A leitura aceita os dois nomes; logout/limpeza expira ambos.
 - **Proxy** (`proxy.ts`) é filtro barato: valida assinatura/expiração do JWT, sem consultar banco, e redireciona para `/login?next=<rota>`.
 - **APIs** são a autoridade: `getAuthenticatedUserId` revalida usuário ativo e `authVersion`. Sessão revogada → 401; o client (`apiClient`) emite `auth:session-expired` e o `AuthContext` limpa o estado sem apagar rascunhos offline.
 - `next` só aceita caminhos internos de rotas protegidas (`sanitizeNextPath`); qualquer outra coisa cai em `/dashboard`.

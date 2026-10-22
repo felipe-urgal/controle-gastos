@@ -15,7 +15,7 @@ export function shouldUseSecureAuthCookie(request: Request): boolean {
 }
 
 // Em HTTPS usamos o prefixo __Host- (Secure, Path=/, sem Domain), o que impede
-// que subdomínios/caminhos sobrescrevam a sessão. Em HTTP (dev/E2E local) o
+// que subdomínios/caminhos sobrescrevam a sessão. Em HTTP (dev local) o
 // prefixo é inválido, então mantemos o nome legado.
 export const LEGACY_AUTH_COOKIE_NAME = "token";
 export const HOST_AUTH_COOKIE_NAME = "__Host-token";

@@ -32,16 +32,4 @@ describe("showValues privacy surface inventory", () => {
       }
     });
   }
-
-  it("keeps text and accessible attributes covered by the cross-module E2E", () => {
-    const source = readFileSync(
-      join(process.cwd(), "tests/e2e/user-show-values-cross-module.spec.mjs"),
-      "utf8",
-    );
-
-    expect(source).toContain("document.body.innerText");
-    expect(source).toContain("aria-label");
-    expect(source).toContain("title");
-    expect(source).toContain("data-tooltip");
-  });
 });

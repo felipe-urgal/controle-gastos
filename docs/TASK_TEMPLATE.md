@@ -80,7 +80,6 @@ Link de Figma, print ou descrição objetiva quando houver UI.
 
 - [ ] Unitário
 - [ ] Integração
-- [ ] E2E
 - [ ] Manual
 
 **Rollback**
