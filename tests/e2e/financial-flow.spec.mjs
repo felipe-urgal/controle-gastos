@@ -257,49 +257,41 @@ async function assertFinancialRoutesAt320(page, accountName) {
   await expect(page.getByRole('navigation', { name: 'Seções de categorias', exact: true })).toHaveCount(0);
 }
 
-async function assertAccountWizardMobile(page, accountId, accountName) {
+async function assertAccountFormMobile(page, accountId, accountName) {
   await page.setViewportSize({ width: 320, height: 740 });
 
   await page.goto('/contas/nova');
   await expect(page.getByRole('heading', { name: 'Nova conta', exact: true })).toBeVisible();
-  await expect(page.getByText('1/3', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Vamos criar sua conta', exact: true })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Controle de Gastos', exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 
-  const newAccountName = 'Conta wizard mobile';
-  await page.getByLabel('Nome', { exact: true }).fill(newAccountName);
-  await page.getByRole('button', { name: /^Investimentos/ }).click();
-  await page.getByRole('button', { name: /USD/ }).click();
-  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-
-  await expect(page.getByText('2/3', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Personalize sua conta', exact: true })).toBeVisible();
-  await expect(page.getByRole('article', { name: 'Prévia da conta', exact: true })).toContainText(newAccountName);
+  const newAccountName = 'Conta formulário mobile';
+  await page.getByLabel('Nome da conta', { exact: true }).fill(newAccountName);
+  await page.getByRole('button', { name: 'Investimento', exact: true }).click();
+  await page.getByLabel('Moeda', { exact: true }).selectOption('USD');
+  await expect(page.getByLabel('Nome da conta', { exact: true })).toHaveValue(newAccountName);
+  await expect(page.getByRole('region', { name: 'Conta', exact: true })).toContainText('Patrimônio');
+  await expect(page.getByRole('button', { name: 'Criar conta', exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-  await expect(page.getByText('3/3', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Revise sua conta', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Criar conta', exact: true })).toBeVisible();
-  await expect(page.getByText(newAccountName, { exact: true }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Cartão de crédito', exact: true }).click();
+  await expect(page.getByLabel('Limite do cartão', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Dia de fechamento', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Dia de vencimento', { exact: true })).toBeVisible();
+  await page.getByLabel('Dia de fechamento', { exact: true }).fill('10');
+  await page.getByLabel('Dia de vencimento', { exact: true }).fill('24');
+  await expect(page.getByText('Compras feitas até o dia 10 entram na fatura que vence no dia 24.', { exact: false })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   await page.goto(`/contas/alterar/${accountId}`);
   await expect(page.getByRole('heading', { name: 'Editar conta', exact: true })).toBeVisible();
-  await expect(page.getByText('1/3', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Atualize sua conta', exact: true })).toBeVisible();
-  await expect(page.getByLabel('Nome', { exact: true })).toHaveValue(accountName);
+  await expect(page.getByLabel('Nome da conta', { exact: true })).toHaveValue(accountName);
   await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-  await expect(page.getByText('2/3', { exact: true })).toBeVisible();
-  await expect(page.getByText('Status', { exact: true })).toBeVisible();
-  await expect(page.getByRole('checkbox')).toBeVisible();
-
-  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-  await expect(page.getByText('3/3', { exact: true })).toBeVisible();
+  await page.getByText('Mais opções', { exact: true }).click();
+  await expect(page.getByText('Conta ativa', { exact: true })).toBeVisible();
+  await expect(page.getByRole('checkbox')).toBeAttached();
   await expect(page.getByRole('button', { name: 'Salvar alterações', exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
@@ -658,7 +650,7 @@ test('login, fluxo financeiro, sessão inválida e logout', async ({ page }) => 
   expect(relations.accountId).toBeTruthy();
   expect(relations.categoryId).toBeTruthy();
 
-  await assertAccountWizardMobile(page, relations.accountId, accountName);
+  await assertAccountFormMobile(page, relations.accountId, accountName);
   await assertCategoryWizardMobile(page, relations.categoryId, categoryName);
   await assertQuickComposeMobile(page);
   await page.goto('/transacoes/nova');
