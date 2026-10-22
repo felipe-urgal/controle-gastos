@@ -4,9 +4,8 @@ import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
-  FaChevronLeft,
   FaChevronRight,
   FaExternalLinkAlt,
   FaList,
@@ -19,7 +18,7 @@ import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { AccountsOverview } from '@/app/components/pages/account/index/accounts-overview';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Pagination } from '@/app/components/navigation';
-import { Button, Chip, ChipRow, IconButton, IconRenderer, Input } from '@/app/components/ui';
+import { Button, Chip, ChipRow, IconRenderer, Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
 import {
@@ -63,6 +62,32 @@ function transactionMoney(
 }
 
 
+function groupAccounts(accounts: AccountModel[], summary: AccountListSummary | undefined) {
+  return [
+    {
+      key: 'credit-debit',
+      title: 'Bancos e carteiras',
+      items: accounts.filter((account) => account.type === 'CREDIT_DEBIT'),
+      total: groupTotal(summary?.bankBalancesByCurrency),
+      totalLabel: '',
+    },
+    {
+      key: 'credit-card',
+      title: 'Cartões de crédito',
+      items: accounts.filter((account) => account.type === 'CREDIT_CARD'),
+      total: groupTotal(summary?.openStatementsByCurrency),
+      totalLabel: 'em fatura',
+    },
+    {
+      key: 'investment',
+      title: 'Investimentos',
+      items: accounts.filter((account) => account.type === 'INVESTMENT'),
+      total: groupTotal(summary?.investmentBalancesByCurrency),
+      totalLabel: '',
+    },
+  ].filter((group) => group.items.length > 0);
+}
+
 /** Subtotal do grupo só quando há uma moeda: somar moedas diferentes seria um número sem sentido. */
 function groupTotal(items: Array<{ currency: string; value: number }> | undefined) {
   return items && items.length === 1 && items[0].value !== 0 ? items[0] : null;
@@ -79,22 +104,6 @@ function MobileAccountsCenter({
   showValues: boolean;
   summary?: AccountListSummary;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selectedAccount =
-    accounts.find((account) => account.id === selectedId) ?? accounts[0] ?? null;
-  const selectedIndex = selectedAccount
-    ? accounts.findIndex((account) => account.id === selectedAccount.id)
-    : -1;
-  const otherAccounts = selectedAccount
-    ? accounts.filter((account) => account.id !== selectedAccount.id)
-    : [];
-
-  function moveSelection(offset: number) {
-    if (accounts.length < 2 || selectedIndex < 0) return;
-    const nextIndex = (selectedIndex + offset + accounts.length) % accounts.length;
-    setSelectedId(accounts[nextIndex].id);
-  }
-
   return (
     <div className="space-y-[22px] pb-3">
       <header className="flex items-start justify-between gap-4">
@@ -133,218 +142,50 @@ function MobileAccountsCenter({
           </h2>
           {!loading && accounts.length > 0 && (
             <span className="text-sm text-[var(--text-muted)]">
-              {selectedIndex + 1} de {accounts.length}
+              {accounts.length} {accounts.length === 1 ? 'conta' : 'contas'}
             </span>
           )}
         </div>
 
         {loading ? (
-          <div className="h-[310px] animate-pulse rounded-[26px] border border-[var(--border)] bg-[var(--surface)]" />
-        ) : !selectedAccount ? (
+          <div className="h-[310px] animate-pulse rounded-[18px] border border-[var(--border)] bg-[var(--surface)]" />
+        ) : accounts.length === 0 ? (
           <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4">
             <PageEmpty title="Nenhuma conta encontrada" />
             <Link
               href="/contas/nova"
-              className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[11px] bg-[var(--orbit-primary)] px-4 text-sm font-semibold text-white"
+              className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[11px] bg-[var(--orbit-primary)] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
             >
               <FaPlus aria-hidden="true" />
               Criar primeira conta
             </Link>
           </div>
         ) : (
-          <>
-            <div className="relative -mx-4 overflow-hidden px-7 py-0.5">
-              {accounts.length > 1 && (
-                <>
-                  <div
-                    className="pointer-events-none absolute inset-y-5 -left-7 w-16 rounded-[24px] border border-[var(--orbit-primary)]/30 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_20%,var(--surface))_0%,var(--surface)_100%)] opacity-60"
-                    aria-hidden="true"
-                  />
-                  <div
-                    className="pointer-events-none absolute inset-y-5 -right-7 w-16 rounded-[24px] border border-[var(--orbit-primary)]/30 bg-[linear-gradient(215deg,color-mix(in_srgb,var(--orbit-primary)_20%,var(--surface))_0%,var(--surface)_100%)] opacity-60"
-                    aria-hidden="true"
-                  />
-                  <div className="absolute left-1 top-1/2 z-20 -translate-y-1/2">
-                    <IconButton
-                      label="Conta anterior"
-                      icon={<FaChevronLeft />}
-                      onClick={() => moveSelection(-1)}
-                      className="rounded-full border border-[var(--orbit-primary)]/45 bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] text-[var(--foreground)] shadow-[var(--shadow-surface)] backdrop-blur"
-                    />
-                  </div>
-                  <div className="absolute right-1 top-1/2 z-20 -translate-y-1/2">
-                    <IconButton
-                      label="Próxima conta"
-                      icon={<FaChevronRight />}
-                      onClick={() => moveSelection(1)}
-                      className="rounded-full border border-[var(--orbit-primary)]/45 bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] text-[var(--foreground)] shadow-[var(--shadow-surface)] backdrop-blur"
-                    />
-                  </div>
-                </>
-              )}
-
-              <article className="relative z-10 rounded-[26px] border border-[var(--orbit-primary)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--orbit-primary)_52%,var(--surface))_0%,color-mix(in_srgb,var(--orbit-primary)_30%,black)_48%,color-mix(in_srgb,var(--surface)_40%,black)_100%)] p-5 shadow-[0_20px_44px_color-mix(in_srgb,var(--orbit-primary)_22%,transparent)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-4">
-                    <span
-                      className="grid h-[64px] w-[64px] shrink-0 place-items-center rounded-[17px] text-2xl text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.14)]"
-                      style={{ backgroundColor: selectedAccount.color || 'var(--text-muted)' }}
-                      aria-hidden="true"
-                    >
-                      <IconRenderer iconName={selectedAccount.icon || 'wallet'} size={27} />
+          <div className="overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
+            {groupAccounts(accounts, summary).map((group) => (
+              <section key={group.key} aria-label={group.title}>
+                <h3 className="flex items-baseline justify-between gap-3 px-3.5 pb-2 pt-4 text-sm font-bold text-[var(--text-muted)]">
+                  {group.title}
+                  {group.total && (
+                    <span className="money text-xs font-medium">
+                      {money(group.total.value, group.total.currency, showValues)}
+                      {group.totalLabel ? ` ${group.totalLabel}` : ''}
                     </span>
-                    <div className="min-w-0">
-                      <h3 className="line-clamp-2 break-words text-[23px] font-extrabold text-white">
-                        {selectedAccount.name}
-                      </h3>
-                      <p className="mt-0.5 truncate text-base text-white/70">
-                        {typeLabels[selectedAccount.type]}
-                      </p>
-                      <span
-                        className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                          selectedAccount.isActive
-                            ? 'border-[var(--income)]/35 bg-[color-mix(in_srgb,var(--income)_14%,transparent)] text-[var(--income)]'
-                            : 'border-white/15 bg-white/5 text-white/60'
-                        }`}
-                      >
-                        <span
-                          className={`h-2 w-2 rounded-full ${
-                            selectedAccount.isActive
-                              ? 'bg-[var(--income)]'
-                              : 'bg-white/35'
-                          }`}
-                          aria-hidden="true"
-                        />
-                        {selectedAccount.isActive ? 'Ativa' : 'Inativa'}
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
-
-                <strong
-                  className={`mt-6 block break-words text-[37px] font-extrabold leading-none tracking-tight min-[360px]:text-[39px] ${
-                    getAccountPrimaryValue(selectedAccount) < 0 ? 'text-[var(--expense)]' : 'text-white'
-                  }`}
-                >
-                  <span className="money">{money(
-                    getAccountPrimaryValue(selectedAccount),
-                    selectedAccount.currency,
-                    showValues,
-                  )}</span>
-                </strong>
-
-                <nav
-                  className="mt-6 grid grid-cols-3 gap-2"
-                  aria-label={`Ações da conta ${selectedAccount.name}`}
-                >
-                  <Link
-                    href={`/transacoes?accountId=${encodeURIComponent(selectedAccount.id)}`}
-                    className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-[14px] border border-white/15 bg-black/10 px-3 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-                  >
-                    <FaList aria-hidden="true" />
-                    Transações
-                  </Link>
-                  <Link
-                    href={`/contas/alterar/${selectedAccount.id}`}
-                    className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-[14px] border border-[var(--orbit-primary)]/55 bg-[var(--orbit-primary)]/18 px-3 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-                  >
-                    <FaPen aria-hidden="true" />
-                    Editar
-                  </Link>
-                  <Link
-                    href={`/contas/show/${selectedAccount.id}`}
-                    className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-[14px] border border-white/15 bg-black/10 px-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-                  >
-                    <FaExternalLinkAlt aria-hidden="true" />
-                    Detalhes
-                  </Link>
-                </nav>
-              </article>
-            </div>
-
-            {accounts.length > 1 && (
-              <div
-                className="mt-1 flex max-w-full justify-start overflow-x-auto [scrollbar-width:none] sm:justify-center [&::-webkit-scrollbar]:hidden"
-                aria-label="Posição da conta selecionada"
-              >
-                {accounts.map((account) => (
-                  <button
+                  )}
+                </h3>
+                {group.items.map((account) => (
+                  <AccountRow
                     key={account.id}
-                    type="button"
-                    onClick={() => setSelectedId(account.id)}
-                    aria-label={`Selecionar conta ${account.name}`}
-                    aria-pressed={account.id === selectedAccount.id}
-                    className="grid h-11 w-11 shrink-0 place-items-center"
-                  >
-                    <span
-                      className={`block h-2.5 w-2.5 rounded-full transition-colors ${
-                        account.id === selectedAccount.id
-                          ? 'bg-[var(--orbit-primary)]'
-                          : 'bg-[var(--border-strong)]'
-                      }`}
-                      aria-hidden="true"
-                    />
-                  </button>
+                    account={account}
+                    showValues={showValues}
+                    href={`/contas/show/${encodeURIComponent(account.id)}`}
+                  />
                 ))}
-              </div>
-            )}
-          </>
-        )}
-      </section>
-
-      {!loading && otherAccounts.length > 0 && (
-        <section aria-labelledby="mobile-other-accounts-title">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2
-              id="mobile-other-accounts-title"
-              className="text-xl font-extrabold tracking-tight text-[var(--foreground)]"
-            >
-              Outras contas
-            </h2>
-            <span className="text-sm text-[var(--text-muted)]">
-              {otherAccounts.length} {otherAccounts.length === 1 ? 'conta' : 'contas'}
-            </span>
-          </div>
-
-          <div className="space-y-2.5">
-            {otherAccounts.map((account) => (
-              <button
-                key={account.id}
-                type="button"
-                onClick={() => setSelectedId(account.id)}
-                aria-label={`Destacar conta ${account.name}`}
-                className="flex min-h-[78px] w-full items-center gap-3 rounded-[17px] border border-[var(--border)] bg-[var(--surface)] p-3 text-left transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-              >
-                <span
-                  className="grid h-12 w-12 shrink-0 place-items-center rounded-[13px] text-white"
-                  style={{ backgroundColor: account.color || 'var(--text-muted)' }}
-                  aria-hidden="true"
-                >
-                  <IconRenderer iconName={account.icon || 'wallet'} size={21} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 break-words text-base font-bold">{account.name}</p>
-                  <p className="mt-0.5 truncate text-sm text-[var(--text-muted)]">
-                    {typeLabels[account.type]}
-                  </p>
-                </div>
-                <strong
-                  className={`shrink-0 text-right text-base font-bold ${
-                    getAccountPrimaryValue(account) < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
-                  }`}
-                >
-                  <span className="money">{money(getAccountPrimaryValue(account), account.currency, showValues)}</span>
-                </strong>
-                <FaChevronRight
-                  className="shrink-0 text-[var(--text-muted)]"
-                  aria-hidden="true"
-                />
-              </button>
+              </section>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
     </div>
   );
 }
@@ -376,33 +217,7 @@ export default function OrbitAccounts() {
     accounts.find((account) => account.id === selectedAccountId) ?? accounts[0] ?? null;
 
   const accountSummary = summary as AccountListSummary | undefined;
-  const grouped = useMemo(
-    () =>
-      [
-        {
-          key: 'credit-debit',
-          title: 'Bancos e carteiras',
-          items: accounts.filter((account) => account.type === 'CREDIT_DEBIT'),
-          total: groupTotal(accountSummary?.bankBalancesByCurrency),
-          totalLabel: '',
-        },
-        {
-          key: 'credit-card',
-          title: 'Cartões de crédito',
-          items: accounts.filter((account) => account.type === 'CREDIT_CARD'),
-          total: groupTotal(accountSummary?.openStatementsByCurrency),
-          totalLabel: 'em fatura',
-        },
-        {
-          key: 'investment',
-          title: 'Investimentos',
-          items: accounts.filter((account) => account.type === 'INVESTMENT'),
-          total: groupTotal(accountSummary?.investmentBalancesByCurrency),
-          totalLabel: '',
-        },
-      ].filter((group) => group.items.length > 0),
-    [accounts, accountSummary],
-  );
+  const grouped = useMemo(() => groupAccounts(accounts, accountSummary), [accounts, accountSummary]);
 
   const accountFilter = (filters.type ?? '') as '' | AccountType;
   const filterOptions: Array<{
@@ -632,14 +447,17 @@ const rowMeterTone = { ok: 'bg-[var(--orbit-primary)]', near: 'bg-[var(--warning
 
 function AccountRow({
   account,
-  selected,
+  selected = false,
   showValues,
   onSelect,
+  href,
 }: {
   account: AccountModel;
-  selected: boolean;
+  selected?: boolean;
   showValues: boolean;
-  onSelect: (account: AccountModel) => void;
+  /** No desktop a linha escolhe a conta do painel; no celular ela abre a tela da conta. */
+  onSelect?: (account: AccountModel) => void;
+  href?: string;
 }) {
   const latest = latestAccountTransaction(account);
   const card = creditCardRowSummary(account);
@@ -655,17 +473,13 @@ function AccountRow({
   const flag = !account.isActive ? 'Inativa' : card && card.overdueCount > 0 ? 'Fatura vencida' : negative ? 'Negativa' : null;
   const flagClass = flag === 'Inativa' ? 'text-[var(--text-muted)]' : 'text-[var(--expense)]';
 
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(account)}
-      aria-pressed={selected}
-      className={`grid min-h-[68px] w-full grid-cols-[minmax(0,1fr)_minmax(105px,auto)_20px] items-center gap-2 border-t border-[var(--border)] px-3.5 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:grid-cols-[minmax(0,1fr)_minmax(120px,auto)_minmax(70px,.5fr)_20px] ${
-        selected
-          ? 'bg-[var(--orbit-primary-subtle)] shadow-[inset_3px_0_0_var(--orbit-primary)]'
-          : 'hover:bg-[var(--surface-hover)]'
-      }`}
-    >
+  const rowClass = `grid min-h-[68px] w-full grid-cols-[minmax(0,1fr)_minmax(105px,auto)_20px] items-center gap-2 border-t border-[var(--border)] px-3.5 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:grid-cols-[minmax(0,1fr)_minmax(120px,auto)_minmax(70px,.5fr)_20px] ${
+    selected
+      ? 'bg-[var(--orbit-primary-subtle)] shadow-[inset_3px_0_0_var(--orbit-primary)]'
+      : 'hover:bg-[var(--surface-hover)]'
+  }`;
+  const content = (
+    <>
       <div className="flex min-w-0 items-center gap-3">
         <span
           className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] text-white"
@@ -740,11 +554,52 @@ function AccountRow({
         </p>
       </div>
       <FaChevronRight className="justify-self-end text-[var(--text-muted)]" aria-hidden="true" />
+    </>
+  );
+
+  return href ? (
+    <Link href={href} className={rowClass}>
+      {content}
+    </Link>
+  ) : (
+    <button type="button" onClick={() => onSelect?.(account)} aria-pressed={selected} className={rowClass}>
+      {content}
     </button>
   );
 }
 
+/** Ações do painel: a primeira é a mais provável para o tipo de conta. */
+function detailActions(account: AccountModel): Array<{ label: string; href: string; icon: ReactNode; primary?: boolean }> {
+  const show = `/contas/show/${encodeURIComponent(account.id)}`;
+  const transactions = { label: 'Transações', href: `/transacoes?accountId=${encodeURIComponent(account.id)}`, icon: <FaList aria-hidden="true" /> };
+  const edit = { label: 'Editar', href: `/contas/alterar/${encodeURIComponent(account.id)}`, icon: <FaPen aria-hidden="true" /> };
+
+  if (account.type === 'CREDIT_CARD') {
+    return [
+      { label: 'Pagar fatura', href: show, icon: <FaExternalLinkAlt aria-hidden="true" />, primary: true },
+      { label: 'Lançar compra', href: '/transacoes/nova', icon: <FaPlus aria-hidden="true" /> },
+      transactions,
+      edit,
+    ];
+  }
+  if (account.type === 'INVESTMENT') {
+    return [
+      { label: 'Investimentos', href: '/investimentos', icon: <FaExternalLinkAlt aria-hidden="true" />, primary: true },
+      transactions,
+      { label: 'Mais', href: show, icon: <FaExternalLinkAlt aria-hidden="true" /> },
+      edit,
+    ];
+  }
+  return [
+    { label: 'Lançar', href: '/transacoes/nova', icon: <FaPlus aria-hidden="true" />, primary: true },
+    transactions,
+    { label: 'Conciliar', href: show, icon: <FaExternalLinkAlt aria-hidden="true" /> },
+    edit,
+  ];
+}
+
 function AccountDetail({ account, showValues }: { account: AccountModel; showValues: boolean }) {
+  const card = creditCardRowSummary(account);
   const recent = sortAccountTransactions(account.transactions).slice(0, 6);
   const latest = recent[0] ?? null;
   const displayedValue =
@@ -788,6 +643,55 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
         </span>
       </header>
 
+      {card ? (
+        <section className="my-[18px] space-y-3" aria-label="Fatura e limite do cartão">
+          <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]">
+            <p className="text-xs text-[var(--text-muted)]">
+              {card.statementDueDate ? `FATURA ATUAL · VENCE ${dueShortLabel(card.statementDueDate)}` : 'FATURA ATUAL'}
+            </p>
+            <strong className="money mt-2 block break-words text-[27px] font-extrabold text-[var(--foreground)] sm:text-[31px]">
+              {card.statementAmount === null ? '—' : money(card.statementAmount, account.currency, showValues)}
+            </strong>
+            <small className="mt-1 block text-xs text-[var(--text-muted)]">
+              {card.overdueCount > 0
+                ? `${card.overdueCount} ${card.overdueCount === 1 ? 'fatura vencida' : 'faturas vencidas'} sem pagamento`
+                : card.statementAmount === null
+                  ? 'Nenhuma fatura aberta'
+                  : 'Compras já lançadas até o fechamento'}
+            </small>
+          </article>
+
+          <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-xs text-[var(--text-muted)]">LIMITE USADO</p>
+              {card.usedPercent !== null && <span className="money text-xs font-semibold">{card.usedPercent}%</span>}
+            </div>
+            {card.usedPercent !== null && (
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${card.usedPercent}% do limite usado`}>
+                <span className={`block h-full rounded-full ${rowMeterTone[card.tone]}`} style={{ width: `${Math.min(100, card.usedPercent)}%` }} />
+              </div>
+            )}
+            <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <dt className="text-[var(--text-muted)]">Usado</dt>
+                <dd className="money mt-0.5 font-semibold">{money(card.usedLimit, account.currency, showValues)}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--text-muted)]">Disponível</dt>
+                <dd className="money mt-0.5 font-semibold">
+                  {account.cardStatus?.availableLimit == null ? '—' : money(account.cardStatus.availableLimit, account.currency, showValues)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--text-muted)]">Limite</dt>
+                <dd className="money mt-0.5 font-semibold">
+                  {card.creditLimit === null ? '—' : money(card.creditLimit, account.currency, showValues)}
+                </dd>
+              </div>
+            </dl>
+          </article>
+        </section>
+      ) : (
       <section
         className="my-[18px] grid gap-3 sm:grid-cols-[1.3fr_.9fr]"
         aria-label="Saldo e atividade da conta"
@@ -832,32 +736,22 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
           </small>
         </article>
       </section>
+      )}
 
       <nav className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Ações da conta">
-        <Link
-          href={`/contas/alterar/${account.id}`}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/40 bg-[var(--orbit-primary-subtle)] px-2 text-sm font-semibold text-[var(--orbit-primary)]"
-        >
-          <FaPen aria-hidden="true" /> Editar
-        </Link>
-        <Link
-          href={`/transacoes?accountId=${encodeURIComponent(account.id)}`}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-2 text-sm font-semibold"
-        >
-          <FaList aria-hidden="true" /> Transações
-        </Link>
-        <Link
-          href="/transacoes/nova"
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-2 text-sm font-semibold"
-        >
-          <FaPlus aria-hidden="true" /> Lançar
-        </Link>
-        <Link
-          href={`/contas/show/${account.id}`}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-2 text-sm font-semibold"
-        >
-          <FaExternalLinkAlt aria-hidden="true" /> {account.type === 'CREDIT_CARD' ? 'Faturas' : 'Mais'}
-        </Link>
+        {detailActions(account).map((action) => (
+          <Link
+            key={action.label}
+            href={action.href}
+            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border px-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+              action.primary
+                ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]'
+                : 'border-[var(--border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-hover)]'
+            }`}
+          >
+            {action.icon} {action.label}
+          </Link>
+        ))}
       </nav>
 
       <section
@@ -880,7 +774,7 @@ function AccountDetail({ account, showValues }: { account: AccountModel; showVal
           <p className="mt-3 text-sm text-[var(--text-muted)]">Nenhuma transação vinculada.</p>
         ) : (
           <div className="mt-2 divide-y divide-[var(--border)]">
-            {recent.slice(0, 4).map((transaction) => (
+            {recent.slice(0, 5).map((transaction) => (
               <Link
                 key={transaction.id}
                 href={`/transacoes/show/${transaction.id}`}
