@@ -133,7 +133,7 @@ export default function MonthlyClosingView({
                   {detailAccounts.map((account) => (
                     <Link key={account.accountId} href={account.href} className="flex min-h-11 items-center justify-between gap-3 rounded-[10px] border border-[var(--border)] px-3 py-2 hover:bg-[var(--surface-hover)]">
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold">{account.accountName}</span>
+                        <span className="block break-words text-sm font-semibold">{account.accountName}</span>
                         <span className="block text-xs text-[var(--text-muted)]">
                           {account.status === 'NEVER_RECONCILED' ? 'Nunca conciliada' : account.status === 'PARTIAL' ? 'Conciliação parcial' : 'Lançamentos não conciliados'}
                           {account.unreconciledCount > 0 ? ' · ' + account.unreconciledCount : ''}
@@ -144,7 +144,7 @@ export default function MonthlyClosingView({
                   {detailStatements.map((statement) => (
                     <Link key={statement.cardId + '-' + statement.closingDate.month + '-' + statement.closingDate.year} href={statement.href} className="flex min-h-11 items-center justify-between gap-3 rounded-[10px] border border-[var(--border)] px-3 py-2 hover:bg-[var(--surface-hover)]">
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold">{statement.cardName}</span>
+                        <span className="block break-words text-sm font-semibold">{statement.cardName}</span>
                         <span className="block text-xs text-[var(--text-muted)]">Vence {formatLogicalDate(statement.dueDate)} · {CARD_STATE_LABELS[statement.state]}</span>
                       </span>
                       <span className="money shrink-0 text-sm font-semibold">{money(statement.amount)}</span>
@@ -176,7 +176,7 @@ export default function MonthlyClosingView({
                         </span>
                         <span className="min-w-0">
                           <span className="flex justify-between gap-2 text-sm font-semibold">
-                            <span className="truncate">{category.name}</span>
+                            <span className="min-w-0 break-words">{category.name}</span>
                             <span className="shrink-0 text-xs font-medium text-[var(--text-muted)]">{category.sharePercentage}%</span>
                           </span>
                           <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
