@@ -75,7 +75,7 @@ export function detectPayrollPaymentType(
     return "THIRTEENTH";
   }
   if (
-    /\bPLR\b|PARTICIPACAO (?:NOS|EM) LUCROS|PARTICIPACAO (?:NOS|EM) RESULTADOS|LUCROS E RESULTADOS/.test(
+    /\bPLR\b|PARTICIPACAO (?:(?:NOS|EM|DE) )?(?:LUCROS|RESULTADOS)|LUCROS E RESULTADOS/.test(
       value,
     )
   ) {
@@ -109,7 +109,7 @@ function moneyAfter(text: string, patterns: readonly RegExp[]) {
   for (const pattern of patterns) {
     const match = pattern.exec(text);
     if (!match?.[1]) continue;
-    const cents = parseMoneyToCents(match[1]);
+    const cents = parseMoneyToCents(match[1].replace(/\s+/g, ""));
     if (cents !== null) return Math.abs(cents);
   }
   return null;
@@ -127,6 +127,18 @@ function moneyOnLabeledLine(text: string, labels: readonly RegExp[]) {
   return null;
 }
 
+/** Soma todas as linhas do rótulo (ex.: INSS e INSS de férias no mesmo holerite). */
+function moneySumOnLabeledLines(text: string, labels: readonly RegExp[]) {
+  let total: number | null = null;
+  for (const line of text.replace(/\r/g, "\n").split(/\n+/)) {
+    if (!labels.some((label) => label.test(line))) continue;
+    const raw = [...line.matchAll(/\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}/g)].at(-1)?.[0];
+    const cents = raw ? parseMoneyToCents(raw) : null;
+    if (cents !== null) total = (total ?? 0) + Math.abs(cents);
+  }
+  return total;
+}
+
 function capture(text: string, patterns: readonly RegExp[]) {
   for (const pattern of patterns) {
     const match = pattern.exec(text);
@@ -139,18 +151,20 @@ function capture(text: string, patterns: readonly RegExp[]) {
 
 const monthNames = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
-/** Alguns holerites trazem a mesma via duas vezes na página: mantém só a primeira cópia. */
+/** Alguns holerites trazem a mesma via duas vezes (e, com várias páginas, cada página repetida): mantém só a primeira cópia de cada página. */
 function dropRepeatedCopy(text: string) {
   const lines = text.replace(/\r/g, "\n").split("\n").filter((line) => line.trim());
   const first = lines[0];
   if (!first) return text;
   const window = 5;
+  const starts = [0];
   for (let index = window; index < lines.length; index += 1) {
     if (lines[index] !== first) continue;
-    const matches = lines.slice(0, window).every((line, offset) => lines[index + offset] === line);
-    if (matches) return lines.slice(0, index).join("\n");
+    if (lines.slice(0, window).every((line, offset) => lines[index + offset] === line)) starts.push(index);
   }
-  return text;
+  if (starts.length === 1) return text;
+  const pages = starts.map((start, position) => lines.slice(start, starts[position + 1] ?? lines.length).join("\n"));
+  return [...new Set(pages)].join("\n");
 }
 
 function looseWord(word: string) {
@@ -275,7 +289,7 @@ function parseRubrics(text: string) {
     // "Adiantamento salarial" é o vencimento do documento de adiantamento; "Desc. adiant." e "IRRF adiantamento" são descontos.
     const looksDeduction =
       !/^ADIANTAMENTO SALARIAL\b/.test(foldedDescription) &&
-      /INSS|I\.N\.S\.S|IRRF|DESCONTO|DESC\.|ADIANT|CONTRIB|FALTA|VALE/.test(foldedDescription);
+      /INSS|I\.N\.S\.S|IRRF|IMPOSTO DE RENDA|DESCONTO|DESC\.|ADIANT|CONTRIB|FALTA|VALE/.test(foldedDescription);
 
     rubrics.push({
       code: match[1],
@@ -348,7 +362,7 @@ export function parsePayrollText(rawText: string): ParsedPayrollDocument {
     moneyAfter(text, [
       /Total (?:de )?Vencimentos[^\d]*([\d.]+,\d{2})/i,
       /Total (?:de )?Proventos[^\d]*([\d.]+,\d{2})/i,
-      new RegExp(`${looseWord("TOTAL DOS PROVENTOS")}[^\\d]*([\\d.]+,\\d{2})`, "i"),
+      new RegExp(`${looseWord("TOTAL DOS PROVENTOS")}[^\\d]*([\\d.][\\d.\\s]*?,\\d{2})`, "i"),
     ]);
   const totalDeductionsCents =
     table.get("totalDeductions") ??
@@ -364,13 +378,13 @@ export function parsePayrollText(rawText: string): ParsedPayrollDocument {
   const grossIncomeCents =
     moneyAfter(text, [/Sal[aá]rio Bruto[^\d]*([\d.]+,\d{2})/i]) ?? totalEarningsCents;
   const inssCents =
-    moneyOnLabeledLine(text, [
+    moneySumOnLabeledLines(text, [
       /^\s*(?:\d+\s+)?I\.N\.S\.S\.(?:\s|$)/i,
       /^\s*(?:\d+\s+)?INSS\b/i,
     ]) ??
     moneyAfter(text, [/Desconto da Previd[eê]ncia[^\d]*([\d.]+,\d{2})/i]);
   const irrfCents =
-    moneyOnLabeledLine(text, [/^\s*(?:\d+\s+)?IRRF(?:\s+ADIANTAMENTO)?\b/i]) ??
+    moneySumOnLabeledLines(text, [/^\s*(?:\d+\s+)?(?:IRRF(?:\s+ADIANTAMENTO)?|IMPOSTO DE RENDA)\b/i]) ??
     moneyAfter(text, [/Desconto do imposto de Renda[^\d]*([\d.]+,\d{2})/i]);
   const irrfBaseCents =
     table.get("irrfBase") ??

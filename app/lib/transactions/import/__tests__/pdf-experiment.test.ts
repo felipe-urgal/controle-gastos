@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   PDF_EXPERIMENT_MAX_BYTES,
   PdfExperimentError,
+  extractPdfText,
   parsePdfImportExperiment,
 } from "@/app/lib/transactions/import/pdf-experiment";
 
@@ -166,5 +167,22 @@ describe("PDF import experiment", () => {
         makePdf([{ content: "BT\n(01/09/2026 Cafe 10,00 D) Tj\nET" }], 21),
       ),
     ).toThrow("20 páginas");
+  });
+
+  it("lê o PDF salvo com o envelope multipart do upload em volta", () => {
+    const pdf = makePdf([{ content: "BT\n(Participacao nos lucros 832,46) Tj\nET" }]);
+    const wrapped = Buffer.concat([
+      Buffer.from(
+        '\r\n------abc\r\nContent-Disposition: form-data; name="file[]"; filename="x.pdf"\r\nContent-Type: application/pdf\r\n\r\n',
+        "latin1",
+      ),
+      Buffer.from(pdf),
+      Buffer.from("\r\n\r\n------abc--\r\n", "latin1"),
+    ]);
+
+    const result = extractPdfText(new Uint8Array(wrapped));
+
+    expect(result.pageCount).toBe(1);
+    expect(result.text).toContain("832,46");
   });
 });

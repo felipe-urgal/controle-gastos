@@ -193,3 +193,90 @@ describe("comprovante anual de rendimentos (modelo da Receita)", () => {
     expect(parsed.thirteenthIrrfCents).toBe(600_00);
   });
 });
+
+describe("holerite com várias páginas, IR, férias e PLR", () => {
+  const header = [
+    "ACME SOFTWARE LTDA",
+    "CNPJ: 11.222.333/0001-81   CC: ENGENHARIA   Folha Mensal",
+    "Mensalista   Março de 2026",
+    "Código   Nome do Funcionário   CBO   Departamento   Filial",
+    "7   MARIA DA SILVA   212405   1   1",
+  ];
+  const page1 = [
+    ...header,
+    "Código   Descrição   Referência   Vencimentos   Descontos",
+    "1000 DIAS NORMAIS   30,00   5.000,00",
+    "999 IMPOSTO DE RENDA   15,00   127,62",
+    "812 INSS FERIAS   11,18   100,00",
+    "998 I.N.S.S.   8,02   50,00",
+    "Total de Vencimentos   Total de Descontos",
+    "A TRANSPORTAR   *********   *********",
+    "Valor Líquido    *********",
+  ].join("\n");
+  const page2 = [
+    ...header,
+    "Código   Descrição   Referência   Vencimentos   Descontos",
+    "266 CONVÊNIO ODONTOLÓGICO (INFORMATIVA)   30,82",
+    "Total de Vencimentos   Total de Descontos",
+    "5.000,00   277,62",
+    "BANCO DO BRASIL 1",
+    "conta corrente: 12345-6   Agência: 1234 - 5   Valor Líquido    4.722,38",
+  ].join("\n");
+
+  it("junta as páginas, ignora as vias repetidas e classifica o imposto de renda como desconto", () => {
+    const parsed = parsePayrollText([page1, page1, page2, page2].join("\n"));
+
+    expect(parsed).toMatchObject({
+      totalEarningsCents: 5_000_00,
+      totalDeductionsCents: 277_62,
+      netPaidCents: 4_722_38,
+      irrfCents: 127_62,
+      inssCents: 150_00,
+    });
+    expect(parsed.deductions.map((item) => item.description)).toEqual(["IMPOSTO DE RENDA", "INSS FERIAS", "I.N.S.S."]);
+    expect(parsed.errors).toEqual([]);
+  });
+
+  it("reconhece participação nos lucros pelo cabeçalho do documento", () => {
+    const parsed = parsePayrollText(
+      [
+        "ACME SOFTWARE LTDA",
+        "CNPJ: 11.222.333/0001-81   CC: ENGENHARIA   Participação de lucros",
+        "Mensalista   Março de 2026",
+        "Código   Nome do Funcionário   CBO   Departamento   Filial",
+        "7   MARIA DA SILVA   212405   1   1",
+        "Código   Descrição   Referência   Vencimentos   Descontos",
+        "873 PARTICIPACAO LUCROS   832,46   832,46",
+        "Total de Vencimentos   Total de Descontos",
+        "832,46   0,00",
+        "Valor Líquido    832,46",
+      ].join("\n"),
+    );
+
+    expect(parsed.paymentType).toBe("PLR");
+    expect(parsed.warnings).toEqual([]);
+  });
+
+  it("lê o total dos proventos do recibo de férias com dígitos separados pela fonte", () => {
+    const parsed = parsePayrollText(
+      [
+        "AVISO E RECIBO DE FÉRIAS",
+        "Nome do empregado   Número Carteira Profissional   Série",
+        "MARIA DA SILVA   57464   386",
+        "De Gozo das Férias",
+        "10/03/2026 A 29/03/2026 = 20 Dias",
+        "Férias:   5.059,02 P",
+        "Desconto da Previdência:   753,93 D",
+        "TOT AL  DOS PROVENTOS:   10.1 18,04 P",
+        "TOT AL  DOS DESCONTOS:   1.737,45   D",
+        "TOT AL  LIQUIDO:   8.380,59   P",
+        "ACME SOFTWARE LTDA",
+        "CNPJ: 11.222.333/0001-81",
+        "Data: 07/03/2026",
+      ].join("\n"),
+    );
+
+    expect(parsed.paymentType).toBe("VACATION");
+    expect(parsed.totalEarningsCents).toBe(10_118_04);
+  });
+});
