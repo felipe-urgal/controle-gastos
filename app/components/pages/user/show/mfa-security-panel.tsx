@@ -14,7 +14,7 @@ export default function MfaSecurityPanel({
   onEnabledChange: (enabled: boolean) => void;
 }) {
   return (
-    <section className="ds-panel overflow-hidden" aria-labelledby="mfa-security-title">
+    <section className="overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]" aria-labelledby="mfa-security-title">
       <div className="space-y-4 p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
