@@ -1,5 +1,6 @@
 'use client';
 
+import { MonthBarsChart } from '@/app/components/charts/month-bars-chart';
 import Link from 'next/link';
 import { FaRedo } from 'react-icons/fa';
 
@@ -102,18 +103,12 @@ export default function TagReportPanel({
         {bars && history && !loading && !error ? (
           <section aria-label={`Despesa dos últimos 6 meses em ${history.currency}`}>
             <p className="text-xs font-semibold text-[var(--text-muted)]">Despesa nos últimos 6 meses · {history.currency}</p>
-            <div className="mt-2 grid h-28 grid-cols-6 items-end gap-2">
-              {bars.map((bar) => (
-                <div key={bar.key} className="flex h-full flex-col items-center justify-end gap-1">
-                  <div
-                    className={`w-full max-w-10 rounded-t-md ${bar.current ? 'bg-[var(--orbit-primary)]' : 'bg-[var(--orbit-primary-subtle)]'}`}
-                    style={{ height: `${bar.heightPercent}%` }}
-                    role="img"
-                    aria-label={`${bar.label}: ${money(bar.expense, history.currency)}`}
-                  />
-                  <span className="text-xs text-[var(--text-muted)]">{bar.label}</span>
-                </div>
-              ))}
+            <div className="mt-2">
+              <MonthBarsChart
+                ariaLabel={`Despesa por mês em ${history.currency}`}
+                heightClass="h-24"
+                bars={bars.map((bar) => ({ key: bar.key, label: bar.label, valueLabel: money(bar.expense, history.currency), heightPercent: bar.heightPercent, current: bar.current }))}
+              />
             </div>
           </section>
         ) : null}
