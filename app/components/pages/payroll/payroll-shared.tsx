@@ -1,34 +1,11 @@
 'use client';
 
-import type { ReactNode } from 'react';
-
 import { Button } from '@/app/components/ui';
 
 export function typeLabel(type: 'PAYROLL_ADVANCE' | 'MONTHLY_PAYSLIP') {
   return type === 'PAYROLL_ADVANCE'
     ? 'Adiantamento salarial'
     : 'Folha / pagamento';
-}
-
-export function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <Button
-      variant={active ? 'primary' : 'ghost'}
-      size="sm"
-      aria-current={active ? 'page' : undefined}
-      onClick={onClick}
-    >
-      {children}
-    </Button>
-  );
 }
 
 export function Pagination({
