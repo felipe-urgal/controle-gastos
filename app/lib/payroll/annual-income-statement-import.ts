@@ -1,3 +1,4 @@
+import { wrongDocumentMessage } from "@/app/lib/documents/document-guess";
 import { Prisma } from "@prisma/client";
 import { z, ZodError } from "zod";
 
@@ -138,7 +139,7 @@ export async function previewAnnualEmploymentIncomeStatement(request: Request) {
         error instanceof Error &&
         error.message === "ANNUAL_INCOME_STATEMENT_NOT_RECOGNIZED"
       ) {
-        return failure("PDF não reconhecido como informe anual de rendimentos do trabalho", 400);
+        return failure(wrongDocumentMessage(extracted.text, "um comprovante anual de rendimentos do trabalho"), 400);
       }
       throw error;
     }

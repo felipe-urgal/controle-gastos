@@ -259,11 +259,26 @@ function multiply(first: readonly number[], second: readonly number[]): Matrix {
   ];
 }
 
-function interpretPage(content: string, fonts: Map<string, CidFont>) {
-  const items: TextItem[] = [];
+/** Recursos de uma página ou formulário: fontes por nome e formulários (`Do`) por nome. */
+type PdfScope = {
+  fonts: Map<string, CidFont>;
+  /** Resolve um formulário (XObject) referenciado por `Do`; `null` se não for um formulário de texto. */
+  form: (name: string) => { content: string; matrix: Matrix; scope: PdfScope } | null;
+};
+
+const MAX_FORM_DEPTH = 4;
+
+function interpretPage(
+  content: string,
+  scope: PdfScope,
+  options: { ctm?: Matrix; depth?: number; items?: TextItem[] } = {},
+) {
+  const fonts = scope.fonts;
+  const items: TextItem[] = options.items ?? [];
+  const depth = options.depth ?? 0;
   const operands: Token[] = [];
   // Matriz de transformação da página (`cm`): geradores como o Skia viram o eixo y para baixo.
-  let ctm: Matrix = [1, 0, 0, 1, 0, 0];
+  let ctm: Matrix = options.ctm ?? [1, 0, 0, 1, 0, 0];
   const ctmStack: Matrix[] = [];
   let matrix = [1, 0, 0, 1, 0, 0];
   let lineMatrix = [1, 0, 0, 1, 0, 0];
@@ -322,6 +337,12 @@ function interpretPage(content: string, fonts: Map<string, CidFont>) {
       case "cm":
         if (values.length >= 6) ctm = multiply(values.slice(-6), ctm);
         break;
+      case "Do": {
+        const name = operands.find((operand) => operand.kind === "name");
+        const form = name && name.kind === "name" && depth < MAX_FORM_DEPTH ? scope.form(name.value) : null;
+        if (form) interpretPage(form.content, form.scope, { ctm: multiply(form.matrix, ctm), depth: depth + 1, items });
+        break;
+      }
       case "BT":
         matrix = [1, 0, 0, 1, 0, 0];
         lineMatrix = [1, 0, 0, 1, 0, 0];
@@ -411,6 +432,20 @@ function layoutLines(items: TextItem[]) {
 }
 
 /** Texto por layout de um PDF com fontes CID; `null` quando o PDF não usa esse tipo de fonte ou não rende texto. */
+/** Formulários (XObjects) de um dicionário de recursos: nome → número do objeto. */
+function xobjectNamesIn(resources: string, objects: Map<number, PdfObject>) {
+  const names = new Map<string, number>();
+  const add = (text: string) => {
+    for (const entry of text.matchAll(/\/([^\s/<>\[\]()]+)\s+(\d+)\s+\d+\s+R/g)) names.set(entry[1], Number(entry[2]));
+  };
+  for (const match of resources.matchAll(/\/XObject\s*<<([^>]*(?:>(?!>)[^>]*)*)>>/g)) add(match[1]);
+  for (const match of resources.matchAll(/\/XObject\s+(\d+)\s+\d+\s+R/g)) {
+    const object = objects.get(Number(match[1]));
+    if (object) add(object.body);
+  }
+  return names;
+}
+
 export function extractCidPdfText(buffer: Buffer, raw: string) {
   const objects = collectObjects(raw);
   const fontsByObject = collectFonts(buffer, raw, objects);
@@ -418,12 +453,33 @@ export function extractCidPdfText(buffer: Buffer, raw: string) {
   // Fontes declaradas em qualquer recurso: usadas quando a página não traz as suas.
   const fallback = fontNamesIn(raw, objects, fontsByObject);
 
+  const makeScope = (resources: string, inherited?: PdfScope): PdfScope => {
+    const own = fontNamesIn(resources, objects, fontsByObject);
+    const fonts = own.size > 0 ? own : (inherited?.fonts ?? fallback);
+    const xobjects = xobjectNamesIn(resources, objects);
+    const scope: PdfScope = {
+      fonts,
+      form: (name) => {
+        const number = xobjects.get(name);
+        const object = number === undefined ? undefined : objects.get(number);
+        if (!object) return null;
+        const dictionary = dictionaryOf(object);
+        if (!/\/Subtype\s*\/Form\b/.test(dictionary)) return null;
+        const content = objectStreamText(buffer, raw, object);
+        if (!content) return null;
+        const matrix = /\/Matrix\s*\[([^\]]*)\]/.exec(dictionary)?.[1].trim().split(/\s+/).map(Number);
+        return {
+          content,
+          matrix: matrix && matrix.length === 6 && matrix.every(Number.isFinite) ? (matrix as Matrix) : [1, 0, 0, 1, 0, 0],
+          scope: makeScope(resourcesOf(dictionary, objects), scope),
+        };
+      },
+    };
+    return scope;
+  };
+
   const pages = pageContents(buffer, raw, objects)
-    .map((page) => {
-      const own = fontNamesIn(page.resources, objects, fontsByObject);
-      const fonts = own.size > 0 ? own : fallback;
-      return layoutLines(interpretPage(page.content, fonts)).join("\n");
-    })
+    .map((page) => layoutLines(interpretPage(page.content, makeScope(page.resources))).join("\n"))
     .filter((page) => page.trim());
   return pages.length > 0 ? pages.join("\n") : null;
 }

@@ -384,3 +384,30 @@ describe("transaction import parser", () => {
   });
 
 });
+
+describe("descrições longas de extratos", () => {
+  const longPix =
+    "Transferência recebida pelo Pix via Open Banking - Maria da Silva - •••.123.456-•• - MERCADO PAGO IP LTDA. (0323) Agência: 1 Conta: 1234567890-1";
+
+  it("encurta em vez de recusar no CSV, no OFX e no QIF", () => {
+    const [csv] = parseCsvImport(`Data,Valor,Descrição\n05/10/2026,5.01,"${longPix}"`);
+    expect(csv.errors).toEqual([]);
+    expect(csv.description).toBe("Transferência recebida pelo Pix - Maria da Silva - MERCADO PAGO IP LTDA.");
+
+    const ofx = parseOfxImport(
+      `<OFX><STMTTRN><DTPOSTED>20261005<TRNAMT>5.01<FITID>1<MEMO>${longPix}</STMTTRN></OFX>`,
+      "BRL",
+    );
+    expect(ofx.items[0].errors).toEqual([]);
+    expect(ofx.items[0].description.length).toBeLessThanOrEqual(100);
+
+    const qif = parseQifImport(`!Type:Bank\nD05/10/2026\nT5.01\nP${longPix}\n^`, "DMY");
+    expect(qif.items[0].errors).toEqual([]);
+    expect(qif.items[0].description.length).toBeLessThanOrEqual(100);
+  });
+
+  it("mantém inalteradas as descrições que já cabiam", () => {
+    const [item] = parseCsvImport("Data,Valor,Descrição\n05/10/2026,-10.00,Padaria do Zé");
+    expect(item.description).toBe("Padaria do Zé");
+  });
+});

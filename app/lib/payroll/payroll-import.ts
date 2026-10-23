@@ -1,3 +1,4 @@
+import { wrongDocumentMessage } from "@/app/lib/documents/document-guess";
 import { Prisma } from "@prisma/client";
 import { z, ZodError } from "zod";
 
@@ -177,7 +178,7 @@ export async function previewPayrollImport(request: Request) {
       }
     } catch (error) {
       if (error instanceof Error && error.message === "PAYROLL_DOCUMENT_NOT_RECOGNIZED") {
-        return failure("PDF não reconhecido como documento de rendimento do trabalho", 400);
+        return failure(wrongDocumentMessage(extracted.text, "um holerite, adiantamento ou recibo de pagamento"), 400);
       }
       throw error;
     }

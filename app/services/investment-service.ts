@@ -59,6 +59,7 @@ export type InvestmentImportItem =
       amountCents: number;
       rawUnitPrice: string;
       brokerageNote?: {
+        specification?: string;
         broker: string;
         brokerCnpj: string | null;
         noteNumber: string;
@@ -89,6 +90,34 @@ export type InvestmentImportItem =
       unitValueCents: number;
       netAmountCents: number;
     };
+
+export type CustodyStatementComparison = {
+  fileName: string;
+  referenceDate: string | null;
+  summary: Array<{ label: string; grossCents: number; irCents: number; iofCents: number; netCents: number }>;
+  fixedIncome: Array<{
+    caixinha: string;
+    assetType: string;
+    issuer: string;
+    grossCents: number;
+    irCents: number;
+    iofCents: number;
+    netCents: number;
+    availability: string | null;
+  }>;
+  comparison: Array<{
+    symbol: string;
+    name: string | null;
+    status: "MATCH" | "QUANTITY_DIFFERENT" | "ONLY_IN_STATEMENT" | "ONLY_IN_APP";
+    statementQuantity: string | null;
+    appQuantity: string | null;
+    quantityDifference: string | null;
+    statementValueCents: number | null;
+    appMarketValueCents: number | null;
+    appInvestedCents: number | null;
+  }>;
+  warnings: string[];
+};
 
 export type InvestmentImportPreview = {
   accountId: string;
@@ -249,10 +278,14 @@ export const investmentService = {
   async previewImport(
     file: File,
     accountId: string,
+    symbolOverrides?: Record<string, string>,
   ): Promise<ApiResponse<InvestmentImportPreview>> {
     const formData = new FormData();
     formData.set("file", file);
     formData.set("accountId", accountId);
+    if (symbolOverrides && Object.keys(symbolOverrides).length > 0) {
+      formData.set("symbolOverrides", JSON.stringify(symbolOverrides));
+    }
     return apiClient("/api/investments/import/preview", {
       method: "POST",
       body: formData,
@@ -299,6 +332,14 @@ export const investmentService = {
     const formData = new FormData();
     formData.set("file", file);
     return apiClient("/api/investments/annual-statements/preview", {
+      method: "POST",
+      body: formData,
+    });
+  },
+  async compareCustodyStatement(file: File): Promise<ApiResponse<CustodyStatementComparison>> {
+    const formData = new FormData();
+    formData.set("file", file);
+    return apiClient("/api/investments/custody-statement/compare", {
       method: "POST",
       body: formData,
     });

@@ -10,7 +10,10 @@ import {
   type InvestmentImportPreview,
 } from '@/app/services/investment-service';
 import type { InvestmentAccountOption } from '@/app/types/investment';
-import { Button, MoneyText, Select } from '@/app/components/ui';
+
+/** Símbolo provisório de negócios cuja nota não traz o ticker (ver `UNRESOLVED_SYMBOL` no leitor da nota). */
+const UNRESOLVED_SYMBOL = '?';
+import { Button, Input, MoneyText, Select } from '@/app/components/ui';
 
 type Props = {
   accounts: InvestmentAccountOption[];
@@ -33,6 +36,7 @@ export function InvestmentImportModal({
   const [preview, setPreview] = useState<InvestmentImportPreview | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
+  const [tickerInputs, setTickerInputs] = useState<Record<string, string>>({});
 
   const groups = useMemo(() => {
     if (!preview) return [];
@@ -75,12 +79,35 @@ export function InvestmentImportModal({
     );
   }, [preview]);
 
-  async function generatePreview() {
+  // Negócios que a nota identifica só pelo nome de pregão (sem ticker): o usuário informa o ticker uma vez por título.
+  const unresolved = useMemo(() => {
+    if (!preview) return [];
+    const bySpecification = new Map<string, { specification: string; count: number }>();
+    for (const item of preview.items) {
+      if (item.symbol !== UNRESOLVED_SYMBOL || item.kind !== 'OPERATIONS') continue;
+      const specification = item.brokerageNote?.specification ?? 'ativo sem nome';
+      const entry = bySpecification.get(specification) ?? { specification, count: 0 };
+      entry.count += 1;
+      bySpecification.set(specification, entry);
+    }
+    return [...bySpecification.values()];
+  }, [preview]);
+
+  async function applyTickers() {
+    if (!file || !accountId) return;
+    const overrides = Object.fromEntries(
+      Object.entries(tickerInputs).filter(([, ticker]) => ticker.trim()),
+    );
+    if (Object.keys(overrides).length === 0) return;
+    await generatePreview(overrides);
+  }
+
+  async function generatePreview(symbolOverrides?: Record<string, string>) {
     if (!file || !accountId) return;
     setError('');
     setWorking(true);
     try {
-      const response = await investmentService.previewImport(file, accountId);
+      const response = await investmentService.previewImport(file, accountId, symbolOverrides);
       setPreview(response.data);
     } catch (requestError) {
       setError(
@@ -172,7 +199,7 @@ export function InvestmentImportModal({
             criados em BRL/B3. Registros já importados são ignorados.
           </p>
 
-          <Button size="cta" pill fullWidth onClick={generatePreview} disabled={!file || !accountId || working}>
+          <Button size="cta" pill fullWidth onClick={() => void generatePreview()} disabled={!file || !accountId || working}>
             <FaFileImport aria-hidden="true" />
             {working ? 'Analisando...' : 'Analisar arquivo'}
           </Button>
@@ -191,6 +218,35 @@ export function InvestmentImportModal({
             <Summary label="Duplicados" value={preview.summary.duplicates} />
             <Summary label="Inválidos" value={preview.summary.invalid} />
           </div>
+
+          {unresolved.length > 0 && (
+            <section aria-labelledby="unresolved-tickers-title" className="rounded-[16px] border border-[var(--warning)]/40 bg-[var(--warning-subtle)] p-4">
+              <h3 id="unresolved-tickers-title" className="text-sm font-bold text-[var(--foreground)]">
+                Informe o ticker destes ativos
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                A nota traz só o nome de pregão, sem o código de negociação. Digite o ticker de cada ativo (por exemplo, VGIR11) para liberar a importação.
+              </p>
+              <div className="mt-3 grid gap-3">
+                {unresolved.map((entry) => (
+                  <Input
+                    key={entry.specification}
+                    label={`${entry.specification} · ${entry.count} ${entry.count === 1 ? 'negócio' : 'negócios'}`}
+                    value={tickerInputs[entry.specification] ?? ''}
+                    onChange={(event) =>
+                      setTickerInputs((current) => ({ ...current, [entry.specification]: event.target.value.toUpperCase() }))
+                    }
+                    placeholder="Ex.: VGIR11"
+                    maxLength={8}
+                    disabled={working}
+                  />
+                ))}
+              </div>
+              <Button className="mt-3" pill variant="outline" onClick={() => void applyTickers()} disabled={working || Object.values(tickerInputs).every((ticker) => !ticker.trim())}>
+                Aplicar tickers
+              </Button>
+            </section>
+          )}
 
           <div className="rounded-[16px] border border-[var(--border)]">
             <div className="border-b border-[var(--border)] px-4 py-3">

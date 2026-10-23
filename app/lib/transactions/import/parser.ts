@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
+import { fitImportDescription } from "@/app/lib/transactions/import/import-description";
 import {
-  TRANSACTION_DESCRIPTION_MAX_LENGTH,
   TRANSACTION_DESCRIPTION_MIN_LENGTH,
 } from "@/app/lib/transactions/transaction-field-contract";
 
@@ -241,12 +241,11 @@ export function parseTabularImportRows(
     const errors: string[] = [];
     const date = parseImportDate(row[dateIndex] ?? "");
     const signedAmount = parseMoneyToCents(row[amountIndex] ?? "");
-    const description = normalizeDescription(row[descriptionIndex] ?? "");
+    const description = fitImportDescription(row[descriptionIndex] ?? "");
 
     if (!date) errors.push("Data inválida.");
     if (signedAmount === null || signedAmount === 0) errors.push("Valor inválido ou igual a zero.");
     if (description.length < TRANSACTION_DESCRIPTION_MIN_LENGTH) errors.push(`Descrição deve ter pelo menos ${TRANSACTION_DESCRIPTION_MIN_LENGTH} caracteres.`);
-    if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) errors.push(`Descrição deve ter no máximo ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`);
 
     const safeAmount = signedAmount ?? 0;
     return {
@@ -375,7 +374,7 @@ function parseQifRecord(
 
   const date = parseQifDate(rawDate, dateOrder);
   const signedAmount = parseMoneyToCents(rawAmount);
-  const description = normalizeDescription(
+  const description = fitImportDescription(
     [payee, memo].filter(Boolean).join(" — ") || "Transação QIF",
   );
 
@@ -384,7 +383,6 @@ function parseQifRecord(
     errors.push("Valor inválido ou igual a zero.");
   }
   if (!payee && !memo) errors.push("Payee ou descrição ausente.");
-  if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) errors.push(`Descrição deve ter no máximo ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`);
 
   const safeAmount = signedAmount ?? 0;
   return {
@@ -393,7 +391,7 @@ function parseQifRecord(
     date: date ?? "",
     amountCents: Math.abs(safeAmount),
     type: safeAmount >= 0 ? "INCOME" : "EXPENSE",
-    description: description.slice(0, TRANSACTION_DESCRIPTION_MAX_LENGTH),
+    description,
     errors,
   };
 }
@@ -510,12 +508,11 @@ export function parseOfxImport(content: string, accountCurrency: string): OfxImp
     const signedAmount = parseMoneyToCents(extractOfxTag(block, "TRNAMT"));
     const name = extractOfxTag(block, "NAME");
     const memo = extractOfxTag(block, "MEMO");
-    const description = normalizeDescription([name, memo].filter(Boolean).join(" — ") || "Transação OFX");
+    const description = fitImportDescription([name, memo].filter(Boolean).join(" — ") || "Transação OFX");
     const externalId = normalizeDescription(extractOfxTag(block, "FITID")) || undefined;
 
     if (!date) errors.push("Data inválida.");
     if (signedAmount === null || signedAmount === 0) errors.push("Valor inválido ou igual a zero.");
-    if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) errors.push(`Descrição deve ter no máximo ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`);
 
     const safeAmount = signedAmount ?? 0;
     return {
@@ -524,7 +521,7 @@ export function parseOfxImport(content: string, accountCurrency: string): OfxImp
       date: date ?? "",
       amountCents: Math.abs(safeAmount),
       type: safeAmount >= 0 ? ("INCOME" as const) : ("EXPENSE" as const),
-      description: description.slice(0, TRANSACTION_DESCRIPTION_MAX_LENGTH),
+      description,
       externalId,
       currency: currency || accountCurrency.toUpperCase(),
       errors,

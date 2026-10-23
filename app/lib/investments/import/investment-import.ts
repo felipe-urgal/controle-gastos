@@ -15,7 +15,7 @@ import {
   type PreviewInvestmentImportItem,
   withInvestmentImportFingerprints,
 } from "@/app/lib/investments/import/investment-import-parser";
-import { parseNubankBrokerageNotePdf } from "@/app/lib/investments/import/nubank-brokerage-note-parser";
+import { applySymbolOverrides, parseNubankBrokerageNotePdf, parseSymbolOverrides } from "@/app/lib/investments/import/nubank-brokerage-note-parser";
 import {
   signInvestmentImportPreview,
   verifyInvestmentImportPreview,
@@ -52,6 +52,7 @@ const operationItemSchema = baseItemSchema.extend({
   amountCents: z.number().int().positive().max(MAX_CENTS),
   rawUnitPrice: z.string(),
   brokerageNote: z.object({
+    specification: z.string().max(160).optional(),
     broker: z.string(),
     brokerCnpj: z.string().nullable(),
     noteNumber: z.string(),
@@ -236,12 +237,12 @@ function withMoneyLimitErrors<T extends {
 }
 
 
-async function parsedItemsFromFile(file: File) {
+async function parsedItemsFromFile(file: File, symbolOverrides: Record<string, string> = {}) {
   const extension = file.name.toLowerCase().split(".").pop();
   const bytes = new Uint8Array(await file.arrayBuffer());
 
   if (extension === "pdf") {
-    return parseNubankBrokerageNotePdf(bytes).items;
+    return applySymbolOverrides(parseNubankBrokerageNotePdf(bytes).items, symbolOverrides);
   }
   if (extension === "xlsx") {
     return parseInvestmentRows(parseXlsxRows(bytes), "XLSX");
@@ -291,7 +292,8 @@ export async function previewInvestmentImport(request: Request) {
       return failure("Este importador da B3 suporta somente contas em BRL", 400);
     }
 
-    const parsed = (await parsedItemsFromFile(file)).map(withMoneyLimitErrors);
+    const symbolOverrides = parseSymbolOverrides(formData.get("symbolOverrides"));
+    const parsed = (await parsedItemsFromFile(file, symbolOverrides)).map(withMoneyLimitErrors);
     const fingerprinted = withInvestmentImportFingerprints({ userId, accountId, items: parsed });
     const fingerprints = fingerprinted
       .filter((item) => item.errors.length === 0)
