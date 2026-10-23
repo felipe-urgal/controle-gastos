@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
 import { Dashboard } from '@/app/components/pages/dashboard';
 
@@ -14,5 +15,10 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardPage() {
-  return <Dashboard />;
+  // `useSearchParams` (período e moeda na URL) exige um limite de Suspense.
+  return (
+    <Suspense fallback={null}>
+      <Dashboard />
+    </Suspense>
+  );
 }

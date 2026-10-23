@@ -19,6 +19,23 @@ export function periodOffset(periodValue: string, offset: number) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
+const DASHBOARD_CURRENCIES = ['BRL', 'USD', 'EUR'] as const;
+export const DEFAULT_DASHBOARD_CURRENCY = 'BRL';
+
+/** Período (`AAAA-MM`) e moeda vindos da URL; valor ausente ou inválido cai no padrão. */
+export function parseDashboardUrlState(
+  params: { get(name: string): string | null },
+  defaultPeriod: string,
+) {
+  const rawPeriod = params.get('m') ?? '';
+  const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(rawPeriod);
+  const period = match && Number(match[1]) >= 2000 && Number(match[1]) <= 2100 ? rawPeriod : defaultPeriod;
+  const rawCurrency = params.get('c') ?? '';
+  const currency = DASHBOARD_CURRENCIES.find((item) => item === rawCurrency) ?? DEFAULT_DASHBOARD_CURRENCY;
+
+  return { period, currency };
+}
+
 export function monthLabel(periodValue: string) {
   const [year, month] = periodValue.split('-').map(Number);
   const label = new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('pt-BR', {

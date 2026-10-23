@@ -45,7 +45,8 @@ function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues
   const { ref: chartRef, width: WIDTH } = useChartWidth(640);
   const narrow = WIDTH < 520;
   const HEIGHT = narrow ? 200 : 210;
-  const PAD = { left: narrow ? 42 : 48, right: 14, top: 16, bottom: 24 };
+  // Rótulos compactos como "12,5 mil" precisam de ~56px na fonte de 11px; menos que isso corta o início.
+  const PAD = { left: narrow ? 52 : 58, right: 14, top: 16, bottom: 24 };
   const { daysInMonth, elapsedDays, cumulative, previousCumulative, budget, projected, spent } = pace;
   const max = Math.max(budget, projected ?? 0, spent, previousCumulative[previousCumulative.length - 1] ?? 0, 1_000);
   const top = max * 1.08;
@@ -153,7 +154,9 @@ export function MonthPaceCard({
   const status = statusMessage(pace.status, data.planning.budget > 0);
   const money = (cents: number) => displayMoney(cents, showValues, data.currency);
   const periodValue = `${data.period.year}-${String(data.period.month).padStart(2, '0')}`;
-  const hasPlanning = data.planning.budget > 0 || data.planning.committed > 0;
+  // Sem orçamento, "Disponível" seria só 0 − gasto: um negativo que não representa estouro.
+  const hasBudget = data.planning.budget > 0;
+  const hasPlanning = hasBudget || data.planning.committed > 0;
 
   return (
     <section
@@ -221,16 +224,16 @@ export function MonthPaceCard({
       </div>
 
       {hasPlanning && (
-        <div className="mt-4 grid gap-2 sm:grid-cols-4">
-          <PlanningMetric label="Orçamento" value={money(data.planning.budget)} />
+        <div className={`mt-4 grid gap-2 ${hasBudget ? 'sm:grid-cols-4' : 'sm:grid-cols-2'}`}>
+          {hasBudget && <PlanningMetric label="Orçamento" value={money(data.planning.budget)} />}
           <PlanningMetric label="Realizado" value={money(data.planning.realized)} />
           <PlanningMetric label="Comprometido" value={money(data.planning.committed)} />
-          <PlanningMetric label="Disponível" value={money(data.planning.available)} danger={data.planning.available < 0} />
+          {hasBudget && <PlanningMetric label="Disponível" value={money(data.planning.available)} danger={data.planning.available < 0} />}
         </div>
       )}
       <div className="mt-3 flex justify-end">
         <Link href="/categorias" className="inline-flex min-h-11 items-center text-xs font-semibold text-[var(--orbit-primary)]">
-          Ajustar orçamento
+          {hasBudget ? 'Ajustar orçamento' : 'Definir orçamento'}
         </Link>
       </div>
     </section>

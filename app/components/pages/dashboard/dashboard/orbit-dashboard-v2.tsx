@@ -129,16 +129,17 @@ export default function OrbitDashboardV2() {
         </div>
       )}
 
-      <div className="mt-4">
-        {loading ? (
-          <DashboardLoading />
-        ) : data ? (
+      {/* Na troca de mês ou moeda os dados anteriores ficam esmaecidos até os novos chegarem. */}
+      <div className={`mt-4 transition-opacity ${loading && data ? 'pointer-events-none opacity-50' : ''}`} aria-busy={loading}>
+        {data ? (
           <DashboardHome
             home={data}
             showValues={showValues}
             periodicSummaryEnabled={user?.periodicSummaryEnabled === true}
             onRetry={retry}
           />
+        ) : loading ? (
+          <DashboardLoading />
         ) : null}
       </div>
     </ProtectedRoute>
@@ -358,28 +359,24 @@ function DashboardLoading() {
   return (
     <div role="status" aria-label="Carregando dashboard">
       <div className="space-y-3 lg:hidden">
-        <div className="h-[205px] animate-pulse rounded-[18px] bg-[var(--skeleton)]" />
-        <div className="grid grid-cols-2 gap-2">
-          {[1, 2, 3, 4].map((item) => <div key={item} className="h-[62px] animate-pulse rounded-[12px] bg-[var(--skeleton)]" />)}
-        </div>
-        <div className="h-[118px] animate-pulse rounded-[16px] bg-[var(--skeleton)]" />
-        <div className="h-[250px] animate-pulse rounded-[16px] bg-[var(--skeleton)]" />
-        <div className="h-[220px] animate-pulse rounded-[16px] bg-[var(--skeleton)]" />
+        <div className="h-[330px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="h-[250px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="h-[220px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
       </div>
 
       <div className="hidden space-y-[14px] lg:block">
-        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1.95fr)_minmax(0,1fr)_minmax(0,1.22fr)]">
-          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="h-[330px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[330px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
-        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-          <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+          <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
-        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1.36fr)_minmax(0,1fr)]">
-          <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1.36fr)]">
+          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
       </div>
     </div>

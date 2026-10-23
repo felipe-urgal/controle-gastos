@@ -1,7 +1,12 @@
 'use client';
 
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import {
+  DEFAULT_DASHBOARD_CURRENCY,
+  parseDashboardUrlState,
+} from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { dashboardService } from '@/app/services/dashboard-service';
 import type { DashboardHome } from '@/app/types/dashboard';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
@@ -20,9 +25,16 @@ function isAbortError(error: unknown) {
   return error instanceof Error && error.name === 'AbortError';
 }
 
+/** Período e moeda ficam na URL (`?m=2026-10&c=USD`): compartilháveis e preservados no F5 e no voltar. */
 export function useDashboardHome() {
-  const [periodValue, setPeriodValueState] = useState(getInitialPeriodValue);
-  const [currency, setCurrencyState] = useState<SupportedCurrency>('BRL');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchKey = searchParams.toString();
+  const { period: periodValue, currency } = useMemo(
+    () => parseDashboardUrlState(new URLSearchParams(searchKey), getInitialPeriodValue()),
+    [searchKey],
+  );
   const [data, setData] = useState<DashboardHome | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -74,19 +86,26 @@ export function useDashboardHome() {
     };
   }, [currency, period.month, period.year, retryVersion]);
 
-  const setPeriodValue = useCallback((value: string) => {
-    setData(null);
-    setError('');
-    setLoading(true);
-    setPeriodValueState(value);
-  }, []);
+  // Os dados anteriores continuam na tela (esmaecidos) até os novos chegarem; só falha limpa.
+  const navigate = useCallback(
+    (nextPeriod: string, nextCurrency: SupportedCurrency) => {
+      const next = new URLSearchParams();
+      next.set('m', nextPeriod);
+      if (nextCurrency !== DEFAULT_DASHBOARD_CURRENCY) next.set('c', nextCurrency);
+      router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+    },
+    [pathname, router],
+  );
 
-  const setCurrency = useCallback((value: SupportedCurrency) => {
-    setData(null);
-    setError('');
-    setLoading(true);
-    setCurrencyState(value);
-  }, []);
+  const setPeriodValue = useCallback(
+    (value: string) => navigate(value, currency),
+    [currency, navigate],
+  );
+
+  const setCurrency = useCallback(
+    (value: SupportedCurrency) => navigate(periodValue, value),
+    [navigate, periodValue],
+  );
 
   const retry = useCallback(() => {
     setRetryVersion((value) => value + 1);
