@@ -1,13 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { FaArrowDown, FaArrowUp } from 'react-icons/fa';
 
-import { MonthMetric } from '@/app/components/pages/dashboard/dashboard/cards/month-metric';
 import { PlanningMetric } from '@/app/components/pages/dashboard/dashboard/cards/planning-metric';
 import { buildMonthPace, type MonthPace, type PaceStatus } from '@/app/components/pages/dashboard/dashboard/dashboard-pace';
-import { displayMoney, monthLabel, signedMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
-import { ComparisonDetail } from '@/app/components/pages/dashboard/dashboard/insight-cards';
+import { displayMoney, monthLabel } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { ChartCursor } from '@/app/components/charts/chart-cursor';
 import { useChartWidth } from '@/app/components/charts/use-chart-width';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
@@ -45,7 +42,8 @@ function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues
   const { ref: chartRef, width: WIDTH } = useChartWidth(640);
   const narrow = WIDTH < 520;
   const HEIGHT = narrow ? 200 : 210;
-  const PAD = { left: narrow ? 42 : 48, right: 14, top: 16, bottom: 24 };
+  // Rótulos compactos como "12,5 mil" precisam de ~56px na fonte de 11px; menos que isso corta o início.
+  const PAD = { left: narrow ? 52 : 58, right: 14, top: 16, bottom: 24 };
   const { daysInMonth, elapsedDays, cumulative, previousCumulative, budget, projected, spent } = pace;
   const max = Math.max(budget, projected ?? 0, spent, previousCumulative[previousCumulative.length - 1] ?? 0, 1_000);
   const top = max * 1.08;
@@ -153,7 +151,9 @@ export function MonthPaceCard({
   const status = statusMessage(pace.status, data.planning.budget > 0);
   const money = (cents: number) => displayMoney(cents, showValues, data.currency);
   const periodValue = `${data.period.year}-${String(data.period.month).padStart(2, '0')}`;
-  const hasPlanning = data.planning.budget > 0 || data.planning.committed > 0;
+  // Sem orçamento, "Disponível" seria só 0 − gasto: um negativo que não representa estouro.
+  const hasBudget = data.planning.budget > 0;
+  const hasPlanning = hasBudget || data.planning.committed > 0;
 
   return (
     <section
@@ -162,51 +162,13 @@ export function MonthPaceCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="dashboard-pace-title" className="text-lg font-bold">Ritmo do mês</h2>
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">Seu dinheiro em {monthLabel(periodValue)}.</p>
+          <h2 id="dashboard-pace-title" className="text-lg font-bold">Gastos do mês, dia a dia</h2>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{monthLabel(periodValue)} comparado ao mês anterior.</p>
         </div>
         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${toneClass[status.tone]}`}>{status.text}</span>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-3 sm:divide-x sm:divide-[var(--border)]">
-        <MonthMetric
-          icon={<FaArrowUp aria-hidden="true" />}
-          label="Receitas"
-          value={money(data.summary.income)}
-          detail={
-            <ComparisonDetail
-              percentage={data.comparison.income.percentage}
-              previousMonth={previous.month}
-              previousYear={previous.year}
-              tone={data.comparison.income.percentage !== null && data.comparison.income.percentage >= 0 ? 'income' : 'expense'}
-            />
-          }
-          tone="income"
-        />
-        <MonthMetric
-          icon={<FaArrowDown aria-hidden="true" />}
-          label="Despesas"
-          value={money(data.summary.expense)}
-          detail={
-            <ComparisonDetail
-              percentage={data.comparison.expense.percentage}
-              previousMonth={previous.month}
-              previousYear={previous.year}
-            />
-          }
-          tone="expense"
-        />
-        <MonthMetric
-          icon={<span aria-hidden="true">−</span>}
-          label="Saldo do mês"
-          value={signedMoney(data.summary.balance, showValues, data.currency)}
-          detail={data.summary.balance < 0 ? 'Você gastou mais que recebeu.' : 'O mês está positivo até aqui.'}
-          tone={data.summary.balance < 0 ? 'expense' : 'income'}
-          iconTone="neutral"
-        />
-      </div>
-
-      <div className="mt-5">
+      <div className="mt-4">
         <PaceChart pace={pace} showValues={showValues} currency={data.currency} />
         <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-[var(--text-muted)]">
           <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-[var(--orbit-primary)]" aria-hidden="true" />Este mês</span>
@@ -221,16 +183,16 @@ export function MonthPaceCard({
       </div>
 
       {hasPlanning && (
-        <div className="mt-4 grid gap-2 sm:grid-cols-4">
-          <PlanningMetric label="Orçamento" value={money(data.planning.budget)} />
+        <div className={`mt-4 grid gap-2 ${hasBudget ? 'sm:grid-cols-4' : 'sm:grid-cols-2'}`}>
+          {hasBudget && <PlanningMetric label="Orçamento" value={money(data.planning.budget)} />}
           <PlanningMetric label="Realizado" value={money(data.planning.realized)} />
           <PlanningMetric label="Comprometido" value={money(data.planning.committed)} />
-          <PlanningMetric label="Disponível" value={money(data.planning.available)} danger={data.planning.available < 0} />
+          {hasBudget && <PlanningMetric label="Disponível" value={money(data.planning.available)} danger={data.planning.available < 0} />}
         </div>
       )}
       <div className="mt-3 flex justify-end">
         <Link href="/categorias" className="inline-flex min-h-11 items-center text-xs font-semibold text-[var(--orbit-primary)]">
-          Ajustar orçamento
+          {hasBudget ? 'Ajustar orçamento' : 'Definir orçamento'}
         </Link>
       </div>
     </section>

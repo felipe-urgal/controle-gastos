@@ -24,10 +24,10 @@ export function RecentTransactionsCard({
   onRetry?: () => void;
 }) {
   return (
-    <article className="min-h-[244px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
+    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">Últimas transações do mês</h2>
-        <Link href="/transacoes" className="inline-flex min-h-11 items-center px-2 -mx-2 text-xs font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
+        <h2 className="text-lg font-bold">Últimas transações</h2>
+        <Link href="/transacoes" className="inline-flex min-h-11 items-center px-2 -mx-2 text-sm font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
       </div>
 
       <div className="mt-2 divide-y divide-[var(--border)]">
@@ -38,17 +38,16 @@ export function RecentTransactionsCard({
         ) : error ? (
           <SectionMessage tone="error" className="py-5" onRetry={onRetry} retryLabel="Tentar novamente: transações recentes">{error}</SectionMessage>
         ) : items.length === 0 ? (
-          <SectionMessage tone="empty" className="py-5">Nenhuma transação encontrada neste mês.</SectionMessage>
+          <SectionMessage tone="empty" className="py-5">Nenhuma transação realizada neste mês.</SectionMessage>
         ) : (
           items.map((transaction) => {
             const isIncome = transaction.type === 'INCOME';
             const isTransfer = transaction.kind === 'TRANSFER';
             const isCardPayment = transaction.kind === 'CARD_PAYMENT';
             const tone = isTransfer || isCardPayment ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
-            const statusLabel = transaction.status === 'COMPLETED' ? null : transaction.status === 'PENDING' ? 'Pendente' : 'Cancelada';
 
             return (
-              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1 sm:grid-cols-[minmax(0,1.25fr)_minmax(80px,130px)_minmax(0,150px)_auto]">
+              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5">
                 <div className="flex min-w-0 items-center gap-3">
                   <span
                     className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
@@ -56,15 +55,18 @@ export function RecentTransactionsCard({
                   >
                     {isTransfer || isCardPayment ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}
                   </span>
-                  <p className="truncate text-xs font-semibold">{transaction.description}</p>
+                  <span className="min-w-0">
+                    <strong className="block truncate text-sm">{transaction.description}</strong>
+                    <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
+                      {transactionDateLabel(transaction)}
+                      {' · '}
+                      {isTransfer && transaction.counterpartAccount
+                        ? `${transaction.account.name} → ${transaction.counterpartAccount.name}`
+                        : `${transaction.account.name}${isCardPayment ? ' · Pagamento de fatura' : ''}`}
+                    </span>
+                  </span>
                 </div>
-                <span className="hidden text-xs text-[var(--text-muted)] sm:block">{transactionDateLabel(transaction)}</span>
-                <span className="hidden truncate text-xs text-[var(--text-muted)] sm:block">
-                  {isTransfer && transaction.counterpartAccount
-                    ? `${transaction.account.name} → ${transaction.counterpartAccount.name}`
-                    : `${transaction.account.name}${isCardPayment ? ' · Pagamento de fatura' : ''}${statusLabel ? ` · ${statusLabel}` : ''}`}
-                </span>
-                <strong className={`money shrink-0 text-xs ${tone}`}>
+                <strong className={`money shrink-0 text-sm ${tone}`}>
                   {showValues ? `${isIncome ? '+' : isTransfer || isCardPayment ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
                 </strong>
               </Link>

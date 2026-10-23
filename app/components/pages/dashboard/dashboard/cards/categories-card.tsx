@@ -24,8 +24,8 @@ export function CategoriesCard({
   return (
     <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">Principais categorias de gastos</h2>
-        <span className="hidden text-xs font-semibold text-[var(--text-muted)] sm:inline">{monthLabel(`${period.year}-${String(period.month).padStart(2, '0')}`)}</span>
+        <h2 className="text-lg font-bold">Para onde foi o dinheiro</h2>
+        <span className="text-xs font-semibold text-[var(--text-muted)]">{monthLabel(`${period.year}-${String(period.month).padStart(2, '0')}`)}</span>
       </div>
       <div className="mt-2 divide-y divide-[var(--border)]">
         {categories.length === 0 ? (
@@ -38,25 +38,27 @@ export function CategoriesCard({
             <Link
               key={category.id}
               href={`/categorias/show/${encodeURIComponent(category.id)}`}
-              className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[9px] py-0.5 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:grid-cols-[minmax(0,1.1fr)_120px_minmax(90px,.8fr)_44px]"
+              className="block rounded-[9px] py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
             >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: category.color }}><IconRenderer iconName={category.icon || 'tag'} size={14} /></span>
-                <span className="truncate text-sm font-semibold">{category.name}</span>
-              </span>
-              <strong className="text-right text-sm sm:text-left"><span className="money">{displayMoney(category.realized, showValues, currency)}</span></strong>
-              {limit ? (
-                <span className="col-span-full hidden sm:col-span-2 sm:block">
-                  <CategoryBudgetBar limit={limit} showValues={showValues} currency={currency} />
+              <span className="flex min-h-8 items-center justify-between gap-3">
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: category.color }}><IconRenderer iconName={category.icon || 'tag'} size={14} /></span>
+                  <span className="truncate text-sm font-semibold">{category.name}</span>
                 </span>
-              ) : (
-                <>
-                  <span className="hidden h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)] sm:block">
-                    <span className="block h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${Math.min(100, category.sharePercentage)}%` }} />
+                <strong className="text-right text-sm"><span className="money">{displayMoney(category.realized, showValues, currency)}</span></strong>
+              </span>
+              <span className="mt-1.5 block pl-[38px]">
+                {limit ? (
+                  <CategoryBudgetBar limit={limit} showValues={showValues} currency={currency} />
+                ) : (
+                  <span className="flex items-center gap-3">
+                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+                      <span className="block h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${Math.min(100, category.sharePercentage)}%` }} />
+                    </span>
+                    <span className="w-12 text-right text-xs font-semibold text-[var(--text-muted)]">{category.sharePercentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
                   </span>
-                  <span className="hidden text-right text-xs font-semibold text-[var(--text-muted)] sm:block">{category.sharePercentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
-                </>
-              )}
+                )}
+              </span>
             </Link>
             );
           })

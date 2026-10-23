@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { FaChartLine, FaChevronRight, FaMagic } from 'react-icons/fa';
+import { FaChevronDown } from 'react-icons/fa';
 
 import { SectionMessage } from '@/app/components/pages/dashboard/dashboard/cards/section-message';
-import { dashboardLogicalDateLabel, displayMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
+import { displayMoney, logicalDateDistance, signedMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
+import { ComparisonDetail } from '@/app/components/pages/dashboard/dashboard/insight-cards';
 import { Button } from '@/app/components/ui';
-import type { DashboardHome } from '@/app/types/dashboard';
+import type { DashboardHome, MonthlyDashboard } from '@/app/types/dashboard';
 import type { ForecastData } from '@/app/types/forecast';
 
 type Margin = { label: string; className: string };
@@ -22,10 +23,23 @@ export function safeToSpendMargin(safeToSpend: ForecastData['safeToSpend']): Mar
   return { label: 'Margem confortável', className: 'bg-[var(--surface-subtle)] text-[var(--income)]' };
 }
 
+/** Quanto dá para gastar por dia até o fim do horizonte; o último dia conta como um dia inteiro. */
+export function safeToSpendPerDay(
+  safeToSpend: number,
+  through: { year: number; month: number; day: number },
+  asOf: { year: number; month: number; day: number },
+) {
+  if (safeToSpend <= 0) return null;
+
+  const days = Math.max(logicalDateDistance(through, asOf), 1);
+  return { days, perDay: Math.floor(safeToSpend / days) };
+}
+
 export function SafeToSpendHero({
-  cashTotal,
   cashAccounts,
   asOf,
+  summary,
+  comparison,
   safeToSpend,
   horizonEnd,
   loading,
@@ -34,12 +48,12 @@ export function SafeToSpendHero({
   currency,
   onOpenForecast,
   forecastEnabled,
-  onOpenAssistant,
   onRetry,
 }: {
-  cashTotal: number;
   cashAccounts: DashboardHome['current']['cash']['accounts'];
   asOf: DashboardHome['scope']['currentAsOf'];
+  summary: MonthlyDashboard['summary'];
+  comparison: MonthlyDashboard['comparison'];
   safeToSpend: ForecastData['safeToSpend'] | null;
   horizonEnd: ForecastData['horizonEnd'] | null;
   loading: boolean;
@@ -48,7 +62,6 @@ export function SafeToSpendHero({
   currency: string;
   onOpenForecast: () => void;
   forecastEnabled: boolean;
-  onOpenAssistant: () => void;
   onRetry?: () => void;
 }) {
   const through = safeToSpend?.through ?? horizonEnd;
@@ -77,16 +90,22 @@ export function SafeToSpendHero({
       ].filter((part) => part.value > 0)
     : [];
 
+  const perDay = safeToSpend && through ? safeToSpendPerDay(safeToSpend.safeToSpend, through, asOf) : null;
+  const previous = comparison.previousPeriod;
+  const keptShare = summary.income > 0 && summary.balance > 0
+    ? `${Math.round((summary.balance / summary.income) * 100)}% do que entrou`
+    : null;
+
   return (
     <section
-      className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
+      className="flex flex-col rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
       aria-labelledby="dashboard-hero-title"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="dashboard-hero-title" className="text-sm font-semibold text-[var(--text-muted)]">
+        <h2 id="dashboard-hero-title" className="text-sm font-medium text-[var(--text-muted)]">
           Disponível para gastar
         </h2>
-        <span className="text-xs text-[var(--text-muted)]">até o fim do mês ({horizonLabel}) · cálculo conservador</span>
+        <span className="text-xs text-[var(--text-muted)]">até {horizonLabel} · só o que já está lançado</span>
       </div>
 
       {error ? (
@@ -95,16 +114,26 @@ export function SafeToSpendHero({
         <div className="mt-3 h-24 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando disponível para gastar" />
       ) : safeToSpend ? (
         <div className="mt-2 space-y-4">
-          <strong
-            className={`block money text-[2.25rem] font-semibold leading-none tracking-[-0.035em] tabular-nums sm:text-5xl ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}
-          >
-            <span className="money">{money(safeToSpend.safeToSpend)}</span>
-          </strong>
-          {margin && (
-            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${margin.className}`}>
-              {margin.label}
-            </span>
-          )}
+          <div className="flex flex-wrap items-end gap-x-7 gap-y-3">
+            <strong
+              className={`block money text-[2.25rem] font-semibold leading-none tracking-[-0.035em] tabular-nums sm:text-5xl ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}
+            >
+              <span className="money">{money(safeToSpend.safeToSpend)}</span>
+            </strong>
+            <div className="flex flex-col items-start gap-1.5">
+              {margin && (
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${margin.className}`}>
+                  {margin.label}
+                </span>
+              )}
+              {perDay && (
+                <span className="text-sm">
+                  ≈ <strong className="money tabular-nums">{money(perDay.perDay)}</strong> por dia
+                  <span className="text-[var(--text-muted)]"> · {perDay.days} {perDay.days === 1 ? 'dia' : 'dias'}</span>
+                </span>
+              )}
+            </div>
+          </div>
 
           {barParts.length > 0 && (
             <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
@@ -114,66 +143,60 @@ export function SafeToSpendHero({
             </div>
           )}
 
-          <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-            {breakdown.map((row) => (
-              <div key={row.label} className="flex items-center justify-between gap-3">
-                <dt className="flex items-center gap-2 text-[var(--text-muted)]">
-                  <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: row.color }} aria-hidden="true" />
-                  {row.label}
-                </dt>
-                <dd className="money text-[0.8125rem] font-medium tabular-nums text-[var(--foreground)]">{row.sign}{row.value}</dd>
-              </div>
-            ))}
-          </dl>
-          <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-            Receitas futuras não entram na conta; metas e dívidas só contam quando já viraram compromisso.
-          </p>
+          <details className="group">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+              Como chegamos nesse valor
+              <FaChevronDown className="text-xs transition-transform group-open:rotate-180" aria-hidden="true" />
+            </summary>
+            <dl className="grid gap-x-6 gap-y-1 pb-2 text-sm sm:grid-cols-2">
+              {breakdown.map((row) => (
+                <div key={row.label} className="flex items-center justify-between gap-3">
+                  <dt className="flex items-center gap-2 text-[var(--text-muted)]">
+                    <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: row.color }} aria-hidden="true" />
+                    {row.label}
+                  </dt>
+                  <dd className="money text-[0.8125rem] font-medium tabular-nums text-[var(--foreground)]">{row.sign}{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+              Receitas futuras não entram na conta; metas e dívidas só contam quando já viraram compromisso. Saldo de {cashAccounts.length} {cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}.
+            </p>
+            <div className="flex flex-wrap gap-x-5">
+              <Link href="/contas" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]">Ver contas</Link>
+              <Button type="button" size="sm" variant="ghost" onClick={onOpenForecast} disabled={!forecastEnabled}>
+                Ver projeção dos próximos 30 dias
+              </Button>
+            </div>
+          </details>
         </div>
       ) : (
         <p className="mt-3 text-sm text-[var(--text-muted)]">Sem dados elegíveis nesta moeda.</p>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-3">
-        <Link
-          href="/contas"
-          className="flex min-h-11 min-w-[14rem] flex-1 items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          <span className="min-w-0">
-            <span className="block truncate">
-              <span>Saldo realizado em contas correntes</span> · {dashboardLogicalDateLabel(asOf)}
-            </span>
-            <span className="mt-0.5 flex items-center gap-1 truncate">
-              <strong className={`money text-[0.8125rem] tabular-nums ${cashTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}><span className="money">{money(cashTotal)}</span></strong>
-              <span>
-                em {cashAccounts.length} {cashAccounts.length === 1 ? 'conta' : 'contas'}
-              </span>
-              <FaChevronRight className="shrink-0 text-xs" aria-hidden="true" />
-            </span>
-          </span>
-        </Link>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="xs"
-            variant="outline"
-            onClick={onOpenAssistant}
-            icon={<FaMagic aria-hidden="true" />}
-          >
-            Assistente
-          </Button>
-          <Button
-            type="button"
-            size="xs"
-            variant="outline"
-            onClick={onOpenForecast}
-            disabled={!forecastEnabled}
-            icon={<FaChartLine aria-hidden="true" />}
-            aria-label="Ver projeção"
-          >
-            Ver projeção
-          </Button>
+      <dl className="mt-4 grid grid-cols-3 border-t border-[var(--border)] pt-4">
+        <div className="min-w-0 pr-2 sm:pr-4">
+          <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Entrou</dt>
+          <dd className="money mt-1.5 break-words text-sm font-bold text-[var(--income)] sm:text-xl">{money(summary.income)}</dd>
+          <dd className="mt-1 text-xs">
+            <ComparisonDetail percentage={comparison.income.percentage} previousMonth={previous.month} previousYear={previous.year} tone="income" />
+          </dd>
         </div>
-      </div>
+        <div className="min-w-0 border-l border-[var(--border)] px-2 sm:px-4">
+          <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Saiu</dt>
+          <dd className="money mt-1.5 break-words text-sm font-bold text-[var(--expense)] sm:text-xl">{money(summary.expense)}</dd>
+          <dd className="mt-1 text-xs">
+            <ComparisonDetail percentage={comparison.expense.percentage} previousMonth={previous.month} previousYear={previous.year} tone="expense" />
+          </dd>
+        </div>
+        <div className="min-w-0 border-l border-[var(--border)] pl-2 sm:pl-4">
+          <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Sobrou</dt>
+          <dd className={`money mt-1.5 break-words text-sm font-bold sm:text-xl ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>{signedMoney(summary.balance, showValues, currency)}</dd>
+          <dd className="mt-1 text-xs text-[var(--text-muted)]">
+            {summary.balance < 0 ? 'Gastou mais que recebeu' : keptShare}
+          </dd>
+        </div>
+      </dl>
     </section>
   );
 }

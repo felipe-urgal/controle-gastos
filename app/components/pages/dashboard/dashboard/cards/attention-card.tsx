@@ -29,7 +29,7 @@ export function AttentionCard({
     >
       <div className="flex items-center justify-between gap-3">
         <h2 id="dashboard-attention-title" className="text-lg font-bold">
-          Precisa de atenção
+          O que fazer agora
         </h2>
         {items.length > 0 && (
           <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">

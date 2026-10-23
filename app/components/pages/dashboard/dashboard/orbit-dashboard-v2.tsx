@@ -1,15 +1,10 @@
 'use client';
 
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
-
-import { useMediaQuery } from '@/app/hooks/use-media-query';
-
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaPlus } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { ModalShell } from '@/app/components/overlays/modal-shell';
 
 import { Button, IconButton, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -20,28 +15,26 @@ import { currencyOptions } from '@/app/lib/constants/account.constants';
 import type { DashboardHome } from '@/app/types/dashboard';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
-import { currentDateLabel, dashboardLogicalDateLabel, monthLabel, periodOffset, sectionState } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
-import { MobileDashboardHeader, MobileDashboardHome } from '@/app/components/pages/dashboard/dashboard/mobile-dashboard';
+import { dashboardLogicalDateLabel, monthLabel, periodOffset, sectionState } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { AttentionCard } from '@/app/components/pages/dashboard/dashboard/cards/attention-card';
 import { SafeToSpendHero } from '@/app/components/pages/dashboard/dashboard/cards/safe-to-spend-hero';
 import { buildAttentionItems } from '@/app/components/pages/dashboard/dashboard/dashboard-attention';
+import { GettingStartedCard, gettingStartedSteps } from '@/app/components/pages/dashboard/dashboard/cards/getting-started-card';
 import { UpcomingCard } from '@/app/components/pages/dashboard/dashboard/cards/upcoming-card';
 
-// Cards abaixo da dobra (desktop) e o diálogo de projeção carregam sob demanda; os três cards
+// Cards abaixo da dobra e o diálogo de projeção carregam sob demanda; os dois cards
 // de cima ficam no bundle inicial para não atrasar o LCP.
 function cardFallback(height: number) {
   return function CardFallback() {
     return <div aria-hidden="true" style={{ minHeight: height }} className="animate-pulse rounded-[14px] bg-[var(--skeleton)]" />;
   };
 }
-const CreditCardsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/credit-cards-card').then((m) => m.CreditCardsCard), { ssr: false, loading: cardFallback(160) });
-const FinancialGoalsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/financial-goals-card').then((m) => m.FinancialGoalsCard), { ssr: false, loading: cardFallback(160) });
 const MonthPaceCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/month-pace-card').then((m) => m.MonthPaceCard), { ssr: false, loading: cardFallback(420) });
 const CategoriesCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/categories-card').then((m) => m.CategoriesCard), { ssr: false, loading: cardFallback(252) });
 const RecentTransactionsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/recent-transactions-card').then((m) => m.RecentTransactionsCard), { ssr: false, loading: cardFallback(244) });
+const MonthlyFlowCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/monthly-flow-card').then((m) => m.MonthlyFlowCard), { ssr: false, loading: cardFallback(300) });
+const OverviewStrip = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/overview-strip').then((m) => m.OverviewStrip), { ssr: false, loading: cardFallback(76) });
 const ForecastDialog = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/forecast-dialog').then((m) => m.ForecastDialog), { ssr: false });
-const NetWorthSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/insight-cards').then((m) => m.NetWorthSummaryCard), { ssr: false, loading: cardFallback(180) });
-const LocalFinancialAssistantCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/local-financial-assistant-card').then((m) => m.LocalFinancialAssistantCard), { ssr: false, loading: cardFallback(180) });
 const PeriodicSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/periodic-summary-card').then((m) => m.PeriodicSummaryCard), { ssr: false, loading: cardFallback(140) });
 
 export default function OrbitDashboardV2() {
@@ -57,19 +50,12 @@ export default function OrbitDashboardV2() {
     setCurrency,
     retry,
   } = useDashboardHome();
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   return (
     <ProtectedRoute>
-      {isDesktop && (
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p suppressHydrationWarning className="min-h-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{currentDateLabel()}</p>
-          <h1 className={`mt-1 ${pageTitleClassName}`}>Seu dinheiro, no seu controle</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">Acompanhe o mês selecionado sem misturar com o estado financeiro de hoje.</p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="sr-only">Dashboard financeiro</h1>
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
           <IconButton
             label="Mês anterior"
             icon={<FaChevronLeft />}
@@ -77,7 +63,7 @@ export default function OrbitDashboardV2() {
             disabled={loading}
             className="border border-[var(--border)] bg-[var(--surface)]"
           />
-          <label className="relative min-h-11 flex min-h-11 min-w-[180px] cursor-pointer items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
+          <label className="relative flex min-h-11 min-w-0 flex-1 cursor-pointer items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)] sm:min-w-[180px] sm:flex-none">
             {monthLabel(periodValue)}
             <span className="sr-only">Escolher mês do dashboard</span>
             <input
@@ -97,7 +83,7 @@ export default function OrbitDashboardV2() {
             disabled={loading}
             className="border border-[var(--border)] bg-[var(--surface)]"
           />
-          <div className="w-full sm:w-[145px]">
+          <div className="w-[116px] shrink-0 sm:w-[145px]">
             <Select
               ariaLabel="Moeda"
               value={currency}
@@ -107,18 +93,10 @@ export default function OrbitDashboardV2() {
             />
           </div>
         </div>
+        <Button as="a" href="/transacoes/nova" size="sm" icon={<FaPlus aria-hidden="true" />} className="w-full sm:w-auto">
+          Nova transação
+        </Button>
       </header>
-      )}
-
-      {!isDesktop && (
-      <MobileDashboardHeader
-        periodValue={periodValue}
-        currency={currency}
-        loading={loading}
-        onPeriodChange={setPeriodValue}
-        onCurrencyChange={setCurrency}
-      />
-      )}
 
       {error && (
         <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3">
@@ -129,16 +107,17 @@ export default function OrbitDashboardV2() {
         </div>
       )}
 
-      <div className="mt-4">
-        {loading ? (
-          <DashboardLoading />
-        ) : data ? (
+      {/* Na troca de mês ou moeda os dados anteriores ficam esmaecidos até os novos chegarem. */}
+      <div className={`mt-4 transition-opacity ${loading && data ? 'pointer-events-none opacity-50' : ''}`} aria-busy={loading}>
+        {data ? (
           <DashboardHome
             home={data}
             showValues={showValues}
             periodicSummaryEnabled={user?.periodicSummaryEnabled === true}
             onRetry={retry}
           />
+        ) : loading ? (
+          <DashboardLoading />
         ) : null}
       </div>
     </ProtectedRoute>
@@ -157,8 +136,6 @@ function DashboardHome({
   onRetry: () => void;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
-  const [assistantOpen, setAssistantOpen] = useState(false);
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const data = home.monthly;
   const forecast = sectionState(home.current.forecast);
   const commitments = sectionState(home.current.commitments);
@@ -170,7 +147,6 @@ function DashboardHome({
     periodicSummaryEnabled,
   );
   const cashAccounts = home.current.cash.accounts;
-  const availableNow = home.current.cash.total;
   const topCategories = [...data.categories]
     .filter((category) => category.realized > 0)
     .sort((left, right) => right.realized - left.realized)
@@ -183,6 +159,13 @@ function DashboardHome({
     asOf: home.scope.currentAsOf,
     showValues,
     currency: data.currency,
+    commitments: commitments.data ? commitments.data.items : null,
+    budgetMissing: home.scope.selectedPeriodRelation === 'CURRENT' && data.planning.budget <= 0,
+  });
+  const startSteps = gettingStartedSteps({
+    hasAccount: data.accounts.length > 0,
+    hasTransactions: data.flow.some((month) => month.income > 0 || month.expense > 0) || (recentTransactions.data?.length ?? 0) > 0,
+    hasBudget: data.planning.budget > 0,
   });
   const hasPartialError = [
     home.current.forecast,
@@ -211,11 +194,18 @@ function DashboardHome({
         </div>
       )}
 
+      {startSteps.length > 0 && (
+        <div className="mb-[14px]">
+          <GettingStartedCard steps={startSteps} />
+        </div>
+      )}
+
       <section className="grid gap-[14px] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <SafeToSpendHero
-          cashTotal={availableNow}
           cashAccounts={cashAccounts}
           asOf={home.scope.currentAsOf}
+          summary={data.summary}
+          comparison={data.comparison}
           safeToSpend={forecast.data?.safeToSpend ?? null}
           horizonEnd={forecast.data?.horizonEnd ?? null}
           loading={forecast.loading}
@@ -224,7 +214,6 @@ function DashboardHome({
           currency={data.currency}
           onOpenForecast={() => setForecastOpen(true)}
           forecastEnabled={Boolean(forecast.data) && !forecast.loading}
-          onOpenAssistant={() => setAssistantOpen(true)}
           onRetry={onRetry}
         />
         <AttentionCard
@@ -234,82 +223,54 @@ function DashboardHome({
         />
       </section>
 
-      {!isDesktop && (
-        <div className="mt-[14px]">
-          <MobileDashboardHome
-            home={home}
-            showValues={showValues}
-            commitments={commitments}
-            recentTransactions={recentTransactions}
-            topCategories={topCategories}
-            netWorth={netWorth}
-            onRetry={onRetry}
-          />
-        </div>
-      )}
+      <section className="mt-[14px] grid gap-[14px] lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        <MonthPaceCard
+          data={data}
+          relation={home.scope.selectedPeriodRelation}
+          today={home.scope.currentAsOf.day}
+          showValues={showValues}
+        />
+        <MonthlyFlowCard
+          flow={data.flow}
+          relation={home.scope.selectedPeriodRelation}
+          showValues={showValues}
+          currency={data.currency}
+        />
+      </section>
 
-      {isDesktop && (
-        <>
-        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-          <MonthPaceCard
-            data={data}
-            relation={home.scope.selectedPeriodRelation}
-            today={home.scope.currentAsOf.day}
-            showValues={showValues}
-          />
+      <section className="mt-[14px] grid gap-[14px] md:grid-cols-2 xl:grid-cols-3">
+        <UpcomingCard
+          items={commitmentItems}
+          asOf={home.scope.currentAsOf}
+          showValues={showValues}
+          currency={data.currency}
+          loading={commitments.loading}
+          error={commitments.error}
+          onRetry={onRetry}
+        />
+        <RecentTransactionsCard
+          items={recentTransactions.data ?? []}
+          loading={recentTransactions.loading}
+          error={recentTransactions.error}
+          showValues={showValues}
+          currency={data.currency}
+          onRetry={onRetry}
+        />
+        <div className="min-w-0 md:col-span-2 xl:col-span-1">
           <CategoriesCard categories={topCategories} limits={data.limits} showValues={showValues} currency={data.currency} period={data.period} />
-        </section>
+        </div>
+      </section>
 
-        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1.36fr)]">
-          <UpcomingCard
-            items={commitmentItems}
-            asOf={home.scope.currentAsOf}
-            showValues={showValues}
-            currency={data.currency}
-            loading={commitments.loading}
-            error={commitments.error}
-            onRetry={onRetry}
-          />
-          <RecentTransactionsCard
-            items={recentTransactions.data ?? []}
-            loading={recentTransactions.loading}
-            error={recentTransactions.error}
-            showValues={showValues}
-            currency={data.currency}
-            onRetry={onRetry}
-          />
-        </section>
-
-        <section className="mt-[14px] grid items-start gap-[14px] xl:grid-cols-3" aria-label="Visão geral">
-          {data.cards.length > 0 && (
-            <div className="min-w-0">
-              <CreditCardsCard
-                cards={data.cards}
-                showValues={showValues}
-                currency={data.currency}
-              />
-            </div>
-          )}
-          {data.goals.length > 0 && (
-            <div className="min-w-0">
-              <FinancialGoalsCard
-                goals={data.goals}
-                showValues={showValues}
-                currency={data.currency}
-              />
-            </div>
-          )}
-          <div className="min-w-0">
-            <NetWorthSummaryCard
-              currency={data.currency}
-              showValues={showValues}
-              summary={netWorth}
-              period={data.period}
-            />
-          </div>
-        </section>
-        </>
-      )}
+      <div className="mt-[14px]">
+        <OverviewStrip
+          cards={data.cards}
+          goals={data.goals}
+          netWorth={netWorth}
+          period={data.period}
+          currency={data.currency}
+          showValues={showValues}
+        />
+      </div>
 
       {periodicSummaryEnabled && (
         <div className="mt-[14px]">
@@ -321,26 +282,6 @@ function DashboardHome({
             showValues={showValues}
           />
         </div>
-      )}
-
-      {assistantOpen && (
-        <ModalShell
-          title="Assistente financeiro"
-          eyebrow="IA local"
-          closeLabel="Fechar assistente"
-          maxWidthClass="sm:max-w-[640px]"
-          onClose={() => setAssistantOpen(false)}
-        >
-          <LocalFinancialAssistantCard
-            key={`${data.period.year}-${data.period.month}-${data.currency}`}
-            dashboard={data}
-            insights={insights.data}
-            forecast={forecast.data}
-            showValues={showValues}
-            compact
-            contextReady={Boolean(forecast.data) && Boolean(insights.data)}
-          />
-        </ModalShell>
       )}
 
       {forecastOpen && forecast.data && (
@@ -358,28 +299,25 @@ function DashboardLoading() {
   return (
     <div role="status" aria-label="Carregando dashboard">
       <div className="space-y-3 lg:hidden">
-        <div className="h-[205px] animate-pulse rounded-[18px] bg-[var(--skeleton)]" />
-        <div className="grid grid-cols-2 gap-2">
-          {[1, 2, 3, 4].map((item) => <div key={item} className="h-[62px] animate-pulse rounded-[12px] bg-[var(--skeleton)]" />)}
-        </div>
-        <div className="h-[118px] animate-pulse rounded-[16px] bg-[var(--skeleton)]" />
-        <div className="h-[250px] animate-pulse rounded-[16px] bg-[var(--skeleton)]" />
-        <div className="h-[220px] animate-pulse rounded-[16px] bg-[var(--skeleton)]" />
+        <div className="h-[330px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="h-[250px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="h-[220px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
       </div>
 
       <div className="hidden space-y-[14px] lg:block">
-        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1.95fr)_minmax(0,1fr)_minmax(0,1.22fr)]">
-          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="h-[330px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[330px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
-        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-          <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[252px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="grid gap-[14px] lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+          <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
-        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1.36fr)_minmax(0,1fr)]">
-          <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[244px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="grid gap-[14px] md:grid-cols-2 xl:grid-cols-3">
+          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)] md:col-span-2 xl:col-span-1" />
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildAttentionItems, MAX_ATTENTION_ITEMS } from '@/app/components/pages/dashboard/dashboard/dashboard-attention';
+import type { FinancialCommitment } from '@/app/types/financial-commitment';
 import type { DashboardCreditCard, DashboardRecentTransaction } from '@/app/types/dashboard';
 import type { FinancialInsight } from '@/app/types/financial-insight';
 
@@ -116,7 +117,7 @@ describe('buildAttentionItems', () => {
       insights: [budgetInsight('NEAR'), budgetInsight('OVER')],
     });
 
-    expect(items.map((item) => item.tone)).toEqual(['urgent', 'warning', 'info', 'info']);
+    expect(items.map((item) => item.tone)).toEqual(['urgent', 'warning', 'info']);
     expect(items[1].id).toBe('insight-budget-OVER');
   });
 
@@ -131,5 +132,101 @@ describe('buildAttentionItems', () => {
     const items = buildAttentionItems({ ...base, showValues: false, cards: [card('soon', 24)], recentTransactions: [], insights: [] });
 
     expect(items[0].detail).not.toMatch(/1\.240/);
+  });
+
+  it('troca o texto estatístico da anomalia por uma frase simples', () => {
+    const anomaly = {
+      id: 'anomaly-lazer',
+      type: 'SPENDING_ANOMALY',
+      period: { year: 2026, month: 10 },
+      currency: 'BRL',
+      message: 'Lazer está 382.7% acima da mediana de 6 meses com histórico. MAD de 8495 e z-score modificado de 8.6.',
+      href: '/categorias',
+      data: {
+        categoryId: 'c1',
+        categoryName: 'Lazer',
+        currentAmount: 136_112,
+        baselineMedian: 28_198,
+        difference: 107_914,
+        percentageDifference: 382.7,
+        sampleSize: 6,
+        baselineMad: 8_495,
+        modifiedZScore: 8.6,
+        rule: 'MODIFIED_Z_SCORE',
+      },
+    } as FinancialInsight;
+    const items = buildAttentionItems({ ...base, cards: [], recentTransactions: [], insights: [anomaly] });
+
+    expect(items[0].title).toBe('Lazer está 4,8x acima do normal');
+    expect(items[0].title).not.toMatch(/MAD|z-score/i);
+  });
+
+  it('não mostra insights apenas informativos', () => {
+    const recurring = { id: 'r', type: 'RECURRING_SHARE', period: { year: 2026, month: 10 }, currency: 'BRL', message: 'x', href: null, data: { monthlyEquivalent: 1, knownMonthlyExpense: 1, percentage: 233.8 } } as FinancialInsight;
+    const items = buildAttentionItems({ ...base, cards: [], recentTransactions: [], insights: [recurring] });
+
+    expect(items).toEqual([]);
+  });
+
+  describe('contas a pagar', () => {
+    const payable = (id: string, day: number, overrides: Partial<FinancialCommitment> = {}): FinancialCommitment => ({
+      id,
+      type: 'PENDING',
+      direction: 'PAYABLE',
+      state: 'UPCOMING',
+      title: `Conta ${id}`,
+      amount: 3_000,
+      currency: 'BRL',
+      date: { year: 2026, month: 10, day },
+      href: `/transacoes/show/${id}`,
+      accountName: null,
+      source: { kind: 'TRANSACTION', id },
+      ...overrides,
+    });
+
+    it('lista conta a pagar próxima e ignora a distante, a sem valor e a fatura', () => {
+      const items = buildAttentionItems({
+        ...base,
+        cards: [],
+        recentTransactions: [],
+        insights: [],
+        commitments: [
+          payable('near', 27),
+          payable('far', 31),
+          payable('milestone', 25, { amount: null }),
+          payable('statement', 25, { type: 'CARD_STATEMENT' }),
+          payable('income', 25, { direction: 'RECEIVABLE' }),
+        ],
+      });
+
+      expect(items).toHaveLength(1);
+      expect(items[0]).toMatchObject({ id: 'payable-near', title: 'Pagar Conta near', tone: 'warning', href: '/transacoes/show/near' });
+    });
+
+    it('marca conta vencida como urgente', () => {
+      const items = buildAttentionItems({
+        ...base,
+        cards: [],
+        recentTransactions: [],
+        insights: [],
+        commitments: [payable('late', 10, { state: 'OVERDUE' })],
+      });
+
+      expect(items[0]).toMatchObject({ tone: 'urgent' });
+      expect(items[0].detail).toContain('venceu');
+    });
+
+    it('usa o insight de pendências só quando os compromissos não carregaram', () => {
+      const upcoming = { id: 'u', type: 'UPCOMING_PENDING', period: { year: 2026, month: 10 }, currency: 'BRL', message: '1 despesa pendente', href: '/transacoes', data: { count: 1, amount: 3_000, from: asOf, through: { year: 2026, month: 10, day: 29 } } } as FinancialInsight;
+
+      expect(buildAttentionItems({ ...base, cards: [], recentTransactions: [], insights: [upcoming], commitments: null })).toHaveLength(1);
+      expect(buildAttentionItems({ ...base, cards: [], recentTransactions: [], insights: [upcoming], commitments: [] })).toEqual([]);
+    });
+  });
+
+  it('convida a definir o orçamento quando o mês não tem nenhum', () => {
+    const items = buildAttentionItems({ ...base, cards: [], recentTransactions: [], insights: [], budgetMissing: true });
+
+    expect(items[0]).toMatchObject({ id: 'budget-missing', href: '/categorias', action: 'Definir' });
   });
 });

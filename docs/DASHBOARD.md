@@ -17,7 +17,7 @@ O teste `dashboard-home-budget.test.ts` fixa esse budget em **6 source reads**. 
 
 ## Regras de aquisição
 
-- transações recentes filtram usuário, período e moeda no servidor antes de `take: 5`;
+- transações recentes filtram usuário, período, moeda e status `COMPLETED` no servidor antes de `take: 5` (agendadas aparecem em Compromissos);
 - saldo de caixa usa somente contas `CREDIT_DEBIT`;
 - consultas específicas de fatura/cartão são puladas quando não existe cartão elegível na moeda;
 - Compromissos reutiliza o Forecast adquirido pelo Dashboard;

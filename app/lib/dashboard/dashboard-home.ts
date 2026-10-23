@@ -79,6 +79,8 @@ async function getRecentDashboardTransactionsForUser(
       userId,
       year: period.year,
       month: period.month,
+      // Agendadas (PENDING) aparecem em Compromissos; canceladas não são movimentação.
+      status: 'COMPLETED',
       account: {
         is: {
           userId,

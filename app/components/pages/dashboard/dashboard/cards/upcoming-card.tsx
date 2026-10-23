@@ -24,10 +24,10 @@ export function UpcomingCard({
   onRetry?: () => void;
 }) {
   return (
-    <article className="min-h-[278px] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
+    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--text-muted)]">Compromissos · hoje</h2>
-        <Link href="/compromissos" className="inline-flex min-h-11 items-center px-2 -mx-2 text-xs font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
+        <h2 className="text-lg font-bold">Próximos compromissos</h2>
+        <Link href="/compromissos" className="inline-flex min-h-11 items-center px-2 -mx-2 text-sm font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
       </div>
 
       <div className="mt-2 divide-y divide-[var(--border)]">
@@ -59,8 +59,8 @@ export function UpcomingCard({
                         <span className="mt-1 text-xs font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-bold">{item.title}</p>
-                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                        <p className="truncate text-sm font-bold">{item.title}</p>
+                        <p className="mt-1 text-sm text-[var(--text-muted)]">
                           {item.amount === null ? 'Marco sem valor financeiro' : <span className="money">{displayMoney(item.amount, showValues, currency)}</span>}
                         </p>
                       </div>
