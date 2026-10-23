@@ -25,6 +25,7 @@ import {
   isPayrollMoneyLimitError,
   PAYROLL_CENTS_MAX,
 } from "@/app/lib/payroll/payroll-money";
+import { resolveEmployerFromHistory } from "@/app/lib/payroll/payroll-employer";
 import { prisma } from "@/app/lib/prisma";
 import { consumeImportRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
@@ -164,6 +165,16 @@ export async function previewPayrollImport(request: Request) {
     let parsed: ParsedPayrollDocument;
     try {
       parsed = parsePayrollText(extracted.text);
+      if (!parsed.employerCnpj) {
+        const known = await prisma.payrollDocument.findMany({
+          where: { userId },
+          distinct: ["employerCnpj"],
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          select: { employerName: true, employerCnpj: true },
+        });
+        parsed = resolveEmployerFromHistory(parsed, known);
+      }
     } catch (error) {
       if (error instanceof Error && error.message === "PAYROLL_DOCUMENT_NOT_RECOGNIZED") {
         return failure("PDF não reconhecido como documento de rendimento do trabalho", 400);

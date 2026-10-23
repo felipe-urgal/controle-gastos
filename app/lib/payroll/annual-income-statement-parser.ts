@@ -122,22 +122,32 @@ export function parseAnnualEmploymentIncomeStatement(
     parseYear(text, [/EXERC[IÍ]CIO\s*[:\-]?\s*(\d{4})/i]) ||
     (calendarYear ? calendarYear + 1 : 0);
 
-  const payerTaxId = capture(text, [
-    /(?:CNPJ|CPF)\s+(?:DA\s+)?FONTE PAGADORA\s*[:\-]?\s*([\d./-]+)/i,
-    /FONTE PAGADORA[^\n]*?(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i,
-  ]) ?? "";
+  // Modelo oficial da Receita: cabeçalho "CNPJ/CPF   Nome Empresarial / Nome Completo" e os dados na linha de baixo.
+  const payerRow = /FONTE PAGADORA[^\n]*\n[^\n]*\n\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}|\d{3}\.\d{3}\.\d{3}-\d{2})\s+(.+?)(?:\s{3,}|$)/im.exec(text);
+  const beneficiaryRow = /BENEFICI[ÁA]RIA DOS RENDIMENTOS[^\n]*\n[^\n]*\n\s*(\d{3}\.\d{3}\.\d{3}-\d{2})\s+(.+?)(?:\s{3,}|$)/im.exec(text);
+  const payerTaxId =
+    (payerRow ? normalize(payerRow[1]) : null) ??
+    capture(text, [
+      /(?:CNPJ|CPF)\s+(?:DA\s+)?FONTE PAGADORA\s*[:\-]?\s*([\d./-]+)/i,
+      /FONTE PAGADORA[^\n]*?(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i,
+    ]) ??
+    "";
   const payerName =
+    (payerRow ? normalize(payerRow[2]) : null) ??
     capture(text, [
       /NOME EMPRESARIAL\s*[:\-]?\s*([^\n|]{2,180})/i,
       /NOME DA FONTE PAGADORA\s*[:\-]?\s*([^\n|]{2,180})/i,
-    ]) ?? "";
-  const beneficiaryName = capture(text, [
-    /NOME COMPLETO\s*[:\-]?\s*([^\n|]{2,180})/i,
-    /NOME DO BENEFICI[ÁA]RIO\s*[:\-]?\s*([^\n|]{2,180})/i,
-  ]);
-  const beneficiaryTaxId = capture(text, [
-    /CPF DO BENEFICI[ÁA]RIO\s*[:\-]?\s*([\d.-]+)/i,
-  ]);
+    ]) ??
+    "";
+  const beneficiaryName =
+    (beneficiaryRow ? normalize(beneficiaryRow[2]) : null) ??
+    capture(text, [
+      /NOME COMPLETO\s*[:\-]?\s*([^\n|]{2,180})/i,
+      /NOME DO BENEFICI[ÁA]RIO\s*[:\-]?\s*([^\n|]{2,180})/i,
+    ]);
+  const beneficiaryTaxId =
+    (beneficiaryRow ? normalize(beneficiaryRow[1]) : null) ??
+    capture(text, [/CPF DO BENEFICI[ÁA]RIO\s*[:\-]?\s*([\d.-]+)/i]);
   const incomeNature = capture(text, [
     /NATUREZA DO RENDIMENTO\s*[:\-]?\s*([^\n|]{2,240})/i,
   ]);
@@ -160,10 +170,13 @@ export function parseAnnualEmploymentIncomeStatement(
     /IMPOSTO SOBRE A RENDA RETIDO NA FONTE/i,
     /\bIRRF\b/i,
   ]);
-  const thirteenthSalaryCents = moneyOnLine(text, [
-    /13[ºO°]\s*SAL[ÁA]RIO/i,
-    /D[ÉE]CIMO TERCEIRO/i,
-  ]);
+  // O quadro de tributação exclusiva lista "13º (décimo terceiro) salário"; a linha isenta de aposentados também cita 13º salário.
+  const thirteenthSalaryCents =
+    moneyOnLine(text, [/^\s*\d+\.\s*13[ºO°]\s*\(D[ÉE]CIMO TERCEIRO\)\s*SAL[ÁA]RIO/i]) ??
+    moneyOnLine(text, [
+      /13[ºO°]\s*SAL[ÁA]RIO/i,
+      /D[ÉE]CIMO TERCEIRO/i,
+    ]);
   const thirteenthIrrfCents = moneyOnLine(text, [
     /IRRF.*13[ºO°]/i,
     /IMPOSTO.*13[ºO°]/i,
