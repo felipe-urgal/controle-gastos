@@ -20,6 +20,10 @@ import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import { debtService, type DebtInput } from '@/app/services/debt-service';
+import { DebtsDues } from '@/app/components/pages/debt/debts-dues';
+import { DebtsSummaryPanel, InstallmentLoadPanel } from '@/app/components/pages/debt/debts-summary';
+import { owedCurrencies, summarizeDebts } from '@/app/components/pages/debt/debts-model';
+import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import type { Debt, DebtAdjustmentKind, DebtStatus } from '@/app/types/debt';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
@@ -177,18 +181,16 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
   }, [focusDebtId]);
 
   const filtered = useMemo(
-    () => filter === 'ALL' ? items : items.filter((item) => item.status === filter),
+    () => (filter === 'ALL' ? items : items.filter((item) => item.status === filter)).slice().sort((left, right) => right.balance - left.balance),
     [filter, items],
   );
 
-  const totals = useMemo(() => {
-    const result: Partial<Record<SupportedCurrency, number>> = {};
-    for (const debt of items) {
-      if (debt.balance <= 0 || debt.status === 'ARCHIVED') continue;
-      result[debt.currency] = (result[debt.currency] ?? 0) + debt.balance;
-    }
-    return result;
-  }, [items]);
+  // Dia lógico de hoje, fixo durante a sessão da página (evita chamada impura a cada render).
+  const [today] = useState(() => logicalDateFromUtcInstant(new Date()));
+  const [selectedCurrency, setSelectedCurrency] = useState<SupportedCurrency>('BRL');
+  const currencies = useMemo(() => owedCurrencies(items), [items]);
+  const activeCurrency = currencies.includes(selectedCurrency) ? selectedCurrency : (currencies[0] ?? selectedCurrency);
+  const summary = useMemo(() => (items.length > 0 ? summarizeDebts(items, activeCurrency, today) : null), [items, activeCurrency, today]);
 
   function openCreate() {
     setEditing(null);
@@ -461,16 +463,13 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
           </div>
         )}
 
-        <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(['BRL', 'USD', 'EUR'] as const).map((currency) => (
-            <article key={currency} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Saldo devedor · {currency}</span>
-              <strong className="mt-1 block break-words text-2xl tabular-nums text-[var(--foreground)]">
-                <span className="money">{showValues ? formatCurrency(totals[currency] ?? 0, currency) : '••••'}</span>
-              </strong>
-            </article>
-          ))}
-        </section>
+        {!loading && summary && (
+          <div className="mt-5 grid gap-4">
+            <DebtsSummaryPanel summary={summary} currencies={currencies} onCurrency={setSelectedCurrency} showValues={showValues} />
+            <InstallmentLoadPanel debts={items} currency={summary.currency} today={today} withoutInstallmentCount={summary.withoutInstallmentCount} showValues={showValues} />
+            <DebtsDues debts={items.filter((debt) => debt.currency === summary.currency)} today={today} showValues={showValues} onPay={openPayment} />
+          </div>
+        )}
 
         <ChipRow label="Filtrar dívidas" className="mt-5">
           {([
@@ -497,7 +496,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
               description="Cadastre passivos que você quer acompanhar manualmente."
             />
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filtered.map((debt) => (
                 <DebtCard
                   key={debt.id}
@@ -700,7 +699,7 @@ function DebtCard({
   return (
     <article
       id={`debt-${debt.id}`}
-      className="scroll-mt-24 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5"
+      className="scroll-mt-24 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-surface)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

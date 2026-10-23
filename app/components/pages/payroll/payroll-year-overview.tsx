@@ -1,5 +1,6 @@
 'use client';
 
+import { useChartWidth } from '@/app/components/charts/use-chart-width';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
 import { monthlySeries, summarizeYear, visibleMonths } from '@/app/components/pages/payroll/payroll-year-model';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
@@ -83,10 +84,11 @@ function MonthlyChart({
 }) {
   const series = visibleMonths(monthlySeries(items, year), monthsToShow);
   // Largura lógica próxima da real: no celular os rótulos mantêm tamanho legível.
-  const width = isCompact ? 360 : 760;
-  const height = isCompact ? 230 : 240;
-  const pad = { left: isCompact ? 44 : 56, right: 10, top: 14, bottom: 28 };
-  const fontSize = isCompact ? 12 : 11;
+  const { ref: chartRef, width } = useChartWidth(isCompact ? 360 : 760);
+  const narrow = width < 520;
+  const height = narrow ? 220 : 240;
+  const pad = { left: narrow ? 44 : 56, right: 10, top: 14, bottom: 28 };
+  const fontSize = narrow ? 12 : 11;
   const maxBar = Math.max(1, ...series.map((point) => point.barCents));
   const top = maxBar * 1.1;
   const slot = (width - pad.left - pad.right) / series.length;
@@ -123,7 +125,8 @@ function MonthlyChart({
           )}
         </div>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="mt-2 h-auto w-full touch-pan-y" role="img" aria-label={`Líquido por mês em ${year}`} {...handlers}>
+      <div ref={chartRef}>
+      <svg viewBox={`0 0 ${width} ${height}`} style={{ height }} className="mt-2 block w-full touch-pan-y" role="img" aria-label={`Líquido por mês em ${year}`} {...handlers}>
         <defs>
           <pattern id="payroll-incomplete" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <rect width="6" height="6" fill="var(--warning-subtle)" />
@@ -173,6 +176,7 @@ function MonthlyChart({
           </text>
         ))}
       </svg>
+      </div>
     </div>
   );
 }
