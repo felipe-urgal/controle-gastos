@@ -182,7 +182,7 @@ export default function McpAccessPanel({
   );
 
   return (
-    <section className="ds-panel overflow-hidden" aria-labelledby="mcp-access-title">
+    <section className="overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]" aria-labelledby="mcp-access-title">
       <div className="space-y-5 p-4 sm:p-5">
         <div>
           <div className="flex items-center gap-2">

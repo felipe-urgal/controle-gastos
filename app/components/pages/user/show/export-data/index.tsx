@@ -85,7 +85,7 @@ export default function ExportData() {
   }
 
   return (
-    <section className="ds-panel overflow-hidden" aria-labelledby="export-data-title">
+    <section className="overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]" aria-labelledby="export-data-title">
       <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
         <div className="flex items-start gap-3">
           <span
