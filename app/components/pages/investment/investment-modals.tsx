@@ -5,7 +5,7 @@ import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import { PageLoading } from '@/app/components/feedback';
 import { IncomeRow, InvestmentModal, ModalActions, OperationRow, SelectField } from '@/app/components/pages/investment/investment-cards';
 import { AssetForm, FiscalCostForm, IncomeForm, OperationForm, assetTypes, incomeTypes, dateLabel, fiscalEventTypes, quantityLabel } from '@/app/components/pages/investment/investments-helpers';
-import { Button, Input, MoneyText } from '@/app/components/ui';
+import { Button, Input, MoneyInput, MoneyText } from '@/app/components/ui';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
@@ -225,30 +225,24 @@ export function OperationModal({ portfolio, operationForm, setOperationForm, com
                   placeholder="10,125"
                   disabled={saving}
                 />
-                <Input
+                <MoneyInput
                   label="Preço unitário"
+                  currency={portfolio.accounts.find((item) => item.id === operationForm.accountId)?.currency}
                   value={operationForm.unitPrice}
-                  onChange={(event) =>
-                    setOperationForm({
-                      ...operationForm,
-                      unitPrice: event.target.value,
-                    })
+                  onValueChange={(unitPrice) =>
+                    setOperationForm({ ...operationForm, unitPrice })
                   }
-                  inputMode="decimal"
                   required
                   placeholder="35,90"
                   disabled={saving}
                 />
-                <Input
+                <MoneyInput
                   label="Taxas"
+                  currency={portfolio.accounts.find((item) => item.id === operationForm.accountId)?.currency}
                   value={operationForm.fees}
-                  onChange={(event) =>
-                    setOperationForm({
-                      ...operationForm,
-                      fees: event.target.value,
-                    })
+                  onValueChange={(fees) =>
+                    setOperationForm({ ...operationForm, fees })
                   }
-                  inputMode="decimal"
                   placeholder="0,00"
                   disabled={saving}
                 />
@@ -354,24 +348,24 @@ export function IncomeModal({ portfolio, incomeForm, setIncomeForm, compatibleAs
             placeholder="100"
             disabled={saving}
           />
-          <Input
+          <MoneyInput
             label="Valor por cota"
+            currency={portfolio.accounts.find((item) => item.id === incomeForm.accountId)?.currency}
             value={incomeForm.unitValue}
-            onChange={(event) =>
-              setIncomeForm({ ...incomeForm, unitValue: event.target.value })
+            onValueChange={(unitValue) =>
+              setIncomeForm({ ...incomeForm, unitValue })
             }
-            inputMode="decimal"
             required
             placeholder="0,85"
             disabled={saving}
           />
-          <Input
+          <MoneyInput
             label="Valor líquido recebido"
+            currency={portfolio.accounts.find((item) => item.id === incomeForm.accountId)?.currency}
             value={incomeForm.netAmount}
-            onChange={(event) =>
-              setIncomeForm({ ...incomeForm, netAmount: event.target.value })
+            onValueChange={(netAmount) =>
+              setIncomeForm({ ...incomeForm, netAmount })
             }
-            inputMode="decimal"
             required
             placeholder="85,00"
             disabled={saving}
@@ -449,18 +443,15 @@ export function FiscalCostModal({ portfolio, fiscalCostForm, setFiscalCostForm, 
                   placeholder="2100"
                   disabled={saving}
                 />
-                <Input
+                <MoneyInput
                   label="Custo fiscal total"
+                  currency={portfolio.assets.find((asset) => asset.id === fiscalCostForm.assetId)?.currency}
                   value={fiscalCostForm.costBasis}
-                  onChange={(event) =>
-                    setFiscalCostForm({
-                      ...fiscalCostForm,
-                      costBasis: event.target.value,
-                    })
+                  onValueChange={(costBasis) =>
+                    setFiscalCostForm({ ...fiscalCostForm, costBasis })
                   }
-                  inputMode="decimal"
                   required
-                  placeholder="R$ 20.000,00"
+                  placeholder="20.000,00"
                   disabled={saving}
                 />
               </div>

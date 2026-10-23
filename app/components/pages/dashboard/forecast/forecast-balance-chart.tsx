@@ -1,5 +1,7 @@
 'use client';
 
+import { ChartCursor } from '@/app/components/charts/chart-cursor';
+import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { BalanceSeries } from '@/app/components/pages/dashboard/forecast/forecast-series';
 import type { ForecastLogicalDate } from '@/app/types/forecast';
@@ -79,13 +81,36 @@ export function ForecastBalanceChart({
     const instant = new Date(day * 86_400_000);
     return { year: instant.getUTCFullYear(), month: instant.getUTCMonth() + 1, day: instant.getUTCDate() };
   };
+  // Um ponto por dia do horizonte: o saldo vale o do último lançamento até aquele dia.
+  const dayCount = Math.round(endDay - startDay) + 1;
+  const days = Array.from({ length: dayCount }, (_, offset) => {
+    const day = startDay + offset;
+    let balance = series.startBalance;
+    for (const point of series.points) {
+      if (dayNumber(point.date) <= day) balance = point.balance;
+    }
+    return { day, balance, x: x(day), y: y(balance) };
+  });
+  const { activeIndex, handlers } = useChartScrub(days.map((item) => item.x), WIDTH);
+  const shown = activeIndex === null ? null : days[activeIndex];
   const lowestX = x(series.lowest.date);
   const lowestAnchor = lowestX > WIDTH - 130 ? 'end' : 'start';
 
   return (
+    <>
+    <p className="mb-1 min-h-6 text-sm text-[var(--text-muted)]" aria-live="polite">
+      {shown ? (
+        <>
+          {shortDate(dateFromDay(shown.day))}: <strong className="money text-[var(--foreground)]">{labelValue(shown.balance)}</strong>
+        </>
+      ) : (
+        'Passe o cursor ou toque no gráfico para ver o saldo de cada dia.'
+      )}
+    </p>
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="h-auto w-full"
+      className="h-auto w-full touch-pan-y"
+      {...handlers}
       role="img"
       aria-label={`Saldo projetado de ${shortDate(series.asOf)} a ${shortDate(series.horizonEnd)}. Começa em ${labelValue(series.startBalance)}, termina em ${labelValue(series.endBalance)}, com menor saldo de ${labelValue(series.lowest.balance)} em ${shortDate(series.lowest.date)}.`}
     >
@@ -136,6 +161,8 @@ export function ForecastBalanceChart({
           </text>
         </g>
       )}
+      {shown && <ChartCursor x={shown.x} y={shown.y} top={PAD.top} bottom={HEIGHT - PAD.bottom} color={shown.balance < 0 ? 'var(--expense)' : 'var(--orbit-primary)'} />}
     </svg>
+    </>
   );
 }

@@ -1,10 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { formatCurrency } from '@/app/lib/currency/format-currency';
-import { SupportedCurrency } from '@/app/types/financial-summary';
-import { NetWorthData, NetWorthValuationQuality } from '@/app/types/net-worth';
+import { ChartCursor } from '@/app/components/charts/chart-cursor';
+import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
 import { displayMoney, logicalDateLabel, monthShort, valuationBasisLabel } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
+import { summarizeVariation } from '@/app/components/pages/net-worth/net-worth-page/net-worth-model';
+import { formatCurrency } from '@/app/lib/currency/format-currency';
+import type { SupportedCurrency } from '@/app/types/financial-summary';
+import type { NetWorthData, NetWorthValuationQuality } from '@/app/types/net-worth';
+
+const WIDTH = 760;
+const HEIGHT = 260;
+const PAD = { left: 64, right: 16, top: 16, bottom: 30 };
+const compact = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
 
 export function HistoryCard({
   history,
@@ -19,213 +26,111 @@ export function HistoryCard({
   valuation: NetWorthValuationQuality;
   historyValuation: NetWorthData['historyValuation'];
 }) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const values = history.map((item) => item.value);
   const min = Math.min(...values, 0);
   const max = Math.max(...values, 0);
-  const range = Math.max(1, max - min);
-  const width = 720;
-  const height = 250;
-  const paddingX = 28;
-  const paddingY = 28;
+  const span = Math.max(1, max - min);
+  const low = min - span * 0.08;
+  const high = max + span * 0.08;
+  const x = (index: number) =>
+    history.length <= 1 ? WIDTH / 2 : PAD.left + (index / (history.length - 1)) * (WIDTH - PAD.left - PAD.right);
+  const y = (value: number) => PAD.top + (1 - (value - low) / (high - low)) * (HEIGHT - PAD.top - PAD.bottom);
+  const points = history.map((item, index) => ({ ...item, x: x(index), y: y(item.value) }));
+  const { activeIndex, handlers } = useChartScrub(points.map((point) => point.x), WIDTH);
 
-  const points = history.map((item, index) => {
-    const x =
-      history.length <= 1
-        ? width / 2
-        : paddingX +
-          (index / (history.length - 1)) * (width - paddingX * 2);
-    const y =
-      height -
-      paddingY -
-      ((item.value - min) / range) * (height - paddingY * 2);
-    return { ...item, x, y };
-  });
+  const line = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
+  const baseline = HEIGHT - PAD.bottom;
+  const area = points.length > 1 ? `${line} L ${points[points.length - 1].x} ${baseline} L ${points[0].x} ${baseline} Z` : '';
+  const ticks = [0, 1, 2, 3].map((step) => low + ((high - low) * step) / 3);
+  const labelStep = history.length > 8 ? 2 : 1;
 
-  const path =
-    points.length === 0
-      ? ''
-      : points
-          .map((point, index) =>
-            `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`,
-          )
-          .join(' ');
-
-  const first = history[0]?.value ?? 0;
-  const last = history.at(-1)?.value ?? 0;
-  const variation = last - first;
-  const selectedPoint = points[activeIndex ?? points.length - 1] ?? null;
-  const firstPoint = points[0] ?? null;
-  const lastPoint = points.at(-1) ?? null;
-  const chartSummary =
-    firstPoint && lastPoint
-      ? `De ${monthShort(firstPoint.year, firstPoint.month)} (${displayMoney(firstPoint.value, showValues, currency)}) a ${monthShort(lastPoint.year, lastPoint.month)} (${displayMoney(lastPoint.value, showValues, currency)}).`
+  const variation = summarizeVariation(values);
+  const shown = points[activeIndex ?? points.length - 1] ?? null;
+  const first = points[0];
+  const last = points[points.length - 1];
+  const summary =
+    first && last
+      ? `De ${monthShort(first.year, first.month)} (${displayMoney(first.value, showValues, currency)}) a ${monthShort(last.year, last.month)} (${displayMoney(last.value, showValues, currency)}).`
       : 'Sem histórico no período.';
 
-  function selectFromPointer(event: React.PointerEvent<SVGSVGElement>) {
-    if (points.length === 0) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    if (rect.width === 0) return;
-    const x = ((event.clientX - rect.left) / rect.width) * width;
-    let nearest = 0;
-    for (let index = 1; index < points.length; index += 1) {
-      if (Math.abs(points[index].x - x) < Math.abs(points[nearest].x - x)) nearest = index;
-    }
-    setActiveIndex(nearest);
-  }
-
   return (
-    <article className="min-w-0 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <article className="min-w-0 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-[var(--foreground)]">
-            Evolução contábil mensal
-          </h2>
+        <div className="max-w-[56ch]">
+          <h2 className="text-lg font-bold text-[var(--foreground)]">Evolução mês a mês</h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Fechamento de cada mês com {valuationBasisLabel(historyValuation.basis)}:
-            transações concluídas menos passivos registrados pela data efetiva.
+            Fechamento de cada mês com {valuationBasisLabel(historyValuation.basis)}: transações concluídas menos passivos registrados pela data efetiva.
           </p>
         </div>
-        <div className="text-right">
-          <span className="block text-xs text-[var(--text-muted)]">
-            Variação no período
+        <div className="text-right" aria-live="polite">
+          <span className="block text-xs font-semibold text-[var(--text-muted)]">
+            {shown ? `${monthShort(shown.year, shown.month)}${activeIndex === null ? ' (último mês)' : ''}` : '—'}
           </span>
-          <strong
-            className={
-              variation < 0
-                ? 'text-[var(--expense)]'
-                : variation > 0
-                  ? 'text-[var(--income)]'
-                  : 'text-[var(--foreground)]'
-            }
-          >
-            {showValues
-              ? `${variation > 0 ? '+' : ''}${formatCurrency(variation, currency)}`
-              : '••••'}
-          </strong>
+          <strong className="money block text-xl font-semibold">{shown ? displayMoney(shown.value, showValues, currency) : '—'}</strong>
+          {variation && (
+            <span className={`money text-xs font-semibold ${variation.amount < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
+              {showValues ? `${variation.amount > 0 ? '+' : ''}${formatCurrency(variation.amount, currency)} no período` : '••••'}
+            </span>
+          )}
         </div>
       </div>
 
       {!valuation.comparableToHistory && (
-        <div className="mt-4 rounded-[12px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
-          O snapshot acima usa {valuationBasisLabel(valuation.basis)}, enquanto esta
-          série usa saldo transacional. O último ponto do gráfico não representa o
-          mesmo método de valuation do hero e pode ter valor diferente.
+        <div className="mt-4 rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
+          O resumo acima usa {valuationBasisLabel(valuation.basis)}, enquanto esta série usa saldo transacional. O último ponto do gráfico não representa o mesmo método e pode ter valor diferente.
         </div>
       )}
 
-      <div className="mt-4">
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          className="h-auto w-full touch-pan-y"
-          role="img"
-          aria-label={`Evolução contábil mensal do patrimônio em ${currency}. ${chartSummary}`}
-          onPointerDown={selectFromPointer}
-          onPointerMove={(event) => {
-            if (event.pointerType === 'mouse') selectFromPointer(event);
-          }}
-          onPointerLeave={(event) => {
-            if (event.pointerType === 'mouse') setActiveIndex(null);
-          }}
-        >
-          <line
-            x1={paddingX}
-            y1={height - paddingY}
-            x2={width - paddingX}
-            y2={height - paddingY}
-            stroke="currentColor"
-            className="text-[var(--border)]"
-          />
-          {path && (
-            <path
-              d={path}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              vectorEffect="non-scaling-stroke"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-[var(--orbit-primary)]"
-            />
-          )}
-          {points.map((point, index) => (
-            <g key={`${point.year}-${point.month}`}>
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={selectedPoint === point ? 11 : 7}
-                fill="currentColor"
-                className="text-[var(--orbit-primary)]"
-                opacity={selectedPoint === point || index === 0 || index === points.length - 1 ? 1 : 0.55}
-              />
-              <title>
-                {monthShort(point.year, point.month)}:{' '}
-                <span className="money">{displayMoney(point.value, showValues, currency)}</span>
-              </title>
-            </g>
-          ))}
-        </svg>
-      </div>
-
-      <p
-        className="mt-2 rounded-[10px] bg-[var(--surface-raised)] px-3 py-2 text-sm text-[var(--foreground)]"
-        aria-live="polite"
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="mt-3 h-auto w-full touch-pan-y"
+        role="img"
+        aria-label={`Evolução mensal do patrimônio em ${currency}. ${summary}`}
+        {...handlers}
       >
-        {selectedPoint ? (
-          <>
-            <span className="text-[var(--text-muted)]">
-              {monthShort(selectedPoint.year, selectedPoint.month)}
-              {activeIndex === null ? ' (último mês)' : ''}:
-            </span>{' '}
-            <strong><span className="money">{displayMoney(selectedPoint.value, showValues, currency)}</span></strong>
-          </>
-        ) : (
-          'Sem histórico no período.'
+        <defs>
+          <linearGradient id="net-worth-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="var(--orbit-primary)" stopOpacity="0.28" />
+            <stop offset="1" stopColor="var(--orbit-primary)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {ticks.map((tick) => (
+          <g key={tick}>
+            <line x1={PAD.left} x2={WIDTH - PAD.right} y1={y(tick)} y2={y(tick)} stroke="var(--border)" strokeDasharray="3 4" />
+            {showValues && (
+              <text x={PAD.left - 8} y={y(tick) + 4} textAnchor="end" fontSize="11" fill="var(--text-muted)" fontFamily="var(--font-numeric), monospace">
+                {compact.format(tick / 100)}
+              </text>
+            )}
+          </g>
+        ))}
+        {area && <path d={area} fill="url(#net-worth-area)" />}
+        {line && <path d={line} fill="none" stroke="var(--orbit-primary)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
+        {points.map((point, index) =>
+          index % labelStep === 0 || index === points.length - 1 ? (
+            <text key={`${point.year}-${point.month}`} x={point.x} y={HEIGHT - 8} textAnchor="middle" fontSize="11" fill="var(--text-muted)">
+              {monthShort(point.year, point.month)}
+            </text>
+          ) : null,
         )}
-      </p>
+        {shown && <ChartCursor x={shown.x} y={shown.y} top={PAD.top} bottom={baseline} />}
+      </svg>
 
-      <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-[var(--text-muted)]">
-        <span>
-          {history[0] ? monthShort(history[0].year, history[0].month) : '—'}
-        </span>
-        <span className="text-center">
-          {history[Math.floor(history.length / 2)]
-            ? monthShort(
-                history[Math.floor(history.length / 2)].year,
-                history[Math.floor(history.length / 2)].month,
-              )
-            : '—'}
-        </span>
-        <span className="text-right">
-          {history.at(-1)
-            ? monthShort(history.at(-1)!.year, history.at(-1)!.month)
-            : '—'}
-        </span>
-      </div>
-
-      <details className="mt-4 rounded-[12px] border border-[var(--border)]">
-        <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-bold text-[var(--foreground)]">
-          Ver valores em tabela
-        </summary>
+      <details className="mt-3 rounded-[12px] border border-[var(--border)]">
+        <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-bold text-[var(--foreground)]">Ver valores em tabela</summary>
         <div className="overflow-x-auto border-t border-[var(--border)]">
           <table className="w-full text-left text-sm">
             <thead className="bg-[var(--surface-raised)] text-xs text-[var(--text-muted)]">
               <tr>
                 <th className="px-3 py-2 font-semibold">Mês</th>
-                <th className="px-3 py-2 text-right font-semibold">
-                  Patrimônio {currency}
-                </th>
+                <th className="px-3 py-2 text-right font-semibold">Patrimônio {currency}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
               {history.map((item) => (
                 <tr key={`table-${item.year}-${item.month}`}>
-                  <td className="px-3 py-2 text-[var(--foreground)]">
-                    {monthShort(item.year, item.month)}
-                  </td>
-                  <td className="px-3 py-2 text-right font-semibold text-[var(--foreground)]">
-                    <span className="money">{displayMoney(item.value, showValues, currency)}</span>
-                  </td>
+                  <td className="px-3 py-2">{monthShort(item.year, item.month)}</td>
+                  <td className="money px-3 py-2 text-right font-semibold">{displayMoney(item.value, showValues, currency)}</td>
                 </tr>
               ))}
             </tbody>
@@ -234,8 +139,7 @@ export function HistoryCard({
       </details>
 
       <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
-        {historyValuation.description} O ponto mais recente usa dados até{' '}
-        {logicalDateLabel(historyValuation.currentPointAsOf)}.
+        {historyValuation.description} O ponto mais recente usa dados até {logicalDateLabel(historyValuation.currentPointAsOf)}.
       </p>
     </article>
   );

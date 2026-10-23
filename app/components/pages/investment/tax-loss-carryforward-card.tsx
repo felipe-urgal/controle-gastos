@@ -12,7 +12,7 @@ import type {
   InvestmentAssetType,
   InvestmentTaxLossReport,
 } from '@/app/types/investment';
-import { Button, Input, Select } from '@/app/components/ui';
+import { Button, Input, MoneyInput, Select } from '@/app/components/ui';
 
 const assetTypeLabels: Record<InvestmentAssetType, string> = {
   STOCK: 'Ações',
@@ -161,12 +161,11 @@ export function TaxLossCarryforwardCard({
             options={Array.from({ length: 12 }, (_, index) => index + 1).map((value) => ({ value: value, label: String(value) }))}
             disabled={saving}
           />
-          <Input
+          <MoneyInput
             label="Saldo de prejuízo"
+            currency={currency}
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            placeholder="R$ 0,00"
-            inputMode="decimal"
+            onValueChange={setAmount}
             required
             disabled={saving}
           />

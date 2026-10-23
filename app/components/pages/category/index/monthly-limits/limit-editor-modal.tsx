@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useState } from 'react';
 import { FaCheck } from 'react-icons/fa';
 
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { Button, Input } from '@/app/components/ui';
+import { Button, MoneyInput } from '@/app/components/ui';
 import type { CategoryMonthlyLimitItem } from '@/app/types/category-monthly-limit';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
@@ -46,12 +46,11 @@ export function LimitEditorModal({
       maxWidthClass="max-w-[520px]"
     >
       <form className="mt-4" onSubmit={onSubmit}>
-        <Input
+        <MoneyInput
           label={`Valor do limite em ${currency}`}
-          inputMode="decimal"
-          placeholder="Ex.: 800,00"
+          currency={currency}
           value={value}
-          onChange={(event) => onValueChange(event.currentTarget.value)}
+          onValueChange={onValueChange}
           error={fieldError}
           autoFocus
         />

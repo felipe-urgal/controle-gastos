@@ -10,7 +10,7 @@ import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import { investmentService } from '@/app/services/investment-service';
 import type { ForeignInvestmentAnnualTaxReport } from '@/app/types/investment';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
-import { Button, Input, Select } from '@/app/components/ui';
+import { Button, Input, MoneyInput, Select } from '@/app/components/ui';
 
 function money(value: number | null, showValues: boolean) {
   if (!showValues) return '••••';
@@ -353,12 +353,11 @@ export function ForeignInvestmentAnnualTaxCard({
                     setCreditCountry(event.target.value.toUpperCase().slice(0, 2))
                   } placeholder="US" disabled={savingCredit} className="uppercase" />
 
-              <Input
+              <MoneyInput
                 label="Valor pago"
+                currency={creditCurrency}
                 value={creditAmount}
-                onChange={(event) => setCreditAmount(event.target.value)}
-                placeholder="0,00"
-                inputMode="decimal"
+                onValueChange={setCreditAmount}
                 disabled={savingCredit}
               />
 

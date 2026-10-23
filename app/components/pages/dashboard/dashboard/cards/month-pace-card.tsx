@@ -8,6 +8,8 @@ import { PlanningMetric } from '@/app/components/pages/dashboard/dashboard/cards
 import { buildMonthPace, type MonthPace, type PaceStatus } from '@/app/components/pages/dashboard/dashboard/dashboard-pace';
 import { displayMoney, monthLabel, signedMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { ComparisonDetail } from '@/app/components/pages/dashboard/dashboard/insight-cards';
+import { ChartCursor } from '@/app/components/charts/chart-cursor';
+import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { DashboardPeriodRelation, MonthlyDashboard } from '@/app/types/dashboard';
 
@@ -54,11 +56,29 @@ function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues
   const money = (cents: number) => (showValues ? formatCurrency(cents, currency) : '••••');
   const hasToday = elapsedDays > 0;
   const mono = 'var(--font-numeric), monospace';
+  const dayXs = Array.from({ length: daysInMonth }, (_, index) => x(index + 1));
+  const { activeIndex, handlers } = useChartScrub(dayXs, WIDTH);
+  const activeDay = activeIndex === null ? null : activeIndex + 1;
+  const activeSpent = activeDay !== null && activeDay <= elapsedDays ? (cumulative[activeDay - 1] ?? null) : null;
+  const activePrevious = activeDay !== null ? (previousCumulative[activeDay - 1] ?? null) : null;
 
   return (
+    <>
+    <p className="mb-1 min-h-6 text-sm text-[var(--text-muted)]" aria-live="polite">
+      {activeDay === null ? (
+        'Passe o cursor ou toque no gráfico para ver o gasto de cada dia.'
+      ) : (
+        <>
+          Dia {activeDay}:{' '}
+          <strong className="money text-[var(--foreground)]">{activeSpent !== null ? money(activeSpent) : 'ainda não chegou'}</strong>
+          {activePrevious !== null && <> · mês passado <span className="money">{money(activePrevious)}</span></>}
+        </>
+      )}
+    </p>
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="h-auto w-full"
+      className="h-auto w-full touch-pan-y"
+      {...handlers}
       role="img"
       aria-label={`Gasto acumulado no mês: ${money(spent)} em ${elapsedDays} de ${daysInMonth} dias${budget > 0 ? `, orçamento de ${money(budget)}` : ''}${projected !== null ? `, projeção de ${money(projected)} no fim do mês` : ''}.`}
     >
@@ -99,7 +119,11 @@ function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues
       {hasToday && (
         <circle cx={x(elapsedDays)} cy={y(spent)} r="4.5" fill="var(--orbit-primary)" stroke="var(--surface)" strokeWidth="2" />
       )}
+      {activeDay !== null && (
+        <ChartCursor x={x(activeDay)} y={y(activeSpent ?? activePrevious ?? 0)} top={PAD.top} bottom={HEIGHT - PAD.bottom} />
+      )}
     </svg>
+    </>
   );
 }
 

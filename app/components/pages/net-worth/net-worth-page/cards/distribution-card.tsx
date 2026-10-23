@@ -6,6 +6,7 @@ import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { SupportedCurrency } from '@/app/types/financial-summary';
 import { NetWorthAccount } from '@/app/types/net-worth';
 import { displayMoney, valuationBasisLabel } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
+import { rankAccounts } from '@/app/components/pages/net-worth/net-worth-page/net-worth-model';
 
 export function DistributionCard({
   accounts,
@@ -16,19 +17,16 @@ export function DistributionCard({
   currency: SupportedCurrency;
   showValues: boolean;
 }) {
-  const totalAbsolute = accounts.reduce(
-    (sum, account) => sum + Math.abs(account.balance),
-    0,
-  );
+  const ranked = rankAccounts(accounts);
 
   return (
-    <article className="min-w-0 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <article className="min-w-0 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div>
         <h2 className="text-lg font-bold text-[var(--foreground)]">
-          Distribuição por conta
+          Onde está o seu dinheiro
         </h2>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
-          Correntes e investimentos no snapshot selecionado.
+          Contas ordenadas pelo valor, com a fatia de cada uma.
         </p>
       </div>
 
@@ -38,12 +36,7 @@ export function DistributionCard({
         </p>
       ) : (
         <div className="mt-4 divide-y divide-[var(--border)]">
-          {accounts.map((account) => {
-            const share =
-              totalAbsolute === 0
-                ? 0
-                : Math.round((Math.abs(account.balance) / totalAbsolute) * 1000) /
-                  10;
+          {ranked.map(({ account, share, barPercent }) => {
             const investment = account.type === 'INVESTMENT';
             const detailHref = investment
               ? '/investimentos'
@@ -53,7 +46,7 @@ export function DistributionCard({
               <Link
                 key={account.id}
                 href={detailHref}
-                className="grid min-h-[72px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-2.5"
+                className="grid min-h-[72px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-3"
               >
                 <span
                   className="grid h-11 w-11 place-items-center rounded-[11px] text-white"
@@ -73,7 +66,10 @@ export function DistributionCard({
                   <strong className="block truncate text-sm text-[var(--foreground)]">
                     {account.name}
                   </strong>
-                  <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                  <span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${share.toLocaleString('pt-BR')}% dos ativos`}>
+                    <span className={`block h-full rounded-full ${account.balance < 0 ? 'bg-[var(--expense)]' : 'bg-[var(--orbit-primary)]'}`} style={{ width: `${barPercent}%` }} />
+                  </span>
+                  <span className="mt-1.5 block text-xs text-[var(--text-muted)]">
                     {investment
                       ? `Investimento · ${valuationBasisLabel(account.valuationBasis)}`
                       : 'Conta corrente · saldo transacional'}
@@ -103,11 +99,11 @@ export function DistributionCard({
                   <strong
                     className={
                       account.balance < 0
-                        ? 'block text-sm text-[var(--expense)]'
-                        : 'block text-sm text-[var(--foreground)]'
+                        ? 'money block text-sm font-semibold text-[var(--expense)]'
+                        : 'money block text-sm font-semibold text-[var(--foreground)]'
                     }
                   >
-                    <span className="money">{displayMoney(account.balance, showValues, currency)}</span>
+                    {displayMoney(account.balance, showValues, currency)}
                   </strong>
                   <span className="mt-1 block text-xs text-[var(--text-muted)]">
                     {share.toLocaleString('pt-BR')}%

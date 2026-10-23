@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { FaFlask, FaPlus, FaTrash } from 'react-icons/fa';
 
-import { Button, IconButton, Input, Select } from '@/app/components/ui';
+import { Button, IconButton, Input, MoneyInput, Select } from '@/app/components/ui';
 import {
   applyForecastScenarios,
   type ForecastScenarioMovement,
@@ -134,17 +134,13 @@ export default function ForecastScenarioPanel({
           required
         />
 
-        <Input
+        <MoneyInput
           label="Valor"
           aria-label="Valor do cenário"
-          type="number"
-          min="0.01"
-          step="0.01"
-          inputMode="decimal"
+          currency={data.currency}
           enterKeyHint="next"
           value={amount}
-          onChange={(event) => setAmount(event.target.value)}
-          placeholder="0,00"
+          onValueChange={setAmount}
           required
         />
 

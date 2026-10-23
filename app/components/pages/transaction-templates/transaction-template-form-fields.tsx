@@ -3,7 +3,8 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 
-import { Button, Chip, Input, Select } from '@/app/components/ui';
+import { Button, Chip, Input, MoneyInput, Select } from '@/app/components/ui';
+import { centsToMoneyValue, moneyValueToCents } from '@/app/lib/currency/money-mask';
 import {
   TRANSACTION_DESCRIPTION_MAX_LENGTH,
   TRANSACTION_MAX_AMOUNT_CENTS,
@@ -70,19 +71,14 @@ export default function TransactionTemplateFormFields({
       <div className="grid gap-3 rounded-[12px] border border-dashed border-[var(--border-strong)] p-3.5">
         <p className="text-xs text-[var(--text-muted)]">Opcional. O que ficar vazio você escolhe na hora de usar.</p>
 
-        <Input
+        <MoneyInput
           label="Valor"
-          type="number"
-          inputMode="decimal"
           enterKeyHint="done"
-          min="0.01"
-          max={TRANSACTION_MAX_AMOUNT_CENTS / 100}
-          step="0.01"
-          value={form.amount ? form.amount / 100 : ''}
-          onChange={(event) =>
+          value={form.amount ? centsToMoneyValue(form.amount) : ''}
+          onValueChange={(next) =>
             setForm((value) => ({
               ...value,
-              amount: event.target.value ? Math.round(Number(event.target.value) * 100) : null,
+              amount: Math.min(moneyValueToCents(next) ?? 0, TRANSACTION_MAX_AMOUNT_CENTS) || null,
             }))
           }
         />

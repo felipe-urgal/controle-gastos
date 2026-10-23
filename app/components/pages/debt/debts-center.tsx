@@ -14,7 +14,7 @@ import {
 import { ProtectedRoute } from '@/app/components/layout';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { Alert, PageEmpty } from '@/app/components/feedback';
-import { Button, Chip, ChipRow, IconButton, Input, Select } from '@/app/components/ui';
+import { Button, Chip, ChipRow, IconButton, Input, MoneyInput, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -537,7 +537,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
                   Atual: {showValues ? formatCurrency(adjusting.balance, adjusting.currency) : '••••'}
                 </p>
               </div>
-              <Input label="Novo saldo devedor" value={newBalance} onChange={(event) => setNewBalance(event.target.value)} inputMode="decimal" required disabled={adjustmentSaving} />
+              <MoneyInput label="Novo saldo devedor" currency={adjusting.currency} value={newBalance} onValueChange={setNewBalance} required disabled={adjustmentSaving} />
               <Input label="Motivo do ajuste" value={adjustmentDescription} onChange={(event) => setAdjustmentDescription(event.target.value)} maxLength={255} disabled={adjustmentSaving} placeholder="Ex.: correção do saldo após renegociação" />
               <p className="text-xs text-[var(--text-muted)]">Ajuste manual corrige o passivo e não avança parcelas nem cria transação financeira.</p>
               {adjustmentError && <Alert variant="error" message={adjustmentError} />}
@@ -565,11 +565,11 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
                   </p>
                 )}
               </div>
-              <Input
+              <MoneyInput
                 label="Valor pago"
+                currency={paying.currency}
                 value={paymentAmount}
-                onChange={(event) => setPaymentAmount(event.target.value)}
-                inputMode="decimal"
+                onValueChange={setPaymentAmount}
                 required
                 disabled={paymentSaving}
               />
@@ -825,7 +825,7 @@ function DebtFormModal({
 
         {!editing && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Saldo devedor" value={form.balance} onChange={(event) => onChange({ ...form, balance: event.target.value })} inputMode="decimal" required disabled={saving} placeholder="25000,00" />
+            <MoneyInput label="Saldo devedor" currency={form.currency} value={form.balance} onValueChange={(balance) => onChange({ ...form, balance })} required disabled={saving} placeholder="25.000,00" />
             <Select
               label="Moeda"
               value={form.currency}
@@ -837,7 +837,7 @@ function DebtFormModal({
         )}
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Valor da parcela opcional" value={form.installmentAmount} onChange={(event) => onChange({ ...form, installmentAmount: event.target.value })} inputMode="decimal" disabled={saving} placeholder="850,00" />
+          <MoneyInput label="Valor da parcela opcional" currency={form.currency} value={form.installmentAmount} onValueChange={(installmentAmount) => onChange({ ...form, installmentAmount })} disabled={saving} placeholder="850,00" />
           <Input label="Próximo vencimento" type="date" value={form.dueDate} onChange={(event) => onChange({ ...form, dueDate: event.target.value })} disabled={saving} />
         </div>
 

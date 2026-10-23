@@ -23,11 +23,11 @@ export function RealReturnCard({
           : null;
 
   return (
-    <article className="min-w-0 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <article className="min-w-0 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
-            Evolução patrimonial
+            Contra a inflação
           </h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
             {monthShort(summary.period.start.year, summary.period.start.month)} →{' '}
@@ -48,7 +48,7 @@ export function RealReturnCard({
         <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Patrimônio inicial</dt>
           <dd className="mt-1 font-bold text-[var(--foreground)]">
-            <span className="money">{displayMoney(data.initial, showValues, data.currency)}</span>
+            <span className="money font-semibold">{displayMoney(data.initial, showValues, data.currency)}</span>
           </dd>
         </div>
         <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
@@ -71,9 +71,9 @@ export function RealReturnCard({
                 {displayPercent(summary.inflation.percentage, showValues)}
               </dd>
             </div>
-            <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
-              <dt className="text-xs text-[var(--text-muted)]">Evolução real</dt>
-              <dd className="mt-1 font-bold text-[var(--foreground)]">
+            <div className="rounded-[14px] bg-[var(--orbit-primary-subtle)] p-3">
+              <dt className="text-xs font-semibold text-[var(--orbit-primary)]">Evolução real</dt>
+              <dd className="money mt-1 text-lg font-semibold text-[var(--orbit-primary)]">
                 {displayPercent(data.realPercentage, showValues)}
               </dd>
             </div>

@@ -82,6 +82,11 @@ describe('groupMovementsByDay', () => {
 });
 
 describe('buildSparkline', () => {
+  it('expõe as coordenadas de cada ponto para a interação', () => {
+    const shape = buildSparkline([0, 50, 100], 100, 40, 0)!;
+    expect(shape.points).toEqual([{ x: 0, y: 40 }, { x: 50, y: 20 }, { x: 100, y: 0 }]);
+  });
+
   it('cobre a caixa e termina no último ponto', () => {
     const shape = buildSparkline([0, 50, 100], 100, 40, 0)!;
 

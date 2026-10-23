@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FaPen } from 'react-icons/fa';
 
 import { describeCardCycle } from '@/app/components/pages/account/form/account-form-model';
-import { Button, ColorIconSelector, IconButton, IconRenderer, InlineInput, Select } from '@/app/components/ui';
+import { Button, ColorIconSelector, IconButton, IconRenderer, InlineInput, MoneyInlineInput, Select } from '@/app/components/ui';
 import { ACCOUNT_NAME_MAX_LENGTH, accountTypeOptions, currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { AccountType } from '@/app/types/account';
@@ -125,12 +125,11 @@ export function AccountFormCard({
             </label>
             <div className="flex items-baseline gap-2">
               <span className="money text-xl text-[var(--text-muted)]">{symbol}</span>
-              <InlineInput
+              <MoneyInlineInput
                 id="account-credit-limit"
                 size="amount"
-                inputMode="decimal"
                 value={values.creditLimit}
-                onChange={(event) => onChange({ creditLimit: event.target.value })}
+                onValueChange={(creditLimit) => onChange({ creditLimit })}
                 disabled={loading}
                 required
                 placeholder="5.000,00"
