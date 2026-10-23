@@ -1,13 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { FaArrowDown, FaArrowUp } from 'react-icons/fa';
 
-import { MonthMetric } from '@/app/components/pages/dashboard/dashboard/cards/month-metric';
 import { PlanningMetric } from '@/app/components/pages/dashboard/dashboard/cards/planning-metric';
 import { buildMonthPace, type MonthPace, type PaceStatus } from '@/app/components/pages/dashboard/dashboard/dashboard-pace';
-import { displayMoney, monthLabel, signedMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
-import { ComparisonDetail } from '@/app/components/pages/dashboard/dashboard/insight-cards';
+import { displayMoney, monthLabel } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { ChartCursor } from '@/app/components/charts/chart-cursor';
 import { useChartWidth } from '@/app/components/charts/use-chart-width';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
@@ -165,51 +162,13 @@ export function MonthPaceCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="dashboard-pace-title" className="text-lg font-bold">Ritmo do mês</h2>
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">Seu dinheiro em {monthLabel(periodValue)}.</p>
+          <h2 id="dashboard-pace-title" className="text-lg font-bold">Gastos do mês, dia a dia</h2>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{monthLabel(periodValue)} comparado ao mês anterior.</p>
         </div>
         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${toneClass[status.tone]}`}>{status.text}</span>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-3 sm:divide-x sm:divide-[var(--border)]">
-        <MonthMetric
-          icon={<FaArrowUp aria-hidden="true" />}
-          label="Receitas"
-          value={money(data.summary.income)}
-          detail={
-            <ComparisonDetail
-              percentage={data.comparison.income.percentage}
-              previousMonth={previous.month}
-              previousYear={previous.year}
-              tone={data.comparison.income.percentage !== null && data.comparison.income.percentage >= 0 ? 'income' : 'expense'}
-            />
-          }
-          tone="income"
-        />
-        <MonthMetric
-          icon={<FaArrowDown aria-hidden="true" />}
-          label="Despesas"
-          value={money(data.summary.expense)}
-          detail={
-            <ComparisonDetail
-              percentage={data.comparison.expense.percentage}
-              previousMonth={previous.month}
-              previousYear={previous.year}
-            />
-          }
-          tone="expense"
-        />
-        <MonthMetric
-          icon={<span aria-hidden="true">−</span>}
-          label="Saldo do mês"
-          value={signedMoney(data.summary.balance, showValues, data.currency)}
-          detail={data.summary.balance < 0 ? 'Você gastou mais que recebeu.' : 'O mês está positivo até aqui.'}
-          tone={data.summary.balance < 0 ? 'expense' : 'income'}
-          iconTone="neutral"
-        />
-      </div>
-
-      <div className="mt-5">
+      <div className="mt-4">
         <PaceChart pace={pace} showValues={showValues} currency={data.currency} />
         <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-[var(--text-muted)]">
           <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-[var(--orbit-primary)]" aria-hidden="true" />Este mês</span>

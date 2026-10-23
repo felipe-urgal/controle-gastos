@@ -1,6 +1,7 @@
 import { displayMoney, logicalDateDistance } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { insightDetail } from '@/app/components/pages/dashboard/dashboard/insight-cards';
 import type { DashboardCreditCard, DashboardRecentTransaction } from '@/app/types/dashboard';
+import type { FinancialCommitment } from '@/app/types/financial-commitment';
 import type { FinancialInsight } from '@/app/types/financial-insight';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { ForecastLogicalDate } from '@/app/types/forecast';
@@ -20,7 +21,12 @@ export type AttentionItem = {
 /** Faturas que vencem nesta janela (em dias) entram na lista de atenção. */
 export const CARD_DUE_WINDOW_DAYS = 7;
 const URGENT_DUE_DAYS = 3;
-export const MAX_ATTENTION_ITEMS = 5;
+export const MAX_ATTENTION_ITEMS = 3;
+/** Pagamentos a vencer nesta janela (em dias) entram na lista de atenção. */
+const PAYABLE_WINDOW_DAYS = 7;
+
+/** Insights só informativos (sem ação direta) ficam fora da lista de atenção do Dashboard. */
+const INFORMATIONAL_INSIGHTS = new Set<FinancialInsight['type']>(['RECURRING_SHARE', 'FORECAST_BALANCE', 'INCOME_CHANGE']);
 
 function dueLabel(distance: number) {
   if (distance < 0) return 'venceu';
@@ -36,6 +42,8 @@ export function buildAttentionItems({
   asOf,
   showValues,
   currency,
+  commitments = null,
+  budgetMissing = false,
 }: {
   cards: DashboardCreditCard[];
   recentTransactions: DashboardRecentTransaction[];
@@ -43,6 +51,10 @@ export function buildAttentionItems({
   asOf: ForecastLogicalDate;
   showValues: boolean;
   currency: string;
+  /** Compromissos do Forecast; `null` quando a seção falhou (aí vale o insight de pendências). */
+  commitments?: FinancialCommitment[] | null;
+  /** Mês em andamento sem nenhum orçamento definido. */
+  budgetMissing?: boolean;
 }): AttentionItem[] {
   const items: AttentionItem[] = [];
 
@@ -63,8 +75,49 @@ export function buildAttentionItems({
     });
   }
 
-  // Insights já trazem a mensagem e o destino; só o tom é decidido aqui.
+  // Faturas já aparecem acima; aqui entram as demais contas a pagar vencidas ou próximas.
+  for (const item of commitments ?? []) {
+    if (item.direction !== 'PAYABLE' || item.type === 'CARD_STATEMENT' || item.amount === null) continue;
+
+    const distance = logicalDateDistance(item.date, asOf);
+    const overdue = item.state === 'OVERDUE';
+    if (!overdue && distance > PAYABLE_WINDOW_DAYS) continue;
+
+    items.push({
+      id: `payable-${item.id}`,
+      tone: overdue ? 'urgent' : 'warning',
+      title: `Pagar ${item.title}`,
+      detail: `${displayMoney(item.amount, showValues, currency)} · ${overdue ? 'venceu' : dueLabel(distance)}`,
+      href: item.href,
+      action: 'Ver',
+    });
+  }
+
   for (const insight of insights) {
+    if (INFORMATIONAL_INSIGHTS.has(insight.type)) continue;
+    // As pendências já saem dos compromissos quando eles carregaram.
+    if (insight.type === 'UPCOMING_PENDING' && commitments !== null) continue;
+
+    if (insight.type === 'SPENDING_ANOMALY') {
+      const { categoryName, currentAmount, baselineMedian, percentageDifference } = insight.data;
+      const ratio = baselineMedian > 0 ? currentAmount / baselineMedian : null;
+      const how = ratio !== null && ratio >= 2
+        ? `${ratio.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}x acima do normal`
+        : ratio !== null
+          ? `${Math.round(percentageDifference).toLocaleString('pt-BR')}% acima do normal`
+          : 'fora do padrão';
+      items.push({
+        id: `insight-${insight.id}`,
+        tone: 'info',
+        title: `${categoryName} está ${how}`,
+        detail: `${displayMoney(currentAmount, showValues, currency)} neste mês · costuma ser ${displayMoney(baselineMedian, showValues, currency)}`,
+        href: insight.href,
+        action: insight.href ? 'Ver' : '',
+      });
+      continue;
+    }
+
+    // Os demais insights já trazem a mensagem e o destino; só o tom é decidido aqui.
     const critical =
       insight.type === 'SAFE_TO_SPEND' ||
       (insight.type === 'CATEGORY_BUDGET' && insight.data.state === 'OVER');
@@ -90,6 +143,17 @@ export function buildAttentionItems({
       detail: 'Categorize para os gráficos e orçamentos ficarem certos.',
       href: '/transacoes',
       action: 'Revisar',
+    });
+  }
+
+  if (budgetMissing) {
+    items.push({
+      id: 'budget-missing',
+      tone: 'info',
+      title: 'Defina um orçamento para o mês',
+      detail: 'Sem orçamento não dá para saber se o gasto está no ritmo.',
+      href: '/categorias',
+      action: 'Definir',
     });
   }
 

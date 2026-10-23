@@ -9,7 +9,6 @@ import { useState } from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { ModalShell } from '@/app/components/overlays/modal-shell';
 
 import { Button, IconButton, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -41,7 +40,6 @@ const CategoriesCard = dynamic(() => import('@/app/components/pages/dashboard/da
 const RecentTransactionsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/recent-transactions-card').then((m) => m.RecentTransactionsCard), { ssr: false, loading: cardFallback(244) });
 const ForecastDialog = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/forecast-dialog').then((m) => m.ForecastDialog), { ssr: false });
 const NetWorthSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/insight-cards').then((m) => m.NetWorthSummaryCard), { ssr: false, loading: cardFallback(180) });
-const LocalFinancialAssistantCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/local-financial-assistant-card').then((m) => m.LocalFinancialAssistantCard), { ssr: false, loading: cardFallback(180) });
 const PeriodicSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/periodic-summary-card').then((m) => m.PeriodicSummaryCard), { ssr: false, loading: cardFallback(140) });
 
 export default function OrbitDashboardV2() {
@@ -158,7 +156,6 @@ function DashboardHome({
   onRetry: () => void;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
-  const [assistantOpen, setAssistantOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const data = home.monthly;
   const forecast = sectionState(home.current.forecast);
@@ -171,7 +168,6 @@ function DashboardHome({
     periodicSummaryEnabled,
   );
   const cashAccounts = home.current.cash.accounts;
-  const availableNow = home.current.cash.total;
   const topCategories = [...data.categories]
     .filter((category) => category.realized > 0)
     .sort((left, right) => right.realized - left.realized)
@@ -184,6 +180,8 @@ function DashboardHome({
     asOf: home.scope.currentAsOf,
     showValues,
     currency: data.currency,
+    commitments: commitments.data ? commitments.data.items : null,
+    budgetMissing: home.scope.selectedPeriodRelation === 'CURRENT' && data.planning.budget <= 0,
   });
   const hasPartialError = [
     home.current.forecast,
@@ -214,9 +212,10 @@ function DashboardHome({
 
       <section className="grid gap-[14px] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <SafeToSpendHero
-          cashTotal={availableNow}
           cashAccounts={cashAccounts}
           asOf={home.scope.currentAsOf}
+          summary={data.summary}
+          comparison={data.comparison}
           safeToSpend={forecast.data?.safeToSpend ?? null}
           horizonEnd={forecast.data?.horizonEnd ?? null}
           loading={forecast.loading}
@@ -225,7 +224,6 @@ function DashboardHome({
           currency={data.currency}
           onOpenForecast={() => setForecastOpen(true)}
           forecastEnabled={Boolean(forecast.data) && !forecast.loading}
-          onOpenAssistant={() => setAssistantOpen(true)}
           onRetry={onRetry}
         />
         <AttentionCard
@@ -322,26 +320,6 @@ function DashboardHome({
             showValues={showValues}
           />
         </div>
-      )}
-
-      {assistantOpen && (
-        <ModalShell
-          title="Assistente financeiro"
-          eyebrow="IA local"
-          closeLabel="Fechar assistente"
-          maxWidthClass="sm:max-w-[640px]"
-          onClose={() => setAssistantOpen(false)}
-        >
-          <LocalFinancialAssistantCard
-            key={`${data.period.year}-${data.period.month}-${data.currency}`}
-            dashboard={data}
-            insights={insights.data}
-            forecast={forecast.data}
-            showValues={showValues}
-            compact
-            contextReady={Boolean(forecast.data) && Boolean(insights.data)}
-          />
-        </ModalShell>
       )}
 
       {forecastOpen && forecast.data && (
