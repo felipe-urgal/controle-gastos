@@ -91,6 +91,19 @@ describe("extractPdfText com fontes CID", () => {
     expect(text.split("\n")).toEqual(["Visivel", "A B"]);
   });
 
+  it("respeita a matriz da página (cm) quando o gerador inverte o eixo y", () => {
+    // Skia/Chrome desenham com y para baixo: o texto de y=100 está acima do de y=140.
+    const content = [
+      "q 1 0 0 -1 0 800 cm",
+      "BT /F1 10 Tf",
+      `1 0 0 -1 50 140 Tm <${hex("Embaixo")}> Tj`,
+      `1 0 0 -1 50 100 Tm <${hex("Em cima")}> Tj`,
+      "ET Q",
+    ].join("\n");
+
+    expect(extractPdfText(cidPdf(content)).text.split("\n")).toEqual(["Em cima", "Embaixo"]);
+  });
+
   it("aceita CR sozinho após a palavra stream e vários Tj em um TJ", () => {
     const content = `BT /F1 10 Tf 1 0 0 1 50 700 Tm [<${hex("Ola")}> -2000 <${hex("Mundo")}>] TJ ET`;
     expect(extractPdfText(cidPdf(content, "\r")).text).toBe("Ola Mundo");

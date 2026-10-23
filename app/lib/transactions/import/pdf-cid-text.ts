@@ -233,9 +233,26 @@ function tokenize(content: string) {
   return root;
 }
 
+type Matrix = [number, number, number, number, number, number];
+
+/** Produto de matrizes do PDF: `first` é aplicada antes de `second` (convenção linha × matriz). */
+function multiply(first: readonly number[], second: readonly number[]): Matrix {
+  return [
+    first[0] * second[0] + first[1] * second[2],
+    first[0] * second[1] + first[1] * second[3],
+    first[2] * second[0] + first[3] * second[2],
+    first[2] * second[1] + first[3] * second[3],
+    first[4] * second[0] + first[5] * second[2] + second[4],
+    first[4] * second[1] + first[5] * second[3] + second[5],
+  ];
+}
+
 function interpretPage(content: string, fonts: Map<string, CidFont>) {
   const items: TextItem[] = [];
   const operands: Token[] = [];
+  // Matriz de transformação da página (`cm`): geradores como o Skia viram o eixo y para baixo.
+  let ctm: Matrix = [1, 0, 0, 1, 0, 0];
+  const ctmStack: Matrix[] = [];
   let matrix = [1, 0, 0, 1, 0, 0];
   let lineMatrix = [1, 0, 0, 1, 0, 0];
   let font: CidFont | undefined;
@@ -247,7 +264,8 @@ function interpretPage(content: string, fonts: Map<string, CidFont>) {
   const numbers = () => operands.filter((token): token is Extract<Token, { kind: "num" }> => token.kind === "num").map((token) => token.value);
 
   const showString = (token: Extract<Token, { kind: "str" }>) => {
-    const scale = Math.abs(matrix[3]) || 1;
+    const device = multiply(matrix, ctm);
+    const scale = Math.abs(device[3]) || 1;
     const size = fontSize * scale;
     let text = "";
     let width = 0;
@@ -269,9 +287,10 @@ function interpretPage(content: string, fonts: Map<string, CidFont>) {
       width += (token.value.split(" ").length - 1) * wordSpacing;
     }
     const advance = width * matrix[0];
+    const deviceAdvance = width * device[0];
     // Texto girado (ex.: legenda vertical na margem) não pertence às linhas horizontais do documento.
-    const rotated = Math.abs(matrix[1]) > 0.01 || Math.abs(matrix[2]) > 0.01;
-    if (text.trim() && !rotated) items.push({ x: matrix[4], y: matrix[5], size, text, endX: matrix[4] + advance });
+    const rotated = Math.abs(device[1]) > 0.01 || Math.abs(device[2]) > 0.01;
+    if (text.trim() && !rotated) items.push({ x: device[4], y: device[5], size, text, endX: device[4] + deviceAdvance });
     matrix = [matrix[0], matrix[1], matrix[2], matrix[3], matrix[4] + advance, matrix[5]];
   };
 
@@ -287,6 +306,11 @@ function interpretPage(content: string, fonts: Map<string, CidFont>) {
     }
     const values = numbers();
     switch (token.value) {
+      case "q": ctmStack.push([...ctm] as Matrix); break;
+      case "Q": ctm = ctmStack.pop() ?? ctm; break;
+      case "cm":
+        if (values.length >= 6) ctm = multiply(values.slice(-6), ctm);
+        break;
       case "BT":
         matrix = [1, 0, 0, 1, 0, 0];
         lineMatrix = [1, 0, 0, 1, 0, 0];
