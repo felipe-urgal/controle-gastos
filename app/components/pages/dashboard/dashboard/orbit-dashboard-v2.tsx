@@ -19,6 +19,7 @@ import { dashboardLogicalDateLabel, monthLabel, periodOffset, sectionState } fro
 import { AttentionCard } from '@/app/components/pages/dashboard/dashboard/cards/attention-card';
 import { SafeToSpendHero } from '@/app/components/pages/dashboard/dashboard/cards/safe-to-spend-hero';
 import { buildAttentionItems } from '@/app/components/pages/dashboard/dashboard/dashboard-attention';
+import { GettingStartedCard, gettingStartedSteps } from '@/app/components/pages/dashboard/dashboard/cards/getting-started-card';
 import { UpcomingCard } from '@/app/components/pages/dashboard/dashboard/cards/upcoming-card';
 
 // Cards abaixo da dobra e o diálogo de projeção carregam sob demanda; os dois cards
@@ -31,6 +32,7 @@ function cardFallback(height: number) {
 const MonthPaceCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/month-pace-card').then((m) => m.MonthPaceCard), { ssr: false, loading: cardFallback(420) });
 const CategoriesCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/categories-card').then((m) => m.CategoriesCard), { ssr: false, loading: cardFallback(252) });
 const RecentTransactionsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/recent-transactions-card').then((m) => m.RecentTransactionsCard), { ssr: false, loading: cardFallback(244) });
+const MonthlyFlowCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/monthly-flow-card').then((m) => m.MonthlyFlowCard), { ssr: false, loading: cardFallback(300) });
 const OverviewStrip = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/overview-strip').then((m) => m.OverviewStrip), { ssr: false, loading: cardFallback(76) });
 const ForecastDialog = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/forecast-dialog').then((m) => m.ForecastDialog), { ssr: false });
 const PeriodicSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/periodic-summary-card').then((m) => m.PeriodicSummaryCard), { ssr: false, loading: cardFallback(140) });
@@ -160,6 +162,11 @@ function DashboardHome({
     commitments: commitments.data ? commitments.data.items : null,
     budgetMissing: home.scope.selectedPeriodRelation === 'CURRENT' && data.planning.budget <= 0,
   });
+  const startSteps = gettingStartedSteps({
+    hasAccount: data.accounts.length > 0,
+    hasTransactions: data.flow.some((month) => month.income > 0 || month.expense > 0) || (recentTransactions.data?.length ?? 0) > 0,
+    hasBudget: data.planning.budget > 0,
+  });
   const hasPartialError = [
     home.current.forecast,
     home.current.commitments,
@@ -184,6 +191,12 @@ function DashboardHome({
         <div role="status" className="mb-[14px] rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-xs text-[var(--text-muted)]">
           <strong className="text-[var(--foreground)]">Mês selecionado: {monthLabel(`${data.period.year}-${String(data.period.month).padStart(2, '0')}`)}.</strong>{' '}
           Resumo, planejamento, categorias, transações recentes e patrimônio usam esse período; saldo de caixa, cartões, metas, compromissos e projeção usam a referência atual ({dashboardLogicalDateLabel(home.scope.currentAsOf)}).
+        </div>
+      )}
+
+      {startSteps.length > 0 && (
+        <div className="mb-[14px]">
+          <GettingStartedCard steps={startSteps} />
         </div>
       )}
 
@@ -217,10 +230,15 @@ function DashboardHome({
           today={home.scope.currentAsOf.day}
           showValues={showValues}
         />
-        <CategoriesCard categories={topCategories} limits={data.limits} showValues={showValues} currency={data.currency} period={data.period} />
+        <MonthlyFlowCard
+          flow={data.flow}
+          relation={home.scope.selectedPeriodRelation}
+          showValues={showValues}
+          currency={data.currency}
+        />
       </section>
 
-      <section className="mt-[14px] grid gap-[14px] md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.36fr)]">
+      <section className="mt-[14px] grid gap-[14px] md:grid-cols-2 xl:grid-cols-3">
         <UpcomingCard
           items={commitmentItems}
           asOf={home.scope.currentAsOf}
@@ -238,6 +256,9 @@ function DashboardHome({
           currency={data.currency}
           onRetry={onRetry}
         />
+        <div className="min-w-0 md:col-span-2 xl:col-span-1">
+          <CategoriesCard categories={topCategories} limits={data.limits} showValues={showValues} currency={data.currency} period={data.period} />
+        </div>
       </section>
 
       <div className="mt-[14px]">
@@ -293,9 +314,10 @@ function DashboardLoading() {
           <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
           <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
-        <div className="grid gap-[14px] md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.36fr)]">
+        <div className="grid gap-[14px] md:grid-cols-2 xl:grid-cols-3">
           <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
           <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)] md:col-span-2 xl:col-span-1" />
         </div>
       </div>
     </div>
