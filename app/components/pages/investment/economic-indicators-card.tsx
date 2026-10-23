@@ -71,58 +71,37 @@ export function EconomicIndicatorsCard() {
   const updatedAt = updatedAtLabel(snapshot?.updatedAt ?? null);
 
   return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-      <div>
-        <h2 className="text-lg font-bold text-[var(--foreground)]">
-          Contexto econômico
-        </h2>
-        <p className="mt-1 text-xs text-[var(--text-muted)]">
-          Referências oficiais para contexto. Estes dados não alteram posições,
-          transações ou saldos.
-        </p>
-      </div>
-
+    <section aria-label="Contexto econômico" className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
       {loading ? (
-        <p className="mt-4 text-sm text-[var(--text-muted)]">
-          Carregando indicadores...
-        </p>
+        <p className="text-sm text-[var(--text-muted)]">Carregando indicadores...</p>
       ) : failed || !snapshot ? (
-        <p className="mt-4 text-sm text-[var(--text-muted)]">
-          Indicadores temporariamente indisponíveis.
-        </p>
+        <p className="text-sm text-[var(--text-muted)]">Indicadores temporariamente indisponíveis.</p>
       ) : (
-        <>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <details>
+          <summary className="flex min-h-9 cursor-pointer list-none flex-wrap items-center gap-x-6 gap-y-1 text-sm [&::-webkit-details-marker]:hidden">
+            <span className="text-xs font-semibold text-[var(--text-muted)]">Contexto econômico</span>
             {snapshot.indicators.map((indicator) => (
-              <div
-                key={indicator.key}
-                className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-3"
-              >
-                <span className="block text-xs font-semibold text-[var(--text-muted)]">
-                  {indicator.label}
-                </span>
-                <strong className="mt-1 block text-lg text-[var(--foreground)]">
-                  {formatPercent(indicator)}
-                </strong>
-                <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
-                  {indicator.periodLabel}
-                  {' · '}
-                  {referenceDateLabel(indicator.referenceDate)}
-                  {indicator.isStale ? ' · desatualizado' : ''}
-                </span>
-              </div>
+              <span key={indicator.key} className="text-[var(--text-muted)]">
+                {indicator.label}{' '}
+                <strong className="money text-[var(--foreground)]">{formatPercent(indicator)}</strong>
+                {indicator.isStale ? ' · desatualizado' : ''}
+              </span>
             ))}
-          </div>
-
-          <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
-            Fonte: Banco Central do Brasil · SGS · séries 13522, 1178 e 12
-            {updatedAt ? ' · cache atualizado em ' + updatedAt : ''}
-            {hasStaleData
-              ? ' · mantendo a última observação válida por indisponibilidade da fonte'
-              : ''}
-          </p>
-        </>
+          </summary>
+          <ul className="mt-2 grid gap-1 text-xs leading-relaxed text-[var(--text-muted)]">
+            {snapshot.indicators.map((indicator) => (
+              <li key={indicator.key}>
+                {indicator.label}: {indicator.periodLabel} · {referenceDateLabel(indicator.referenceDate)}
+              </li>
+            ))}
+            <li>
+              Fonte: Banco Central do Brasil · SGS · séries 13522, 1178 e 12
+              {updatedAt ? ' · cache atualizado em ' + updatedAt : ''}
+              {hasStaleData ? ' · mantendo a última observação válida por indisponibilidade da fonte' : ''}. Estes dados não alteram posições, transações ou saldos.
+            </li>
+          </ul>
+        </details>
       )}
-    </article>
+    </section>
   );
 }

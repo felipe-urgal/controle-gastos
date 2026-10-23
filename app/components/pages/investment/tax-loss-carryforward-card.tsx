@@ -114,7 +114,7 @@ export function TaxLossCarryforwardCard({
   const years = Array.from({ length: 6 }, (_, index) => currentYear - index);
 
   return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
