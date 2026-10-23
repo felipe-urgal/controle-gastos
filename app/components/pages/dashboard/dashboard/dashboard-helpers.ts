@@ -69,18 +69,6 @@ export function transactionDateLabel(transaction: DashboardRecentTransaction) {
     .replace('.', '');
 }
 
-export function currentDateLabel() {
-  return new Date()
-    .toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    })
-    .toUpperCase();
-}
-
 export function logicalDateDistance(
   item: { year: number; month: number; day: number },
   asOf: { year: number; month: number; day: number },

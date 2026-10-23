@@ -1,8 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-import { FaArrowRight } from 'react-icons/fa';
-import { DashboardNetWorthSummary, MonthlyDashboard } from '@/app/types/dashboard';
 import { SupportedCurrency } from '@/app/types/financial-summary';
 import { FinancialInsight } from '@/app/types/financial-insight';
 import { compactMonthLabel, dashboardLogicalDateLabel, displayMoney, signedMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
@@ -53,60 +50,6 @@ export function ComparisonDetail({
         {' '}vs. {compactMonthLabel(previousMonth, previousYear)}
       </span>
     </>
-  );
-}
-
-export function NetWorthSummaryCard({
-  currency,
-  showValues,
-  summary,
-  period,
-}: {
-  currency: SupportedCurrency;
-  showValues: boolean;
-  summary: {
-    data: DashboardNetWorthSummary | null;
-    loading: boolean;
-    error: string;
-  };
-  period: MonthlyDashboard['period'];
-}) {
-  const value = summary.loading
-    ? 'Carregando…'
-    : summary.error
-      ? 'Indisponível'
-      : summary.data?.total === null || summary.data?.total === undefined
-        ? 'Sem saldo realizado'
-        : displayMoney(summary.data.total, showValues, currency);
-
-  return (
-    <Link
-      href="/patrimonio"
-      className="flex min-h-[88px] items-center justify-between gap-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] transition hover:border-[var(--orbit-primary)]/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:p-5"
-      aria-label="Ver patrimônio"
-    >
-      <span className="min-w-0">
-        <span className="block text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
-          Patrimônio no fim de {compactMonthLabel(period.month, period.year)} · {currency}
-        </span>
-        <strong className={`mt-1 block tabular-nums text-xl font-extrabold ${summary.error ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
-          {value}
-        </strong>
-        <span className="mt-1 block text-xs text-[var(--text-muted)]">
-          {summary.loading
-            ? 'Atualizando resumo'
-            : summary.error
-              ? summary.error
-              : (summary.data?.accountCount ?? 0) === 0
-                ? 'Nenhuma conta elegível com saldo realizado'
-                : `${summary.data?.accountCount} ${summary.data?.accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}`}
-        </span>
-      </span>
-      <span className="flex shrink-0 items-center gap-2 text-sm font-bold text-[var(--orbit-primary)]">
-        Ver patrimônio
-        <FaArrowRight aria-hidden="true" />
-      </span>
-    </Link>
   );
 }
 

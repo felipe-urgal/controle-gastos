@@ -317,18 +317,20 @@ describe('dashboard home integration', () => {
       expect(
         home.recentTransactions.data.map((transaction) => transaction.description),
       ).toEqual([
-        'BRL recente 6',
         'BRL recente 5',
         'BRL recente 4',
         'BRL recente 3',
         'BRL recente 2',
+        'BRL recente 1',
       ]);
       expect(
         home.recentTransactions.data.every(
           (transaction) => transaction.account.currency === 'BRL',
         ),
       ).toBe(true);
-      expect(home.recentTransactions.data[0]?.status).toBe('PENDING');
+      expect(
+        home.recentTransactions.data.every((transaction) => transaction.status === 'COMPLETED'),
+      ).toBe(true);
     }
   });
 });

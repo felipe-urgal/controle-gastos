@@ -1,12 +1,8 @@
 'use client';
 
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
-
-import { useMediaQuery } from '@/app/hooks/use-media-query';
-
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaPlus } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
 
@@ -19,27 +15,24 @@ import { currencyOptions } from '@/app/lib/constants/account.constants';
 import type { DashboardHome } from '@/app/types/dashboard';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
-import { currentDateLabel, dashboardLogicalDateLabel, monthLabel, periodOffset, sectionState } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
-import { MobileDashboardHeader, MobileDashboardHome } from '@/app/components/pages/dashboard/dashboard/mobile-dashboard';
+import { dashboardLogicalDateLabel, monthLabel, periodOffset, sectionState } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { AttentionCard } from '@/app/components/pages/dashboard/dashboard/cards/attention-card';
 import { SafeToSpendHero } from '@/app/components/pages/dashboard/dashboard/cards/safe-to-spend-hero';
 import { buildAttentionItems } from '@/app/components/pages/dashboard/dashboard/dashboard-attention';
 import { UpcomingCard } from '@/app/components/pages/dashboard/dashboard/cards/upcoming-card';
 
-// Cards abaixo da dobra (desktop) e o diálogo de projeção carregam sob demanda; os três cards
+// Cards abaixo da dobra e o diálogo de projeção carregam sob demanda; os dois cards
 // de cima ficam no bundle inicial para não atrasar o LCP.
 function cardFallback(height: number) {
   return function CardFallback() {
     return <div aria-hidden="true" style={{ minHeight: height }} className="animate-pulse rounded-[14px] bg-[var(--skeleton)]" />;
   };
 }
-const CreditCardsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/credit-cards-card').then((m) => m.CreditCardsCard), { ssr: false, loading: cardFallback(160) });
-const FinancialGoalsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/financial-goals-card').then((m) => m.FinancialGoalsCard), { ssr: false, loading: cardFallback(160) });
 const MonthPaceCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/month-pace-card').then((m) => m.MonthPaceCard), { ssr: false, loading: cardFallback(420) });
 const CategoriesCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/categories-card').then((m) => m.CategoriesCard), { ssr: false, loading: cardFallback(252) });
 const RecentTransactionsCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/recent-transactions-card').then((m) => m.RecentTransactionsCard), { ssr: false, loading: cardFallback(244) });
+const OverviewStrip = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/overview-strip').then((m) => m.OverviewStrip), { ssr: false, loading: cardFallback(76) });
 const ForecastDialog = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/forecast-dialog').then((m) => m.ForecastDialog), { ssr: false });
-const NetWorthSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/insight-cards').then((m) => m.NetWorthSummaryCard), { ssr: false, loading: cardFallback(180) });
 const PeriodicSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/periodic-summary-card').then((m) => m.PeriodicSummaryCard), { ssr: false, loading: cardFallback(140) });
 
 export default function OrbitDashboardV2() {
@@ -55,19 +48,12 @@ export default function OrbitDashboardV2() {
     setCurrency,
     retry,
   } = useDashboardHome();
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   return (
     <ProtectedRoute>
-      {isDesktop && (
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p suppressHydrationWarning className="min-h-4 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{currentDateLabel()}</p>
-          <h1 className={`mt-1 ${pageTitleClassName}`}>Seu dinheiro, no seu controle</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">Acompanhe o mês selecionado sem misturar com o estado financeiro de hoje.</p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="sr-only">Dashboard financeiro</h1>
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
           <IconButton
             label="Mês anterior"
             icon={<FaChevronLeft />}
@@ -75,7 +61,7 @@ export default function OrbitDashboardV2() {
             disabled={loading}
             className="border border-[var(--border)] bg-[var(--surface)]"
           />
-          <label className="relative min-h-11 flex min-h-11 min-w-[180px] cursor-pointer items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]">
+          <label className="relative flex min-h-11 min-w-0 flex-1 cursor-pointer items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)] sm:min-w-[180px] sm:flex-none">
             {monthLabel(periodValue)}
             <span className="sr-only">Escolher mês do dashboard</span>
             <input
@@ -95,7 +81,7 @@ export default function OrbitDashboardV2() {
             disabled={loading}
             className="border border-[var(--border)] bg-[var(--surface)]"
           />
-          <div className="w-full sm:w-[145px]">
+          <div className="w-[116px] shrink-0 sm:w-[145px]">
             <Select
               ariaLabel="Moeda"
               value={currency}
@@ -105,18 +91,10 @@ export default function OrbitDashboardV2() {
             />
           </div>
         </div>
+        <Button as="a" href="/transacoes/nova" size="sm" icon={<FaPlus aria-hidden="true" />} className="w-full sm:w-auto">
+          Nova transação
+        </Button>
       </header>
-      )}
-
-      {!isDesktop && (
-      <MobileDashboardHeader
-        periodValue={periodValue}
-        currency={currency}
-        loading={loading}
-        onPeriodChange={setPeriodValue}
-        onCurrencyChange={setCurrency}
-      />
-      )}
 
       {error && (
         <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3">
@@ -156,7 +134,6 @@ function DashboardHome({
   onRetry: () => void;
 }) {
   const [forecastOpen, setForecastOpen] = useState(false);
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const data = home.monthly;
   const forecast = sectionState(home.current.forecast);
   const commitments = sectionState(home.current.commitments);
@@ -233,82 +210,46 @@ function DashboardHome({
         />
       </section>
 
-      {!isDesktop && (
-        <div className="mt-[14px]">
-          <MobileDashboardHome
-            home={home}
-            showValues={showValues}
-            commitments={commitments}
-            recentTransactions={recentTransactions}
-            topCategories={topCategories}
-            netWorth={netWorth}
-            onRetry={onRetry}
-          />
-        </div>
-      )}
+      <section className="mt-[14px] grid gap-[14px] lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        <MonthPaceCard
+          data={data}
+          relation={home.scope.selectedPeriodRelation}
+          today={home.scope.currentAsOf.day}
+          showValues={showValues}
+        />
+        <CategoriesCard categories={topCategories} limits={data.limits} showValues={showValues} currency={data.currency} period={data.period} />
+      </section>
 
-      {isDesktop && (
-        <>
-        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-          <MonthPaceCard
-            data={data}
-            relation={home.scope.selectedPeriodRelation}
-            today={home.scope.currentAsOf.day}
-            showValues={showValues}
-          />
-          <CategoriesCard categories={topCategories} limits={data.limits} showValues={showValues} currency={data.currency} period={data.period} />
-        </section>
+      <section className="mt-[14px] grid gap-[14px] md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.36fr)]">
+        <UpcomingCard
+          items={commitmentItems}
+          asOf={home.scope.currentAsOf}
+          showValues={showValues}
+          currency={data.currency}
+          loading={commitments.loading}
+          error={commitments.error}
+          onRetry={onRetry}
+        />
+        <RecentTransactionsCard
+          items={recentTransactions.data ?? []}
+          loading={recentTransactions.loading}
+          error={recentTransactions.error}
+          showValues={showValues}
+          currency={data.currency}
+          onRetry={onRetry}
+        />
+      </section>
 
-        <section className="mt-[14px] grid gap-[14px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1.36fr)]">
-          <UpcomingCard
-            items={commitmentItems}
-            asOf={home.scope.currentAsOf}
-            showValues={showValues}
-            currency={data.currency}
-            loading={commitments.loading}
-            error={commitments.error}
-            onRetry={onRetry}
-          />
-          <RecentTransactionsCard
-            items={recentTransactions.data ?? []}
-            loading={recentTransactions.loading}
-            error={recentTransactions.error}
-            showValues={showValues}
-            currency={data.currency}
-            onRetry={onRetry}
-          />
-        </section>
-
-        <section className="mt-[14px] grid items-start gap-[14px] xl:grid-cols-3" aria-label="Visão geral">
-          {data.cards.length > 0 && (
-            <div className="min-w-0">
-              <CreditCardsCard
-                cards={data.cards}
-                showValues={showValues}
-                currency={data.currency}
-              />
-            </div>
-          )}
-          {data.goals.length > 0 && (
-            <div className="min-w-0">
-              <FinancialGoalsCard
-                goals={data.goals}
-                showValues={showValues}
-                currency={data.currency}
-              />
-            </div>
-          )}
-          <div className="min-w-0">
-            <NetWorthSummaryCard
-              currency={data.currency}
-              showValues={showValues}
-              summary={netWorth}
-              period={data.period}
-            />
-          </div>
-        </section>
-        </>
-      )}
+      <div className="mt-[14px]">
+        <OverviewStrip
+          cards={data.cards}
+          goals={data.goals}
+          netWorth={netWorth}
+          period={data.period}
+          currency={data.currency}
+          showValues={showValues}
+        />
+      </div>
 
       {periodicSummaryEnabled && (
         <div className="mt-[14px]">
@@ -348,11 +289,11 @@ function DashboardLoading() {
           <div className="h-[330px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
           <div className="h-[330px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
-        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        <div className="grid gap-[14px] lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
           <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
           <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
-        <div className="grid gap-[14px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1.36fr)]">
+        <div className="grid gap-[14px] md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.36fr)]">
           <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
           <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
         </div>
