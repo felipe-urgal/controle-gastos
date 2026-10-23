@@ -153,25 +153,37 @@ function collectFonts(buffer: Buffer, raw: string, objects: Map<number, PdfObjec
     fontsByObject.set(number, { ...parseToUnicodeCMap(cmapText), ...metrics });
   }
 
+  return fontsByObject;
+}
+
+/** Tabela de recursos de fontes (`/Font << /F1 5 0 R >>`, inline ou por referência) → nome → fonte. */
+function fontNamesIn(resources: string, objects: Map<number, PdfObject>, fontsByObject: Map<number, CidFont>) {
   const byName = new Map<string, CidFont>();
-  if (fontsByObject.size === 0) return byName;
-  const addResources = (resources: string) => {
-    for (const entry of resources.matchAll(/\/([^\s/<>\[\]()]+)\s+(\d+)\s+\d+\s+R/g)) {
+  const addEntries = (text: string) => {
+    for (const entry of text.matchAll(/\/([^\s/<>\[\]()]+)\s+(\d+)\s+\d+\s+R/g)) {
       const font = fontsByObject.get(Number(entry[2]));
       if (font) byName.set(entry[1], font);
     }
   };
-  for (const match of raw.matchAll(/\/Font\s*<<([^>]*(?:>(?!>)[^>]*)*)>>/g)) addResources(match[1]);
-  for (const match of raw.matchAll(/\/Font\s+(\d+)\s+\d+\s+R/g)) {
+  for (const match of resources.matchAll(/\/Font\s*<<([^>]*(?:>(?!>)[^>]*)*)>>/g)) addEntries(match[1]);
+  for (const match of resources.matchAll(/\/Font\s+(\d+)\s+\d+\s+R/g)) {
     const object = objects.get(Number(match[1]));
-    if (object) addResources(object.body);
+    if (object) addEntries(object.body);
   }
   return byName;
 }
 
+/** Recursos da página: dicionário embutido ou objeto referenciado por `/Resources N 0 R`. */
+function resourcesOf(dictionary: string, objects: Map<number, PdfObject>) {
+  const reference = /\/Resources\s+(\d+)\s+\d+\s+R/.exec(dictionary);
+  if (reference) return objects.get(Number(reference[1]))?.body ?? "";
+  const start = dictionary.search(/\/Resources\s*<</);
+  return start >= 0 ? dictionary.slice(start) : "";
+}
+
 /** Streams de conteúdo de cada página, na ordem em que a página os lista. */
 function pageContents(buffer: Buffer, raw: string, objects: Map<number, PdfObject>) {
-  const pages: string[] = [];
+  const pages: Array<{ content: string; resources: string }> = [];
   for (const object of objects.values()) {
     const dictionary = dictionaryOf(object);
     if (!/\/Type\s*\/Page\b(?!s)/.test(dictionary)) continue;
@@ -184,7 +196,7 @@ function pageContents(buffer: Buffer, raw: string, objects: Map<number, PdfObjec
         return target ? objectStreamText(buffer, raw, target) ?? "" : "";
       })
       .join("\n");
-    pages.push(text);
+    pages.push({ content: text, resources: resourcesOf(dictionary, objects) });
   }
   return pages;
 }
@@ -269,22 +281,21 @@ function interpretPage(content: string, fonts: Map<string, CidFont>) {
     const size = fontSize * scale;
     let text = "";
     let width = 0;
-    if (token.hex && font) {
-      const digits = font.codeBytes * 2;
-      for (let index = 0; index + digits <= token.value.length; index += digits) {
-        const code = Number.parseInt(token.value.slice(index, index + digits), 16);
+    // Bytes da string: hexadecimal (`<0041>`) ou literal (`(\000A)`), que alguns geradores usam também com fontes CID.
+    const bytes = token.hex
+      ? Array.from({ length: Math.floor(token.value.length / 2) }, (_, index) => Number.parseInt(token.value.slice(index * 2, index * 2 + 2), 16))
+      : [...token.value].map((char) => char.charCodeAt(0) & 0xff);
+    if (font) {
+      for (let index = 0; index + font.codeBytes <= bytes.length; index += font.codeBytes) {
+        let code = 0;
+        for (let offset = 0; offset < font.codeBytes; offset += 1) code = code * 256 + bytes[index + offset];
         text += font.chars.get(code) ?? "";
         width += ((font.widths.get(code) ?? font.defaultWidth) / 1000) * fontSize + charSpacing;
       }
-    } else if (token.hex) {
-      for (let index = 0; index + 2 <= token.value.length; index += 2) {
-        text += String.fromCharCode(Number.parseInt(token.value.slice(index, index + 2), 16));
-        width += 0.5 * fontSize + charSpacing;
-      }
     } else {
-      text = token.value;
-      width = token.value.length * (0.5 * fontSize + charSpacing);
-      width += (token.value.split(" ").length - 1) * wordSpacing;
+      text = String.fromCharCode(...bytes);
+      width = bytes.length * (0.5 * fontSize + charSpacing);
+      width += (text.split(" ").length - 1) * wordSpacing;
     }
     const advance = width * matrix[0];
     const deviceAdvance = width * device[0];
@@ -402,11 +413,17 @@ function layoutLines(items: TextItem[]) {
 /** Texto por layout de um PDF com fontes CID; `null` quando o PDF não usa esse tipo de fonte ou não rende texto. */
 export function extractCidPdfText(buffer: Buffer, raw: string) {
   const objects = collectObjects(raw);
-  const fonts = collectFonts(buffer, raw, objects);
-  if (fonts.size === 0) return null;
+  const fontsByObject = collectFonts(buffer, raw, objects);
+  if (fontsByObject.size === 0) return null;
+  // Fontes declaradas em qualquer recurso: usadas quando a página não traz as suas.
+  const fallback = fontNamesIn(raw, objects, fontsByObject);
 
   const pages = pageContents(buffer, raw, objects)
-    .map((content) => layoutLines(interpretPage(content, fonts)).join("\n"))
+    .map((page) => {
+      const own = fontNamesIn(page.resources, objects, fontsByObject);
+      const fonts = own.size > 0 ? own : fallback;
+      return layoutLines(interpretPage(page.content, fonts)).join("\n");
+    })
     .filter((page) => page.trim());
   return pages.length > 0 ? pages.join("\n") : null;
 }

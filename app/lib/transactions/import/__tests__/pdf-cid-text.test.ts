@@ -104,6 +104,21 @@ describe("extractPdfText com fontes CID", () => {
     expect(extractPdfText(cidPdf(content)).text.split("\n")).toEqual(["Em cima", "Embaixo"]);
   });
 
+  it("decodifica strings literais com códigos de 2 bytes em fontes CID", () => {
+    // Alguns geradores (openhtmltopdf) escrevem os códigos de glifo como (\000\001...) em vez de <0001...>.
+    const literal = [...hex("Nota 12")]
+      .reduce<string[]>((pairs, char, index) => (index % 2 === 0 ? [...pairs, char] : [...pairs.slice(0, -1), pairs.at(-1) + char]), [])
+      .map((byte) => `\\${Number.parseInt(byte, 16).toString(8).padStart(3, "0")}`)
+      .join("");
+    const content = `BT /F1 10 Tf 1 0 0 1 50 700 Tm (${literal}) Tj ET`;
+    expect(extractPdfText(cidPdf(content)).text).toBe("Nota 12");
+  });
+
+  it("usa os recursos de fonte de cada página quando os nomes se repetem", () => {
+    const content = `BT /F1 10 Tf 1 0 0 1 50 700 Tm <${hex("Pagina")}> Tj ET`;
+    expect(extractPdfText(cidPdf(content)).text).toBe("Pagina");
+  });
+
   it("aceita CR sozinho após a palavra stream e vários Tj em um TJ", () => {
     const content = `BT /F1 10 Tf 1 0 0 1 50 700 Tm [<${hex("Ola")}> -2000 <${hex("Mundo")}>] TJ ET`;
     expect(extractPdfText(cidPdf(content, "\r")).text).toBe("Ola Mundo");
