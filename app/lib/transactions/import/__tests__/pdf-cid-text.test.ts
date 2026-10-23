@@ -21,11 +21,11 @@ function cmap() {
 }
 
 /** PDF mínimo de uma página com fonte Type0/CID (Identity-H), ToUnicode e larguras `/W`. */
-function cidPdf(content: string, separator = "\r\n") {
+function cidPdf(content: string, separator = "\r\n", form?: string) {
   const objects: Array<string | Buffer> = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    `<< /Type /Page /Parent 2 0 R /Contents 4 0 R /Resources << /Font << /F1 5 0 R >>${form ? " /XObject << /X1 8 0 R >>" : ""} >> >>`,
     `<< /Length ${content.length} >>\nstream${separator}${content}${separator}endstream`,
     "<< /Type /Font /Subtype /Type0 /BaseFont /Teste /Encoding /Identity-H /DescendantFonts [7 0 R] /ToUnicode 6 0 R >>",
     Buffer.concat([
@@ -35,6 +35,11 @@ function cidPdf(content: string, separator = "\r\n") {
     ]),
     "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Teste /DW 500 /W [ 1 [ 250 ] ] >>",
   ];
+  if (form) {
+    objects.push(
+      `<< /Type /XObject /Subtype /Form /BBox [0 0 600 800] /Matrix [1 0 0 1 0 -20] /Resources << /Font << /F1 5 0 R >> >> /Length ${form.length} >>\nstream\n${form}\nendstream`,
+    );
+  }
   const parts: Buffer[] = [Buffer.from("%PDF-1.4\n", "latin1")];
   objects.forEach((object, index) => {
     parts.push(Buffer.from(`${index + 1} 0 obj\n`, "latin1"));
@@ -102,6 +107,28 @@ describe("extractPdfText com fontes CID", () => {
     ].join("\n");
 
     expect(extractPdfText(cidPdf(content)).text.split("\n")).toEqual(["Em cima", "Embaixo"]);
+  });
+
+  it("decodifica strings literais com códigos de 2 bytes em fontes CID", () => {
+    // Alguns geradores (openhtmltopdf) escrevem os códigos de glifo como (\000\001...) em vez de <0001...>.
+    const literal = [...hex("Nota 12")]
+      .reduce<string[]>((pairs, char, index) => (index % 2 === 0 ? [...pairs, char] : [...pairs.slice(0, -1), pairs.at(-1) + char]), [])
+      .map((byte) => `\\${Number.parseInt(byte, 16).toString(8).padStart(3, "0")}`)
+      .join("");
+    const content = `BT /F1 10 Tf 1 0 0 1 50 700 Tm (${literal}) Tj ET`;
+    expect(extractPdfText(cidPdf(content)).text).toBe("Nota 12");
+  });
+
+  it("usa os recursos de fonte de cada página quando os nomes se repetem", () => {
+    const content = `BT /F1 10 Tf 1 0 0 1 50 700 Tm <${hex("Pagina")}> Tj ET`;
+    expect(extractPdfText(cidPdf(content)).text).toBe("Pagina");
+  });
+
+  it("lê o texto de formulários (XObjects) desenhados com Do, aplicando a matriz do formulário", () => {
+    // Tabelas e cabeçalhos de alguns geradores ficam em formulários, fora do conteúdo da página.
+    const form = `BT /F1 10 Tf 1 0 0 1 50 100 Tm <${hex("Dentro do formulario")}> Tj ET`;
+    const content = [`BT /F1 10 Tf 1 0 0 1 50 700 Tm <${hex("Titulo")}> Tj ET`, "/X1 Do"].join("\n");
+    expect(extractPdfText(cidPdf(content, "\r\n", form)).text).toBe("Titulo\nDentro do formulario");
   });
 
   it("aceita CR sozinho após a palavra stream e vários Tj em um TJ", () => {

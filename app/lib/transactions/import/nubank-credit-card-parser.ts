@@ -5,8 +5,8 @@ import {
   parseMoneyToCents,
   type ParsedImportItem,
 } from "@/app/lib/transactions/import/parser";
+import { fitImportDescription } from "@/app/lib/transactions/import/import-description";
 import {
-  TRANSACTION_DESCRIPTION_MAX_LENGTH,
   TRANSACTION_DESCRIPTION_MIN_LENGTH,
 } from "@/app/lib/transactions/transaction-field-contract";
 
@@ -26,9 +26,6 @@ function normalizeHeader(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, "");
 }
 
-function normalizeText(value: string) {
-  return value.replace(/\s+/g, " ").trim();
-}
 
 function parseCsvRows(content: string) {
   const clean = content.replace(/^\uFEFF/, "");
@@ -76,8 +73,28 @@ export function isNubankCreditCardCsv(content: string) {
     headers[2] === "amount";
 }
 
+export const CARD_PAYMENT_ERROR =
+  "Pagamento recebido deve ser conciliado pelo fluxo de pagamento da fatura; não será importado como receita.";
+
+/** "Pagamento recebido" na fatura é o pagamento da própria fatura, não uma receita. */
+export function isNubankCardPaymentDescription(description: string) {
+  return /^pagamento recebido\b/i.test(description.trim());
+}
+
+/**
+ * Faturas OFX trazem os pagamentos como créditos comuns. Aplica o mesmo bloqueio do CSV para que a fatura
+ * não vire receita falsa, qualquer que seja o formato do arquivo.
+ */
+export function flagCardPayments<T extends ParsedImportItem>(items: readonly T[]): T[] {
+  return items.map((item) =>
+    item.type === "INCOME" && isNubankCardPaymentDescription(item.description) && !item.errors.includes(CARD_PAYMENT_ERROR)
+      ? { ...item, errors: [...item.errors, CARD_PAYMENT_ERROR] }
+      : item,
+  );
+}
+
 function classify(title: string, signedAmount: number): NubankCreditCardClassification {
-  if (/^pagamento recebido\b/i.test(title)) return "PAYMENT";
+  if (isNubankCardPaymentDescription(title)) return "PAYMENT";
   if (signedAmount < 0) return "CREDIT";
   return "PURCHASE";
 }
@@ -96,7 +113,7 @@ export function parseNubankCreditCardCsv(content: string): NubankCreditCardParse
   const items = rows.slice(1).map((row, index) => {
     const errors: string[] = [];
     const date = parseImportDate(row[0] ?? "");
-    const description = normalizeText(row[1] ?? "");
+    const description = fitImportDescription(row[1] ?? "");
     const signedAmount = parseMoneyToCents(row[2] ?? "");
     const classification = classify(description, signedAmount ?? 0);
     classifications.push(classification);
@@ -106,9 +123,8 @@ export function parseNubankCreditCardCsv(content: string): NubankCreditCardParse
       errors.push("Valor inválido ou igual a zero.");
     }
     if (description.length < TRANSACTION_DESCRIPTION_MIN_LENGTH) errors.push(`Descrição deve ter pelo menos ${TRANSACTION_DESCRIPTION_MIN_LENGTH} caracteres.`);
-    if (description.length > TRANSACTION_DESCRIPTION_MAX_LENGTH) errors.push(`Descrição deve ter no máximo ${TRANSACTION_DESCRIPTION_MAX_LENGTH} caracteres.`);
     if (classification === "PAYMENT") {
-      errors.push("Pagamento recebido deve ser conciliado pelo fluxo de pagamento da fatura; não será importado como receita.");
+      errors.push(CARD_PAYMENT_ERROR);
     }
 
     const amount = Math.abs(signedAmount ?? 0);
@@ -118,7 +134,7 @@ export function parseNubankCreditCardCsv(content: string): NubankCreditCardParse
       date: date ?? "",
       amountCents: amount,
       type: classification === "PURCHASE" ? ("EXPENSE" as const) : ("INCOME" as const),
-      description: description.slice(0, TRANSACTION_DESCRIPTION_MAX_LENGTH),
+      description,
       errors,
     };
   });

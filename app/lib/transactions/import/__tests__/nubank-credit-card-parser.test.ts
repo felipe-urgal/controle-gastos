@@ -1,3 +1,5 @@
+import { CARD_PAYMENT_ERROR, flagCardPayments } from "@/app/lib/transactions/import/nubank-credit-card-parser";
+import type { ParsedImportItem } from "@/app/lib/transactions/import/parser";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -81,4 +83,32 @@ describe("Nubank credit card CSV parser", () => {
     });
   });
 
+});
+
+describe("flagCardPayments (OFX de fatura)", () => {
+  const item = (description: string, type: "INCOME" | "EXPENSE"): ParsedImportItem => ({
+    index: 0,
+    source: "OFX",
+    date: "2026-10-01",
+    amountCents: 1000,
+    type,
+    description,
+    errors: [],
+  });
+
+  it("bloqueia pagamento recebido como o CSV da fatura faz", () => {
+    const [payment, purchase, refund] = flagCardPayments([
+      item("Pagamento recebido", "INCOME"),
+      item("Mercado", "EXPENSE"),
+      item("Estorno de compra", "INCOME"),
+    ]);
+    expect(payment.errors).toEqual([CARD_PAYMENT_ERROR]);
+    expect(purchase.errors).toEqual([]);
+    expect(refund.errors).toEqual([]);
+  });
+
+  it("não duplica o erro", () => {
+    const once = flagCardPayments([item("Pagamento recebido - banco", "INCOME")]);
+    expect(flagCardPayments(once)[0].errors).toHaveLength(1);
+  });
 });

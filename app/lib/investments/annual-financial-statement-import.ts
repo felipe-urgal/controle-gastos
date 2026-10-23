@@ -1,3 +1,4 @@
+import { wrongDocumentMessage } from "@/app/lib/documents/document-guess";
 import { Prisma } from "@prisma/client";
 import { z, ZodError } from "zod";
 
@@ -164,7 +165,7 @@ export async function previewAnnualFinancialTaxStatement(request: Request) {
         error.message === "ANNUAL_FINANCIAL_STATEMENT_NOT_RECOGNIZED"
       ) {
         return failure(
-          "PDF não reconhecido como informe anual financeiro do Nubank",
+          wrongDocumentMessage(extracted.text, "um informe de rendimentos financeiros do Nubank"),
           400,
         );
       }

@@ -36,6 +36,7 @@ function cardFallback() {
 const AnnualIncomeReportCard = dynamic(() => import('@/app/components/pages/investment/annual-income-report-card').then((m) => m.AnnualIncomeReportCard), { ssr: false, loading: cardFallback() });
 const AnnualFinancialStatementCard = dynamic(() => import('@/app/components/pages/investment/annual-financial-statement-card').then((m) => m.AnnualFinancialStatementCard), { ssr: false, loading: cardFallback() });
 const AnnualTaxSupportReportCard = dynamic(() => import('@/app/components/pages/investment/annual-tax-support-report-card').then((m) => m.AnnualTaxSupportReportCard), { ssr: false, loading: cardFallback() });
+const CustodyStatementCard = dynamic(() => import('@/app/components/pages/investment/custody-statement-card').then((m) => m.CustodyStatementCard), { ssr: false, loading: cardFallback() });
 const FiscalPendingCenterCard = dynamic(() => import('@/app/components/pages/investment/fiscal-pending-center-card').then((m) => m.FiscalPendingCenterCard), { ssr: false, loading: cardFallback() });
 const FiscalYearEndSnapshotCard = dynamic(() => import('@/app/components/pages/investment/fiscal-year-end-snapshot-card').then((m) => m.FiscalYearEndSnapshotCard), { ssr: false, loading: cardFallback() });
 const ForeignInvestmentAnnualTaxCard = dynamic(() => import('@/app/components/pages/investment/foreign-investment-annual-tax-card').then((m) => m.ForeignInvestmentAnnualTaxCard), { ssr: false, loading: cardFallback() });
@@ -679,6 +680,7 @@ export default function InvestmentsCenter() {
                   onBaselineApplied={load}
                 />
                 <AnnualTaxSupportReportCard showValues={showValues} />
+                <CustodyStatementCard showValues={showValues} />
                 <FiscalYearEndSnapshotCard showValues={showValues} />
               </>
             )}

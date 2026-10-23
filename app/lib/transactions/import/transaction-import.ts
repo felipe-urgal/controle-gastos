@@ -1,3 +1,4 @@
+import { isPdfBytes, pdfGuidanceMessage } from "@/app/lib/transactions/import/pdf-guidance";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
@@ -22,6 +23,7 @@ import {
   consumeTransactionImportPreviewRateLimit,
 } from "@/app/lib/security/application-rate-limit";
 import {
+  flagCardPayments,
   isNubankCreditCardCsv,
   parseNubankCreditCardCsv,
 } from "@/app/lib/transactions/import/nubank-credit-card-parser";
@@ -138,6 +140,7 @@ export async function previewTransactionImport(
 
     const bytes = new Uint8Array(await file.arrayBuffer());
     const extension = file.name.toLowerCase().split(".").pop();
+    if (extension === "pdf" || isPdfBytes(bytes)) throw new ImportParseError(pdfGuidanceMessage(bytes));
     let parsedItems: ParsedImportItem[];
     let detectedSource: "GENERIC" | "NUBANK_CREDIT_CARD" = "GENERIC";
     let nubankSummary: { purchases: number; payments: number; credits: number } | null = null;
@@ -206,7 +209,11 @@ export async function previewTransactionImport(
             400,
           );
         }
-        parsedItems = ofx.items;
+        // Fatura de cartão em OFX: o "Pagamento recebido" não é receita (mesma regra do CSV da fatura).
+        parsedItems =
+          ofx.accountMetadata?.type === "CREDIT_CARD" || account.type === "CREDIT_CARD"
+            ? flagCardPayments(ofx.items)
+            : ofx.items;
       } else {
         parsedItems = parseImportContent({
           fileName: file.name,

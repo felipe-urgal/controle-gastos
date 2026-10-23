@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { splitCells } from "@/app/lib/documents/layout-text";
 import { parseMoneyToCents } from "@/app/lib/transactions/import/parser";
 
 export type AnnualFinancialStatementPositionType =
@@ -259,6 +260,157 @@ function dedupeIncomes(incomes: ParsedAnnualFinancialStatementIncome[]) {
   });
 }
 
+/**
+ * Informe em tabelas (modelo atual do Nubank): cada produto traz uma tabela com cabeçalho próprio, sem rótulos
+ * "Quantidade em 31/12". Os cabeçalhos identificam a tabela; as linhas seguintes trazem os valores por coluna.
+ */
+function parseTableSections(lines: string[], fallbackCnpj: string | null) {
+  const positions: ParsedAnnualFinancialStatementPosition[] = [];
+  const incomes: ParsedAnnualFinancialStatementIncome[] = [];
+  const isMoneyCell = (cell: string | undefined) => !!cell && /^R\$\s*[\d.]+,\d{2}$/.test(cell);
+
+  // Contexto mais próximo acima da tabela: "Fonte pagadora: X", "CNPJ: Y", "CNPJ do custodiante: Y".
+  const contextAbove = (index: number) => {
+    let payer: string | null = null;
+    let cnpj: string | null = null;
+    for (let cursor = index - 1; cursor >= Math.max(0, index - 30); cursor -= 1) {
+      const line = lines[cursor]!;
+      if (!payer) payer = /^Fonte pagadora:\s*(.+)$/i.exec(line)?.[1]?.trim() ?? null;
+      if (!cnpj) cnpj = /^CNPJ(?: do custodiante)?:\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i.exec(line)?.[1] ?? null;
+      if (/^(?:RDB e Conta|Conta Global|Criptoativos|Fundos Imobili|Rendimento de FIIs)/i.test(line)) break;
+    }
+    return { payer, cnpj };
+  };
+
+  const rowsAfter = (index: number, accept: (cells: string[]) => boolean) => {
+    const rows: string[][] = [];
+    for (let cursor = index + 1; cursor < lines.length; cursor += 1) {
+      const cells = splitCells(lines[cursor]!);
+      if (cells.length === 0 || !accept(cells)) {
+        // Linha de continuação do cabeçalho (ex.: "exclusiva") não encerra a tabela.
+        if (rows.length === 0 && cursor - index <= 2 && cells.length <= 1) continue;
+        break;
+      }
+      rows.push(cells);
+    }
+    return rows;
+  };
+
+  lines.forEach((line, index) => {
+    const cells = splitCells(line);
+    const head = cells[0] ?? "";
+    const yearOf = (cell: string | undefined) => Number(/(20\d{2})/.exec(cell ?? "")?.[1] ?? 0);
+
+    // RDB e Conta do Nubank: agência, conta, saldo nas duas datas e rendimento de tributação exclusiva.
+    if (/^Ag[eê]ncia$/i.test(head) && /^Conta$/i.test(cells[1] ?? "")) {
+      const { payer, cnpj } = contextAbove(index);
+      for (const row of rowsAfter(index, (value) => /^\d+$/.test(value[0] ?? "") && value.some(isMoneyCell))) {
+        const [agency, account, previousBalance, currentBalance, income] = row;
+        positions.push({
+          type: "FIXED_INCOME",
+          symbol: null,
+          description: `RDB e Conta do Nubank · agência ${agency} conta ${account}`,
+          currency: "BRL",
+          previousYearQuantity: null,
+          currentYearQuantity: null,
+          previousYearCostCents: null,
+          currentYearCostCents: null,
+          previousYearBalanceCents: money(previousBalance),
+          currentYearBalanceCents: money(currentBalance),
+          sourceInstitution: payer ?? "Nu Financeira",
+          sourceInstitutionCnpj: cnpj ?? fallbackCnpj,
+          category: "RDB e Conta do Nubank",
+        });
+        const incomeCents = money(income);
+        if (incomeCents !== null) {
+          incomes.push({
+            symbol: null,
+            description: "Rendimento de RDB e Conta do Nubank (tributação exclusiva)",
+            incomeType: "INTEREST",
+            currency: "BRL",
+            amountCents: incomeCents,
+            payerName: payer ?? "Nu Financeira",
+            payerCnpj: cnpj ?? fallbackCnpj,
+            category: "RDB e Conta do Nubank",
+          });
+        }
+      }
+      return;
+    }
+
+    // Posição de FIIs: cotas no fim de cada ano.
+    if (/^C[oó]digo de Negocia[cç][aã]o$/i.test(head) && /^Cotas em/i.test(cells[1] ?? "")) {
+      const previousFirst = yearOf(cells[1]) <= yearOf(cells[2]);
+      for (const row of rowsAfter(index, (value) => /^[A-Z]{4}\d{1,2}$/.test(value[0] ?? "") && value.length >= 3)) {
+        const first = decimal(row[1]);
+        const second = decimal(row[2]);
+        positions.push({
+          type: "FII",
+          symbol: row[0]!,
+          description: `Cotas de ${row[0]}`,
+          currency: "BRL",
+          previousYearQuantity: previousFirst ? first : second,
+          currentYearQuantity: previousFirst ? second : first,
+          previousYearCostCents: null,
+          currentYearCostCents: null,
+          previousYearBalanceCents: null,
+          currentYearBalanceCents: null,
+          sourceInstitution: "Nu Investimentos",
+          sourceInstitutionCnpj: fallbackCnpj,
+          category: "Fundos Imobiliários (FIIs)",
+        });
+      }
+      return;
+    }
+
+    // Rendimentos de FIIs, FIAgro e FI-Infra: valor total recebido no ano.
+    if (/^C[oó]digo de Negocia[cç][aã]o$/i.test(head) && /^Valor total$/i.test(cells[1] ?? "")) {
+      for (const row of rowsAfter(index, (value) => /^[A-Z]{4}\d{1,2}$/.test(value[0] ?? "") && isMoneyCell(value[1]))) {
+        incomes.push({
+          symbol: row[0]!,
+          description: `Rendimento de FIIs · ${row[0]}`,
+          incomeType: "INCOME",
+          currency: "BRL",
+          amountCents: money(row[1]),
+          payerName: null,
+          payerCnpj: null,
+          category: "Rendimento de FIIs, FIAgro e FI-Infra",
+        });
+      }
+      return;
+    }
+
+    // Criptoativos: quantidade e custo de aquisição nos dois anos.
+    if (/^Criptoativo$/i.test(head) && /^Quantidade em/i.test(cells[1] ?? "")) {
+      const previousFirst = yearOf(cells[1]) <= yearOf(cells[3]);
+      const { cnpj } = contextAbove(index);
+      for (const row of rowsAfter(index, (value) => /^[A-Z0-9]{2,10}$/.test(value[0] ?? "") && value.length >= 5)) {
+        const firstQuantity = decimal(row[1]);
+        const firstCost = money(row[2]);
+        const secondQuantity = decimal(row[3]);
+        const secondCost = money(row[4]);
+        positions.push({
+          type: "CRYPTO",
+          symbol: row[0]!,
+          description: `Criptoativo ${row[0]}`,
+          currency: "BRL",
+          previousYearQuantity: previousFirst ? firstQuantity : secondQuantity,
+          currentYearQuantity: previousFirst ? secondQuantity : firstQuantity,
+          previousYearCostCents: previousFirst ? firstCost : secondCost,
+          currentYearCostCents: previousFirst ? secondCost : firstCost,
+          previousYearBalanceCents: null,
+          currentYearBalanceCents: null,
+          sourceInstitution: "Nu Cripto",
+          sourceInstitutionCnpj: cnpj ?? fallbackCnpj,
+          category: "Criptoativos",
+        });
+      }
+    }
+  });
+
+  return { positions, incomes };
+}
+
 export function parseNubankAnnualFinancialStatementText(
   text: string,
 ): ParsedAnnualFinancialTaxStatement {
@@ -377,6 +529,12 @@ export function parseNubankAnnualFinancialStatementText(
     const window = lines.slice(index, index + 5);
     incomes.push(...blockIncome(window, symbol, line));
   }
+
+  // As tabelas dependem do espaçamento entre colunas, que `normalize` colapsa: usam as linhas só com trim.
+  const tableLines = raw.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const tables = parseTableSections(tableLines, institutionCnpj);
+  positions.push(...tables.positions);
+  incomes.push(...tables.incomes);
 
   const taxWithholdings: ParsedAnnualFinancialStatementTaxWithholding[] = [];
   for (const line of lines) {

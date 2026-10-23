@@ -130,3 +130,82 @@ describe("Nubank annual financial statement parser", () => {
     );
   });
 });
+
+describe("informe do Nubank em tabelas", () => {
+  /** Colunas separadas por 3 espaços, como na leitura por posição do PDF; dados fictícios. */
+  const tableFixture = [
+    "Informe de Rendimentos Financeiros",
+    "Ano-Calendário 2025",
+    "Imposto de renda - Pessoa Física",
+    "RDB e Conta do Nubank",
+    "Fonte pagadora: Nu Financeira",
+    "CNPJ: 30.680.829/0001-43",
+    "Agência   Conta   31/12/2024   31/12/2025",
+    "Rendimento tributação",
+    "exclusiva",
+    "0001   1234567-8   R$ 2.687,24   R$ 19.819,08   R$ 21,10",
+    "Fundos Imobiliários (FIIs)",
+    "Discriminação sugerida: Cotas de [nome ativo] distribuídas na corretora Nu Investimentos, CNPJ 62.169.875/0001-79.",
+    "Posição de FIIs",
+    "Código de Negociação   Cotas em 2024   Cotas em 2025",
+    "EXMP11   0   2100",
+    "OUTR11   10   22",
+    "Criptoativos",
+    "CNPJ do custodiante: 18.236.120/0001-58",
+    "Criptoativo   Quantidade em 2024   Custo em 2024   Quantidade em 2025   Custo em 2025",
+    "QNT   0.5   R$ 10,00   0.12041   R$ 60,00",
+    "Rendimento de FIIs, FIAgro e FI-Infra",
+    "Código de Negociação   Valor total",
+    "EXMP11   R$ 840,00",
+    "OUTR11   R$ 11,44",
+    "Sobre o informe de rendimentos",
+  ].join("\n");
+
+  it("lê RDB, FIIs, criptoativos e rendimentos pelos cabeçalhos das tabelas", () => {
+    const parsed = parseNubankAnnualFinancialStatementText(tableFixture);
+
+    expect(parsed.calendarYear).toBe(2025);
+    expect(parsed.positions.map((position) => [position.type, position.symbol])).toEqual([
+      ["FIXED_INCOME", null],
+      ["FII", "EXMP11"],
+      ["FII", "OUTR11"],
+      ["CRYPTO", "QNT"],
+    ]);
+    expect(parsed.positions[0]).toMatchObject({
+      previousYearBalanceCents: 268_724,
+      currentYearBalanceCents: 1_981_908,
+      sourceInstitution: "Nu Financeira",
+      sourceInstitutionCnpj: "30.680.829/0001-43",
+    });
+    expect(parsed.positions[1]).toMatchObject({ previousYearQuantity: "0", currentYearQuantity: "2100" });
+    expect(parsed.positions[2]).toMatchObject({ previousYearQuantity: "10", currentYearQuantity: "22" });
+    expect(parsed.positions[3]).toMatchObject({
+      previousYearQuantity: "0.5",
+      currentYearQuantity: "0.12041",
+      previousYearCostCents: 1_000,
+      currentYearCostCents: 6_000,
+      sourceInstitutionCnpj: "18.236.120/0001-58",
+    });
+    expect(parsed.incomes.map((income) => [income.symbol, income.amountCents])).toEqual([
+      [null, 2_110],
+      ["EXMP11", 84_000],
+      ["OUTR11", 1_144],
+    ]);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.warnings).toEqual([]);
+  });
+
+  it("inverte as colunas quando o informe lista o ano mais recente primeiro", () => {
+    const swapped = tableFixture.replace("Cotas em 2024   Cotas em 2025", "Cotas em 2025   Cotas em 2024");
+    const [, fii] = parseNubankAnnualFinancialStatementText(swapped).positions;
+    expect(fii).toMatchObject({ previousYearQuantity: "2100", currentYearQuantity: "0" });
+  });
+
+  it("não inventa posições quando as tabelas estão vazias", () => {
+    const empty = tableFixture.split("\n").filter((line) => !/^(EXMP11|OUTR11|QNT|0001)/.test(line)).join("\n");
+    const parsed = parseNubankAnnualFinancialStatementText(empty);
+    expect(parsed.positions).toEqual([]);
+    expect(parsed.incomes).toEqual([]);
+    expect(parsed.warnings).toHaveLength(2);
+  });
+});
