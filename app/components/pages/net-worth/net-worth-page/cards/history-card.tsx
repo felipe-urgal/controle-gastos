@@ -1,6 +1,7 @@
 'use client';
 
 import { ChartCursor } from '@/app/components/charts/chart-cursor';
+import { useChartWidth } from '@/app/components/charts/use-chart-width';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
 import { displayMoney, logicalDateLabel, monthShort, valuationBasisLabel } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
 import { summarizeVariation } from '@/app/components/pages/net-worth/net-worth-page/net-worth-model';
@@ -8,9 +9,6 @@ import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { NetWorthData, NetWorthValuationQuality } from '@/app/types/net-worth';
 
-const WIDTH = 760;
-const HEIGHT = 260;
-const PAD = { left: 64, right: 16, top: 16, bottom: 30 };
 const compact = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
 
 export function HistoryCard({
@@ -26,6 +24,11 @@ export function HistoryCard({
   valuation: NetWorthValuationQuality;
   historyValuation: NetWorthData['historyValuation'];
 }) {
+  // O gráfico desenha na largura real do contêiner: altura fixa e rótulos no tamanho do texto.
+  const { ref: chartRef, width: WIDTH } = useChartWidth(760);
+  const narrow = WIDTH < 520;
+  const HEIGHT = narrow ? 220 : 240;
+  const PAD = { left: narrow ? 46 : 60, right: 14, top: 16, bottom: 28 };
   const values = history.map((item) => item.value);
   const min = Math.min(...values, 0);
   const max = Math.max(...values, 0);
@@ -42,7 +45,7 @@ export function HistoryCard({
   const baseline = HEIGHT - PAD.bottom;
   const area = points.length > 1 ? `${line} L ${points[points.length - 1].x} ${baseline} L ${points[0].x} ${baseline} Z` : '';
   const ticks = [0, 1, 2, 3].map((step) => low + ((high - low) * step) / 3);
-  const labelStep = history.length > 8 ? 2 : 1;
+  const labelStep = history.length > (narrow ? 6 : 12) ? Math.ceil(history.length / (narrow ? 6 : 12)) : 1;
 
   const variation = summarizeVariation(values);
   const shown = points[activeIndex ?? points.length - 1] ?? null;
@@ -81,9 +84,11 @@ export function HistoryCard({
         </div>
       )}
 
+      <div ref={chartRef} className="mt-3">
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        className="mt-3 h-auto w-full touch-pan-y"
+        style={{ height: HEIGHT }}
+        className="block w-full touch-pan-y"
         role="img"
         aria-label={`Evolução mensal do patrimônio em ${currency}. ${summary}`}
         {...handlers}
@@ -115,6 +120,7 @@ export function HistoryCard({
         )}
         {shown && <ChartCursor x={shown.x} y={shown.y} top={PAD.top} bottom={baseline} />}
       </svg>
+      </div>
 
       <details className="mt-3 rounded-[12px] border border-[var(--border)]">
         <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-bold text-[var(--foreground)]">Ver valores em tabela</summary>

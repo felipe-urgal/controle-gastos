@@ -23,6 +23,11 @@ export type TimelineGroup = {
 export type MonthBar = {
   value: number;
   tone: 'income' | 'expense' | 'neutral';
+  income: number;
+  expense: number;
+  /** Primeiro e último dia do mês que a coluna cobre. */
+  fromDay: number;
+  toDay: number;
 };
 
 export const REFINEMENT_FILTER_KEYS = new Set(['search', 'status', 'accountId', 'categoryId', 'merchantId', 'tagId']);
@@ -176,8 +181,14 @@ export function buildMonthBars(
   month: number,
   year: number,
 ): MonthBar[] {
-  const buckets = Array.from({ length: BAR_BUCKETS }, () => ({ income: 0, expense: 0 }));
+  const buckets = Array.from({ length: BAR_BUCKETS }, () => ({ income: 0, expense: 0, fromDay: 0, toDay: 0 }));
   const daysInMonth = new Date(year, month, 0).getDate();
+  const bucketOf = (day: number) => Math.min(BAR_BUCKETS - 1, Math.floor(((day - 1) / Math.max(1, daysInMonth)) * BAR_BUCKETS));
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const bucket = buckets[bucketOf(day)];
+    if (bucket.fromDay === 0) bucket.fromDay = day;
+    bucket.toDay = day;
+  }
 
   transactions
     .filter(
@@ -187,10 +198,7 @@ export function buildMonthBars(
         transaction.account.currency === currency,
     )
     .forEach((transaction) => {
-      const index = Math.min(
-        BAR_BUCKETS - 1,
-        Math.floor(((transaction.day - 1) / Math.max(1, daysInMonth)) * BAR_BUCKETS),
-      );
+      const index = bucketOf(transaction.day);
       if (transaction.type === 'INCOME') buckets[index].income += transaction.amount;
       else buckets[index].expense += transaction.amount;
     });
@@ -203,7 +211,7 @@ export function buildMonthBars(
         : bucket.income >= bucket.expense
           ? 'income'
           : 'expense';
-    return { value, tone };
+    return { value, tone, income: bucket.income, expense: bucket.expense, fromDay: bucket.fromDay, toDay: bucket.toDay };
   });
 }
 

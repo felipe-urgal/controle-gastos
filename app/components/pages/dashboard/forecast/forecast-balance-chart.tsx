@@ -1,14 +1,12 @@
 'use client';
 
 import { ChartCursor } from '@/app/components/charts/chart-cursor';
+import { useChartWidth } from '@/app/components/charts/use-chart-width';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { BalanceSeries } from '@/app/components/pages/dashboard/forecast/forecast-series';
 import type { ForecastLogicalDate } from '@/app/types/forecast';
 
-const WIDTH = 640;
-const HEIGHT = 230;
-const PAD = { left: 52, right: 14, top: 18, bottom: 26 };
 
 function dayNumber(date: ForecastLogicalDate) {
   return Date.UTC(date.year, date.month - 1, date.day) / 86_400_000;
@@ -46,6 +44,10 @@ export function ForecastBalanceChart({
   currency: string;
   showValues: boolean;
 }) {
+  const { ref: chartRef, width: WIDTH } = useChartWidth(640);
+  const narrow = WIDTH < 520;
+  const HEIGHT = narrow ? 210 : 230;
+  const PAD = { left: narrow ? 44 : 52, right: 14, top: 18, bottom: 26 };
   const startDay = dayNumber(series.asOf);
   const endDay = Math.max(dayNumber(series.horizonEnd), startDay + 1);
   const balances = [series.startBalance, ...series.points.map((point) => point.balance)];
@@ -97,7 +99,7 @@ export function ForecastBalanceChart({
   const lowestAnchor = lowestX > WIDTH - 130 ? 'end' : 'start';
 
   return (
-    <>
+    <div ref={chartRef}>
     <p className="mb-1 min-h-6 text-sm text-[var(--text-muted)]" aria-live="polite">
       {shown ? (
         <>
@@ -109,7 +111,8 @@ export function ForecastBalanceChart({
     </p>
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="h-auto w-full touch-pan-y"
+      style={{ height: HEIGHT }}
+      className="block w-full touch-pan-y"
       {...handlers}
       role="img"
       aria-label={`Saldo projetado de ${shortDate(series.asOf)} a ${shortDate(series.horizonEnd)}. Começa em ${labelValue(series.startBalance)}, termina em ${labelValue(series.endBalance)}, com menor saldo de ${labelValue(series.lowest.balance)} em ${shortDate(series.lowest.date)}.`}
@@ -163,6 +166,6 @@ export function ForecastBalanceChart({
       )}
       {shown && <ChartCursor x={shown.x} y={shown.y} top={PAD.top} bottom={HEIGHT - PAD.bottom} color={shown.balance < 0 ? 'var(--expense)' : 'var(--orbit-primary)'} />}
     </svg>
-    </>
+    </div>
   );
 }

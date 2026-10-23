@@ -1,5 +1,6 @@
 'use client';
 
+import { MonthBarsChart } from '@/app/components/charts/month-bars-chart';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
@@ -149,23 +150,20 @@ export default function CategoryShowView({
                 <h2 id="category-history-heading" className="text-base font-bold">Últimos 6 meses</h2>
                 <p className="text-xs text-[var(--text-muted)]">{isExpense ? 'gasto por mês' : 'recebido por mês'}{history.limitPercentOfScale !== null ? ', com o limite de hoje' : ''}</p>
               </div>
-              <div className="relative mx-4 grid h-36 grid-cols-6 items-end gap-2 sm:mx-5" style={{ ['--category-color' as string]: color }}>
-                {history.limitPercentOfScale !== null && activity.month.limit !== null && (
-                  <div className="pointer-events-none absolute inset-x-0 border-t-[1.5px] border-dashed border-[var(--warning)]" style={{ bottom: `${history.limitPercentOfScale}%` }}>
-                    <span className="money absolute -top-5 right-0 text-xs text-[var(--warning)]">{money(activity.month.limit)}</span>
-                  </div>
-                )}
-                {history.bars.map((bar) => (
-                  <div key={bar.key} className="flex h-full flex-col items-center justify-end gap-1">
-                    <div
-                      className="w-full max-w-10 rounded-t-md"
-                      style={{ height: `${bar.heightPercent}%`, backgroundColor: bar.current ? 'var(--category-color)' : 'color-mix(in srgb, var(--category-color) 50%, var(--surface-subtle))' }}
-                      role="img"
-                      aria-label={`${bar.label}: ${money(bar.realized)}`}
-                    />
-                    <span className="text-xs text-[var(--text-muted)]">{bar.label}</span>
-                  </div>
-                ))}
+              <div className="mx-4 sm:mx-5">
+                <MonthBarsChart
+                  ariaLabel={`${isExpense ? 'Gasto' : 'Recebido'} por mês nos últimos 6 meses`}
+                  accentColor={color}
+                  heightClass="h-28"
+                  bars={history.bars.map((bar) => ({ key: bar.key, label: bar.label, valueLabel: money(bar.realized), heightPercent: bar.heightPercent, current: bar.current }))}
+                  overlay={
+                    history.limitPercentOfScale !== null && activity.month.limit !== null ? (
+                      <div className="pointer-events-none absolute inset-x-0 border-t-[1.5px] border-dashed border-[var(--warning)]" style={{ bottom: `${history.limitPercentOfScale}%` }}>
+                        <span className="money absolute -top-5 right-0 text-xs text-[var(--warning)]">{money(activity.month.limit)}</span>
+                      </div>
+                    ) : null
+                  }
+                />
               </div>
               <p className="px-4 pt-3 text-sm text-[var(--text-muted)] sm:px-5">
                 Média dos 5 meses anteriores: <span className="money font-semibold text-[var(--foreground)]">{money(activity.previousAverage)}</span>.

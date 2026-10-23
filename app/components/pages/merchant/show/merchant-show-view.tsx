@@ -1,5 +1,6 @@
 'use client';
 
+import { MonthBarsChart } from '@/app/components/charts/month-bars-chart';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -158,18 +159,12 @@ export default function MerchantShowView({
                 <h2 id="merchant-history-heading" className="text-base font-bold">Últimos 6 meses</h2>
                 <p className="text-xs text-[var(--text-muted)]">gasto por mês</p>
               </div>
-              <div className="mx-4 grid h-36 grid-cols-6 items-end gap-2 sm:mx-5">
-                {bars.map((bar) => (
-                  <div key={bar.key} className="flex h-full flex-col items-center justify-end gap-1">
-                    <div
-                      className={`w-full max-w-10 rounded-t-md ${bar.current ? 'bg-[var(--orbit-primary)]' : 'bg-[var(--orbit-primary-subtle)]'}`}
-                      style={{ height: `${bar.heightPercent}%` }}
-                      role="img"
-                      aria-label={`${bar.label}: ${money(bar.expense)}`}
-                    />
-                    <span className="text-xs text-[var(--text-muted)]">{bar.label}</span>
-                  </div>
-                ))}
+              <div className="mx-4 sm:mx-5">
+                <MonthBarsChart
+                  ariaLabel="Gasto por mês nos últimos 6 meses"
+                  heightClass="h-28"
+                  bars={bars.map((bar) => ({ key: bar.key, label: bar.label, valueLabel: money(bar.expense), heightPercent: bar.heightPercent, current: bar.current }))}
+                />
               </div>
               <p className="px-4 pt-3 text-sm text-[var(--text-muted)] sm:px-5">
                 Média dos 5 meses anteriores: <span className="money font-semibold text-[var(--foreground)]">{money(activity.previousAverage)}</span>.

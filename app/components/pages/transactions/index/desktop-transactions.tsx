@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { FaArrowDown, FaArrowRight, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaClock, FaCreditCard, FaExchangeAlt } from 'react-icons/fa';
 import { Button, IconRenderer, MoneyText, Select } from '@/app/components/ui';
 import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
@@ -253,6 +253,8 @@ export function MonthOverview({
   showValues: boolean;
   balanceTrend: number | null;
 }) {
+  const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
+  const activeBar = activeBarIndex === null ? null : bars[activeBarIndex];
   const positive = summary.balance >= 0;
   const insightTitle = positive ? 'Você está no positivo!' : 'Atenção ao saldo do mês';
   let insightText = positive
@@ -272,21 +274,59 @@ export function MonthOverview({
       </header>
 
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)_135px] items-end gap-4">
-        <div className="grid h-[92px] grid-cols-8 items-end gap-1.5 border-b border-[var(--border)] px-1 pb-1">
-          {bars.map((bar, index) => {
-            const height = bar.value === 0 ? 10 : Math.max(18, Math.round((bar.value / maxBar) * 82));
-            const tone =
-              bar.tone === 'income'
-                ? 'bg-[var(--income)]'
-                : bar.tone === 'expense'
-                  ? 'bg-[var(--expense)]'
-                  : 'bg-[var(--surface-subtle)]';
-            return (
-              <span key={index} className="flex h-full min-w-0 items-end justify-center border-x border-[var(--border)]/25">
-                <span className={`w-[68%] rounded-t-sm ${tone}`} style={{ height }} />
-              </span>
-            );
-          })}
+        <div className="grid gap-1.5">
+          <p className="min-h-4 text-[13px] text-[var(--text-muted)]" aria-live="polite">
+            {activeBar ? (
+              <>
+                Dias {activeBar.fromDay}–{activeBar.toDay}:{' '}
+                <strong className="money text-[var(--foreground)]">
+                  {activeBar.income === 0 && activeBar.expense === 0
+                    ? 'sem movimento'
+                    : `+${displayMoney(activeBar.income, showValues, summary.currency)} / −${displayMoney(activeBar.expense, showValues, summary.currency)}`}
+                </strong>
+              </>
+            ) : (
+              'Passe o cursor ou toque numa coluna.'
+            )}
+          </p>
+          <div
+            role="group"
+            aria-label="Saldo por trecho do mês"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                event.preventDefault();
+                setActiveBarIndex((current) => Math.min(bars.length - 1, Math.max(0, (current ?? (event.key === 'ArrowRight' ? -1 : bars.length)) + (event.key === 'ArrowRight' ? 1 : -1))));
+              } else if (event.key === 'Escape') setActiveBarIndex(null);
+            }}
+            onPointerLeave={(event) => event.pointerType === 'mouse' && setActiveBarIndex(null)}
+            className="grid h-[92px] grid-cols-8 items-end gap-1.5 border-b border-[var(--border)] px-1 pb-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          >
+            {bars.map((bar, index) => {
+              const height = bar.value === 0 ? 10 : Math.max(18, Math.round((bar.value / maxBar) * 82));
+              const tone =
+                bar.tone === 'income'
+                  ? 'bg-[var(--income)]'
+                  : bar.tone === 'expense'
+                    ? 'bg-[var(--expense)]'
+                    : 'bg-[var(--surface-subtle)]';
+              return (
+                <span
+                  key={index}
+                  className="flex h-full min-w-0 cursor-pointer items-end justify-center border-x border-[var(--border)]/25"
+                  onPointerEnter={(event) => event.pointerType === 'mouse' && setActiveBarIndex(index)}
+                  onPointerDown={() => setActiveBarIndex(index)}
+                >
+                  <span
+                    className={`w-[68%] rounded-t-sm transition-opacity ${tone} ${activeBarIndex !== null && activeBarIndex !== index ? 'opacity-45' : ''}`}
+                    style={{ height }}
+                    role="img"
+                    aria-label={`Dias ${bar.fromDay} a ${bar.toDay}`}
+                  />
+                </span>
+              );
+            })}
+          </div>
         </div>
 
         <div className="space-y-3 pb-1">

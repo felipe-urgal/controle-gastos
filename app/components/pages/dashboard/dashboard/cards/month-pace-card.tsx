@@ -9,13 +9,11 @@ import { buildMonthPace, type MonthPace, type PaceStatus } from '@/app/component
 import { displayMoney, monthLabel, signedMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { ComparisonDetail } from '@/app/components/pages/dashboard/dashboard/insight-cards';
 import { ChartCursor } from '@/app/components/charts/chart-cursor';
+import { useChartWidth } from '@/app/components/charts/use-chart-width';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { DashboardPeriodRelation, MonthlyDashboard } from '@/app/types/dashboard';
 
-const WIDTH = 640;
-const HEIGHT = 210;
-const PAD = { left: 48, right: 14, top: 16, bottom: 24 };
 
 const compact = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
 
@@ -44,6 +42,10 @@ const toneClass = {
 } as const;
 
 function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues: boolean; currency: string }) {
+  const { ref: chartRef, width: WIDTH } = useChartWidth(640);
+  const narrow = WIDTH < 520;
+  const HEIGHT = narrow ? 200 : 210;
+  const PAD = { left: narrow ? 42 : 48, right: 14, top: 16, bottom: 24 };
   const { daysInMonth, elapsedDays, cumulative, previousCumulative, budget, projected, spent } = pace;
   const max = Math.max(budget, projected ?? 0, spent, previousCumulative[previousCumulative.length - 1] ?? 0, 1_000);
   const top = max * 1.08;
@@ -63,7 +65,7 @@ function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues
   const activePrevious = activeDay !== null ? (previousCumulative[activeDay - 1] ?? null) : null;
 
   return (
-    <>
+    <div ref={chartRef}>
     <p className="mb-1 min-h-6 text-sm text-[var(--text-muted)]" aria-live="polite">
       {activeDay === null ? (
         'Passe o cursor ou toque no gráfico para ver o gasto de cada dia.'
@@ -77,7 +79,8 @@ function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues
     </p>
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="h-auto w-full touch-pan-y"
+      style={{ height: HEIGHT }}
+      className="block w-full touch-pan-y"
       {...handlers}
       role="img"
       aria-label={`Gasto acumulado no mês: ${money(spent)} em ${elapsedDays} de ${daysInMonth} dias${budget > 0 ? `, orçamento de ${money(budget)}` : ''}${projected !== null ? `, projeção de ${money(projected)} no fim do mês` : ''}.`}
@@ -123,7 +126,7 @@ function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues
         <ChartCursor x={x(activeDay)} y={y(activeSpent ?? activePrevious ?? 0)} top={PAD.top} bottom={HEIGHT - PAD.bottom} />
       )}
     </svg>
-    </>
+    </div>
   );
 }
 
