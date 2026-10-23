@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { FaChartLine, FaChevronDown, FaHistory, FaTrash } from 'react-icons/fa';
+import { FaChevronDown, FaHistory, FaTrash } from 'react-icons/fa';
 import { Button, IconButton, Select } from '@/app/components/ui';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ModalShell as SharedModalShell } from '@/app/components/overlays/modal-shell';
@@ -9,7 +9,7 @@ import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { groupInvestmentIncomesByAsset } from '@/app/lib/investments/investment-income-summary';
 import { SupportedCurrency } from '@/app/types/financial-summary';
 import { InvestmentAsset, InvestmentIncome, InvestmentOperation, InvestmentPortfolio } from '@/app/types/investment';
-import { dateLabel, fiscalEventLabel, operationLabel, quantityLabel, quoteDateLabel, typeLabel } from '@/app/components/pages/investment/investments-helpers';
+import { dateLabel, fiscalEventLabel, operationLabel, quantityLabel, typeLabel } from '@/app/components/pages/investment/investments-helpers';
 
 /**
  * Cartão com cabeçalho recolhível: aberto a partir de 640 px; no mobile começa recolhido para
@@ -24,7 +24,7 @@ export function CollapsibleCard({ header, children }: { header: ReactNode; child
     <details
       open={open}
       onToggle={(event) => setOverride(event.currentTarget.open)}
-      className="group rounded-[18px] border border-[var(--border)] bg-[var(--surface)]"
+      className="group rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]"
     >
       <summary className="flex min-h-11 cursor-pointer list-none items-start justify-between gap-3 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:p-5 [&::-webkit-details-marker]:hidden">
         <div className="min-w-0 flex-1">{header}</div>
@@ -38,50 +38,6 @@ export function CollapsibleCard({ header, children }: { header: ReactNode; child
   );
 }
 
-export function TotalsCard({
-  totals,
-  showValues,
-}: {
-  totals: InvestmentPortfolio['totalsByCurrency'];
-  showValues: boolean;
-}) {
-  const entries = Object.entries(totals) as Array<[SupportedCurrency, number]>;
-  return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-      <div className="flex items-center gap-2">
-        <FaChartLine className="text-[var(--orbit-primary)]" aria-hidden="true" />
-        <h2 className="text-lg font-bold text-[var(--foreground)]">
-          Custo investido por moeda
-        </h2>
-      </div>
-      <p className="mt-1 text-xs text-[var(--text-muted)]">
-        Não é valor de mercado e não é somado automaticamente ao patrimônio.
-      </p>
-      {entries.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--text-muted)]">
-          Nenhuma posição aberta.
-        </p>
-      ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {entries.map(([currency, amount]) => (
-            <div
-              key={currency}
-              className="rounded-[14px] bg-[var(--surface-raised)] p-4"
-            >
-              <span className="text-xs font-semibold text-[var(--text-muted)]">
-                {currency}
-              </span>
-              <strong className="mt-1 block text-2xl font-black tabular-nums text-[var(--foreground)] sm:text-3xl">
-                <span className="money">{showValues ? formatCurrency(amount, currency) : '••••'}</span>
-              </strong>
-            </div>
-          ))}
-        </div>
-      )}
-    </article>
-  );
-}
-
 export function FiscalCostCard({
   portfolio,
   showValues,
@@ -92,7 +48,7 @@ export function FiscalCostCard({
   onAdjust: (assetId: string) => void;
 }) {
   return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -222,112 +178,6 @@ export function FiscalCostCard({
                 {item.lastAdjustmentId ? 'Novo ajuste fiscal' : 'Informar custo fiscal'}
               </Button>
             </div>
-          ))}
-        </div>
-      )}
-    </article>
-  );
-}
-
-export function PositionsCard({
-  portfolio,
-  showValues,
-  onHistory,
-}: {
-  portfolio: InvestmentPortfolio;
-  showValues: boolean;
-  onHistory: (assetId: string) => void;
-}) {
-  return (
-    <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-      <h2 className="text-lg font-bold text-[var(--foreground)]">Posições</h2>
-      <p className="mt-1 text-xs text-[var(--text-muted)]">
-        Quantidade e custo médio derivados das operações.
-      </p>
-      {portfolio.positions.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--text-muted)]">
-          Nenhuma posição aberta.
-        </p>
-      ) : (
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {portfolio.positions.map((position) => (
-            <button
-              key={`${position.accountId}-${position.assetId}`}
-              type="button"
-              onClick={() => onHistory(position.assetId)}
-              className="rounded-[14px] border border-[var(--border)] p-4 text-left hover:border-[var(--orbit-primary)]/40"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <span>
-                  <strong className="block text-base text-[var(--foreground)]">
-                    {position.symbol}
-                  </strong>
-                  <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                    {position.accountName} · {typeLabel(position.assetType)}
-                  </span>
-                </span>
-                <span className="text-right">
-                  <strong className="block text-sm text-[var(--foreground)]">
-                    {quantityLabel(position.quantity)}
-                  </strong>
-                  <span className="text-xs text-[var(--text-muted)]">
-                    unidades
-                  </span>
-                </span>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-                <span className="rounded-xl bg-[var(--surface-raised)] p-3">
-                  <span className="block text-xs text-[var(--text-muted)]">
-                    Custo médio
-                  </span>
-                  <strong className="mt-1 block">
-                    {showValues
-                      ? formatCurrency(
-                          position.averageUnitCostCents,
-                          position.currency,
-                        )
-                      : '••••'}
-                  </strong>
-                </span>
-                <span className="rounded-xl bg-[var(--surface-raised)] p-3">
-                  <span className="block text-xs text-[var(--text-muted)]">
-                    Custo da posição
-                  </span>
-                  <strong className="mt-1 block">
-                    {showValues
-                      ? formatCurrency(position.investedCents, position.currency)
-                      : '••••'}
-                  </strong>
-                </span>
-                <span className="order-first col-span-2 rounded-xl bg-[var(--surface-raised)] p-3 sm:order-last sm:col-span-1">
-                  <span className="block text-xs text-[var(--text-muted)]">
-                    Valor de mercado
-                  </span>
-                  <strong className="mt-1 block text-base tabular-nums">
-                    {position.marketValueCents === null
-                      ? 'Sem cotação'
-                      : showValues
-                        ? formatCurrency(
-                            position.marketValueCents,
-                            position.currency,
-                          )
-                        : '••••'}
-                  </strong>
-                  {position.quote && (
-                    <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
-                      {showValues
-                        ? `${formatCurrency(
-                            position.quote.priceCents,
-                            position.currency,
-                          )} / un. · `
-                        : ''}
-                      {position.quote.isStale ? 'desatualizada' : 'atualizada'} ·{' '}
-                      {quoteDateLabel(position.quote.referenceAt)}
-                    </span>
-                  )}
-                </span>
-              </div>
-            </button>
           ))}
         </div>
       )}
