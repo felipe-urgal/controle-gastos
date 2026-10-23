@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { PageContainer } from '@/app/components/base-pages';
 import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FaFileImport, FaPlus, FaSyncAlt } from 'react-icons/fa';
+import { FaPlus, FaSyncAlt } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { InvestmentFiscalYearProvider } from '@/app/components/pages/investment/investment-fiscal-year-context';
@@ -12,6 +12,7 @@ import { EconomicIndicatorsCard } from '@/app/components/pages/investment/econom
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { Button, Chip, ChipRow } from '@/app/components/ui';
+import type { SupportedCurrency } from '@/app/types/financial-summary';
 import { useAuth } from '@/app/context';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 
@@ -19,7 +20,11 @@ import { investmentService, type InvestmentAssetInput } from '@/app/services/inv
 import type { InvestmentAsset, InvestmentFiscalEventType, InvestmentIncome, InvestmentOperation, InvestmentPortfolio } from '@/app/types/investment';
 import { AssetForm, FiscalCostForm, IncomeForm, OperationForm, emptyAsset, emptyFiscalCost, emptyIncome, emptyOperation, today } from '@/app/components/pages/investment/investments-helpers';
 import { AssetModal, DeleteConfirmModal, FiscalClassificationModal, FiscalCostModal, HistoryModal, IncomeModal, OperationModal } from '@/app/components/pages/investment/investment-modals';
-import { AssetsCard, FiscalCostCard, IncomesCard, OperationsCard, PositionsCard, TotalsCard } from '@/app/components/pages/investment/investment-cards';
+import { AssetsCard, FiscalCostCard, IncomesCard, OperationsCard } from '@/app/components/pages/investment/investment-cards';
+import { InvestmentActionsMenu } from '@/app/components/pages/investment/investment-actions-menu';
+import { PortfolioSummary } from '@/app/components/pages/investment/portfolio-summary';
+import { PositionsList } from '@/app/components/pages/investment/positions-list';
+import { portfolioCurrencies, summarizeCurrency } from '@/app/components/pages/investment/investments-model';
 
 
 // Áreas Fiscal/Informes e o modal de importação só carregam quando usados (dados já são sob demanda).
@@ -73,6 +78,7 @@ export default function InvestmentsCenter() {
   const [fiscalCostForm, setFiscalCostForm] =
     useState<FiscalCostForm>(emptyFiscalCost);
   const [fiscalCostModal, setFiscalCostModal] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState<SupportedCurrency>('BRL');
   const [area, setArea] = useState<'PORTFOLIO' | 'FISCAL' | 'STATEMENTS'>(
     'PORTFOLIO',
   );
@@ -202,6 +208,12 @@ export default function InvestmentsCenter() {
 
   const historyAsset = portfolio?.assets.find(
     (asset) => asset.id === historyAssetId,
+  );
+  const currencies = useMemo(() => (portfolio ? portfolioCurrencies(portfolio) : []), [portfolio]);
+  const activeCurrency = currencies.includes(selectedCurrency) ? selectedCurrency : (currencies[0] ?? selectedCurrency);
+  const summary = useMemo(
+    () => (portfolio ? summarizeCurrency(portfolio.positions, activeCurrency) : null),
+    [portfolio, activeCurrency],
   );
   const hasQuoteablePositions =
     portfolio?.positions.some((position) => {
@@ -516,7 +528,7 @@ export default function InvestmentsCenter() {
               Posições derivadas das operações, com cotação B3 sob demanda via brapi.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               pill
@@ -525,20 +537,6 @@ export default function InvestmentsCenter() {
               disabled={!hasQuoteablePositions || refreshingQuotes}
             >
               {refreshingQuotes ? 'Atualizando...' : 'Atualizar cotações'}
-            </Button>
-            <Button
-              variant="outline"
-              pill
-              icon={<FaFileImport aria-hidden="true" />}
-              onClick={() => setImportModal(true)}
-              disabled={!portfolio?.accounts.some(
-                (account) => account.isActive && account.currency === 'BRL',
-              )}
-            >
-              Importar
-            </Button>
-            <Button variant="outline" pill icon={<FaPlus aria-hidden="true" />} onClick={() => setAssetModal(true)}>
-              Novo ativo
             </Button>
             <Button
               pill
@@ -551,18 +549,21 @@ export default function InvestmentsCenter() {
             >
               Nova operação
             </Button>
-            <Button
-              variant="outline"
-              pill
-              icon={<FaPlus aria-hidden="true" />}
-              onClick={openIncomeModal}
-              disabled={
-                !portfolio?.accounts.some((account) => account.isActive) ||
-                !portfolio?.assets.length
-              }
-            >
-              Novo provento
-            </Button>
+            <InvestmentActionsMenu
+              items={[
+                { label: 'Novo ativo', onSelect: () => setAssetModal(true) },
+                {
+                  label: 'Novo provento',
+                  onSelect: openIncomeModal,
+                  disabled: !portfolio?.accounts.some((account) => account.isActive) || !portfolio?.assets.length,
+                },
+                {
+                  label: 'Importar extrato',
+                  onSelect: () => setImportModal(true),
+                  disabled: !portfolio?.accounts.some((account) => account.isActive && account.currency === 'BRL'),
+                },
+              ]}
+            />
           </div>
         </header>
 
@@ -617,16 +618,23 @@ export default function InvestmentsCenter() {
 
             {area === 'PORTFOLIO' && (
               <>
-                <TotalsCard
-                  totals={portfolio.totalsByCurrency}
-                  showValues={showValues}
-                />
+                {summary && (
+                  <PortfolioSummary
+                    summary={summary}
+                    incomeTotal={portfolio.incomeTotalsByCurrency[activeCurrency] ?? 0}
+                    currencies={currencies}
+                    onCurrency={setSelectedCurrency}
+                    showValues={showValues}
+                  />
+                )}
                 <EconomicIndicatorsCard />
-                <PositionsCard
-                  portfolio={portfolio}
-                  showValues={showValues}
-                  onHistory={openHistory}
-                />
+                {summary && (
+                  <PositionsList
+                    ranked={summary.ranked}
+                    showValues={showValues}
+                    onHistory={openHistory}
+                  />
+                )}
                 <IncomesCard
                   incomes={portfolio.incomes}
                   totals={portfolio.incomeTotalsByCurrency}
