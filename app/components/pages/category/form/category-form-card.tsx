@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { FaPen } from 'react-icons/fa';
 
-import { Button, ColorIconSelector, IconButton, IconRenderer, InlineInput, Select } from '@/app/components/ui';
+import { Button, ColorIconSelector, IconButton, IconRenderer, InlineInput, MoneyInlineInput, Select } from '@/app/components/ui';
 import { isMonthlyLimitInvalid } from '@/app/components/pages/category/form/category-form-model';
 import { CATEGORY_NAME_MAX_LENGTH } from '@/app/lib/categories/category-limits';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
@@ -120,14 +120,12 @@ export function CategoryFormCard({
                 disabled={loading}
               />
             </div>
-            <InlineInput
+            <MoneyInlineInput
               id="category-monthly-limit"
               size="amount"
-              inputMode="decimal"
               value={monthlyLimit}
-              onChange={(event) => onMonthlyLimitChange(event.target.value)}
+              onValueChange={onMonthlyLimitChange}
               disabled={loading}
-              placeholder="0,00"
               aria-invalid={limitInvalid || undefined}
             />
           </div>

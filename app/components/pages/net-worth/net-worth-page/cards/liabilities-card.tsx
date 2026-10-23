@@ -15,10 +15,10 @@ export function LiabilitiesCard({
   showValues: boolean;
 }) {
   return (
-    <article className="min-w-0 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <article className="min-w-0 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[var(--foreground)]">Passivos</h2>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">Dívidas</h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
             Dívidas com saldo devedor nesta moeda.
           </p>
@@ -46,8 +46,8 @@ export function LiabilitiesCard({
                   {debt.institution || 'Passivo manual'}
                 </span>
               </span>
-              <strong className="shrink-0 text-sm text-[var(--expense)]">
-                <span className="money">{displayMoney(debt.balance, showValues, currency)}</span>
+              <strong className="money shrink-0 text-sm font-semibold text-[var(--expense)]">
+                {showValues ? '−' : ''}{displayMoney(debt.balance, showValues, currency)}
               </strong>
             </Link>
           ))}

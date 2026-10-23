@@ -13,3 +13,4 @@ export { Chip, ChipRow } from '@/app/components/ui/chip';
 export { IconButton, IconLink } from '@/app/components/ui/icon-button';
 export { ShowFrom, ShowBelow } from '@/app/components/ui/responsive';
 export { default as MoneyText } from '@/app/components/ui/money-text';
+export { default as MoneyInput, MoneyInlineInput } from '@/app/components/ui/money-input';

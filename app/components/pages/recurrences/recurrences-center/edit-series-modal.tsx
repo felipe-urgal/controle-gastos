@@ -7,7 +7,7 @@ import {
   formatAmountInput,
   parseAmountInput,
 } from '@/app/components/pages/recurrences/recurrences-center/recurrences-model';
-import { Button, Input } from '@/app/components/ui';
+import { Button, Input, MoneyInput } from '@/app/components/ui';
 import type { RecurrenceSummaryItem, UpdateRecurrenceSeriesInput } from '@/app/types/recurrence';
 
 export default function EditSeriesModal({
@@ -71,12 +71,12 @@ export default function EditSeriesModal({
         />
 
         <div>
-          <Input
+          <MoneyInput
             label={`Valor (${item.currency})`}
             aria-label={`Valor (${item.currency})`}
+            currency={item.currency}
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            inputMode="decimal"
+            onValueChange={setAmount}
             enterKeyHint="done"
             disabled={saving}
             aria-describedby="edit-series-amount-help"

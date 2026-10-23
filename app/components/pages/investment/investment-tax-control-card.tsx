@@ -13,7 +13,7 @@ import type {
   InvestmentAssetType,
   InvestmentTaxControlReport,
 } from '@/app/types/investment';
-import { Button, Input, Select } from '@/app/components/ui';
+import { Button, Input, MoneyInput, Select } from '@/app/components/ui';
 
 const assetTypes: Array<{ value: InvestmentAssetType; label: string }> = [
   { value: 'STOCK', label: 'Ações' },
@@ -215,12 +215,11 @@ export function InvestmentTaxControlCard({
             }))}
             disabled={saving}
           />
-          <Input
+          <MoneyInput
             label="Valor"
+            currency={currency}
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            placeholder="R$ 0,00"
-            inputMode="decimal"
+            onValueChange={setAmount}
             required
             disabled={saving}
           />

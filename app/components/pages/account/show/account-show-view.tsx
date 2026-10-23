@@ -15,6 +15,8 @@ import {
   type MovementFilter,
 } from '@/app/components/pages/account/show/account-show-model';
 import ReconciliationPanel from '@/app/components/pages/account/show/reconciliation-panel';
+import { ChartCursor } from '@/app/components/charts/chart-cursor';
+import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
 import { Button, Chip, IconLink, IconRenderer, ShowBelow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { getAccountPrimaryValue } from '@/app/lib/accounts/account-presentation';
@@ -29,16 +31,34 @@ function todayLogical() {
   return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
 }
 
-function Sparkline({ series, label }: { series: number[]; label: string }) {
+function Sparkline({ series, label, currency, showValues }: { series: number[]; label: string; currency: string; showValues: boolean }) {
   const shape = buildSparkline(series, 300, 64);
+  const { activeIndex, handlers } = useChartScrub(shape?.points.map((point) => point.x) ?? [], 300);
   if (!shape) return null;
 
+  const active = activeIndex === null ? null : shape.points[activeIndex];
+  // A série cobre os últimos dias e termina hoje.
+  const daysAgo = activeIndex === null ? 0 : series.length - 1 - activeIndex;
+  const dayLabel = daysAgo === 0 ? 'Hoje' : daysAgo === 1 ? 'Ontem' : `Há ${daysAgo} dias`;
+
   return (
-    <svg viewBox="0 0 300 64" className="h-16 w-full" role="img" aria-label={label}>
-      <path d={shape.area} fill="var(--account-color)" fillOpacity="0.12" />
-      <path d={shape.line} fill="none" stroke="var(--account-color)" strokeWidth="2" strokeLinejoin="round" />
-      <circle cx={shape.endX} cy={shape.endY} r="3.5" fill="var(--account-color)" />
-    </svg>
+    <div>
+      <p className="mb-1 min-h-5 text-xs text-[var(--text-muted)]" aria-live="polite">
+        {activeIndex !== null ? (
+          <>
+            {dayLabel}: <strong className="money text-[var(--foreground)]">{showValues ? formatCurrency(series[activeIndex], currency) : '••••'}</strong>
+          </>
+        ) : (
+          'Passe o cursor ou toque para ver o saldo de cada dia.'
+        )}
+      </p>
+      <svg viewBox="0 0 300 64" className="h-16 w-full touch-pan-y" role="img" aria-label={label} {...handlers}>
+        <path d={shape.area} fill="var(--account-color)" fillOpacity="0.12" />
+        <path d={shape.line} fill="none" stroke="var(--account-color)" strokeWidth="2" strokeLinejoin="round" />
+        <circle cx={shape.endX} cy={shape.endY} r="3.5" fill="var(--account-color)" />
+        {active && <ChartCursor x={active.x} y={active.y} top={0} bottom={64} color="var(--account-color)" />}
+      </svg>
+    </div>
   );
 }
 
@@ -226,7 +246,7 @@ export default function AccountShowView({
             </p>
             {!showValues && <p className="mt-1 text-sm text-[var(--text-subtle)]">Valores ocultos pelas suas preferências.</p>}
           </div>
-          {series.length > 1 && <Sparkline series={series} label={sparkLabel} />}
+          {series.length > 1 && <Sparkline series={series} label={sparkLabel} currency={account.currency} showValues={showValues} />}
         </div>
 
         <dl className="grid grid-cols-3 gap-2">

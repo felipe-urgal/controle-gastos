@@ -52,7 +52,7 @@ export function groupMovementsByDay(transactions: readonly AccountRecentTransact
   return groups;
 }
 
-export type SparklineShape = { line: string; area: string; endX: number; endY: number };
+export type SparklineShape = { line: string; area: string; endX: number; endY: number; points: Array<{ x: number; y: number }> };
 
 /** Curva do saldo em coordenadas de uma caixa `width` x `height`; null com menos de dois pontos. */
 export function buildSparkline(series: readonly number[], width: number, height: number, padding = 4): SparklineShape | null {
@@ -73,6 +73,7 @@ export function buildSparkline(series: readonly number[], width: number, height:
     area: `${line} L ${x(lastIndex).toFixed(1)} ${height} L ${x(0).toFixed(1)} ${height} Z`,
     endX: x(lastIndex),
     endY: y(series[lastIndex]),
+    points: series.map((value, index) => ({ x: x(index), y: y(value) })),
   };
 }
 

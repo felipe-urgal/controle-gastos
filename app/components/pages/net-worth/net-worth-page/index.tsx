@@ -4,7 +4,7 @@ import { PageContainer } from '@/app/components/base-pages';
 import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { FaChevronRight } from 'react-icons/fa';
+import { FaChevronDown, FaChevronRight } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
@@ -19,6 +19,7 @@ import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { NetWorthData } from '@/app/types/net-worth';
 import { currencies, currentIsoDate, currentPeriod, decimalRateToRatio, logicalDateLabel, parsePeriodInput, periodInputValue, refreshFailureMessage } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
 import { ConsolidationCard, DistributionCard, HistoryCard, LiabilitiesCard, NetWorthHero, RealReturnCard } from '@/app/components/pages/net-worth/net-worth-page/net-worth-cards';
+import { summarizeVariation } from '@/app/components/pages/net-worth/net-worth-page/net-worth-model';
 import { ExchangeRatesCard } from '@/app/components/pages/net-worth/net-worth-page/exchange-rates-card';
 
 export default function NetWorthPage() {
@@ -356,6 +357,8 @@ export default function NetWorthPage() {
     [data, selectedCurrency],
   );
 
+  const variation = useMemo(() => summarizeVariation(history.map((point) => point.value)), [history]);
+
   const realEvolution = data?.realEvolution?.data ?? null;
   const selectedRealReturn = useMemo(
     () =>
@@ -453,6 +456,85 @@ export default function NetWorthPage() {
             </ChipRow>
 
             <div className="mt-5 space-y-4">
+              {selected && (
+                <>
+                <NetWorthHero
+                  total={selected.total}
+                  assetsTotal={selected.assetsTotal}
+                  liabilitiesTotal={selected.liabilitiesTotal}
+                  currency={selected.currency}
+                  showValues={showValues}
+                  accountCount={selected.accounts.length}
+                  debtCount={selected.debts.length}
+                  valuation={selected.valuation}
+                  variation={variation}
+                  months={data.months}
+                />
+
+                {data.realEvolution?.error && (
+                  <article className="rounded-[18px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 sm:p-5">
+                    <h2 className="font-bold text-[var(--foreground)]">
+                      Evolução real indisponível
+                    </h2>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">
+                      {data.realEvolution.error}
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="mt-3"
+                      onClick={() => {
+                        setLoading(true);
+                        setCoreNonce((current) => current + 1);
+                      }}
+                    >
+                      Tentar novamente
+                    </Button>
+                  </article>
+                )}
+
+                <HistoryCard
+                  history={history}
+                  currency={selected.currency}
+                  showValues={showValues}
+                  valuation={selected.valuation}
+                  historyValuation={data.historyValuation}
+                />
+
+                <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+                  <DistributionCard
+                    accounts={selected.accounts}
+                    currency={selected.currency}
+                    showValues={showValues}
+                  />
+                  <LiabilitiesCard
+                    debts={selected.debts}
+                    currency={selected.currency}
+                    showValues={showValues}
+                  />
+                </div>
+
+                {realEvolution && selectedRealReturn && (
+                  <RealReturnCard
+                    data={selectedRealReturn}
+                    summary={realEvolution}
+                    showValues={showValues}
+                  />
+                )}
+
+                </>
+              )}
+
+              <details className="group rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
+                <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 sm:px-5 [&::-webkit-details-marker]:hidden">
+                  <span>
+                    <span className="block text-lg font-bold">Câmbio e consolidação</span>
+                    <span className="block text-xs text-[var(--text-muted)]">
+                      Some moedas em uma só e gerencie as taxas usadas na conversão.
+                    </span>
+                  </span>
+                  <FaChevronDown className="text-xs text-[var(--text-muted)] transition-transform group-open:rotate-180" aria-hidden="true" />
+                </summary>
+                <div className="grid gap-4 border-t border-[var(--border)] p-4 sm:p-5">
               <ConsolidationCard
                 consolidation={data.consolidation}
                 baseCurrency={baseCurrency}
@@ -497,72 +579,8 @@ export default function NetWorthPage() {
                 onLoadMore={() => void loadMoreRates()}
                 onRemove={setRatePendingDelete}
               />
-
-              {selected && (
-                <>
-                <NetWorthHero
-                  total={selected.total}
-                  assetsTotal={selected.assetsTotal}
-                  liabilitiesTotal={selected.liabilitiesTotal}
-                  currency={selected.currency}
-                  showValues={showValues}
-                  accountCount={selected.accounts.length}
-                  debtCount={selected.debts.length}
-                  valuation={selected.valuation}
-                />
-
-                {data.realEvolution?.error && (
-                  <article className="rounded-[18px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 sm:p-5">
-                    <h2 className="font-bold text-[var(--foreground)]">
-                      Evolução real indisponível
-                    </h2>
-                    <p className="mt-1 text-sm text-[var(--text-muted)]">
-                      {data.realEvolution.error}
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="mt-3"
-                      onClick={() => {
-                        setLoading(true);
-                        setCoreNonce((current) => current + 1);
-                      }}
-                    >
-                      Tentar novamente
-                    </Button>
-                  </article>
-                )}
-
-                {realEvolution && selectedRealReturn && (
-                  <RealReturnCard
-                    data={selectedRealReturn}
-                    summary={realEvolution}
-                    showValues={showValues}
-                  />
-                )}
-
-                <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-                  <HistoryCard
-                    history={history}
-                    currency={selected.currency}
-                    showValues={showValues}
-                    valuation={selected.valuation}
-                    historyValuation={data.historyValuation}
-                  />
-                  <div className="space-y-4">
-                    <DistributionCard
-                      accounts={selected.accounts}
-                      currency={selected.currency}
-                      showValues={showValues}
-                    />
-                    <LiabilitiesCard
-                      debts={selected.debts}
-                      currency={selected.currency}
-                      showValues={showValues}
-                    />
-                  </div>
                 </div>
-                </>
-              )}
+              </details>
             </div>
           </>
         )}

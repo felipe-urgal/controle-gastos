@@ -2,7 +2,7 @@
 
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { Alert } from '@/app/components/feedback';
-import { Button, Input, Select } from '@/app/components/ui';
+import { Button, Input, MoneyInput, Select } from '@/app/components/ui';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { AccountModel } from '@/app/types/account';
@@ -64,14 +64,12 @@ export function GoalFormModal({
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input
+          <MoneyInput
             label="Valor alvo"
+            currency={form.currency}
             value={form.targetAmount}
-            onChange={(event) =>
-              onChange({ ...form, targetAmount: event.target.value })
-            }
-            inputMode="decimal"
-            placeholder="10000,00"
+            onValueChange={(targetAmount) => onChange({ ...form, targetAmount })}
+            placeholder="10.000,00"
             required
             disabled={saving}
           />
@@ -204,11 +202,11 @@ export function GoalEntryModal({
           </span>
         </div>
 
-        <Input
+        <MoneyInput
           label={contribution ? 'Valor da contribuição' : 'Valor da retirada'}
+          currency={goal.currency}
           value={amount}
-          onChange={(event) => onAmountChange(event.target.value)}
-          inputMode="decimal"
+          onValueChange={onAmountChange}
           placeholder="500,00"
           required
           disabled={saving}

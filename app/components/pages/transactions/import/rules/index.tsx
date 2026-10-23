@@ -5,7 +5,8 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/app/components/base-pages';
 import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
-import { Button, Input, MoneyText, Select } from '@/app/components/ui';
+import { Button, Input, MoneyInput, MoneyText, Select } from '@/app/components/ui';
+import { centsToMoneyValue, moneyValueToCents } from '@/app/lib/currency/money-mask';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import {
@@ -859,22 +860,18 @@ export default function ImportRuleManagementPage({ focusRuleId }: { focusRuleId?
                 {showValues ? (
                   <div>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <Input
-                        label={`Valor mínimo (centavos${selectedRuleAccount ? ` de ${selectedRuleAccount.currency}` : ''})`}
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={form.minAmountCents}
-                        onChange={(event) => setForm((current) => ({ ...current, minAmountCents: event.target.value }))}
+                      <MoneyInput
+                        label="Valor mínimo"
+                        currency={selectedRuleAccount?.currency}
+                        value={form.minAmountCents ? centsToMoneyValue(Number(form.minAmountCents)) : ''}
+                        onValueChange={(next) => setForm((current) => ({ ...current, minAmountCents: next ? String(moneyValueToCents(next) ?? '') : '' }))}
                         disabled={submitting}
                       />
-                      <Input
-                        label={`Valor máximo (centavos${selectedRuleAccount ? ` de ${selectedRuleAccount.currency}` : ''})`}
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={form.maxAmountCents}
-                        onChange={(event) => setForm((current) => ({ ...current, maxAmountCents: event.target.value }))}
+                      <MoneyInput
+                        label="Valor máximo"
+                        currency={selectedRuleAccount?.currency}
+                        value={form.maxAmountCents ? centsToMoneyValue(Number(form.maxAmountCents)) : ''}
+                        onValueChange={(next) => setForm((current) => ({ ...current, maxAmountCents: next ? String(moneyValueToCents(next) ?? '') : '' }))}
                         disabled={submitting}
                       />
                     </div>

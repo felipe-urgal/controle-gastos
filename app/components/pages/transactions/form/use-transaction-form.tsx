@@ -4,7 +4,8 @@ import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { FaTag } from 'react-icons/fa';
-import { Button, Input, Select } from '@/app/components/ui';
+import { Button, Input, MoneyInput, Select } from '@/app/components/ui';
+import { centsToMoneyValue, moneyValueToCents } from '@/app/lib/currency/money-mask';
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import { FormData } from '@/app/lib/interface/transaction.interface';
@@ -1028,10 +1029,10 @@ export function useTransactionForm({
                   placeholder="Selecione a categoria"
                   options={availableCategories.map((category) => ({ value: category.id, label: category.name }))}
                 />
-                <Input aria-label={`Valor da divisão ${index + 1}`} type="number" inputMode="decimal" enterKeyHint="next" min="0.01" step="0.01"
-                  value={allocation.amount > 0 ? (allocation.amount / 100).toFixed(2) : ''} disabled={loading}
-                  onChange={(event) => {
-                    const amount = Math.round(Number(event.target.value || 0) * 100);
+                <MoneyInput aria-label={`Valor da divisão ${index + 1}`} enterKeyHint="next"
+                  value={allocation.amount > 0 ? centsToMoneyValue(allocation.amount) : ''} disabled={loading}
+                  onValueChange={(next) => {
+                    const amount = moneyValueToCents(next) ?? 0;
                     setFormData((previous) => ({
                       ...previous,
                       allocations: (previous.allocations ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, amount } : item),

@@ -9,7 +9,7 @@ import {
   FaUndo,
 } from 'react-icons/fa';
 
-import { Button, Input } from '@/app/components/ui';
+import { Button, Input, MoneyInput } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { reconciliationService } from '@/app/services/reconciliation-service';
@@ -311,21 +311,13 @@ export default function ReconciliationPanel({
             onChange={(event) => setCutoff(event.target.value)}
             disabled={Boolean(busyAction)}
           />
-          <Input
+          <MoneyInput
             id="reconciliation-statement-balance"
             label={`Saldo final do extrato · ${account.currency}`}
+            currency={account.currency}
+            allowNegative
             value={statementBalance}
-            onChange={(event) => setStatementBalance(event.target.value)}
-            onBlur={() => {
-              try {
-                setStatementBalance(
-                  formatCurrency(parseCurrencyToCents(statementBalance), account.currency),
-                );
-              } catch {
-                // A validação visível acontece ao calcular.
-              }
-            }}
-            inputMode="decimal"
+            onValueChange={setStatementBalance}
             disabled={Boolean(busyAction)}
           />
           <Button
