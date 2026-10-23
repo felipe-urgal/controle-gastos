@@ -1,5 +1,6 @@
 import { inflateSync } from "node:zlib";
 
+import { extractCidPdfText } from "@/app/lib/transactions/import/pdf-cid-text";
 import {
   IMPORT_MAX_ITEMS,
   parseImportDate,
@@ -117,6 +118,10 @@ export function extractPdfText(bytes: Uint8Array) {
   }
 
   const warnings: string[] = [];
+  // PDFs com fontes compostas (CID) guardam o texto em códigos de glifo: têm leitura própria, por posição.
+  const cidText = extractCidPdfText(buffer, raw);
+  if (cidText) return { pageCount, text: cidText, warnings };
+
   const streamPattern = /stream\r?\n/g;
   const textParts: string[] = [];
 
