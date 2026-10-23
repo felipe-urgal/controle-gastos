@@ -95,13 +95,23 @@ function stripTrailingLineBreaks(buffer: Buffer) {
   return buffer.subarray(0, end);
 }
 
+// Alguns portais entregam o PDF salvo com o envelope multipart do upload (boundary + cabeçalhos) em volta.
+function unwrapMultipartPdf(buffer: Buffer) {
+  const head = buffer.subarray(0, 1024).toString("latin1");
+  if (!/^\s*--/.test(head) || !/Content-Disposition:/i.test(head)) return buffer;
+  const start = head.indexOf("%PDF-");
+  if (start < 0) return buffer;
+  const eof = buffer.lastIndexOf("%%EOF");
+  return buffer.subarray(start, eof >= start ? eof + 5 : undefined);
+}
+
 export function extractPdfText(bytes: Uint8Array) {
   if (bytes.byteLength === 0) throw new PdfExperimentError("O PDF está vazio.");
   if (bytes.byteLength > PDF_EXPERIMENT_MAX_BYTES) {
     throw new PdfExperimentError("PDF excede o limite experimental de 2 MB.");
   }
 
-  const buffer = Buffer.from(bytes);
+  const buffer = unwrapMultipartPdf(Buffer.from(bytes));
   const raw = buffer.toString("latin1");
   if (!raw.startsWith("%PDF-")) {
     throw new PdfExperimentError("Arquivo não possui cabeçalho PDF válido.");
