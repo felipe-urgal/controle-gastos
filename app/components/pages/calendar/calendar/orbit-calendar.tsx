@@ -10,7 +10,6 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaExchangeAlt,
-  FaPlus,
   FaRedo,
   FaWallet,
 } from 'react-icons/fa';
@@ -205,16 +204,6 @@ export default function OrbitCalendar() {
               onChange={changeAccount}
             />
           </div>
-          <Button
-            as="a"
-            href="/transacoes/nova"
-            variant="outline"
-            size="sm"
-            icon={<FaPlus aria-hidden="true" />}
-            className="col-span-3 sm:col-span-1"
-          >
-            Nova transação
-          </Button>
         </div>
   );
 
