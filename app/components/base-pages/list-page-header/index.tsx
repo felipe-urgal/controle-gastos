@@ -17,6 +17,7 @@ export default function ListPageHeader({
   onCreate,
   createLabel,
   secondary,
+  controls,
 }: {
   title: string;
   /** Destino da ação principal; ou use `onCreate` quando ela abre um modal. */
@@ -26,15 +27,19 @@ export default function ListPageHeader({
   createLabel: string;
   /** Ação secundária opcional, antes da principal (ex.: Importar). */
   secondary?: { href: string; label: string; icon: ReactNode };
+  /** Filtros de uma linha (ex.: um select): na barra a partir de `lg`, abaixo dela no mobile. */
+  controls?: ReactNode;
 }) {
   const createProps = createHref ? { as: 'a' as const, href: createHref } : { onClick: onCreate };
 
   return (
+    <>
     <PageTitle
       title={title}
       sidebarAligned
       actions={
         <>
+          {controls && <ShowFrom breakpoint="lg">{controls}</ShowFrom>}
           <ShowBelow breakpoint="sm">
             {secondary && (
               <Button as="a" href={secondary.href} variant="outline" size="compact" aria-label={secondary.label} icon={secondary.icon} />
@@ -54,5 +59,11 @@ export default function ListPageHeader({
         </>
       }
     />
+    {controls && (
+      <ShowBelow breakpoint="lg">
+        <div className="mt-4">{controls}</div>
+      </ShowBelow>
+    )}
+    </>
   );
 }

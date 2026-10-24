@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { FaCopy } from 'react-icons/fa';
 
 import { ListPageHeader } from '@/app/components/base-pages';
 import {
@@ -21,8 +20,7 @@ import {
   stateBarClass,
   stateTextClass,
 } from '@/app/components/pages/category/index/monthly-limits/monthly-limits-helpers';
-import { Button, Chip, IconRenderer, Input, Select } from '@/app/components/ui';
-import { currencyOptions } from '@/app/lib/constants/account.constants';
+import { ActionsMenu, Button, Chip, CurrencySelect, IconRenderer, Input, PeriodSwitcher } from '@/app/components/ui';
 import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import type { CategoryModel } from '@/app/types/category';
 import type { CategoryMonthlyLimitItem, CategoryMonthlyLimitListResponse } from '@/app/types/category-monthly-limit';
@@ -95,6 +93,12 @@ function BudgetRow({ item, currency, showValues, disabled, onEditLimit }: {
   );
 }
 
+/** Soma meses a um período `YYYY-MM`. */
+function shiftMonth(period: string, offset: number) {
+  const date = new Date(Number(period.slice(0, 4)), Number(period.slice(5, 7)) - 1 + offset, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export default function CategoriesBudgetView({
   items,
   summary,
@@ -160,29 +164,32 @@ export default function CategoriesBudgetView({
 
   return (
     <section aria-labelledby="categories-title" className="grid gap-4">
-      <ListPageHeader title="Categorias" createHref="/categorias/nova" createLabel="Nova categoria" />
-
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[180px_150px_max-content]">
-        <Input
-          id="category-limit-period"
-          type="month"
-          aria-label="Mês de referência"
-          value={periodValue}
-          onChange={(event) => onPeriodChange(event.currentTarget.value)}
-          disabled={controlsDisabled}
-        />
-        <Select
-          id="category-limit-currency"
-          ariaLabel="Moeda"
-          value={currency}
-          options={currencyOptions}
-          onChange={(value) => onCurrencyChange(value as SupportedCurrency)}
-          disabled={controlsDisabled}
-        />
-        <Button variant="outline" onClick={onCopyPreviousMonth} disabled={controlsDisabled} icon={<FaCopy aria-hidden="true" />}>
-          {copying ? 'Copiando...' : 'Copiar mês anterior'}
-        </Button>
-      </div>
+      <ListPageHeader
+        title="Categorias"
+        createHref="/categorias/nova"
+        createLabel="Nova categoria"
+        controls={
+          <div className="flex flex-wrap items-center gap-2">
+            <CurrencySelect value={currency} onChange={onCurrencyChange} disabled={controlsDisabled} />
+            <PeriodSwitcher
+              month={Number(periodValue.slice(5, 7))}
+              year={Number(periodValue.slice(0, 4))}
+              onPrevious={() => onPeriodChange(shiftMonth(periodValue, -1))}
+              onNext={() => onPeriodChange(shiftMonth(periodValue, 1))}
+              disabled={controlsDisabled}
+            />
+            <ActionsMenu
+              items={[
+                {
+                  label: copying ? 'Copiando limites...' : 'Copiar limites do mês anterior',
+                  onSelect: onCopyPreviousMonth,
+                  disabled: controlsDisabled,
+                },
+              ]}
+            />
+          </div>
+        }
+      />
 
       {error && (
         <p role="alert" className="rounded-[var(--radius-md)] border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">{error}</p>
