@@ -1,7 +1,8 @@
 'use client';
 
 import { ShowBelow } from '@/app/components/ui';
-import { Button, Chip, IconLink, Input, Select } from '@/app/components/ui';
+import AccountAppBarActions from '@/app/components/pages/account/show/account-app-bar-actions';
+import { Button, Chip, Input, Select } from '@/app/components/ui';
 import {
   closingDistanceLabel,
   dueDistanceLabel,
@@ -18,7 +19,6 @@ import {
   FaCheckCircle,
   FaChevronRight,
   FaCreditCard,
-  FaPen,
 } from 'react-icons/fa';
 
 import { ModalShell } from '@/app/components/overlays/modal-shell';
@@ -61,6 +61,9 @@ interface CreditCardOverviewProps {
   editUrl: string;
   isDeleting: boolean;
   onDeleteRequest: () => void;
+  onToggleActive: () => void;
+  isUpdatingStatus: boolean;
+  statusError: string | null;
 }
 
 export default function CreditCardOverview({
@@ -69,6 +72,9 @@ export default function CreditCardOverview({
   editUrl,
   isDeleting,
   onDeleteRequest,
+  onToggleActive,
+  isUpdatingStatus,
+  statusError,
 }: CreditCardOverviewProps) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
@@ -250,9 +256,24 @@ export default function CreditCardOverview({
           title={account.name}
           backHref={backUrl}
           backLabel="Voltar para contas"
-          action={<IconLink label="Editar cartão" href={editUrl} icon={<FaPen />} tone="primary" />}
+          action={
+            <AccountAppBarActions
+              editUrl={editUrl}
+              isActive={account.isActive}
+              isDeletable={account.isDeletable !== false}
+              busy={isUpdatingStatus || isDeleting}
+              onToggleActive={onToggleActive}
+              onDeleteRequest={onDeleteRequest}
+            />
+          }
         />
       </ShowBelow>
+
+      {statusError && (
+        <p role="alert" className="rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm text-[var(--expense)]">
+          {statusError}
+        </p>
+      )}
 
       <section
         aria-label="Resumo do cartão"
@@ -299,25 +320,11 @@ export default function CreditCardOverview({
           </div>
         </div>
 
-        <nav aria-label="Ações do cartão" className="grid auto-cols-fr grid-flow-col gap-2">
-          {toPay ? (
-            <Button type="button" size="xs" className="w-full" onClick={() => openPayment(toPay)}>
-              Pagar fatura
-            </Button>
-          ) : (
-            <Button as="a" href="/transacoes/nova" size="xs" className="w-full">
-              Lançar compra
-            </Button>
-          )}
-          {toPay && (
-            <Button as="a" href="/transacoes/nova" variant="outline" size="xs" className="w-full">
-              Lançar compra
-            </Button>
-          )}
-          <Button as="a" href={`/transacoes?accountId=${encodeURIComponent(account.id)}`} variant="outline" size="xs" className="w-full">
-            Compras
+        {toPay && (
+          <Button type="button" size="xs" className="w-full" onClick={() => openPayment(toPay)}>
+            Pagar fatura
           </Button>
-        </nav>
+        )}
       </section>
 
       <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
@@ -395,18 +402,6 @@ export default function CreditCardOverview({
         )}
       </section>
 
-      <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center px-4 text-sm text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
-          Zona de risco
-        </summary>
-        <div className="grid gap-3 px-4 pb-4 text-sm text-[var(--text-muted)] sm:px-5">
-          <p>Inativar guarda o histórico e tira o cartão dos lançamentos novos. Excluir só é possível quando o cartão não tem movimentações.</p>
-          <div className="flex flex-wrap gap-2">
-            <Button as="a" href={editUrl} variant="outline" size="sm">Inativar cartão</Button>
-            <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest} disabled={account.isDeletable === false}>Excluir cartão</Button>
-          </div>
-        </div>
-      </details>
 
       {payingStatement && (
         <ModalShell

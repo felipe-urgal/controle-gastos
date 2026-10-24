@@ -27,6 +27,10 @@ interface ShowPageProps<T> {
   allowMutations?: boolean;
   /** A página oferece a exclusão no próprio conteúdo; o cabeçalho mostra só Editar. */
   hideHeaderDelete?: boolean;
+  /** Ações próprias da página no cabeçalho (entre Editar e Excluir). */
+  headerActions?: React.ReactNode;
+  deleteDisabled?: boolean;
+  deleteHint?: string;
 
   emptyRedirectTo?: string;
   mobileContent?: React.ReactNode;
@@ -50,6 +54,9 @@ export default function ShowPage<T>({
   deleteWarning,
   allowMutations = true,
   hideHeaderDelete = false,
+  headerActions,
+  deleteDisabled = false,
+  deleteHint,
   emptyRedirectTo,
   mobileContent,
   children,
@@ -73,6 +80,9 @@ export default function ShowPage<T>({
           backUrl={backUrl}
           editUrl={allowMutations ? editUrl : undefined}
           onDelete={allowMutations && !hideHeaderDelete ? () => setIsDeleteModalOpen(true) : undefined}
+          deleteDisabled={deleteDisabled}
+          deleteHint={deleteHint}
+          actions={allowMutations ? headerActions : undefined}
           loading={loading}
           isDeleting={isDeleting}
         />

@@ -142,7 +142,6 @@ export default function OrbitAccounts() {
         <div className="space-y-[18px] pb-3">
           <PageTitle
             title="Contas"
-            description="Seu dinheiro em um só lugar."
             actions={
               <Button as="a" href="/contas/nova" icon={<FaPlus aria-hidden="true" />}>
                 Nova conta

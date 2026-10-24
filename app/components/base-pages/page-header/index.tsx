@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { FaArrowLeft, FaEdit, FaPlus, FaTrash } from 'react-icons/fa';
 
 import { pageTitleClassName } from '@/app/components/base-pages/page-title';
@@ -11,6 +12,11 @@ interface PageHeaderProps {
   backUrl?: string;
   editUrl?: string;
   onDelete?: () => void;
+  /** Exclusão indisponível (ex.: há histórico); `deleteHint` explica o motivo. */
+  deleteDisabled?: boolean;
+  deleteHint?: string;
+  /** Ações próprias da página, entre Editar e Excluir. */
+  actions?: ReactNode;
   createUrl?: string;
   createLabel?: string;
   loading?: boolean;
@@ -23,6 +29,9 @@ export default function PageHeader({
   backUrl,
   editUrl,
   onDelete,
+  deleteDisabled = false,
+  deleteHint,
+  actions,
   createUrl,
   createLabel = 'Adicionar',
   loading,
@@ -84,12 +93,15 @@ export default function PageHeader({
           </Button>
         )}
 
+        {actions}
+
         {onDelete && (
           <Button
             variant="danger"
             icon={<FaTrash />}
             onClick={onDelete}
-            disabled={isDeleting}
+            disabled={isDeleting || deleteDisabled}
+            title={deleteDisabled ? deleteHint : undefined}
             isLoading={loading}
           >
             Excluir

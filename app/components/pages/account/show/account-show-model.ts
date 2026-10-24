@@ -77,23 +77,6 @@ export function buildSparkline(series: readonly number[], width: number, height:
   };
 }
 
-export type AccountShowAction = { key: string; label: string; href: string; primary?: boolean };
-
-/** Ações logo abaixo do saldo; a primeira é a mais provável para o tipo de conta. O extrato fica em "Ver extrato completo", junto da lista. */
-export function accountShowActions(account: Pick<AccountModel, 'id' | 'type'>): AccountShowAction[] {
-  if (account.type === 'INVESTMENT') {
-    return [
-      { key: 'operation', label: 'Nova operação', href: '/investimentos', primary: true },
-      { key: 'positions', label: 'Ver posições', href: '/investimentos' },
-    ];
-  }
-
-  return [
-    { key: 'new', label: 'Lançar', href: '/transacoes/nova', primary: true },
-    { key: 'transfer', label: 'Transferir', href: '/transacoes/nova?mode=transfer' },
-  ];
-}
-
 const valueSourceLabels = { MARKET: 'mercado', COST: 'custo', MIXED: 'misto' } as const;
 
 export function investmentValueSourceLabel(source: AccountModel['investmentValueSource']) {

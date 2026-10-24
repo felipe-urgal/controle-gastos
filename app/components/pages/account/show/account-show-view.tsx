@@ -5,8 +5,8 @@ import { useState } from 'react';
 import { FaArrowDown, FaArrowUp, FaExchangeAlt } from 'react-icons/fa';
 
 import { MobileAppBar } from '@/app/components/layout';
+import AccountAppBarActions from '@/app/components/pages/account/show/account-app-bar-actions';
 import {
-  accountShowActions,
   buildSparkline,
   filterMovements,
   groupMovementsByDay,
@@ -15,7 +15,7 @@ import {
 } from '@/app/components/pages/account/show/account-show-model';
 import { ChartCursor } from '@/app/components/charts/chart-cursor';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
-import { Button, Chip, IconRenderer, ShowBelow } from '@/app/components/ui';
+import { Chip, IconRenderer, ShowBelow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { getAccountPrimaryValue } from '@/app/lib/accounts/account-presentation';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -164,6 +164,9 @@ export default function AccountShowView({
   editUrl,
   isDeleting,
   onDeleteRequest,
+  onToggleActive,
+  isUpdatingStatus,
+  statusError,
 }: {
   account: AccountModel;
   typeLabels: Record<string, string>;
@@ -171,6 +174,9 @@ export default function AccountShowView({
   editUrl: string;
   isDeleting: boolean;
   onDeleteRequest: () => void;
+  onToggleActive: () => void;
+  isUpdatingStatus: boolean;
+  statusError: string | null;
 }) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
@@ -180,8 +186,6 @@ export default function AccountShowView({
   const value = getAccountPrimaryValue(account);
   const activity = account.activity ?? null;
   const monthName = monthNames[new Date().getMonth()];
-  // Conta inativa não recebe lançamentos novos: em vez das ações, oferece reativar.
-  const actions = account.isActive ? accountShowActions(account) : [];
   const series = activity?.balanceSeries ?? [];
   const sparkLabel = showValues && series.length > 1
     ? `Saldo dos últimos 30 dias: de ${formatCurrency(series[0], account.currency)} a ${formatCurrency(series[series.length - 1], account.currency)}`
@@ -200,8 +204,7 @@ export default function AccountShowView({
       ];
   // Com pendentes, mostra onde o saldo chega se todas forem concluídas (não altera o saldo realizado).
   const projected = !isInvestment && activity && activity.pendingCount > 0 ? account.balance + activity.pendingNet : null;
-  const hasHistory = account.isDeletable === false;
-
+  
   return (
     <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
@@ -209,9 +212,24 @@ export default function AccountShowView({
           title={account.name}
           backHref={backUrl}
           backLabel="Voltar para contas"
-          action={<Button as="a" href={editUrl} variant="outline" size="xs">Editar</Button>}
+          action={
+            <AccountAppBarActions
+              editUrl={editUrl}
+              isActive={account.isActive}
+              isDeletable={account.isDeletable !== false}
+              busy={isUpdatingStatus || isDeleting}
+              onToggleActive={onToggleActive}
+              onDeleteRequest={onDeleteRequest}
+            />
+          }
         />
       </ShowBelow>
+
+      {statusError && (
+        <p role="alert" className="rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm text-[var(--expense)]">
+          {statusError}
+        </p>
+      )}
 
       <section
         aria-label="Resumo da conta"
@@ -265,47 +283,15 @@ export default function AccountShowView({
           ))}
         </dl>
 
-        {actions.length > 0 ? (
-          <nav aria-label="Ações da conta" className="grid auto-cols-fr grid-flow-col gap-2">
-            {actions.map((action) => (
-              <Button
-                key={action.key}
-                as="a"
-                href={action.href}
-                variant={action.primary ? 'primary' : 'outline'}
-                size="xs"
-                className="w-full px-1 text-center leading-tight"
-              >
-                {action.label}
-              </Button>
-            ))}
-          </nav>
-        ) : (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-muted)]">
-            <span>Conta inativa: não recebe novos lançamentos e o histórico continua guardado.</span>
-            <Button as="a" href={editUrl} variant="outline" size="xs">Reativar conta</Button>
-          </div>
+        {!account.isActive && (
+          <p className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-muted)]">
+            Conta inativa: não recebe novos lançamentos e o histórico continua guardado.
+          </p>
         )}
       </section>
 
       <Movements account={account} showValues={showValues} />
 
-      <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center px-4 text-sm text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
-          Zona de risco
-        </summary>
-        <div className="grid gap-3 px-4 pb-4 text-sm text-[var(--text-muted)] sm:px-5">
-          <p>
-            {hasHistory
-              ? 'Esta conta tem histórico financeiro, então não pode ser excluída. Inative para guardar o histórico e tirá-la dos lançamentos novos.'
-              : 'Inativar guarda o histórico e tira a conta dos lançamentos novos. Esta conta ainda não tem movimentações e pode ser excluída.'}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button as="a" href={editUrl} variant="outline" size="sm">Inativar conta</Button>
-            <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest} disabled={hasHistory}>Excluir conta</Button>
-          </div>
-        </div>
-      </details>
     </div>
   );
 }
