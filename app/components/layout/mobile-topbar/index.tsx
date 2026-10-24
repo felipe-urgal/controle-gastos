@@ -38,6 +38,9 @@ export default function MobileTopbar({
   // A MobileAppBar da tela já respeita a área segura do topo.
   if (accountDetailActive) return null;
 
+  // A lista de contas usa a faixa de breadcrumb (`PageBar`) como barra superior.
+  if (pathname === '/contas') return null;
+
   if (
     transactionComposeActive ||
     transactionShowActive ||

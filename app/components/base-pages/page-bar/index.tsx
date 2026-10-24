@@ -14,14 +14,16 @@ export const pageBarButtonProps = { size: 'sm', className: 'sm:min-h-10' } as co
 /**
  * Faixa do título da página. Com sidebar (`lg`), encosta nela, usa a mesma cor e altura do bloco
  * do logo (a linha de baixo é uma só) e fica fixa no topo ao rolar. O título é um breadcrumb: os
- * níveis acima são links e o último, o `h1`, é a página atual. Abaixo de `lg` vira um título simples.
+ * níveis acima são links e o último, o `h1`, é a página atual. Abaixo de `lg` também fica fixa no topo e faz o papel da barra superior.
  */
 export default function PageBar({ crumbs, actions }: { crumbs: Crumb[]; actions?: ReactNode }) {
   const current = crumbs[crumbs.length - 1];
   const parents = crumbs.slice(0, -1);
 
   return (
-    <header className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-5 lg:sticky lg:top-0 lg:z-[var(--z-header)] lg:-mx-[var(--orbit-page-padding-inline)] lg:-mt-[var(--orbit-page-padding-block)] lg:min-h-[var(--app-sidebar-header-height)] lg:bg-[var(--orbit-navigation-surface)] lg:px-[var(--orbit-page-padding-inline)] lg:py-2">
+    <header
+      className="sticky top-0 z-[var(--z-header)] -mx-[var(--orbit-page-padding-inline)] -mt-[var(--orbit-page-padding-block)] flex min-h-[var(--app-mobile-topbar-height)] items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--orbit-navigation-surface)] px-[var(--orbit-page-padding-inline)] py-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] lg:min-h-[var(--app-sidebar-header-height)] lg:pt-2"
+    >
       <nav aria-label="Você está em" className="min-w-0">
         <ol className="flex min-w-0 items-center gap-2">
           {parents.map((crumb) => (
