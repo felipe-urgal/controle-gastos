@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
 
 type IconButtonTone = 'neutral' | 'danger' | 'primary' | 'solid';
 type IconButtonSize = 'md' | 'lg';
@@ -55,9 +55,11 @@ export function IconLink({
   tone = 'neutral',
   size = 'md',
   className = '',
-}: CommonProps & { href: string }) {
+  title,
+  onClick,
+}: CommonProps & { href: string } & Pick<AnchorHTMLAttributes<HTMLAnchorElement>, 'title' | 'onClick'>) {
   return (
-    <Link href={href} aria-label={label} className={`${BASE} ${SIZE[size]} ${TONE[tone]} ${className}`}>
+    <Link href={href} aria-label={label} title={title} onClick={onClick} className={`${BASE} ${SIZE[size]} ${TONE[tone]} ${className}`}>
       <span aria-hidden="true">{icon}</span>
     </Link>
   );
