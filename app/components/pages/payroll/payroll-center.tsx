@@ -319,7 +319,8 @@ export default function PayrollCenter() {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <PageTitle title="Rendimentos do trabalho" description="Folha é fonte documental: importar ou conciliar nunca cria receita bancária automaticamente." actions={
+        <PageTitle title="Rendimentos do trabalho" sidebarAligned />
+        <div className="mt-4">
           <div className="flex w-full flex-wrap items-end gap-3 sm:w-auto">
             <div className="min-w-28">
               <span className="ds-label mb-2 block">Ano exibido</span>
@@ -340,7 +341,7 @@ export default function PayrollCenter() {
               Importar holerite
             </Button>
           </div>
-        } />
+        </div>
 
         <div className="mt-5 space-y-5">
           <ChipRow label="Áreas de rendimentos do trabalho">

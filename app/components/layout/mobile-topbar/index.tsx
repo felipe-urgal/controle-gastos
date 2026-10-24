@@ -20,6 +20,14 @@ const PAGE_BAR_LISTS = [
   '/recorrencias',
   '/metas',
   '/dividas',
+  '/dashboard',
+  '/calendario',
+  '/investimentos',
+  '/patrimonio',
+  '/comparar',
+  '/compromissos',
+  '/rendimentos-trabalho',
+  '/fechamento',
 ];
 
 export default function MobileTopbar({
@@ -54,7 +62,7 @@ export default function MobileTopbar({
   if (accountDetailActive) return null;
 
   // Listas migradas para o padrão de telas usam a faixa de breadcrumb (`PageBar`) como barra superior.
-  if (PAGE_BAR_LISTS.includes(pathname)) return null;
+  if (PAGE_BAR_LISTS.includes(pathname) || pathname.startsWith('/usuario')) return null;
 
   if (
     transactionComposeActive ||

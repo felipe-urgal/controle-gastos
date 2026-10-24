@@ -98,11 +98,7 @@ export default function Show() {
     <ProtectedRoute>
       <DeleteOverlay isOpen={isDeleting} entityName="conta" title="Excluindo conta" />
 
-      <PageHeader
-        title="Central de configurações"
-        description="Gerencie sua conta, preferências e segurança dos seus dados."
-        loading={loading}
-      />
+      <PageHeader title="Central de configurações" sidebarAligned loading={loading} />
 
       {loading ? (
         <PageLoading type="details" />

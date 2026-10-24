@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { FaChevronLeft, FaChevronRight, FaPlus } from 'react-icons/fa';
 
+import { PageTitle } from '@/app/components/base-pages';
 import { ProtectedRoute } from '@/app/components/layout';
 
 import { Button, IconButton, Select } from '@/app/components/ui';
@@ -53,8 +54,9 @@ export default function OrbitDashboardV2() {
 
   return (
     <ProtectedRoute>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="sr-only">Dashboard financeiro</h1>
+      <PageTitle title="Dashboard" sidebarAligned />
+
+      <header className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
           <IconButton
             label="Mês anterior"

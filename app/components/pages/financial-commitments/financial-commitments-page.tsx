@@ -56,11 +56,9 @@ export default function FinancialCommitmentsPage() {
   return (
     <ProtectedRoute>
     <PageContainer as="section">
-      <PageTitle
-        title="Compromissos financeiros"
-        description="Acompanhe separadamente valores a pagar, a receber, vencidos e marcos de planejamento."
-        actions={
-          <div className="grid gap-2 sm:justify-items-end">
+      <PageTitle title="Compromissos financeiros" sidebarAligned />
+      <div className="mt-4">
+        <div className="grid gap-2 sm:justify-items-end">
             <div className="flex flex-wrap gap-2" role="group" aria-label="Horizonte">
               {HORIZONS.map((option) => (
                 <Chip
@@ -90,8 +88,7 @@ export default function FinancialCommitmentsPage() {
               ))}
             </div>
           </div>
-        }
-      />
+      </div>
 
       {error && (
         <PageError

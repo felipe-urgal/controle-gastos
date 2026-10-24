@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
-import { PageContainer } from '@/app/components/base-pages';
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { PageError } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import MonthlyClosingView from '@/app/components/pages/monthly-closing/monthly-closing-view';
@@ -101,10 +100,11 @@ export default function MonthlyClosingPage() {
   return (
     <ProtectedRoute>
       <PageContainer>
-        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <PageTitle title={`Fechamento de ${monthName(month)}`} sidebarAligned />
+
+        <header className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="grid gap-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className={`text-balance ${pageTitleClassName}`}>Fechamento de {monthName(month)}</h1>
               {data && (
                 <span className="rounded-full bg-[var(--primary-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--primary)]">
                   {PERIOD_STATUS_LABELS[data.status]}

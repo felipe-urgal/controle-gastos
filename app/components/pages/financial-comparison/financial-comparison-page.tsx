@@ -219,19 +219,16 @@ export default function FinancialComparisonPage() {
   return (
     <ProtectedRoute>
       <PageContainer>
-        <PageTitle
-          title="Comparar períodos"
-          description="Compare o realizado entre dois intervalos de até 24 meses, na mesma moeda."
-          actions={
-            <div className="flex gap-2" role="group" aria-label="Moeda">
+        <PageTitle title="Comparar períodos" sidebarAligned />
+        <div className="mt-4">
+          <div className="flex gap-2" role="group" aria-label="Moeda">
               {CURRENCIES.map((item) => (
                 <Chip key={item} selected={item === filters.currency} onClick={() => updateFilter('currency', item)}>
                   {item}
                 </Chip>
               ))}
             </div>
-          }
-        />
+        </div>
 
         <nav aria-label="Atalhos de comparação" className="mt-5 flex flex-wrap gap-2">
           {PRESETS.map((item) => (

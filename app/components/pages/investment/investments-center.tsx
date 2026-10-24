@@ -519,7 +519,8 @@ export default function InvestmentsCenter() {
     <ProtectedRoute>
       <InvestmentFiscalYearProvider>
       <PageContainer as="section">
-        <PageTitle title="Investimentos" description="Posições derivadas das operações, com cotação B3 sob demanda via brapi." actions={
+        <PageTitle title="Investimentos" sidebarAligned />
+        <div className="mt-4">
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
@@ -555,7 +556,7 @@ export default function InvestmentsCenter() {
               ]}
             />
           </div>
-        } />
+        </div>
 
         {error && (
           <p

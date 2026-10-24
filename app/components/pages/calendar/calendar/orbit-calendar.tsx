@@ -190,10 +190,8 @@ export default function OrbitCalendar() {
 
   return (
     <ProtectedRoute>
-      <PageTitle
-        title="Calendário"
-        description="Movimentos, vencimentos e marcos financeiros em uma única visão temporal."
-        actions={
+      <PageTitle title="Calendário" sidebarAligned />
+      <div className="mt-4">
         <div className="grid w-full grid-cols-[auto_1fr_auto] gap-2 sm:flex sm:w-auto sm:flex-wrap">
           <Button
             variant="outline"
@@ -231,8 +229,7 @@ export default function OrbitCalendar() {
             Nova transação
           </Button>
         </div>
-        }
-      />
+      </div>
 
       {error && (
         <div

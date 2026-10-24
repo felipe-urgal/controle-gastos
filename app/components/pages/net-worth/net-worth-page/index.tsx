@@ -370,8 +370,8 @@ export default function NetWorthPage() {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <PageTitle title="Patrimônio" description="Ativos, passivos e patrimônio líquido por moeda, sem conversão cambial automática." actions={
-
+        <PageTitle title="Patrimônio" sidebarAligned />
+        <div className="mt-4">
           <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
             <Input
               label="Mês de referência"
@@ -397,7 +397,7 @@ export default function NetWorthPage() {
               options={[6, 12, 24, 36, 60].map((count) => ({ value: count, label: `${count} meses` }))}
             />
           </div>
-        } />
+        </div>
 
         {error && (
           <p
