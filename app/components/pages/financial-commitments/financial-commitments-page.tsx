@@ -53,7 +53,7 @@ export default function FinancialCommitmentsPage() {
   }
 
   const headerControls = (
-        <div className="grid gap-2 sm:justify-items-end">
+        <div className="flex flex-wrap items-center gap-2">
             <div className="flex flex-wrap gap-2" role="group" aria-label="Horizonte">
               {HORIZONS.map((option) => (
                 <Chip
