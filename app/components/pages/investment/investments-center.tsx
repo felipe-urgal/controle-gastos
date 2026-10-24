@@ -3,14 +3,13 @@
 import dynamic from 'next/dynamic';
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FaPlus, FaSyncAlt } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { InvestmentFiscalYearProvider } from '@/app/components/pages/investment/investment-fiscal-year-context';
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { Button, Chip, ChipRow, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Chip, ChipRow, ShowBelow, ShowFrom } from '@/app/components/ui';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import { useAuth } from '@/app/context';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
@@ -516,41 +515,23 @@ export default function InvestmentsCenter() {
   }
 
   const headerControls = (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              icon={<FaSyncAlt className={refreshingQuotes ? 'animate-spin' : undefined} aria-hidden="true" />}
-              onClick={refreshQuotes}
-              disabled={!hasQuoteablePositions || refreshingQuotes}
-            >
-              {refreshingQuotes ? 'Atualizando...' : 'Atualizar cotações'}
-            </Button>
-            <Button
-              icon={<FaPlus aria-hidden="true" />}
-              onClick={openOperationModal}
-              disabled={
-                !portfolio?.accounts.some((account) => account.isActive) ||
-                !portfolio?.assets.length
-              }
-            >
-              Nova operação
-            </Button>
-            <InvestmentActionsMenu
-              items={[
-                { label: 'Novo ativo', onSelect: () => setAssetModal(true) },
-                {
-                  label: 'Novo provento',
-                  onSelect: openIncomeModal,
-                  disabled: !portfolio?.accounts.some((account) => account.isActive) || !portfolio?.assets.length,
-                },
-                {
-                  label: 'Importar extrato',
-                  onSelect: () => setImportModal(true),
-                  disabled: !portfolio?.accounts.some((account) => account.isActive && account.currency === 'BRL'),
-                },
-              ]}
-            />
-          </div>
+    <InvestmentActionsMenu
+      items={[
+        {
+          label: refreshingQuotes ? 'Atualizando cotações...' : 'Atualizar cotações',
+          onSelect: refreshQuotes,
+          disabled: !hasQuoteablePositions || refreshingQuotes,
+        },
+        { label: 'Nova operação', onSelect: openOperationModal, disabled: !portfolio?.accounts.some((account) => account.isActive) || !portfolio?.assets.length },
+        { label: 'Novo ativo', onSelect: () => setAssetModal(true) },
+        { label: 'Novo provento', onSelect: openIncomeModal, disabled: !portfolio?.accounts.some((account) => account.isActive) || !portfolio?.assets.length },
+        {
+          label: 'Importar extrato',
+          onSelect: () => setImportModal(true),
+          disabled: !portfolio?.accounts.some((account) => account.isActive && account.currency === 'BRL'),
+        },
+      ]}
+    />
   );
 
   return (

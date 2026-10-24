@@ -7,7 +7,7 @@ import { Button } from '@/app/components/ui';
 
 export type ActionMenuItem = { label: string; onSelect: () => void; disabled?: boolean };
 
-/** Menu "Mais" das ações secundárias da página; fecha ao escolher, ao clicar fora e com Esc. */
+/** Menu "Ações" da página; fecha ao escolher, ao clicar fora e com Esc. */
 export function InvestmentActionsMenu({ items }: { items: ActionMenuItem[] }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,7 +37,7 @@ export function InvestmentActionsMenu({ items }: { items: ActionMenuItem[] }) {
         icon={<FaChevronDown aria-hidden="true" className="text-xs" />}
         onClick={() => setOpen((current) => !current)}
       >
-        Mais
+        Ações
       </Button>
       {open && (
         <div role="menu" className="absolute right-0 top-[calc(100%+6px)] z-20 grid min-w-[13rem] rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-surface)]">
