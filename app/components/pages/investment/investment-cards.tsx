@@ -171,7 +171,6 @@ export function FiscalCostCard({
               <Button
                 variant="outline"
                 size="sm"
-                pill
                 className="mt-3"
                 onClick={() => onAdjust(item.assetId)}
               >
@@ -396,7 +395,7 @@ export function OperationRow({
         <span className="text-xs text-[var(--text-muted)]">por unidade</span>
       </span>
       <span className="flex items-center gap-1">
-        <Button variant="outline" size="sm" pill onClick={onClassify}>
+        <Button variant="outline" size="sm" onClick={onClassify}>
           Fiscal
         </Button>
         <IconButton
@@ -490,10 +489,10 @@ export function ModalActions({
 }) {
   return (
     <div className="grid grid-cols-2 gap-3 pt-2">
-      <Button type="button" variant="outline" size="cta" pill onClick={onClose} disabled={saving} fullWidth>
+      <Button type="button" variant="outline" size="cta" onClick={onClose} disabled={saving} fullWidth>
         Cancelar
       </Button>
-      <Button type="submit" size="cta" pill disabled={saving} isLoading={saving} loadingText="Salvando..." fullWidth>
+      <Button type="submit" size="cta" disabled={saving} isLoading={saving} loadingText="Salvando..." fullWidth>
         {submitLabel}
       </Button>
     </div>

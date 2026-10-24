@@ -173,7 +173,6 @@ export function MovementTimeline({
       {hasMore && !loading && (
         <Button
           variant="secondary"
-          pill
           onClick={onLoadMore}
           icon={<FaChevronDown aria-hidden="true" />}
           iconPosition="right"

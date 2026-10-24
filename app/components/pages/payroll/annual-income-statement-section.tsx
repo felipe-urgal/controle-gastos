@@ -225,7 +225,6 @@ export function AnnualIncomeStatementSection({
               />
               <Button
                 size="lg"
-                pill
                 fullWidth
                 disabled={!file || working}
                 onClick={() => void analyze()}
@@ -244,7 +243,6 @@ export function AnnualIncomeStatementSection({
               </div>
               <Button
                 variant="outline"
-                pill
                 fullWidth
                 onClick={() => setPreview(null)}
                 icon={<FaRedo aria-hidden="true" />}
@@ -386,7 +384,6 @@ export function AnnualIncomeStatementSection({
                 <Button
                   variant="outline"
                   size="lg"
-                  pill
                   disabled={working}
                   onClick={() => setPreview(null)}
                 >
@@ -394,7 +391,6 @@ export function AnnualIncomeStatementSection({
                 </Button>
                 <Button
                   size="lg"
-                  pill
                   disabled={
                     working ||
                     preview.statement.duplicate ||
@@ -442,7 +438,7 @@ export function AnnualIncomeStatementSection({
               className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
             >
               <span>{loadError}</span>
-              <Button variant="outline" size="sm" pill onClick={() => void retryList()}>
+              <Button variant="outline" size="sm" onClick={() => void retryList()}>
                 Atualizar lista
               </Button>
             </div>
@@ -496,7 +492,6 @@ export function AnnualIncomeStatementSection({
                         <Button
                           variant="outline"
                           size="sm"
-                          pill
                           disabled={working}
                           onClick={() => archiveStatement(statement.id)}
                         >
@@ -528,7 +523,6 @@ export function AnnualIncomeStatementSection({
               <div className="mt-3 flex items-center justify-between gap-3">
                 <Button
                   variant="outline"
-                  pill
                   disabled={page <= 1}
                   onClick={() => {
                     setListLoading(true);
@@ -542,7 +536,6 @@ export function AnnualIncomeStatementSection({
                 </span>
                 <Button
                   variant="outline"
-                  pill
                   disabled={!result.pageInfo.hasMore}
                   onClick={() => {
                     setListLoading(true);

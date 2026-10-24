@@ -147,7 +147,7 @@ export default function OrbitAccounts() {
             title="Contas"
             description="Seu dinheiro em um só lugar."
             actions={
-              <Button as="a" href="/contas/nova" pill icon={<FaPlus aria-hidden="true" />}>
+              <Button as="a" href="/contas/nova" icon={<FaPlus aria-hidden="true" />}>
                 Nova conta
               </Button>
             }

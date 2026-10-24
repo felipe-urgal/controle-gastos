@@ -63,7 +63,7 @@ export function CustodyStatementCard({ showValues }: { showValues: boolean }) {
             setError('');
           }}
         />
-        <Button pill onClick={() => void compare()} disabled={!file || working} isLoading={working} loadingText="Analisando">
+        <Button onClick={() => void compare()} disabled={!file || working} isLoading={working} loadingText="Analisando">
           Conferir
         </Button>
       </div>

@@ -32,7 +32,6 @@ export function InvestmentActionsMenu({ items }: { items: ActionMenuItem[] }) {
     <div ref={containerRef} className="relative">
       <Button
         variant="outline"
-        pill
         aria-haspopup="menu"
         aria-expanded={open}
         icon={<FaChevronDown aria-hidden="true" className="text-xs" />}

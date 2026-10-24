@@ -110,7 +110,7 @@ export default function RecurrencesCenter() {
           title="Recorrências e assinaturas"
           description="Acompanhe séries cadastradas e revise padrões detectados antes de transformá-los em recorrências."
           actions={
-            <Button as="a" href="/transacoes/nova" variant="outline" pill size="sm" icon={<FaArrowRight aria-hidden="true" />} iconPosition="right">
+            <Button as="a" href="/transacoes/nova" variant="outline" size="sm" icon={<FaArrowRight aria-hidden="true" />} iconPosition="right">
               Nova transação
             </Button>
           }

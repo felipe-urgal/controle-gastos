@@ -149,12 +149,12 @@ function SubscriptionRow({
       actions={
         <>
           {reason === 'STALE' && (
-            <Button variant="accent" size="sm" disabled={busy} onClick={() => onReview(item.id, 'CONFIRMED')}>
+            <Button size="sm" disabled={busy} onClick={() => onReview(item.id, 'CONFIRMED')}>
               {busy ? 'Confirmando…' : 'Continua ativa'}
             </Button>
           )}
           {reason === 'POSSIBLE' && (
-            <Button variant="accent" size="sm" disabled={busy} onClick={() => onReview(item.id, 'CONFIRMED')}>
+            <Button size="sm" disabled={busy} onClick={() => onReview(item.id, 'CONFIRMED')}>
               {busy ? 'Salvando…' : 'É assinatura'}
             </Button>
           )}
@@ -223,7 +223,7 @@ function CandidateRow({
       amountHint={candidate.variableAmount ? 'média' : frequencyLabel(candidate.frequency, candidate.interval).toLowerCase()}
       actions={
         <>
-          <Button variant="accent" size="sm" disabled={busy} onClick={() => onConfirmCandidate(candidate)}>
+          <Button size="sm" disabled={busy} onClick={() => onConfirmCandidate(candidate)}>
             {busy ? 'Salvando…' : 'Confirmar recorrência'}
           </Button>
           <Button variant="outline" size="sm" disabled={busy} onClick={() => onIgnore(candidate.id)}>

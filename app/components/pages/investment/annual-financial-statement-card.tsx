@@ -309,7 +309,7 @@ export function AnnualFinancialStatementCard({
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 className="ds-control min-h-11 w-full px-3 py-2"
               />
-              <Button size="sm" pill fullWidth onClick={analyze} disabled={!file || working}>
+              <Button size="sm" fullWidth onClick={analyze} disabled={!file || working}>
                 <FaFileImport aria-hidden="true" />
                 {working ? 'Analisando...' : 'Analisar informe'}
               </Button>
@@ -320,7 +320,7 @@ export function AnnualFinancialStatementCard({
                 <strong className="text-[var(--foreground)]">OCR/revisão necessária</strong>
                 <p className="mt-1">{preview.warnings[0]}</p>
               </div>
-              <Button variant="outline" size="sm" pill fullWidth onClick={() => setPreview(null)}>
+              <Button variant="outline" size="sm" fullWidth onClick={() => setPreview(null)}>
                 <FaRedo aria-hidden="true" /> Escolher outro PDF
               </Button>
             </div>
@@ -395,10 +395,10 @@ export function AnnualFinancialStatementCard({
               )}
 
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm" pill onClick={() => setPreview(null)} disabled={working}>
+                <Button variant="outline" size="sm" onClick={() => setPreview(null)} disabled={working}>
                   Voltar
                 </Button>
-                <Button size="sm" pill onClick={confirmImport} disabled={
+                <Button size="sm" onClick={confirmImport} disabled={
                     working ||
                     preview.statement.duplicate ||
                     preview.statement.errors.length > 0
@@ -532,7 +532,7 @@ export function AnnualFinancialStatementCard({
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {position.internalAssetId && (
-                            <Button variant="outline" size="sm" pill onClick={() => onInspectAsset(position.internalAssetId!)}>
+                            <Button variant="outline" size="sm" onClick={() => onInspectAsset(position.internalAssetId!)}>
                               Ver histórico
                             </Button>
                           )}
@@ -540,7 +540,7 @@ export function AnnualFinancialStatementCard({
                             position.statementId &&
                             position.positionIndex !== null &&
                             position.symbol && (
-                              <Button variant="secondary" size="sm" pill onClick={() =>
+                              <Button variant="secondary" size="sm" onClick={() =>
                                   setPendingBaseline({
                                     statementId: position.statementId!,
                                     positionIndex: position.positionIndex!,
@@ -606,7 +606,7 @@ export function AnnualFinancialStatementCard({
                           </p>
                         )}
                         {income.internalAssetId && (
-                          <Button variant="outline" size="sm" pill className="mt-3" onClick={() => onInspectAsset(income.internalAssetId!)}>
+                          <Button variant="outline" size="sm" className="mt-3" onClick={() => onInspectAsset(income.internalAssetId!)}>
                             Ver pagamentos/histórico
                           </Button>
                         )}
@@ -675,19 +675,19 @@ export function AnnualFinancialStatementCard({
                                             date: event.target.value,
                                           })
                                         } min={`${year}-01-01`} max={`${year}-12-31`} />
-                                    <Button variant="secondary" size="sm" pill onClick={() => void registerWithholding(item, index)} disabled={withholdingSaving}>
+                                    <Button variant="secondary" size="sm" onClick={() => void registerWithholding(item, index)} disabled={withholdingSaving}>
                                       {withholdingSaving ? 'Registrando...' : 'Registrar IRRF'}
                                     </Button>
                                   </div>
                                 ) : (
-                                  <Button variant="outline" size="sm" pill onClick={() => setWithholdingDraft({ index, date: '' })}>
+                                  <Button variant="outline" size="sm" onClick={() => setWithholdingDraft({ index, date: '' })}>
                                     Registrar/corrigir IRRF
                                   </Button>
                                 )}
                               </div>
                             )}
                           {item.internalAssetId && (
-                            <Button variant="outline" size="sm" pill className="mt-3" onClick={() => onInspectAsset(item.internalAssetId!)}>
+                            <Button variant="outline" size="sm" className="mt-3" onClick={() => onInspectAsset(item.internalAssetId!)}>
                               Revisar ativo
                             </Button>
                           )}

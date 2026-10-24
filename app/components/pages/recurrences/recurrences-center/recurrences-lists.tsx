@@ -65,7 +65,7 @@ export function FormalList({
                 <span className="money text-xs text-[var(--text-muted)]">≈ {money(item.monthlyEquivalent, item.currency)}/mês</span>
               </div>
               <div className="col-span-2 flex items-center justify-between gap-2">
-                <Button variant="accent" size="sm" onClick={() => onEdit(item)}>
+                <Button size="sm" onClick={() => onEdit(item)}>
                   Editar série
                 </Button>
                 <span className="flex">

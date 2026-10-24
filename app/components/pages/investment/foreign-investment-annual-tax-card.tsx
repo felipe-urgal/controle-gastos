@@ -211,7 +211,7 @@ export function ForeignInvestmentAnnualTaxCard({
             options={years.map((item) => ({ value: item, label: String(item) }))}
             disabled={loading || refreshing}
           />
-          <Button variant="outline" size="sm" pill onClick={() => void refreshPtax()} disabled={loading || refreshing}>
+          <Button variant="outline" size="sm" onClick={() => void refreshPtax()} disabled={loading || refreshing}>
             <FaSyncAlt
               aria-hidden="true"
               className={refreshing ? 'animate-spin' : undefined}
@@ -408,7 +408,7 @@ export function ForeignInvestmentAnnualTaxCard({
               </label>
 
               <div className="lg:col-span-3">
-                <Button variant="secondary" size="sm" pill onClick={() => void createForeignTaxCredit()} disabled={savingCredit || !creditNonRefundable}>
+                <Button variant="secondary" size="sm" onClick={() => void createForeignTaxCredit()} disabled={savingCredit || !creditNonRefundable}>
                   {savingCredit ? 'Registrando...' : 'Registrar imposto pago'}
                 </Button>
               </div>
@@ -430,7 +430,7 @@ export function ForeignInvestmentAnnualTaxCard({
                           Pago em {item.paidDate} · {item.eligibilityBasis === 'TREATY' ? 'tratado' : 'reciprocidade'} · {item.status}
                         </span>
                       </div>
-                      <Button variant="outline" size="sm" pill onClick={() => void removeForeignTaxCredit(item.id)} disabled={removingCreditId !== ''}>
+                      <Button variant="outline" size="sm" onClick={() => void removeForeignTaxCredit(item.id)} disabled={removingCreditId !== ''}>
                         <FaTrash aria-hidden="true" />
                         {removingCreditId === item.id ? 'Excluindo...' : 'Excluir'}
                       </Button>

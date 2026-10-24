@@ -219,7 +219,6 @@ export default function CreditCardOverview({
         <p className="font-semibold text-[var(--expense)]">{error || 'Não foi possível carregar o cartão.'}</p>
         <Button
           variant="outline"
-          pill
           className="mt-4"
           onClick={() => {
             setLoading(true);
@@ -316,11 +315,11 @@ export default function CreditCardOverview({
 
         <nav aria-label="Ações do cartão" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {toPay ? (
-            <Button type="button" variant="accent" size="xs" className="w-full" onClick={() => openPayment(toPay)}>
+            <Button type="button" size="xs" className="w-full" onClick={() => openPayment(toPay)}>
               Pagar fatura
             </Button>
           ) : (
-            <Button as="a" href="/transacoes/nova" variant="accent" size="xs" className="w-full">
+            <Button as="a" href="/transacoes/nova" size="xs" className="w-full">
               Lançar compra
             </Button>
           )}
@@ -435,10 +434,10 @@ export default function CreditCardOverview({
           maxWidthClass="max-w-md"
           footer={
     <div className="grid grid-cols-2 gap-3">
-      <Button variant="outline" pill size="lg" onClick={closePayment} disabled={isPaying}>
+      <Button variant="outline" size="lg" onClick={closePayment} disabled={isPaying}>
         Cancelar
       </Button>
-      <Button pill size="lg" onClick={() => void payStatement()} disabled={isPaying || loadingPaymentAccounts || Boolean(paymentAccountsError) || !sourceAccountId}>
+      <Button size="lg" onClick={() => void payStatement()} disabled={isPaying || loadingPaymentAccounts || Boolean(paymentAccountsError) || !sourceAccountId}>
         {isPaying ? 'Pagando...' : 'Confirmar'}
       </Button>
     </div>
@@ -478,7 +477,6 @@ export default function CreditCardOverview({
               <p className="font-semibold text-[var(--expense)]">{paymentAccountsError}</p>
               <Button
                 variant="outline"
-                pill
                 size="sm"
                 className="mt-2"
                 onClick={() => void loadPaymentAccounts()}

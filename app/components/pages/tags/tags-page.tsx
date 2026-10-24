@@ -372,7 +372,6 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
               </div>
               <Button
                 type="submit"
-                variant="accent"
                 icon={<FaPlus aria-hidden="true" />}
                 disabled={creating || !normalizeTagDisplayName(name)}
               >

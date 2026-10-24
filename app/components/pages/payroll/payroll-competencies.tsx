@@ -60,7 +60,7 @@ export function PayrollCompetencies({
           <h2 className="text-lg font-bold">Competências</h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">Mais recentes primeiro. Toque numa competência para ver o detalhe.</p>
         </div>
-        <Button variant="outline" pill onClick={onRetry} disabled={loading} icon={<FaRedo aria-hidden="true" />}>
+        <Button variant="outline" onClick={onRetry} disabled={loading} icon={<FaRedo aria-hidden="true" />}>
           Atualizar
         </Button>
       </div>
@@ -68,7 +68,7 @@ export function PayrollCompetencies({
       {error && (
         <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]">
           <span>{error}</span>
-          <Button variant="outline" size="sm" pill onClick={onRetry}>Tentar novamente</Button>
+          <Button variant="outline" size="sm" onClick={onRetry}>Tentar novamente</Button>
         </div>
       )}
 

@@ -385,7 +385,6 @@ export default function ReconciliationPanel({
                   </p>
                 </div>
                 <Button
-                  variant="success"
                   icon={<FaCheckCircle />}
                   onClick={() => void confirmReconciliation()}
                   disabled={!canConfirm || Boolean(busyAction)}

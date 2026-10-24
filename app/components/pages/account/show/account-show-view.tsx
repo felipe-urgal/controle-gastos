@@ -278,7 +278,7 @@ export default function AccountShowView({
               key={action.key}
               as="a"
               href={action.href}
-              variant={action.primary ? 'accent' : 'outline'}
+              variant={action.primary ? 'primary' : 'outline'}
               size="xs"
               className="w-full px-1 text-center leading-tight"
             >

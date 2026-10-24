@@ -47,7 +47,7 @@ export function DebtsDues({
                 <div className="flex flex-wrap items-center justify-end gap-3">
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${tone}`}>{dueLabel(days)}</span>
                   <strong className="money text-sm">{debt.installmentAmount === null ? '—' : showValues ? formatCurrency(debt.installmentAmount, debt.currency) : '••••'}</strong>
-                  <Button size="sm" pill icon={<FaCheck aria-hidden="true" />} onClick={() => onPay(debt)}>Registrar pagamento</Button>
+                  <Button size="sm" icon={<FaCheck aria-hidden="true" />} onClick={() => onPay(debt)}>Registrar pagamento</Button>
                 </div>
               </li>
             );

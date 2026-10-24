@@ -109,7 +109,6 @@ export function PayrollAnnualReconciliationSection({
           </div>
           <Button
             variant="outline"
-            pill
             disabled={loading}
             onClick={() => void refresh()}
             icon={<FaRedo aria-hidden="true" />}
@@ -125,7 +124,7 @@ export function PayrollAnnualReconciliationSection({
           className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
           <span>{error}</span>
-          <Button variant="outline" size="sm" pill onClick={() => void refresh()}>
+          <Button variant="outline" size="sm" onClick={() => void refresh()}>
             Tentar novamente
           </Button>
         </div>

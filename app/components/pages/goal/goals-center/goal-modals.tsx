@@ -146,10 +146,10 @@ export function GoalFormModal({
         {error && <Alert variant="error" message={error} />}
 
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <Button variant="outline" pill size="lg" onClick={onClose} disabled={saving}>
+          <Button variant="outline" size="lg" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
-          <Button type="submit" pill size="lg" disabled={saving}>
+          <Button type="submit" size="lg" disabled={saving}>
             {saving ? 'Salvando...' : editing ? 'Salvar' : 'Criar meta'}
           </Button>
         </div>
@@ -231,10 +231,10 @@ export function GoalEntryModal({
         {error && <Alert variant="error" message={error} />}
 
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <Button variant="outline" pill size="lg" onClick={onClose} disabled={saving}>
+          <Button variant="outline" size="lg" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
-          <Button type="submit" pill size="lg" disabled={saving}>
+          <Button type="submit" size="lg" disabled={saving}>
             {saving
               ? 'Salvando...'
               : contribution
@@ -328,7 +328,7 @@ export function GoalDetailModal({
             )}
 
             {goal.entryHistory?.hasMore && (
-              <Button variant="outline" pill fullWidth className="mt-4" onClick={onLoadMore} disabled={loadingMore}>
+              <Button variant="outline" fullWidth className="mt-4" onClick={onLoadMore} disabled={loadingMore}>
                 {loadingMore ? 'Carregando...' : 'Carregar mais'}
               </Button>
             )}
@@ -358,10 +358,10 @@ export function SimpleConfirmModal({
     <ModalShell title={title} onClose={onClose} closeDisabled={loading}>
       <p className="text-sm leading-relaxed text-[var(--text-muted)]">{message}</p>
       <div className="mt-6 grid grid-cols-2 gap-3">
-        <Button variant="outline" pill size="lg" onClick={onClose} disabled={loading}>
+        <Button variant="outline" size="lg" onClick={onClose} disabled={loading}>
           Cancelar
         </Button>
-        <Button pill size="lg" onClick={onConfirm} disabled={loading}>
+        <Button size="lg" onClick={onConfirm} disabled={loading}>
           {loading ? 'Salvando...' : confirmLabel}
         </Button>
       </div>

@@ -19,8 +19,6 @@ interface BaseButtonProps {
   iconPosition?: 'left' | 'right';
   isLoading?: boolean;
   fullWidth?: boolean;
-  /** Formato de pílula (`rounded-full`). */
-  pill?: boolean;
   loadingText?: string;
   href?: string;
   target?: string;
@@ -30,9 +28,7 @@ interface BaseButtonProps {
 
 type ButtonVariant =
   | 'primary'
-  | 'accent'
   | 'secondary'
-  | 'success'
   | 'danger'
   | 'warning'
   | 'info'
@@ -61,7 +57,6 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
       iconPosition = 'left',
       isLoading = false,
       fullWidth = false,
-      pill = false,
       loadingText,
       href,
       target,
@@ -73,7 +68,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
   ) => {
     const baseClasses = `
       relative inline-flex items-center justify-center overflow-hidden
-      ${pill ? 'rounded-full' : 'rounded-[var(--radius-md)]'} border
+      rounded-full border
       font-semibold leading-none
       transition-[background-color,border-color,color,box-shadow,transform]
       duration-150 ease-out
@@ -86,13 +81,8 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     const variantMap: Record<ButtonVariant, string> = {
       primary:
         'border-transparent bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary-hover)] shadow-sm',
-      // Ação principal da interface autenticada (acento --orbit-*; `primary` é a identidade do produto).
-      accent:
-        'border-transparent bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] hover:bg-[var(--orbit-primary-hover)] shadow-sm',
       secondary:
         'bg-[var(--surface-raised)] text-[var(--foreground)] border-[var(--border)] hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)]',
-      success:
-        'border-transparent bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary-hover)]',
       danger:
         'border-transparent bg-[var(--danger)] text-[var(--on-danger)] hover:bg-[var(--danger-hover)]',
       warning:

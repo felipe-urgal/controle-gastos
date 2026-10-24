@@ -450,7 +450,6 @@ export default function TransactionTemplatesPage({
         description="Um modelo só preenche uma nova transação. Nada é lançado sem a sua confirmação."
         actions={
           <Button
-            pill
             icon={<FaPlus aria-hidden="true" />}
             onClick={() => {
               resetForm();
@@ -522,7 +521,6 @@ export default function TransactionTemplatesPage({
             </p>
             {!debouncedTemplateSearch && (
               <Button
-                variant="accent"
                 icon={<FaPlus aria-hidden="true" />}
                 onClick={() => {
                   resetForm();
@@ -580,7 +578,7 @@ export default function TransactionTemplatesPage({
           closeDisabled={saving}
           footer={
             <div className="grid gap-2">
-              <Button type="submit" form="transaction-template-form" variant="accent" fullWidth disabled={submitDisabled}>
+              <Button type="submit" form="transaction-template-form" fullWidth disabled={submitDisabled}>
                 {submitLabel}
               </Button>
               <Button variant="outline" fullWidth disabled={saving} onClick={resetForm}>

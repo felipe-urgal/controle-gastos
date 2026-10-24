@@ -199,7 +199,7 @@ export function InvestmentImportModal({
             criados em BRL/B3. Registros já importados são ignorados.
           </p>
 
-          <Button size="cta" pill fullWidth onClick={() => void generatePreview()} disabled={!file || !accountId || working}>
+          <Button size="cta" fullWidth onClick={() => void generatePreview()} disabled={!file || !accountId || working}>
             <FaFileImport aria-hidden="true" />
             {working ? 'Analisando...' : 'Analisar arquivo'}
           </Button>
@@ -242,7 +242,7 @@ export function InvestmentImportModal({
                   />
                 ))}
               </div>
-              <Button className="mt-3" pill variant="outline" onClick={() => void applyTickers()} disabled={working || Object.values(tickerInputs).every((ticker) => !ticker.trim())}>
+              <Button className="mt-3" variant="outline" onClick={() => void applyTickers()} disabled={working || Object.values(tickerInputs).every((ticker) => !ticker.trim())}>
                 Aplicar tickers
               </Button>
             </section>
@@ -347,13 +347,13 @@ export function InvestmentImportModal({
           </p>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" size="cta" pill onClick={() => {
+            <Button variant="outline" size="cta" onClick={() => {
                 setPreview(null);
                 setError('');
               }} disabled={working}>
               Voltar
             </Button>
-            <Button size="cta" pill onClick={confirmImport} disabled={working || preview.summary.valid === 0}>
+            <Button size="cta" onClick={confirmImport} disabled={working || preview.summary.valid === 0}>
               {working
                 ? 'Importando...'
                 : `Importar ${preview.summary.valid} registro(s)`}

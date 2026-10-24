@@ -134,7 +134,7 @@ export default function CategoryShowView({
         )}
 
         <nav aria-label="Ações da categoria" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <Button as="a" href="/transacoes/nova" variant="accent" size="xs" className="w-full">Nova transação</Button>
+          <Button as="a" href="/transacoes/nova" size="xs" className="w-full">Nova transação</Button>
           {isExpense && (
             <Button as="a" href="/categorias" variant="outline" size="xs" className="w-full">Ajustar limite</Button>
           )}

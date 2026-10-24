@@ -523,7 +523,6 @@ export default function InvestmentsCenter() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              pill
               icon={<FaSyncAlt className={refreshingQuotes ? 'animate-spin' : undefined} aria-hidden="true" />}
               onClick={refreshQuotes}
               disabled={!hasQuoteablePositions || refreshingQuotes}
@@ -531,7 +530,6 @@ export default function InvestmentsCenter() {
               {refreshingQuotes ? 'Atualizando...' : 'Atualizar cotações'}
             </Button>
             <Button
-              pill
               icon={<FaPlus aria-hidden="true" />}
               onClick={openOperationModal}
               disabled={

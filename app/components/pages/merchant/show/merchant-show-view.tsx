@@ -143,7 +143,7 @@ export default function MerchantShowView({
         )}
 
         <nav aria-label="Ações do estabelecimento" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Button as="a" href="/transacoes/nova" variant="accent" size="xs" className="w-full">Nova transação</Button>
+          <Button as="a" href="/transacoes/nova" size="xs" className="w-full">Nova transação</Button>
           <Button as="a" href={filterHref} variant="outline" size="xs" className="w-full">Ver transações</Button>
           <Button type="button" variant="outline" size="xs" className="w-full" disabled={disabled || renaming} onClick={() => { setDraft(merchant.name); setRenaming(true); }}>
             Renomear

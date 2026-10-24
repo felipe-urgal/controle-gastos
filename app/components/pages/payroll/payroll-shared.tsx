@@ -21,11 +21,11 @@ export function Pagination({
 }) {
   return (
     <div className="mt-4 flex items-center justify-between gap-3">
-      <Button variant="outline" pill disabled={page <= 1} onClick={onPrevious}>
+      <Button variant="outline" disabled={page <= 1} onClick={onPrevious}>
         Anterior
       </Button>
       <span className="text-xs text-[var(--text-muted)]">Página {page}</span>
-      <Button variant="outline" pill disabled={!hasMore} onClick={onNext}>
+      <Button variant="outline" disabled={!hasMore} onClick={onNext}>
         Próxima
       </Button>
     </div>

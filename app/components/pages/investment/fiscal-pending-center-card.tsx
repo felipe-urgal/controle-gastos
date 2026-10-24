@@ -197,7 +197,7 @@ export function FiscalPendingCenterCard() {
                     </div>
 
                     {item.status === 'ACTIVE' && (
-                      <Button variant="outline" size="sm" pill onClick={() => {
+                      <Button variant="outline" size="sm" onClick={() => {
                           setJustifying(item);
                           setJustification('');
                         }}>
@@ -257,10 +257,10 @@ export function FiscalPendingCenterCard() {
           />
           </div>
           <div className="mt-3 flex gap-2">
-            <Button type="submit" variant="secondary" size="sm" pill disabled={saving}>
+            <Button type="submit" variant="secondary" size="sm" disabled={saving}>
               {saving ? 'Salvando...' : 'Salvar justificativa'}
             </Button>
-            <Button variant="outline" size="sm" pill onClick={() => setJustifying(null)} disabled={saving}>
+            <Button variant="outline" size="sm" onClick={() => setJustifying(null)} disabled={saving}>
               Cancelar
             </Button>
           </div>

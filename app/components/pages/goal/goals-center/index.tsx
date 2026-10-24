@@ -374,7 +374,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
           title="Metas"
           description="Acompanhe objetivos sem misturar planejamento com saldo financeiro."
           actions={
-            <Button pill icon={<FaPlus aria-hidden="true" />} onClick={() => openCreate()}>
+            <Button icon={<FaPlus aria-hidden="true" />} onClick={() => openCreate()}>
               Nova meta
             </Button>
           }
@@ -443,7 +443,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
                   </Chip>
                 ))}
               </div>
-              <Button pill icon={<FaPlus aria-hidden="true" />} onClick={() => openCreate()}>
+              <Button icon={<FaPlus aria-hidden="true" />} onClick={() => openCreate()}>
                 Criar meta
               </Button>
             </section>

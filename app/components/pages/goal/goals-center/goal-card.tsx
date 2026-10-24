@@ -112,7 +112,7 @@ export default function GoalCard({
       <div className="-mx-1 flex flex-wrap items-center gap-1 border-t border-[var(--border)] px-1 pt-2.5">
         {goal.status === 'ACTIVE' && (
           <>
-            <Button size="sm" variant="accent" onClick={onContribution}>
+            <Button size="sm" onClick={onContribution}>
               Contribuir
             </Button>
             <Button size="sm" variant="outline" onClick={onWithdrawal} disabled={goal.currentAmount <= 0}>

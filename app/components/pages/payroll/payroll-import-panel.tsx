@@ -63,7 +63,7 @@ export function PayrollImportPanel({
           ausentes.
         </p>
       </div>
-      <Button variant="outline" size="sm" pill onClick={onClose} disabled={working}>
+      <Button variant="outline" size="sm" onClick={onClose} disabled={working}>
         Fechar
       </Button>
     </div>
@@ -97,7 +97,6 @@ export function PayrollImportPanel({
         />
         <Button
           size="lg"
-          pill
           fullWidth
           disabled={!file || working}
           onClick={() => void onAnalyze()}
@@ -116,7 +115,6 @@ export function PayrollImportPanel({
         </div>
         <Button
           variant="outline"
-          pill
           fullWidth
           onClick={() => {
             setPreview(null);
@@ -334,7 +332,6 @@ export function PayrollImportPanel({
           <Button
             variant="outline"
             size="lg"
-            pill
             disabled={working}
             onClick={() => {
               setPreview(null);
@@ -346,7 +343,6 @@ export function PayrollImportPanel({
           </Button>
           <Button
             size="lg"
-            pill
             disabled={
               working ||
               (preview.document.duplicate &&

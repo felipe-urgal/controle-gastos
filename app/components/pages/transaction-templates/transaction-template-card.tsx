@@ -69,7 +69,7 @@ export default function TransactionTemplateCard({
       </div>
 
       <div className="-mx-1 flex items-center justify-between gap-1 border-t border-[var(--border)] px-1 pt-2.5">
-        <Button as="a" href={`/transacoes/nova?template=${encodeURIComponent(item.id)}`} variant="accent" size="sm" className="min-w-28">
+        <Button as="a" href={`/transacoes/nova?template=${encodeURIComponent(item.id)}`} size="sm" className="min-w-28">
           Usar
         </Button>
         <span className="flex">

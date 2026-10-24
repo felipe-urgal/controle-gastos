@@ -943,7 +943,6 @@ export function useTransactionForm({
                 key={tag.id}
                 variant="outline"
                 size="xs"
-                pill
                 onClick={() => setFormData((previous) => ({
                   ...previous,
                   tagIds: (previous.tagIds ?? []).filter((id) => id !== tag.id),

@@ -172,10 +172,10 @@ export function InvestmentTaxControlCard({
             options={years.map((item) => ({ value: item, label: String(item) }))}
             disabled={loading}
           />
-          <Button variant="outline" size="sm" pill onClick={() => setMode(mode === 'IRRF' ? null : 'IRRF')}>
+          <Button variant="outline" size="sm" onClick={() => setMode(mode === 'IRRF' ? null : 'IRRF')}>
             Registrar IRRF
           </Button>
-          <Button variant="outline" size="sm" pill onClick={() => setMode(mode === 'DARF' ? null : 'DARF')}>
+          <Button variant="outline" size="sm" onClick={() => setMode(mode === 'DARF' ? null : 'DARF')}>
             Registrar DARF
           </Button>
         </div>
@@ -259,7 +259,7 @@ export function InvestmentTaxControlCard({
               maxLength={500}
             />
           </div>
-          <Button type="submit" variant="secondary" size="sm" pill disabled={saving}>
+          <Button type="submit" variant="secondary" size="sm" disabled={saving}>
             {saving ? 'Salvando...' : 'Salvar ' + mode}
           </Button>
         </form>

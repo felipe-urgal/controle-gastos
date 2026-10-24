@@ -191,7 +191,7 @@ export function InvestmentTaxPaymentReconciliationSection({
                     transaction={item.matchedTransaction}
                     showValues={showValues}
                   />
-                  <Button variant="outline" size="sm" pill className="mt-3" onClick={() => void unlink(item.paymentId)} disabled={workingKey !== ''}>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => void unlink(item.paymentId)} disabled={workingKey !== ''}>
                     <FaUnlink aria-hidden="true" />
                     {workingKey === item.paymentId + ':unlink'
                       ? 'Desfazendo...'
@@ -211,7 +211,7 @@ export function InvestmentTaxPaymentReconciliationSection({
                           transaction={candidate}
                           showValues={showValues}
                         />
-                        <Button variant="secondary" size="sm" pill className="mt-3" onClick={() => void link(item.paymentId, candidate.id)} disabled={workingKey !== ''}>
+                        <Button variant="secondary" size="sm" className="mt-3" onClick={() => void link(item.paymentId, candidate.id)} disabled={workingKey !== ''}>
                           <FaLink aria-hidden="true" />
                           {workingKey === key ? 'Vinculando...' : 'Vincular'}
                         </Button>

@@ -450,7 +450,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
           title="Dívidas"
           description="Passivos manuais, separados das contas e sem alterar saldos financeiros."
           actions={
-            <Button pill icon={<FaPlus aria-hidden="true" />} onClick={openCreate}>
+            <Button icon={<FaPlus aria-hidden="true" />} onClick={openCreate}>
               Nova dívida
             </Button>
           }
@@ -632,7 +632,6 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
             {historyDebt.adjustmentHistory?.hasMore && !historyLoading && (
               <Button
                 variant="outline"
-                pill
                 fullWidth
                 className="mt-4"
                 onClick={() => void loadMoreHistory()}
@@ -656,10 +655,10 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
                 : 'A exclusão só é permitida quando não existe histórico além do saldo inicial.'}
             </p>
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <Button variant="outline" pill size="lg" onClick={() => setConfirming(null)} disabled={confirmSaving}>
+              <Button variant="outline" size="lg" onClick={() => setConfirming(null)} disabled={confirmSaving}>
                 Cancelar
               </Button>
-              <Button pill size="lg" onClick={() => void confirmDebtAction()} disabled={confirmSaving}>
+              <Button size="lg" onClick={() => void confirmDebtAction()} disabled={confirmSaving}>
                 {confirmSaving
                   ? 'Salvando...'
                   : confirming.kind === 'ARCHIVE'
@@ -759,16 +758,16 @@ function DebtCard({
       ) : null}
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" pill icon={<FaHistory aria-hidden="true" />} onClick={onHistory}>
+        <Button variant="outline" size="sm" icon={<FaHistory aria-hidden="true" />} onClick={onHistory}>
           Histórico
         </Button>
 
         {debt.status === 'ACTIVE' && (
           <>
-            <Button variant="outline" size="sm" pill onClick={onAdjust}>
+            <Button variant="outline" size="sm" onClick={onAdjust}>
               Ajustar saldo
             </Button>
-            <Button size="sm" pill icon={<FaCheck aria-hidden="true" />} onClick={onPay}>
+            <Button size="sm" icon={<FaCheck aria-hidden="true" />} onClick={onPay}>
               Registrar pagamento
             </Button>
           </>
@@ -776,17 +775,17 @@ function DebtCard({
 
         {debt.status === 'PAID' && (
           <>
-            <Button variant="outline" size="sm" pill onClick={onAdjust}>
+            <Button variant="outline" size="sm" onClick={onAdjust}>
               Reabrir com ajuste
             </Button>
-            <Button variant="outline" size="sm" pill icon={<FaArchive aria-hidden="true" />} onClick={onArchive}>
+            <Button variant="outline" size="sm" icon={<FaArchive aria-hidden="true" />} onClick={onArchive}>
               Arquivar
             </Button>
           </>
         )}
 
         {debt.status === 'ARCHIVED' && (
-          <Button variant="outline" size="sm" pill onClick={onRestore}>
+          <Button variant="outline" size="sm" onClick={onRestore}>
             Restaurar
           </Button>
         )}
@@ -859,10 +858,10 @@ function DebtFormModal({
 function ModalActions({ saving, onClose, submitLabel }: { saving: boolean; onClose: () => void; submitLabel: string }) {
   return (
     <div className="grid grid-cols-2 gap-3 pt-2">
-      <Button variant="outline" pill size="lg" onClick={onClose} disabled={saving}>
+      <Button variant="outline" size="lg" onClick={onClose} disabled={saving}>
         Cancelar
       </Button>
-      <Button type="submit" pill size="lg" disabled={saving}>
+      <Button type="submit" size="lg" disabled={saving}>
         {saving ? 'Salvando...' : submitLabel}
       </Button>
     </div>

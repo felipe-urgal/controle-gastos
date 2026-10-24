@@ -53,7 +53,6 @@ export function DocumentHistoryPanel({
         </div>
         <Button
           variant="outline"
-          pill
           onClick={onRetry}
           disabled={loading}
           icon={<FaRedo aria-hidden="true" />}
@@ -68,7 +67,7 @@ export function DocumentHistoryPanel({
           className="m-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
         >
           <span>{error}</span>
-          <Button variant="outline" size="sm" pill onClick={onRetry}>
+          <Button variant="outline" size="sm" onClick={onRetry}>
             Tentar novamente
           </Button>
         </div>
@@ -134,7 +133,6 @@ export function DocumentHistoryPanel({
                   <Button
                     variant="outline"
                     size="sm"
-                    pill
                     disabled={working}
                     onClick={() => onArchive(document.id)}
                   >

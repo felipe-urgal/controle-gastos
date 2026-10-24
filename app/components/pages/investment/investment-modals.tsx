@@ -35,10 +35,10 @@ export function DeleteConfirmModal({ pendingDelete, saving, onCancel, onConfirm 
                 : `O ativo ${pendingDelete.value.symbol} será removido somente se não possuir operações ou proventos históricos.`}
             </p>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" size="cta" pill onClick={() => onCancel()} disabled={saving} fullWidth>
+              <Button type="button" variant="outline" size="cta" onClick={() => onCancel()} disabled={saving} fullWidth>
                 Cancelar
               </Button>
-              <Button type="button" variant="danger" size="cta" pill onClick={() => onConfirm()} disabled={saving} isLoading={saving} loadingText="Excluindo..." fullWidth>
+              <Button type="button" variant="danger" size="cta" onClick={() => onConfirm()} disabled={saving} isLoading={saving} loadingText="Excluindo..." fullWidth>
                 Excluir
               </Button>
             </div>
@@ -642,7 +642,7 @@ export function HistoryModal({ historyAsset, historyLoading, historyError, histo
                 <p role="alert" className="text-sm text-[var(--expense)]">
                   {historyError}
                 </p>
-                <Button variant="outline" size="sm" pill className="mt-3" onClick={onRetry}>
+                <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
                   Tentar novamente
                 </Button>
               </div>

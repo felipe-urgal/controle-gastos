@@ -132,7 +132,7 @@ export function TaxLossCarryforwardCard({
             options={years.map((item) => ({ value: item, label: String(item) }))}
             disabled={loading}
           />
-          <Button variant="outline" size="sm" pill onClick={() => setEditing((value) => !value)}>
+          <Button variant="outline" size="sm" onClick={() => setEditing((value) => !value)}>
             {editing ? 'Cancelar ajuste' : 'Informar saldo inicial'}
           </Button>
         </div>
@@ -181,7 +181,7 @@ export function TaxLossCarryforwardCard({
               maxLength={500}
             />
           </div>
-          <Button type="submit" variant="secondary" size="sm" pill disabled={saving}>
+          <Button type="submit" variant="secondary" size="sm" disabled={saving}>
             {saving ? 'Salvando...' : 'Registrar ajuste'}
           </Button>
         </form>

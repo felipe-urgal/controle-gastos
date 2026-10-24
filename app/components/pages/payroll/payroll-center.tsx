@@ -331,7 +331,6 @@ export default function PayrollCenter() {
               />
             </div>
             <Button
-              pill
               icon={<FaFileImport aria-hidden="true" />}
               onClick={() => {
                 setActiveTab('MONTHLY');
