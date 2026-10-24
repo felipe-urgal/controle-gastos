@@ -394,7 +394,7 @@ export default function TransferForm({
                     onChange={handleAmountChange}
                     disabled={loading}
                     inputMode="numeric"
-                    className="min-h-[76px] min-w-0 flex-1 border-0 p-0 text-[44px] font-black tracking-tight min-[360px]:text-[50px]"
+                    className="min-h-[76px] min-w-0 flex-1 border-0 p-0 text-4xl font-black tracking-tight min-[360px]:text-5xl"
                   />
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
                     <FaExchangeAlt />
@@ -569,7 +569,7 @@ export default function TransferForm({
 
               <div className="rounded-[var(--radius-lg)] border border-[var(--orbit-primary)]/45 bg-[var(--surface)] p-4">
                 <p className="text-xs text-[var(--text-muted)]">Transferência</p>
-                <strong className="mt-1 block text-[34px] font-black tracking-tight text-[var(--foreground)]">{formatCentsToCurrency(amountCents)}</strong>
+                <strong className="mt-1 block text-4xl font-black tracking-tight text-[var(--foreground)]">{formatCentsToCurrency(amountCents)}</strong>
                 <dl className="mt-4 grid gap-2">
                   <TransferReviewRow label="Origem" value={selectedSource?.name ?? 'Não selecionada'} />
                   <TransferReviewRow label="Destino" value={selectedDestination?.name ?? 'Não selecionado'} />
@@ -652,7 +652,7 @@ export default function TransferForm({
                   disabled={loading}
                   required
                   inputMode="numeric"
-                  className="mx-auto min-h-[72px] max-w-[420px] border-0 p-0 text-center text-[48px] font-black tracking-tight sm:text-[58px]"
+                  className="mx-auto min-h-[72px] max-w-[420px] border-0 p-0 text-center text-5xl font-black tracking-tight sm:text-6xl"
                 />
                 <p className="mt-1 text-xs text-[var(--text-muted)]">Adicionar um valor</p>
               </div>

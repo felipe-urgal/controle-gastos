@@ -117,8 +117,8 @@ export default function TransactionTemplateFormFields({
 
       <div className="grid gap-1 rounded-[var(--radius-md)] bg-[var(--orbit-primary-subtle)] px-3.5 py-3">
         <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">Ao usar, preenche</p>
-        <p className="break-words text-[13px]">{preview.summary}</p>
-        {preview.missing && <p className="text-[13px] text-[var(--text-muted)]">{preview.missing}</p>}
+        <p className="break-words text-sm">{preview.summary}</p>
+        {preview.missing && <p className="text-sm text-[var(--text-muted)]">{preview.missing}</p>}
       </div>
     </div>
   );

@@ -162,7 +162,7 @@ export default function MobileTransactionShow({
         aria-labelledby="mobile-transaction-title"
       >
         <div className="pointer-events-none absolute bottom-4 right-5 hidden items-end gap-2 text-[var(--orbit-primary)] opacity-25 min-[360px]:flex" aria-hidden="true">
-          <span className="text-[58px] leading-none">{heroIcon}</span>
+          <span className="text-6xl leading-none">{heroIcon}</span>
           <span className="mb-1 max-w-[72px] text-xs font-semibold uppercase leading-[1.45] tracking-[0.2em] text-white/55">
             Gastar bem também é planejar
           </span>
@@ -193,7 +193,7 @@ export default function MobileTransactionShow({
         </div>
 
         <div className="relative z-[1] mt-5">
-          <strong className="money block break-words text-[40px] font-black leading-none tracking-tight text-white">
+          <strong className="money block break-words text-4xl font-black leading-none tracking-tight text-white">
             {sign}{amount}
           </strong>
           {!showValues ? (
@@ -251,7 +251,7 @@ export default function MobileTransactionShow({
           icon={<FaWallet />}
           iconValue={
             <span
-              className="grid h-6 w-6 place-items-center rounded-[7px] text-white"
+              className="grid h-6 w-6 place-items-center rounded-[var(--radius-sm)] text-white"
               style={{ backgroundColor: transaction.account.color || 'var(--orbit-primary)' }}
             >
               <IconRenderer iconName={transaction.account.icon || 'wallet'} size={12} />

@@ -15,7 +15,7 @@ export function PayrollReviewQueue({ items }: { items: PayrollSummary[] }) {
 
   return (
     <section aria-labelledby="payroll-review-title" className="grid gap-2.5 rounded-[var(--radius-lg)] border border-[var(--warning)]/45 bg-[var(--warning-subtle)] p-4">
-      <h2 id="payroll-review-title" className="text-[15px] font-bold">Para revisar</h2>
+      <h2 id="payroll-review-title" className="text-sm font-bold">Para revisar</h2>
       <ul className="grid gap-2">
         {queue.map((summary) => (
           <li key={`${summary.employerCnpj}-${summary.year}-${summary.month}`} className="rounded-[var(--radius-md)] bg-[var(--surface)] px-3.5 py-2.5">

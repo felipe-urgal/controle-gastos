@@ -495,7 +495,7 @@ export default function TransactionTemplatesPage({
             />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[13px] text-[var(--text-muted)]">
+            <span className="text-sm text-[var(--text-muted)]">
               {templateTotal} {templateTotal === 1 ? 'modelo' : 'modelos'}
             </span>
             {templateError && (

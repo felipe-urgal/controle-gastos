@@ -243,7 +243,7 @@ export default function AccountShowView({
 
         <div className="grid items-end gap-4 md:grid-cols-2">
           <div className="min-w-0">
-            <strong className={`money block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${value < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+            <strong className={`money block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${value < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
               {money(value)}
             </strong>
             <p className="mt-2 text-sm text-[var(--text-muted)]">

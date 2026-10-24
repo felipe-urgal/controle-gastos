@@ -291,7 +291,7 @@ export default function CreditCardOverview({
             <p className="text-sm font-semibold text-[var(--text-muted)]">
               {toPay ? `Fatura para pagar · ${dueDistanceLabel(toPay.dueDate, today)}` : `Fatura atual · ${closingDistanceLabel(data.current.closingDate, today)}`}
             </p>
-            <strong className="money mt-1 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl">
+            <strong className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl">
               {money(focus.total)}
             </strong>
             <p className="mt-2 text-sm text-[var(--text-muted)]">

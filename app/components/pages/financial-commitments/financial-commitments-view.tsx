@@ -70,10 +70,10 @@ export default function FinancialCommitmentsView({
       <section aria-labelledby="commitments-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
         <div className="grid gap-1.5">
           <p id="commitments-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">A pagar até {formatDate(data.through)}</p>
-          <strong className="money break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] text-[var(--expense)] sm:text-5xl">
+          <strong className="money break-words text-4xl font-semibold leading-none tracking-[-0.035em] text-[var(--expense)] sm:text-5xl">
             {money(payable.amount)}
           </strong>
-          <p className="mt-2 max-w-[62ch] text-[15px] text-[var(--text-muted)]">
+          <p className="mt-2 max-w-[62ch] text-sm text-[var(--text-muted)]">
             <MoneyText>{buildLede(data, money)}</MoneyText>
           </p>
         </div>
@@ -128,7 +128,7 @@ export default function FinancialCommitmentsView({
               days.map((day) => (
                 <div key={day.key} className="border-t border-[var(--border)]">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 bg-[var(--surface-raised)] px-4 pb-1 pt-3 sm:px-5">
-                    <h3 className="text-[13px] font-bold">{day.label}</h3>
+                    <h3 className="text-sm font-bold">{day.label}</h3>
                     {day.net !== null && (
                       <span className="money text-xs text-[var(--text-muted)]">{day.net > 0 ? '+ ' : day.net < 0 ? '− ' : ''}{money(Math.abs(day.net))}</span>
                     )}
@@ -156,7 +156,7 @@ export default function FinancialCommitmentsView({
               <ul className="grid gap-3.5 px-4 pb-5 sm:px-5">
                 {weeks.map((week) => (
                   <li key={week.key} className="grid gap-1.5">
-                    <div className="flex flex-wrap justify-between gap-x-2 text-[13px]">
+                    <div className="flex flex-wrap justify-between gap-x-2 text-sm">
                       <span className="font-semibold">{week.label}</span>
                       <span className="money text-[var(--text-muted)]">
                         {week.payable > 0 ? `− ${money(week.payable)}` : ''}
@@ -181,7 +181,7 @@ export default function FinancialCommitmentsView({
         <section className={`${cardClassName} grid justify-items-center gap-2.5 px-4 py-10 text-center`}>
           <h2 className="text-lg font-bold">Nenhum compromisso nos próximos {data.days} dias</h2>
           <p className="max-w-[48ch] text-sm text-[var(--text-muted)]">Que tal olhar mais adiante? Ou registre uma conta a pagar para ela aparecer aqui.</p>
-          <Link href="/transacoes/nova" className="inline-flex min-h-11 items-center rounded-[var(--radius-md)] border border-[var(--border-strong)] px-4 text-[13px] font-bold hover:bg-[var(--surface-hover)]">
+          <Link href="/transacoes/nova" className="inline-flex min-h-11 items-center rounded-[var(--radius-md)] border border-[var(--border-strong)] px-4 text-sm font-bold hover:bg-[var(--surface-hover)]">
             Nova transação
           </Link>
         </section>
@@ -220,7 +220,7 @@ function CommitmentRow({ item, money, lateLabel }: { item: FinancialCommitment; 
 function Legend({ dot, label, value, detail }: { dot: string; label: string; value: string; detail: string }) {
   return (
     <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="text-[13px] font-semibold text-[var(--text-muted)]">
+      <span className="text-sm font-semibold text-[var(--text-muted)]">
         <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: dot }} aria-hidden="true" />
         {label}
       </span>

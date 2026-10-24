@@ -69,7 +69,7 @@ export function MonthSummaryCard({
           <p className="mt-0.5 min-h-4 text-xs text-[var(--text-muted)]">
             {count !== undefined ? `${count} ${countLabel}` : '\u00A0'}
           </p>
-          <strong className={`money mt-2 block text-[24px] font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
+          <strong className={`money mt-2 block text-2xl font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
           <p className={`mt-1 flex items-center gap-1.5 text-xs ${detailClass}`}>
             {detailDirection === 'up' ? (
               <FaArrowUp aria-hidden="true" />
@@ -275,7 +275,7 @@ export function MonthOverview({
 
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)_135px] items-end gap-4">
         <div className="grid gap-1.5">
-          <p className="min-h-4 text-[13px] text-[var(--text-muted)]" aria-live="polite">
+          <p className="min-h-4 text-sm text-[var(--text-muted)]" aria-live="polite">
             {activeBar ? (
               <>
                 Dias {activeBar.fromDay}–{activeBar.toDay}:{' '}

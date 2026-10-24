@@ -61,7 +61,7 @@ export function FormalList({
                 </span>
               </div>
               <div className="text-right">
-                <span className="money block text-[15px] font-semibold">{money(item.amount, item.currency)}</span>
+                <span className="money block text-sm font-semibold">{money(item.amount, item.currency)}</span>
                 <span className="money text-xs text-[var(--text-muted)]">≈ {money(item.monthlyEquivalent, item.currency)}/mês</span>
               </div>
               <div className="col-span-2 flex items-center justify-between gap-2">
@@ -122,7 +122,7 @@ export function ConfirmedSubscriptions({
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="money block text-[15px] font-semibold">{money(item.currentAmount, item.currency)}</span>
+                  <span className="money block text-sm font-semibold">{money(item.currentAmount, item.currency)}</span>
                   <span className="money text-xs text-[var(--text-muted)]">{money(item.annualEquivalent, item.currency)}/ano</span>
                 </div>
               </div>

@@ -53,7 +53,7 @@ export function SettingsRow({
     <div className={`grid items-center gap-x-4 gap-y-3 border-t border-[var(--border)] px-4 py-4 first:border-t-0 sm:px-5 ${inlineControl ? 'grid-cols-[auto_minmax(0,1fr)_auto]' : 'grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto]'}`}>
       <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">{icon}</span>
       <div className="min-w-0">
-        <h3 className="text-[15px] font-semibold text-[var(--foreground)]">{title}</h3>
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">{title}</h3>
         {description && <p className="mt-0.5 text-sm leading-relaxed text-[var(--text-muted)]">{description}</p>}
       </div>
       {control && <div className={inlineControl ? '' : 'col-span-full justify-self-start sm:col-span-1 sm:justify-self-end'}>{control}</div>}

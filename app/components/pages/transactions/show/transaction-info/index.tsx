@@ -90,7 +90,7 @@ export default function TransactionInfo({
 
         <div>
           <p className="text-sm font-semibold text-[var(--text-muted)]">{kindLabel}</p>
-          <strong className={`money mt-1 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${amountTone}`}>
+          <strong className={`money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${amountTone}`}>
             {isNormal ? (isIncome ? '+' : '−') : ''}
             {money(transaction.amount)}
           </strong>

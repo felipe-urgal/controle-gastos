@@ -70,7 +70,7 @@ function CurrencyHero({
           Disponível nas contas correntes{showCurrency ? ` · ${totals.currency}` : ''}
         </p>
         <strong
-          className={`money mt-2 block break-words text-[2.25rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${
+          className={`money mt-2 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${
             totals.available < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'
           }`}
         >
@@ -85,7 +85,7 @@ function CurrencyHero({
               <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: row.color }} aria-hidden="true" />
               {row.label}
             </dt>
-            <dd className="money text-[0.8125rem] font-medium text-[var(--foreground)]">{row.value}</dd>
+            <dd className="money text-sm font-medium text-[var(--foreground)]">{row.value}</dd>
           </div>
         ))}
       </dl>

@@ -89,7 +89,7 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
                   disabled={loading}
                   required
                   inputMode="numeric"
-                  className="mx-auto min-h-[72px] max-w-[420px] border-0 p-0 text-center text-[48px] font-black tracking-tight sm:text-[58px]"
+                  className="mx-auto min-h-[72px] max-w-[420px] border-0 p-0 text-center text-5xl font-black tracking-tight sm:text-6xl"
                 />
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
                   {creationMode === 'installment' ? 'Valor total da compra' : 'Adicionar um valor'}

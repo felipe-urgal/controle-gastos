@@ -68,7 +68,7 @@ export default function FinancialComparisonView({
           ))}
         </p>
         {!sameLength && (
-          <div role="note" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3.5 py-3 text-[13px] font-semibold text-[var(--warning)]">
+          <div role="note" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3.5 py-3 text-sm font-semibold text-[var(--warning)]">
             <span>
               Os períodos têm tamanhos diferentes ({data.a.months} e {data.b.months} meses). Totais não são equivalentes; use a média mensal para comparar ritmo.
             </span>
@@ -79,7 +79,7 @@ export default function FinancialComparisonView({
           </div>
         )}
         {data.coverage.overlaps && (
-          <p className="text-[13px] text-[var(--text-muted)]">Os períodos se sobrepõem; meses compartilhados entram nos dois lados da comparação.</p>
+          <p className="text-sm text-[var(--text-muted)]">Os períodos se sobrepõem; meses compartilhados entram nos dois lados da comparação.</p>
         )}
       </section>
 
@@ -165,13 +165,13 @@ export default function FinancialComparisonView({
               <div className="grid gap-3 px-4 pb-5 sm:px-5">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5">
                   <div>
-                    <p className="text-[13px] text-[var(--text-muted)]">A · {formatLogicalDate(data.a.netWorthAsOf)}</p>
-                    <p className="money break-words text-[17px] font-semibold">{money(data.a.netWorthEnd!)}</p>
+                    <p className="text-sm text-[var(--text-muted)]">A · {formatLogicalDate(data.a.netWorthAsOf)}</p>
+                    <p className="money break-words text-lg font-semibold">{money(data.a.netWorthEnd!)}</p>
                   </div>
                   <span className="text-[var(--text-muted)]" aria-hidden="true">→</span>
                   <div>
-                    <p className="text-[13px] text-[var(--text-muted)]">B · {formatLogicalDate(data.b.netWorthAsOf)}</p>
-                    <p className="money break-words text-[17px] font-semibold">{money(data.b.netWorthEnd!)}</p>
+                    <p className="text-sm text-[var(--text-muted)]">B · {formatLogicalDate(data.b.netWorthAsOf)}</p>
+                    <p className="money break-words text-lg font-semibold">{money(data.b.netWorthEnd!)}</p>
                   </div>
                 </div>
                 <p className={`text-sm font-bold ${TONE_TEXT[deltaTone(netWorth)]}`}>{deltaLabel(netWorth, money)}</p>
@@ -193,7 +193,7 @@ export default function FinancialComparisonView({
           <span className="text-lg text-[var(--text-muted)] group-open:hidden" aria-hidden="true">+</span>
           <span className="hidden text-lg text-[var(--text-muted)] group-open:inline" aria-hidden="true">−</span>
         </summary>
-        <div className="grid max-w-[78ch] gap-2.5 px-4 pb-5 text-[13px] text-[var(--text-muted)] sm:px-5">
+        <div className="grid max-w-[78ch] gap-2.5 px-4 pb-5 text-sm text-[var(--text-muted)] sm:px-5">
           <p><strong className="text-[var(--foreground)]">A é a base.</strong> Cada diferença é B − A, e não mostramos percentual quando A é zero.</p>
           <p><strong className="text-[var(--foreground)]">Só o realizado conta.</strong> Despesas incluem divisões e tratam créditos de cartão como redução da despesa correspondente.</p>
           <p><strong className="text-[var(--foreground)]">Períodos de tamanhos diferentes</strong> são comparados pela média mensal, que divide cada total pela quantidade exata de meses do período.</p>

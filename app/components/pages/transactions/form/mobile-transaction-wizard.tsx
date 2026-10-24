@@ -136,7 +136,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                     onChange={handleAmountChange}
                     disabled={loading}
                     inputMode="numeric"
-                    className="min-h-[76px] min-w-0 flex-1 border-0 p-0 text-[44px] font-black tracking-tight min-[360px]:text-[50px]"
+                    className="min-h-[76px] min-w-0 flex-1 border-0 p-0 text-4xl font-black tracking-tight min-[360px]:text-5xl"
                   />
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
                     <FaCalculator />
@@ -480,7 +480,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
 
               <div className="rounded-[var(--radius-lg)] border border-[var(--orbit-primary)]/45 bg-[var(--surface)] p-4">
                 <p className="text-xs text-[var(--text-muted)]">{operationLabel}</p>
-                <strong className="mt-1 block text-[34px] font-black tracking-tight text-[var(--foreground)]">
+                <strong className="mt-1 block text-4xl font-black tracking-tight text-[var(--foreground)]">
                   {formatCentsToCurrency(formData.amount)}
                 </strong>
                 <dl className="mt-4 grid gap-2">

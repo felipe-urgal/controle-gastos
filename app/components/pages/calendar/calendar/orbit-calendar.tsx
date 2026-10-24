@@ -341,7 +341,7 @@ function CalendarSummary({
             {isLoading ? (
               <div className="mt-2 h-6 animate-pulse rounded bg-[var(--skeleton)]" />
             ) : summaries.length === 0 ? (
-              <strong className="mt-2 block text-lg sm:text-[23px]">—</strong>
+              <strong className="mt-2 block text-lg sm:text-2xl">—</strong>
             ) : (
               <div className="mt-2 space-y-0.5">
                 {summaries.map((summary) => {
@@ -357,7 +357,7 @@ function CalendarSummary({
                   return (
                     <strong
                       key={summary.currency}
-                      className={`money block truncate text-[15px] font-bold sm:text-[23px] ${tone}`}
+                      className={`money block truncate text-sm font-bold sm:text-2xl ${tone}`}
                     >
                       {showValues
                         ? formatCurrency(value, summary.currency)
@@ -375,7 +375,7 @@ function CalendarSummary({
         <p className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)] sm:text-xs">
           <FaCalendarCheck aria-hidden="true" /> Compromissos do período
         </p>
-        <strong className="mt-2 block text-lg font-bold text-[var(--foreground)] sm:text-[23px]">
+        <strong className="mt-2 block text-lg font-bold text-[var(--foreground)] sm:text-2xl">
           {isLoading ? '—' : `${commitmentCount} itens`}
         </strong>
         {!isLoading && overdueCount > 0 && (

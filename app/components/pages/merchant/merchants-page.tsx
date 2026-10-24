@@ -512,7 +512,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
             {heroCurrency ? (
               <>
                 <p className="text-sm font-semibold text-[var(--text-muted)]">Gasto do mês em estabelecimentos reconhecidos</p>
-                <strong className="money block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+                <strong className="money block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
                   {formatMoney(heroCurrency.assigned, heroCurrency.currency)}
                 </strong>
                 <p className="text-sm text-[var(--text-muted)]">

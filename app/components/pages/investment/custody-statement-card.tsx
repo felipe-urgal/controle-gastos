@@ -96,7 +96,7 @@ export function CustodyStatementCard({ showValues }: { showValues: boolean }) {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {result.summary.map((row) => (
                 <div key={row.label} className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3">
-                  <span className="block text-[13px] font-semibold text-[var(--text-muted)]">{row.label}</span>
+                  <span className="block text-sm font-semibold text-[var(--text-muted)]">{row.label}</span>
                   <strong className="money text-base font-semibold">{money(row.grossCents)}</strong>
                   <span className="block text-xs text-[var(--text-muted)]">saldo bruto</span>
                 </div>
@@ -168,7 +168,7 @@ export function CustodyStatementCard({ showValues }: { showValues: boolean }) {
           )}
 
           {result.warnings.length > 0 && (
-            <ul className="grid gap-1 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-4 py-3 text-[13px]">
+            <ul className="grid gap-1 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-4 py-3 text-sm">
               {result.warnings.map((warning) => (
                 <li key={warning}>{warning}</li>
               ))}

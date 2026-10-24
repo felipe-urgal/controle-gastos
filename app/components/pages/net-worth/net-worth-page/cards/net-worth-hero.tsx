@@ -49,13 +49,13 @@ export function NetWorthHero({
         <p id="net-worth-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">
           Patrimônio líquido em {currency}
         </p>
-        <strong className="money mt-2 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+        <strong className="money mt-2 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
           {displayMoney(total, showValues, currency)}
         </strong>
         {variation && (
           <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             {variation.percent !== null && (
-              <span className={`rounded-full px-2.5 py-0.5 text-[13px] font-bold ${up ? 'bg-[var(--surface-raised)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}>
+              <span className={`rounded-full px-2.5 py-0.5 text-sm font-bold ${up ? 'bg-[var(--surface-raised)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}>
                 {up ? '▲' : '▼'} {displayPercent(Math.abs(variation.percent), showValues).replace('+', '')}
               </span>
             )}
@@ -100,7 +100,7 @@ export function NetWorthHero({
           </span>
           <FaChevronDown className="ml-auto text-xs text-[var(--text-muted)] transition-transform group-open:rotate-180" aria-hidden="true" />
         </summary>
-        <div className="grid gap-2 px-4 pb-4 text-[13px] leading-relaxed text-[var(--text-muted)]">
+        <div className="grid gap-2 px-4 pb-4 text-sm leading-relaxed text-[var(--text-muted)]">
           <p>
             {valuation.positionCount > 0
               ? `${valuation.marketPositionCount} de ${valuation.positionCount} posições usam cotação de mercado.`
@@ -141,7 +141,7 @@ export function NetWorthHero({
 function Stat({ label, value, detail, dot }: { label: string; value: string; detail: string; dot?: string }) {
   return (
     <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-muted)]">
+      <span className="flex items-center gap-2 text-sm font-semibold text-[var(--text-muted)]">
         {dot && <span className="h-2.5 w-2.5 rounded-full" style={{ background: dot }} aria-hidden="true" />}
         {label}
       </span>

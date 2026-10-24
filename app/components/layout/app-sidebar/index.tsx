@@ -55,7 +55,7 @@ function SidebarLink({
       title={collapsed ? item.label : undefined}
       className={`
         group relative flex min-h-10 items-center rounded-[var(--radius-md)] py-2
-        text-[0.9375rem] font-medium transition-[background-color,color] duration-150
+        text-sm font-medium transition-[background-color,color] duration-150
         focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]
         ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}
         ${

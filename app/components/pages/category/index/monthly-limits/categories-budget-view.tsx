@@ -197,7 +197,7 @@ export default function CategoriesBudgetView({
           <>
             <div>
               <p className="text-sm font-semibold text-[var(--text-muted)]">Orçamento do mês</p>
-              <strong className="money mt-1 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+              <strong className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
                 {money(summary.realized)}
                 {summary.budget > 0 && <span className="ml-2 text-base font-medium tracking-normal text-[var(--text-muted)] sm:text-xl">de {money(summary.budget)}</span>}
               </strong>
@@ -330,7 +330,7 @@ export default function CategoriesBudgetView({
                         <span className="h-2 w-2 shrink-0 rounded-sm" style={{ backgroundColor: entry.color }} aria-hidden="true" />
                         <span className="truncate">{entry.name}</span>
                       </span>
-                      <span className="money text-[0.8125rem] font-medium">{entry.percentage.toLocaleString('pt-BR')}%</span>
+                      <span className="money text-sm font-medium">{entry.percentage.toLocaleString('pt-BR')}%</span>
                     </li>
                   ))}
                 </ul>

@@ -99,7 +99,7 @@ export default function CategoryShowView({
               <p className="text-sm font-semibold text-[var(--text-muted)]">
                 {isExpense ? 'Gasto' : 'Recebido'} em {longMonthLabel(activity.month.month)}
               </p>
-              <strong className="money mt-1 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+              <strong className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
                 {money(activity.month.realized)}
                 {isExpense && activity.month.limit !== null && (
                   <span className="ml-2 text-base font-medium tracking-normal text-[var(--text-muted)] sm:text-xl">de {money(activity.month.limit)}</span>

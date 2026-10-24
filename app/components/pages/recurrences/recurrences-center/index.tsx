@@ -181,7 +181,7 @@ export default function RecurrencesCenter() {
                 <span className="text-lg text-[var(--text-muted)] group-open:hidden" aria-hidden="true">+</span>
                 <span className="hidden text-lg text-[var(--text-muted)] group-open:inline" aria-hidden="true">−</span>
               </summary>
-              <div className="grid max-w-[78ch] gap-2.5 px-4 pb-5 text-[13px] text-[var(--text-muted)] sm:px-5">
+              <div className="grid max-w-[78ch] gap-2.5 px-4 pb-5 text-sm text-[var(--text-muted)] sm:px-5">
                 <p><strong className="text-[var(--foreground)]">Recorrência</strong> é o mecanismo que cria lançamentos futuros. Só nasce de uma ação explícita sua e é a única que entra no custo fixo.</p>
                 <p><strong className="text-[var(--foreground)]">Assinatura</strong> é uma classificação detectada do histórico. Serve para acompanhar preços e cobranças; não cria lançamentos sozinha.</p>
                 <p><strong className="text-[var(--foreground)]">Cada moeda é calculada separada.</strong> Candidatos não entram nos totais até serem confirmados.</p>

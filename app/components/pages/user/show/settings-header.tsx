@@ -35,8 +35,8 @@ export function SettingsHeader({ user, onGo }: { user: User; onGo: (section: Set
         {accountStatus(user).map((item) => (
           <li key={item.key} className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-[var(--shadow-surface)] sm:grid sm:gap-0.5">
             <div className="min-w-0">
-              <span className="block text-[13px] font-semibold text-[var(--text-muted)]">{item.label}</span>
-              <strong className="flex items-center gap-2 text-[15px]">
+              <span className="block text-sm font-semibold text-[var(--text-muted)]">{item.label}</span>
+              <strong className="flex items-center gap-2 text-sm">
                 <span className={`h-2.5 w-2.5 rounded-full ${dotTone[item.tone]}`} aria-hidden="true" />
                 {item.value}
               </strong>

@@ -42,11 +42,11 @@ export default function RecurrencesHero({
             </div>
           )}
         </div>
-        <strong className="money break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+        <strong className="money break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
           {money(recurrences?.monthlyEquivalent ?? 0)}
           <span className="ml-2 text-base font-semibold tracking-normal text-[var(--text-muted)]">/ mês</span>
         </strong>
-        <p className="mt-2 max-w-[64ch] text-[15px] text-[var(--text-muted)]">
+        <p className="mt-2 max-w-[64ch] text-sm text-[var(--text-muted)]">
           <MoneyText>
             {`${recurrences ? `${money(recurrences.annualEquivalent)} por ano. ` : ''}${buildLede({ formal: data.formal, today, money })}`}
           </MoneyText>
@@ -69,7 +69,7 @@ export default function RecurrencesHero({
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
     <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="text-[13px] font-semibold text-[var(--text-muted)]">{label}</span>
+      <span className="text-sm font-semibold text-[var(--text-muted)]">{label}</span>
       <span className="money break-words text-xl font-semibold">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
     </div>

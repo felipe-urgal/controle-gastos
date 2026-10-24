@@ -24,6 +24,26 @@ describe("guardrails de design", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("usa a escala tipográfica do Tailwind (sem text-[Npx] ou text-[Nrem] soltos)", () => {
+    const offenders = sourceFiles(ROOT).flatMap((file) =>
+      (readFileSync(file, "utf8").match(/\btext-\[\d+(?:\.\d+)?(?:px|rem)\]/g) ?? []).map(
+        (match) => `${relative(process.cwd(), file)}: ${match}`,
+      ),
+    );
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("usa os raios do design system (rounded-[var(--radius-*)]), sem px soltos", () => {
+    const offenders = sourceFiles(ROOT).flatMap((file) =>
+      (readFileSync(file, "utf8").match(/\brounded-\[\d+px\]/g) ?? []).map(
+        (match) => `${relative(process.cwd(), file)}: ${match}`,
+      ),
+    );
+
+    expect(offenders).toEqual([]);
+  });
+
   it("usa só a escala de breakpoints padrão (+ um ponto compacto de 360px)", () => {
     const offenders = sourceFiles(ROOT).flatMap((file) => {
       const matches = readFileSync(file, "utf8").match(/\b(?:min|max)-\[\d+px\]:/g) ?? [];

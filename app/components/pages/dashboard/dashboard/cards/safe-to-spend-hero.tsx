@@ -116,7 +116,7 @@ export function SafeToSpendHero({
         <div className="mt-2 space-y-4">
           <div className="flex flex-wrap items-end gap-x-7 gap-y-3">
             <strong
-              className={`block money text-[2.25rem] font-semibold leading-none tracking-[-0.035em] tabular-nums sm:text-5xl ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}
+              className={`block money text-4xl font-semibold leading-none tracking-[-0.035em] tabular-nums sm:text-5xl ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}
             >
               <span className="money">{money(safeToSpend.safeToSpend)}</span>
             </strong>
@@ -155,7 +155,7 @@ export function SafeToSpendHero({
                     <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: row.color }} aria-hidden="true" />
                     {row.label}
                   </dt>
-                  <dd className="money text-[0.8125rem] font-medium tabular-nums text-[var(--foreground)]">{row.sign}{row.value}</dd>
+                  <dd className="money text-sm font-medium tabular-nums text-[var(--foreground)]">{row.sign}{row.value}</dd>
                 </div>
               ))}
             </dl>

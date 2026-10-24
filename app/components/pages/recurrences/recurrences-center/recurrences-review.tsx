@@ -62,7 +62,7 @@ export default function RecurrencesReview({
           </span>
           <span>
             <strong className="block text-sm">Nada para revisar</strong>
-            <span className="text-[13px] text-[var(--text-muted)]">Sem sugestões novas, preços alterados ou assinaturas paradas.</span>
+            <span className="text-sm text-[var(--text-muted)]">Sem sugestões novas, preços alterados ou assinaturas paradas.</span>
           </span>
         </div>
       ) : (
@@ -116,7 +116,7 @@ function RowShell({
         {children}
       </div>
       <div className="col-start-2 sm:col-start-3 sm:text-right">
-        <span className="money block text-[15px] font-semibold">{amount}</span>
+        <span className="money block text-sm font-semibold">{amount}</span>
         <span className="text-xs text-[var(--text-muted)]">{amountHint}</span>
       </div>
       <div className="col-start-2 flex flex-wrap gap-2 sm:col-span-2">{actions}</div>

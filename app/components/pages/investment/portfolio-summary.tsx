@@ -47,13 +47,13 @@ export function PortfolioSummary({
           <p id="portfolio-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">
             Valor da carteira em {summary.currency}
           </p>
-          <strong className="money mt-2 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+          <strong className="money mt-2 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
             {money(summary.marketValue)}
           </strong>
           {summary.pricedCount > 0 && (
             <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
               {summary.gainPercent !== null && (
-                <span className={`rounded-full px-2.5 py-0.5 text-[13px] font-bold ${up ? 'bg-[var(--surface-raised)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}>
+                <span className={`rounded-full px-2.5 py-0.5 text-sm font-bold ${up ? 'bg-[var(--surface-raised)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}>
                   {up ? '▲' : '▼'} {showValues ? percent(Math.abs(summary.gainPercent)) : '••••'}
                 </span>
               )}
@@ -80,7 +80,7 @@ export function PortfolioSummary({
       </div>
 
       {(summary.unpricedCount > 0 || summary.staleCount > 0) && (
-        <div className="grid gap-1 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-4 py-3 text-[13px] text-[var(--foreground)]">
+        <div className="grid gap-1 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-4 py-3 text-sm text-[var(--foreground)]">
           {summary.unpricedCount > 0 && (
             <p>
               {summary.unpricedCount} {summary.unpricedCount === 1 ? 'posição sem cotação não entra' : 'posições sem cotação não entram'} no valor de mercado nem no resultado. {summary.unpricedCount === 1 ? 'Ela aparece' : 'Elas aparecem'} a custo na lista.
@@ -96,7 +96,7 @@ export function PortfolioSummary({
 
       {summary.allocation.length > 0 && (
         <div className="grid gap-3">
-          <h2 className="text-[15px] font-bold">Como a carteira está dividida</h2>
+          <h2 className="text-sm font-bold">Como a carteira está dividida</h2>
           <div className="flex h-4 gap-0.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`Alocação por tipo: ${summary.allocation.map((slice) => `${typeLabel(slice.type)} ${percent(slice.share)}`).join(', ')}`}>
             {summary.allocation.map((slice) => (
               <span
@@ -114,7 +114,7 @@ export function PortfolioSummary({
                 onClick={() => setActiveType(activeType === slice.type ? null : slice.type)}
                 className="font-semibold"
               >
-                <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: typeColors[slice.type] }} aria-hidden="true" />
+                <span className="h-2.5 w-2.5 rounded-sm" style={{ background: typeColors[slice.type] }} aria-hidden="true" />
                 {typeLabel(slice.type)} · {percent(slice.share)}
               </Chip>
             ))}
@@ -138,7 +138,7 @@ export function PortfolioSummary({
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
     <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="text-[13px] font-semibold text-[var(--text-muted)]">{label}</span>
+      <span className="text-sm font-semibold text-[var(--text-muted)]">{label}</span>
       <span className="money break-words text-xl font-semibold">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
     </div>

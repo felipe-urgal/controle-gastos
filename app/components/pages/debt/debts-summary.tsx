@@ -35,7 +35,7 @@ export function DebtsSummaryPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p id="debts-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">Você deve em {summary.currency}</p>
-          <strong className="money mt-2 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+          <strong className="money mt-2 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
             {money(summary.owedCents)}
           </strong>
           <p className="mt-3 text-sm text-[var(--text-muted)]">
@@ -75,7 +75,7 @@ export function DebtsSummaryPanel({
 
       {summary.weights.length > 0 && (
         <div className="grid gap-3">
-          <h2 className="text-[15px] font-bold">Quanto cada dívida pesa</h2>
+          <h2 className="text-sm font-bold">Quanto cada dívida pesa</h2>
           {summary.weights.map(({ debt, share }) => (
             <div key={debt.id} className="grid gap-1">
               <div className="flex justify-between gap-3 text-sm">
@@ -96,7 +96,7 @@ export function DebtsSummaryPanel({
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
     <div className="grid min-w-0 gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3">
-      <span className="text-[13px] font-semibold text-[var(--text-muted)]">{label}</span>
+      <span className="text-sm font-semibold text-[var(--text-muted)]">{label}</span>
       <span className="money break-words text-lg font-semibold">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
     </div>

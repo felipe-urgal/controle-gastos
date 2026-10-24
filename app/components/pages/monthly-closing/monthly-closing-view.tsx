@@ -63,11 +63,11 @@ export default function MonthlyClosingView({
       <section aria-labelledby="closing-result-label" className="grid gap-6 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
         <div className="grid gap-1.5">
           <p id="closing-result-label" className="text-sm font-semibold text-[var(--text-muted)]">Resultado do mês</p>
-          <strong className={`money break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${summary.balance < 0 ? 'text-[var(--expense)]' : ''}`}>
+          <strong className={`money break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${summary.balance < 0 ? 'text-[var(--expense)]' : ''}`}>
             {summary.balance > 0 ? '+ ' : summary.balance < 0 ? '− ' : ''}
             {money(Math.abs(summary.balance))}
           </strong>
-          <p className="mt-2 max-w-[62ch] text-[15px] text-[var(--text-muted)]">
+          <p className="mt-2 max-w-[62ch] text-sm text-[var(--text-muted)]">
             <MoneyText>{summaryLede({ summary, comparison, previousMonth, money })}</MoneyText>
           </p>
         </div>
@@ -109,14 +109,14 @@ export default function MonthlyClosingView({
                   </span>
                   <span className="min-w-0">
                     <strong className="block text-sm">{item.title}</strong>
-                    <span className="block text-[13px] text-[var(--text-muted)]">
+                    <span className="block text-sm text-[var(--text-muted)]">
                       <MoneyText>{item.detail}</MoneyText>
                     </span>
                   </span>
                   {!item.ok && (
                     <Link
                       href={item.href}
-                      className="col-start-2 inline-flex min-h-11 items-center justify-center justify-self-start whitespace-nowrap rounded-[var(--radius-md)] border border-[var(--border-strong)] px-4 text-[13px] font-bold hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:col-start-3"
+                      className="col-start-2 inline-flex min-h-11 items-center justify-center justify-self-start whitespace-nowrap rounded-[var(--radius-md)] border border-[var(--border-strong)] px-4 text-sm font-bold hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:col-start-3"
                     >
                       {item.actionLabel}
                     </Link>
@@ -202,7 +202,7 @@ export default function MonthlyClosingView({
               </div>
               <div className="grid gap-3.5 px-4 pb-5 sm:px-5">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="money text-[22px] font-semibold">{money(planning.realized)}</span>
+                  <span className="money text-2xl font-semibold">{money(planning.realized)}</span>
                   <span className="text-sm text-[var(--text-muted)]">de <span className="money">{money(planning.budget)}</span></span>
                 </div>
                 <div className="h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${budget.percent}% do orçamento usado`}>
@@ -216,11 +216,11 @@ export default function MonthlyClosingView({
                   </MoneyText>
                 </p>
                 {planning.overBudgetCategories > 0 && (
-                  <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2.5 text-[13px] font-semibold text-[var(--warning)]">
+                  <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2.5 text-sm font-semibold text-[var(--warning)]">
                     {planning.overBudgetCategories === 1 ? '1 categoria passou do limite.' : `${planning.overBudgetCategories} categorias passaram do limite.`}
                   </p>
                 )}
-                <dl className="grid gap-2 text-[13px]">
+                <dl className="grid gap-2 text-sm">
                   <Row label={reviewable ? 'Despesa ainda pendente' : 'Comprometido'}>{money(planning.committed)}</Row>
                   <Row label={reviewable ? 'Receita ainda pendente' : 'Receita esperada'}>{money(planning.expectedIncome)}</Row>
                   {!reviewable && <Row label="Disponível">{money(planning.available)}</Row>}
@@ -238,13 +238,13 @@ export default function MonthlyClosingView({
               <div className="grid gap-3 px-4 pb-5 sm:px-5">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5">
                   <div>
-                    <p className="text-[13px] text-[var(--text-muted)]">Mês anterior</p>
-                    <p className="money break-words text-[17px] font-semibold">{money(netWorth.previous)}</p>
+                    <p className="text-sm text-[var(--text-muted)]">Mês anterior</p>
+                    <p className="money break-words text-lg font-semibold">{money(netWorth.previous)}</p>
                   </div>
                   <span className="text-[var(--text-muted)]" aria-hidden="true">→</span>
                   <div>
-                    <p className="text-[13px] text-[var(--text-muted)]">Fim do período</p>
-                    <p className="money break-words text-[17px] font-semibold">{money(netWorth.current)}</p>
+                    <p className="text-sm text-[var(--text-muted)]">Fim do período</p>
+                    <p className="money break-words text-lg font-semibold">{money(netWorth.current)}</p>
                   </div>
                 </div>
                 <p className={`money text-2xl font-bold ${netWorth.difference < 0 ? 'text-[var(--expense)]' : netWorth.difference > 0 ? 'text-[var(--income)]' : ''}`}>
@@ -267,7 +267,7 @@ export default function MonthlyClosingView({
           <span className="text-lg text-[var(--text-muted)] group-open:hidden" aria-hidden="true">+</span>
           <span className="hidden text-lg text-[var(--text-muted)] group-open:inline" aria-hidden="true">−</span>
         </summary>
-        <div className="grid max-w-[78ch] gap-2.5 px-4 pb-5 text-[13px] text-[var(--text-muted)] sm:px-5">
+        <div className="grid max-w-[78ch] gap-2.5 px-4 pb-5 text-sm text-[var(--text-muted)] sm:px-5">
           <p><strong className="text-[var(--foreground)]">Só o que foi concluído entra no resultado.</strong> Lançamentos pendentes ou cancelados ficam fora do saldo e aparecem em “Para fechar o mês”.</p>
           <p><strong className="text-[var(--foreground)]">Cartão de crédito conta na data da compra.</strong> O pagamento da fatura não é uma nova despesa, então o resultado não representa, por si só, a variação do seu caixa.</p>
           <p><strong className="text-[var(--foreground)]">Cada moeda é calculada separada.</strong> Valores em moedas diferentes nunca são somados.</p>
@@ -282,11 +282,11 @@ export default function MonthlyClosingView({
 function FlowItem({ label, dot, amount, delta }: { label: string; dot: string; amount: string; delta: { text: string; tone: ClosingTone } }) {
   return (
     <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="text-[13px] font-semibold text-[var(--text-muted)]">
+      <span className="text-sm font-semibold text-[var(--text-muted)]">
         <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: dot }} aria-hidden="true" />
         {label}
       </span>
-      <span className="money break-words text-[22px] font-semibold">{amount}</span>
+      <span className="money break-words text-2xl font-semibold">{amount}</span>
       <span className={`text-xs font-bold ${TONE_CLASS[delta.tone]}`}>{delta.text}</span>
     </div>
   );

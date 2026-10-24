@@ -47,8 +47,8 @@ export default function TransactionTemplateCard({
           {income ? <FaArrowDown /> : <FaArrowUp />}
         </span>
         <div className="min-w-0">
-          <h3 className="break-words text-[15px] font-bold">{item.name}</h3>
-          <p className="break-words text-[13px] text-[var(--text-muted)]">{item.description || 'Sem descrição fixa'}</p>
+          <h3 className="break-words text-sm font-bold">{item.name}</h3>
+          <p className="break-words text-sm text-[var(--text-muted)]">{item.description || 'Sem descrição fixa'}</p>
         </div>
         {amount === null ? (
           <span className="text-sm text-[var(--text-muted)]">valor ao usar</span>
