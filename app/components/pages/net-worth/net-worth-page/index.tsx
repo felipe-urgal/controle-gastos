@@ -8,7 +8,7 @@ import { FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { Button, Chip, ChipRow, Input, Select } from '@/app/components/ui';
+import { Button, Input, Select, CurrencySelect } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 
 import { exchangeRateService } from '@/app/services/exchange-rate-service';
@@ -431,22 +431,14 @@ export default function NetWorthPage() {
           </div>
         ) : (
           <>
-            <ChipRow label="Selecionar moeda do patrimônio" className="mt-5">
-              {currencies.map((currency) => {
-                const available = data.byCurrency.some((item) => item.currency === currency);
-                return (
-                  <Chip
-                    key={currency}
-                    disabled={!available}
-                    selected={selectedCurrency === currency}
-                    onClick={() => setSelectedCurrency(currency)}
-                    className="disabled:opacity-35"
-                  >
-                    {currency}
-                  </Chip>
-                );
-              })}
-            </ChipRow>
+            <div className="mt-5">
+              <CurrencySelect
+                ariaLabel="Moeda do patrimônio"
+                value={selectedCurrency}
+                options={currencies.filter((currency) => data.byCurrency.some((item) => item.currency === currency))}
+                onChange={setSelectedCurrency}
+              />
+            </div>
 
             <div className="mt-5 space-y-4">
               {selected && (

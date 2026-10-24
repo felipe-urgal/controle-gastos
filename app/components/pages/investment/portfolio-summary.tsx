@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { Chip, ChipRow, MoneyText } from '@/app/components/ui';
+import { Chip, ChipRow, CurrencySelect, MoneyText } from '@/app/components/ui';
 import { quoteDateLabel, typeLabel } from '@/app/components/pages/investment/investments-helpers';
 import type { CurrencyPortfolioSummary } from '@/app/components/pages/investment/investments-model';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -63,13 +63,12 @@ export function PortfolioSummary({
           )}
         </div>
         {currencies.length > 1 && (
-          <div className="flex gap-2" role="group" aria-label="Moeda da carteira">
-            {currencies.map((code) => (
-              <Chip key={code} selected={code === summary.currency} onClick={() => onCurrency(code)}>
-                {code}
-              </Chip>
-            ))}
-          </div>
+          <CurrencySelect
+            ariaLabel="Moeda da carteira"
+            value={summary.currency}
+            options={currencies}
+            onChange={onCurrency}
+          />
         )}
       </div>
 

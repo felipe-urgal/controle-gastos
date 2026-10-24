@@ -6,14 +6,13 @@ import { useEffect, useState } from 'react';
 
 import { PageError, PageLoading } from '@/app/components/feedback';
 import FinancialCommitmentsView from '@/app/components/pages/financial-commitments/financial-commitments-view';
-import { Chip } from '@/app/components/ui';
+import { Chip, CurrencySelect } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { financialCommitmentsService } from '@/app/services/financial-commitments-service';
 import type { FinancialCommitmentsData } from '@/app/types/financial-commitment';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 const HORIZONS = [7, 30, 60, 90] as const;
-const CURRENCIES: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
 
 export default function FinancialCommitmentsPage() {
   const { user } = useAuth();
@@ -69,20 +68,13 @@ export default function FinancialCommitmentsPage() {
                 </Chip>
               ))}
             </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Moeda">
-              {CURRENCIES.map((option) => (
-                <Chip
-                  key={option}
-                  selected={currency === option}
-                  onClick={() => {
-                    beginReload();
-                    setCurrency(option);
-                  }}
-                >
-                  {option}
-                </Chip>
-              ))}
-            </div>
+            <CurrencySelect
+              value={currency}
+              onChange={(option) => {
+                beginReload();
+                setCurrency(option);
+              }}
+            />
           </div>
   );
 
