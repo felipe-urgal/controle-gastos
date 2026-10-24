@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   useRef,
   type SetStateAction,
 } from "react";
@@ -99,7 +100,12 @@ export function useIndex<T>({
   const [totalPages, setTotalPages] = useState<number>();
   const [error, setError] = useState<string | null>(null);
 
-  const debouncedFilters = useDebounce(filters, debounceMs);
+  // Só o texto da busca espera o usuário parar de digitar; período, selects e chips filtram na hora.
+  const debouncedSearch = useDebounce(filters.search, debounceMs);
+  const debouncedFilters = useMemo(
+    () => (filters.search ? { ...filters, search: debouncedSearch } : filters),
+    [filters, debouncedSearch],
+  );
 
   const setFilters = useCallback(
     (next: SetStateAction<Record<string, any>>) => {
