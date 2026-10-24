@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { PageError } from '@/app/components/feedback';
@@ -15,7 +14,7 @@ import {
   periodValue,
   shiftPeriod,
 } from '@/app/components/pages/monthly-closing/monthly-closing-model';
-import { Chip, IconButton, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Chip, PeriodSwitcher, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { monthlyClosingService } from '@/app/services/monthly-closing-service';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
@@ -99,11 +98,12 @@ export default function MonthlyClosingPage() {
 
   const headerControls = (
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="inline-flex items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)]" role="group" aria-label="Período do fechamento">
-            <IconButton label="Mês anterior" icon={<FaChevronLeft />} onClick={() => goTo(-1)} />
-            <output className="min-w-[150px] text-center text-sm font-bold capitalize">{monthTitle(year, month)}</output>
-            <IconButton label="Próximo mês" icon={<FaChevronRight />} disabled={atCurrentMonth} onClick={() => goTo(1)} />
-          </div>
+          <PeriodSwitcher
+            label={monthTitle(year, month)}
+            onPrevious={() => goTo(-1)}
+            onNext={() => goTo(1)}
+            nextDisabled={atCurrentMonth}
+          />
           <div className="flex gap-2" role="group" aria-label="Moeda">
             {CURRENCIES.map((item) => (
               <Chip key={item} selected={item === currency} onClick={() => setCurrency(item)}>

@@ -5,9 +5,9 @@ import { ListPageHeader } from '@/app/components/base-pages';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaFileImport, FaFilter, FaWallet } from 'react-icons/fa';
+import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaFileImport, FaFilter, FaWallet } from 'react-icons/fa';
 
-import { IconButton, Select } from '@/app/components/ui';
+import { Button, CurrencySelect, PeriodSwitcher } from '@/app/components/ui';
 import { ProtectedRoute } from '@/app/components/layout';
 import type { FilterField } from '@/app/components/navigation/dynamic-filters';
 
@@ -283,12 +283,12 @@ export default function OrbitTransactions() {
 
   const summaryCurrencySelect =
     availableSummaries.length > 1 ? (
-      <Select
-        label="Resumo em"
+      <CurrencySelect
         ariaLabel="Moeda do resumo financeiro"
+        className="w-full sm:w-[145px]"
         value={currentSummary.currency}
-        onChange={(value) => setSummaryCurrency(value as SupportedCurrency)}
-        options={availableSummaries.map((item) => ({ value: item.currency, label: item.currency }))}
+        options={availableSummaries.map((item) => item.currency)}
+        onChange={setSummaryCurrency}
       />
     ) : null;
 
@@ -302,7 +302,7 @@ export default function OrbitTransactions() {
         </div>
       )}
       {!isTabletUp && summaryCurrencySelect && (
-        <div className="mb-4 ml-auto w-full sm:w-48">{summaryCurrencySelect}</div>
+        <div className="mb-4">{summaryCurrencySelect}</div>
       )}
       {!isTabletUp && (
       <div>
@@ -330,42 +330,28 @@ export default function OrbitTransactions() {
 
       {isTabletUp && (
       <div>
-              <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="inline-flex shrink-0 items-center gap-1.5">
-                  <IconButton
-                    label="Mês anterior"
-                    icon={<FaChevronLeft />}
-                    onClick={() => movePeriod(-1)}
-                    disabled={loading}
-                    className="border border-[var(--border)] bg-[var(--surface)]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setPeriodOpen(true)}
-                    aria-haspopup="dialog"
-                    aria-expanded={periodOpen}
-                    className="inline-flex min-h-11 sm:min-h-9 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
-                  >
-                    <FaCalendarAlt aria-hidden="true" /> {formatPeriod(month, year)}
-                  </button>
-                  <IconButton
-                    label="Próximo mês"
-                    icon={<FaChevronRight />}
-                    onClick={() => movePeriod(1)}
-                    disabled={loading}
-                    className="border border-[var(--border)] bg-[var(--surface)]"
-                  />
-                </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <PeriodSwitcher
+                  className="shrink-0"
+                  label={formatPeriod(month, year) ?? ''}
+                  onPrevious={() => movePeriod(-1)}
+                  onNext={() => movePeriod(1)}
+                  disabled={loading}
+                  onOpen={() => setPeriodOpen(true)}
+                  expanded={periodOpen}
+                />
         
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  icon={<FaFilter aria-hidden="true" />}
                   onClick={() => setFiltersOpen(true)}
                   aria-label={activeFiltersCount > 0 ? `Filtros, ${activeFiltersCount} ativos` : 'Filtros'}
-                  className="inline-flex min-h-11 sm:min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
                 >
-                  <FaFilter aria-hidden="true" /> Filtros
-                </button>
-                {summaryCurrencySelect && <div className="ml-auto w-44 shrink-0">{summaryCurrencySelect}</div>}
+                  Filtros
+                </Button>
+                {summaryCurrencySelect && <div className="ml-auto">{summaryCurrencySelect}</div>}
               </div>
 
         

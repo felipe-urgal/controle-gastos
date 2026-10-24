@@ -2,19 +2,16 @@
 
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
-import { FaChevronDown, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import { PageTitle } from '@/app/components/base-pages';
 import { ProtectedRoute } from '@/app/components/layout';
 
-import { Button, IconButton, ListboxSelect, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Button, CurrencySelect, PeriodSwitcher, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useDashboardHome } from '@/app/hooks/dashboard/use-dashboard-home';
 import { usePeriodicSummary } from '@/app/hooks/dashboard/use-periodic-summary';
-import { currencyOptions } from '@/app/lib/constants/account.constants';
 
 import type { DashboardHome } from '@/app/types/dashboard';
-import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 import { dashboardLogicalDateLabel, monthLabel, periodOffset, sectionState } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { AttentionCard } from '@/app/components/pages/dashboard/dashboard/cards/attention-card';
@@ -54,46 +51,14 @@ export default function OrbitDashboardV2() {
 
   const periodControls = (
     <div className="flex min-w-0 flex-1 items-center gap-2 lg:flex-none">
-      <div className="w-[116px] shrink-0 sm:w-[145px]">
-        <ListboxSelect
-          ariaLabel="Moeda"
-          value={currency}
-          options={currencyOptions.map((option) => ({ value: String(option.value), label: option.label }))}
-          onChange={(value) => setCurrency(value as SupportedCurrency)}
-          disabled={loading}
-          triggerClassName="flex min-h-11 w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
-          menuClassName="min-w-[9rem]"
-        >
-          <span className="truncate">{currencyOptions.find((option) => option.value === currency)?.label ?? currency}</span>
-          <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-        </ListboxSelect>
-      </div>
-      <IconButton
-        label="Mês anterior"
-        icon={<FaChevronLeft />}
-        onClick={() => setPeriodValue(periodOffset(periodValue, -1))}
+      <CurrencySelect value={currency} onChange={setCurrency} disabled={loading} />
+      <PeriodSwitcher
+        className="min-w-0 flex-1 lg:flex-none"
+        label={monthLabel(periodValue)}
+        onPrevious={() => setPeriodValue(periodOffset(periodValue, -1))}
+        onNext={() => setPeriodValue(periodOffset(periodValue, 1))}
         disabled={loading}
-        className="border border-[var(--border)] bg-[var(--surface)]"
-      />
-      <label className="relative flex min-h-11 min-w-0 flex-1 cursor-pointer items-center justify-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)] sm:min-w-[180px] sm:flex-none">
-        {monthLabel(periodValue)}
-        <span className="sr-only">Escolher mês do dashboard</span>
-        <input
-          type="month"
-          value={periodValue}
-          min="2000-01"
-          max="2100-12"
-          onChange={(event) => event.currentTarget.value && setPeriodValue(event.currentTarget.value)}
-          disabled={loading}
-          className="absolute -inset-px cursor-pointer opacity-0"
-        />
-      </label>
-      <IconButton
-        label="Próximo mês"
-        icon={<FaChevronRight />}
-        onClick={() => setPeriodValue(periodOffset(periodValue, 1))}
-        disabled={loading}
-        className="border border-[var(--border)] bg-[var(--surface)]"
+        monthInput={{ value: periodValue, onChange: setPeriodValue, min: '2000-01', max: '2100-12' }}
       />
     </div>
   );

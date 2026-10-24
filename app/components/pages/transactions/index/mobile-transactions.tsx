@@ -1,7 +1,7 @@
 'use client';
 
-import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronLeft, FaChevronRight, FaCreditCard, FaExchangeAlt, FaFilter } from 'react-icons/fa';
-import { Button, Chip, ChipRow, IconButton, IconRenderer } from '@/app/components/ui';
+import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaFilter } from 'react-icons/fa';
+import { Button, Chip, ChipRow, IconRenderer, PeriodSwitcher } from '@/app/components/ui';
 import { isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
@@ -54,31 +54,14 @@ export function MobileTransactionsPrototype2({
 
   return (
     <div className="space-y-4 pb-3">
-      <section className="grid grid-cols-[44px_minmax(0,1fr)_44px] gap-2">
-        <IconButton
-          label="Mês anterior"
-          icon={<FaChevronLeft />}
-          onClick={() => onMovePeriod(-1)}
-          disabled={loading}
-          className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]"
-        />
-        <button
-          type="button"
-          onClick={onOpenPeriod}
-          aria-haspopup="dialog"
-          className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-bold"
-        >
-          <span className="truncate">{monthTitle(month, year)}</span>
-          <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-        </button>
-        <IconButton
-          label="Próximo mês"
-          icon={<FaChevronRight />}
-          onClick={() => onMovePeriod(1)}
-          disabled={loading}
-          className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]"
-        />
-      </section>
+      <PeriodSwitcher
+        className="w-full"
+        label={monthTitle(month, year)}
+        onPrevious={() => onMovePeriod(-1)}
+        onNext={() => onMovePeriod(1)}
+        disabled={loading}
+        onOpen={onOpenPeriod}
+      />
 
       <section
         className="rounded-[var(--radius-lg)] border border-[var(--primary)]/35 bg-[var(--surface)] p-4"

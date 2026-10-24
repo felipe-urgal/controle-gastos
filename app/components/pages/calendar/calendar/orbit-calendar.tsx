@@ -17,7 +17,7 @@ import {
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { CalendarGrid } from '@/app/components/pages/calendar';
-import { Button, IconButton, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Button, IconButton, PeriodSwitcher, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useCalendar } from '@/app/hooks/calendar/use-calendar';
 import { useCalendarPersistence } from '@/app/hooks/calendar/use-calendar-persistence';
@@ -190,22 +190,12 @@ export default function OrbitCalendar() {
 
   const headerControls = (
         <div className="grid w-full grid-cols-[auto_1fr_auto] gap-2 sm:flex sm:w-auto sm:flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<FaChevronLeft />}
-            onClick={previousMonth}
-            aria-label="Mês anterior"
-          />
-          <Button variant="outline" size="sm" onClick={today}>
-            {monthLabel}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<FaChevronRight />}
-            onClick={nextMonth}
-            aria-label="Próximo mês"
+          <PeriodSwitcher
+            className="col-span-3 sm:col-span-1"
+            label={monthLabel}
+            onPrevious={previousMonth}
+            onNext={nextMonth}
+            onCenterClick={today}
           />
           <div className="col-span-3 w-full sm:col-span-1 sm:w-[190px]">
             <Select
