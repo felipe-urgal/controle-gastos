@@ -19,7 +19,6 @@ import { CalendarGrid } from '@/app/components/pages/calendar';
 import { Button, IconButton, PeriodSwitcher, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useCalendar } from '@/app/hooks/calendar/use-calendar';
-import { useCalendarPersistence } from '@/app/hooks/calendar/use-calendar-persistence';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { monthNames } from '@/app/lib/date/constants';
 import type {
@@ -115,7 +114,6 @@ export default function OrbitCalendar() {
   const showValues = user?.showValues !== false;
   const {
     currentDate,
-    periodReady,
     selectedAccount,
     accounts,
     calendarDays,
@@ -132,8 +130,6 @@ export default function OrbitCalendar() {
     handleAccountChange,
     retry,
   } = useCalendar();
-
-  useCalendarPersistence(currentDate, periodReady);
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
