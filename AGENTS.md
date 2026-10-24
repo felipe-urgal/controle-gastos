@@ -53,6 +53,7 @@ Gate principal:
 - docs/CODE_REVIEW.md
 - docs/AUTH.md
 - docs/OBSERVABILITY.md
+- docs/PAGE_PATTERN.md (padrão de telas; referência: Contas)
 
 Não crie documentação histórica por padrão. Git, issues e PRs já preservam histórico. Documente apenas contratos ou procedimentos que precisam permanecer verdadeiros.
 
