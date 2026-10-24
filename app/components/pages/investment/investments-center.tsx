@@ -9,7 +9,7 @@ import { InvestmentFiscalYearProvider } from '@/app/components/pages/investment/
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { Select, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { ActionsMenu, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import { useAuth } from '@/app/context';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
@@ -19,7 +19,6 @@ import type { InvestmentAsset, InvestmentFiscalEventType, InvestmentIncome, Inve
 import { AssetForm, FiscalCostForm, IncomeForm, OperationForm, emptyAsset, emptyFiscalCost, emptyIncome, emptyOperation, today } from '@/app/components/pages/investment/investments-helpers';
 import { AssetModal, DeleteConfirmModal, FiscalClassificationModal, FiscalCostModal, HistoryModal, IncomeModal, OperationModal } from '@/app/components/pages/investment/investment-modals';
 import { AssetsCard, FiscalCostCard, IncomesCard, OperationsCard } from '@/app/components/pages/investment/investment-cards';
-import { InvestmentActionsMenu } from '@/app/components/pages/investment/investment-actions-menu';
 import { PortfolioSummary } from '@/app/components/pages/investment/portfolio-summary';
 import { PositionsList } from '@/app/components/pages/investment/positions-list';
 import { portfolioCurrencies, summarizeCurrency } from '@/app/components/pages/investment/investments-model';
@@ -528,7 +527,7 @@ export default function InvestmentsCenter() {
           ]}
         />
       </div>
-      <InvestmentActionsMenu
+      <ActionsMenu
         items={[
           {
             label: refreshingQuotes ? 'Atualizando cotações...' : 'Atualizar cotações',

@@ -2,10 +2,9 @@
 
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useEffect, useMemo, useState } from 'react';
-import { FaFileImport } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { Button, Chip, ChipRow, Select } from '@/app/components/ui';
+import { ActionsMenu, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { usePayrollConfirmation } from '@/app/components/pages/payroll/use-payroll-confirmation';
 import { DocumentHistoryPanel } from '@/app/components/pages/payroll/payroll-monthly-panels';
 import { PayrollCompetencies, PayrollReviewQueue } from '@/app/components/pages/payroll/payroll-competencies';
@@ -317,41 +316,50 @@ export default function PayrollCenter() {
   }
 
   const headerControls = (
-          <div className="flex w-full flex-wrap items-end gap-3 sm:w-auto">
-            <div className="min-w-28">
-              <span className="ds-label mb-2 block">Ano exibido</span>
-              <Select
-                ariaLabel="Ano dos rendimentos mensais"
-                value={monthlyYear}
-                onChange={(value) => changeMonthlyYear(Number(value))}
-                options={years.map((year) => ({ value: year, label: String(year) }))}
-              />
-            </div>
-            <Button
-              icon={<FaFileImport aria-hidden="true" />}
-              onClick={() => {
-                setActiveTab('MONTHLY');
-                setShowImporter(true);
-              }}
-            >
-              Importar holerite
-            </Button>
-          </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-[12.5rem] shrink-0">
+        <Select
+          ariaLabel="Área de rendimentos do trabalho"
+          value={activeTab}
+          onChange={(value) => setActiveTab(value as 'MONTHLY' | 'BANK' | 'ANNUAL')}
+          options={[
+            { value: 'MONTHLY', label: 'Mensal' },
+            { value: 'BANK', label: 'Conciliação bancária' },
+            { value: 'ANNUAL', label: 'Anual / IR' },
+          ]}
+        />
+      </div>
+      <div className="w-[7rem] shrink-0">
+        <Select
+          ariaLabel="Ano dos rendimentos mensais"
+          value={monthlyYear}
+          onChange={(value) => changeMonthlyYear(Number(value))}
+          options={years.map((year) => ({ value: year, label: String(year) }))}
+        />
+      </div>
+      <ActionsMenu
+        items={[
+          {
+            label: 'Importar holerite',
+            onSelect: () => {
+              setActiveTab('MONTHLY');
+              setShowImporter(true);
+            },
+          },
+        ]}
+      />
+    </div>
   );
 
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <PageTitle title="Rendimentos do trabalho" sidebarAligned />
-        <div className="mt-4">{headerControls}</div>
+        <PageTitle title="Rendimentos do trabalho" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+        <ShowBelow breakpoint="lg">
+          <div className="mt-4">{headerControls}</div>
+        </ShowBelow>
 
         <div className="mt-5 space-y-5">
-          <ChipRow label="Áreas de rendimentos do trabalho">
-            <Chip selected={activeTab === 'MONTHLY'} onClick={() => setActiveTab('MONTHLY')}>Mensal</Chip>
-            <Chip selected={activeTab === 'BANK'} onClick={() => setActiveTab('BANK')}>Conciliação bancária</Chip>
-            <Chip selected={activeTab === 'ANNUAL'} onClick={() => setActiveTab('ANNUAL')}>Anual / IR</Chip>
-          </ChipRow>
-
           {activeTab === 'MONTHLY' && (
             <div className="space-y-5">
               {feedback && !showImporter && (

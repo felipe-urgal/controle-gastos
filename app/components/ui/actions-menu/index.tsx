@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { FaChevronDown } from 'react-icons/fa';
 
-import { Button } from '@/app/components/ui';
+import Button from '@/app/components/ui/button';
 
 export type ActionMenuItem = { label: string; onSelect: () => void; disabled?: boolean };
 
 /** Menu "Ações" da página; fecha ao escolher, ao clicar fora e com Esc. */
-export function InvestmentActionsMenu({ items }: { items: ActionMenuItem[] }) {
+export function ActionsMenu({ items }: { items: ActionMenuItem[] }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
