@@ -1,6 +1,6 @@
 import { FaSave, FaSpinner, FaTimes } from 'react-icons/fa';
 
-import { Button } from '@/app/components/ui';
+import { Button, ShowBelow, ShowFrom } from '@/app/components/ui';
 
 interface FormActionsProps {
   isEditing: boolean;
@@ -9,6 +9,8 @@ interface FormActionsProps {
   submitLabel?: string;
   createLabel?: string;
   disabled?: boolean;
+  /** No celular: só ícones na mesma linha, cancelar num canto e salvar no outro. A partir de `sm` não muda. */
+  iconsOnMobile?: boolean;
 }
 
 export default function FormActions({
@@ -18,8 +20,12 @@ export default function FormActions({
   submitLabel = 'Salvar alterações',
   createLabel = 'Criar',
   disabled = false,
+  iconsOnMobile = false,
 }: FormActionsProps) {
-  return (
+  const submitText = isEditing ? submitLabel : createLabel;
+  const submitIcon = loading ? <FaSpinner className="animate-spin" /> : <FaSave />;
+
+  const regular = (
     <div className="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:justify-end">
       <Button
         type="button"
@@ -35,16 +41,41 @@ export default function FormActions({
         type="submit"
         disabled={loading || disabled}
         isLoading={loading}
-        icon={loading ? <FaSpinner className="animate-spin" /> : <FaSave />}
+        icon={submitIcon}
       >
-        {loading
-          ? isEditing
-            ? 'Salvando...'
-            : 'Criando...'
-          : isEditing
-            ? submitLabel
-            : createLabel}
+        {loading ? (isEditing ? 'Salvando...' : 'Criando...') : submitText}
       </Button>
     </div>
+  );
+
+  if (!iconsOnMobile) return regular;
+
+  return (
+    <>
+      <ShowBelow breakpoint="sm">
+        <div className="flex items-center justify-between border-t border-[var(--border)] pt-5">
+          <Button
+            type="button"
+            onClick={onCancel}
+            variant="outline"
+            size="compact"
+            disabled={loading}
+            aria-label="Cancelar"
+            title="Cancelar"
+            icon={<FaTimes />}
+          />
+          <Button
+            type="submit"
+            size="compact"
+            disabled={loading || disabled}
+            isLoading={loading}
+            aria-label={submitText}
+            title={submitText}
+            icon={submitIcon}
+          />
+        </div>
+      </ShowBelow>
+      <ShowFrom breakpoint="sm">{regular}</ShowFrom>
+    </>
   );
 }

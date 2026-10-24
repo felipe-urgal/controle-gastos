@@ -147,6 +147,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           onCancel={handleRedirect}
           createLabel="Criar conta"
           submitLabel="Salvar alterações"
+          iconsOnMobile
         />
       </FormContainer>
     </div>
