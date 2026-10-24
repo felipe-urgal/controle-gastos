@@ -15,7 +15,7 @@ import "@/app/stylesheets/app-shell.css";
 import "@/app/stylesheets/orbit.css";
 
 // importing font
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 
 // Fonte dos valores monetários em destaque (ex.: "Disponível para gastar"): dígitos de largura fixa.
 const jetbrainsMono = JetBrains_Mono({
@@ -24,9 +24,11 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-numeric",
 });
 
-const inter = Inter({
+// Fonte do texto da interface.
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
+  variable: "--font-ui",
 });
 
 export const metadata: Metadata = {
@@ -90,7 +92,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" className={`${plusJakartaSans.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
         <meta name="format-detection" content="telephone=no" />
 
@@ -105,7 +107,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           `}
         </Script>
       </head>
-      <body className={`${inter.className} ${jetbrainsMono.variable} overscroll-none`}>
+      <body className="overscroll-none">
         <ServiceWorkerRegistration />
         <Providers>
           <ClientLayout>
