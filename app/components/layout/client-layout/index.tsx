@@ -11,6 +11,7 @@ import {
   MobileMoreMenu,
   MobileTopbar,
 } from '@/app/components/layout';
+import { useMobileBottomPin } from '@/app/components/layout/use-mobile-bottom-pin';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -31,6 +32,9 @@ export default function ClientLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  // O menu "Mais" continua montado durante a animação de fechar.
+  const [mobileMoreMounted, setMobileMoreMounted] = useState(false);
+  const { bottomKeys, pin: pinBottomItem } = useMobileBottomPin();
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const categoryComposeActive =
     pathname === '/categorias/nova' || pathname.startsWith('/categorias/alterar/');
@@ -83,6 +87,12 @@ export default function ClientLayout({
     setMobileMoreOpen(false);
   }
 
+  useEffect(() => {
+    if (mobileMoreOpen) return;
+    const timeout = window.setTimeout(() => setMobileMoreMounted(false), 220);
+    return () => window.clearTimeout(timeout);
+  }, [mobileMoreOpen]);
+
   function openGlobalSearch() {
     setMobileMoreOpen(false);
     setGlobalSearchOpen(true);
@@ -132,15 +142,23 @@ export default function ClientLayout({
 
       {!immersiveMobile && (
         <BottomNav
-          onOpenMore={() => setMobileMoreOpen((open) => !open)}
+          keys={bottomKeys}
+          onOpenMore={() => {
+            if (!mobileMoreOpen) setMobileMoreMounted(true);
+            setMobileMoreOpen((open) => !open);
+          }}
           moreOpen={mobileMoreOpen}
         />
       )}
 
-      {mobileMoreOpen && !immersiveMobile && (
+      {mobileMoreMounted && !immersiveMobile && (
         <MobileMoreMenu
+          closing={!mobileMoreOpen}
+          bottomKeys={bottomKeys}
+          onPick={pinBottomItem}
           onClose={() => setMobileMoreOpen(false)}
           onInstallApp={installPrompt ? installApp : undefined}
+          onOpenGlobalSearch={openGlobalSearch}
         />
       )}
 

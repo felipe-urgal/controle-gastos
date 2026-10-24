@@ -10,7 +10,8 @@ export default function Edit() {
   return (
     <EditPage
       title="Editar perfil"
-      description="Atualize seus dados pessoais, solicite a troca de e-mail ou altere sua senha. Mudanças sensíveis exigem a senha atual."
+      sidebarAligned
+      breadcrumb={[{ label: 'Configurações', href: handleBack }, { label: 'Editar perfil' }]}
       loading={loading}
       error={notFound ? 'O perfil solicitado não foi encontrado.' : error}
       errorTitle={notFound ? 'Perfil não encontrado' : undefined}

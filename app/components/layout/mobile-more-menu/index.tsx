@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
-import { FaDownload } from 'react-icons/fa';
+import { FaDownload, FaMoon, FaSearch, FaSignOutAlt, FaSun, FaUser } from 'react-icons/fa';
 
 import {
   getAppNavigation,
@@ -11,30 +11,48 @@ import {
   mobileMoreNavigationGroups,
   type AppNavigationItem,
 } from '@/app/components/layout/app-navigation';
+import { IconButton, IconLink } from '@/app/components/ui';
+import { useAuth, useTheme } from '@/app/context';
 
-/** Distância do painel até a borda de baixo: respiro da pílula (0,75rem) + a pílula (4rem) + um vão. */
-const PANEL_BOTTOM = 'calc(env(safe-area-inset-bottom) + 0.75rem + 4rem + 0.5rem)';
+/** Distância do painel até a borda de baixo: respiro da pílula (0,75rem) + a pílula (66px), sem vão: o painel é a barra crescendo. */
+const PANEL_BOTTOM = 'calc(env(safe-area-inset-bottom) + 0.75rem + 4.125rem)';
 
 /**
  * Menu "Mais" do mobile: um painel que sobe de cima da barra inferior flutuante, que continua
  * visível (o próprio "Mais" alterna). Fecha ao tocar fora, com Esc ou ao escolher um destino.
  */
 export default function MobileMoreMenu({
+  closing = false,
+  bottomKeys,
+  onPick,
   onClose,
   onInstallApp,
+  onOpenGlobalSearch,
 }: {
+  /** Em saída: toca a animação de fechar antes de o chamador desmontar o menu. */
+  closing?: boolean;
+  /** Itens que já estão na barra inferior (não aparecem aqui). */
+  bottomKeys: AppNavigationItem['key'][];
+  /** Chamado ao abrir um destino: ele passa a ocupar a barra inferior. */
+  onPick: (key: string) => void;
   onClose: () => void;
   onInstallApp?: () => Promise<void>;
+  onOpenGlobalSearch?: () => void;
 }) {
   const pathname = usePathname();
+  const { logout, user } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
+  const profileActive = pathname.startsWith('/usuario');
   const panelRef = useRef<HTMLDivElement>(null);
   const navigation = getAppNavigation();
 
   const groups = mobileMoreNavigationGroups
     .map((group, index) => ({
       ...group,
-      // O Calendário, fora da barra inferior, abre o primeiro grupo.
-      items: [...(index === 0 ? mobileMoreExtraKeys : []), ...group.keys]
+      // O Calendário e as Contas (quando saem da barra inferior) abrem o primeiro grupo.
+      items: [...(index === 0 ? [...mobileMoreExtraKeys, 'accounts' as const] : []), ...group.keys]
+        // O perfil fica na seção "Conta" abaixo, com tema, busca e sair.
+        .filter((key) => key !== 'profile' && !bottomKeys.includes(key))
         .map((key) => navigation.find((item) => item.key === key))
         .filter((item): item is AppNavigationItem => item !== undefined),
     }))
@@ -66,7 +84,8 @@ export default function MobileMoreMenu({
       <div
         aria-hidden="true"
         onClick={onClose}
-        className="fixed inset-0 z-[var(--z-popover)] bg-[color-mix(in_srgb,var(--background)_55%,transparent)] backdrop-blur-sm"
+        data-state={closing ? 'closed' : 'open'}
+        className="more-menu-backdrop fixed inset-0 z-[var(--z-popover)] bg-[color-mix(in_srgb,var(--background)_55%,transparent)] backdrop-blur-sm"
       />
 
       <div
@@ -82,7 +101,11 @@ export default function MobileMoreMenu({
           role="dialog"
           aria-label="Mais opções"
           tabIndex={-1}
-          className="pointer-events-auto mx-auto max-w-sm animate-sheet-rise overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[var(--shadow-elevated)] outline-none"
+          data-state={closing ? 'closed' : 'open'}
+          className={
+            'more-menu-panel mx-auto max-w-sm overflow-y-auto overscroll-contain rounded-t-[1.25rem] rounded-b-none border border-b-0 border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_-16px_40px_-12px_rgba(0,0,0,0.35)] outline-none ' +
+            (closing ? 'pointer-events-none' : 'pointer-events-auto')
+          }
           style={{
             maxHeight: `calc(100dvh - var(--app-mobile-topbar-height) - env(safe-area-inset-top) - ${PANEL_BOTTOM} - 0.75rem)`,
           }}
@@ -102,7 +125,10 @@ export default function MobileMoreMenu({
                       <Link
                         key={item.key}
                         href={item.href}
-                        onClick={onClose}
+                        onClick={() => {
+                          onPick(item.key);
+                          onClose();
+                        }}
                         aria-current={active ? 'page' : undefined}
                         className={
                           'flex min-h-11 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
@@ -123,6 +149,33 @@ export default function MobileMoreMenu({
               </section>
             ))}
           </nav>
+
+          <section className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-2" aria-label="Conta e preferências">
+            <IconLink
+              label={user?.name ? `Perfil de ${user.name}` : 'Perfil'}
+              title="Perfil"
+              href="/usuario"
+              icon={<FaUser />}
+              tone={profileActive ? 'primary' : 'neutral'}
+              onClick={onClose}
+            />
+            <IconButton
+              label="Abrir busca global"
+              title="Busca global"
+              icon={<FaSearch />}
+              onClick={() => {
+                onClose();
+                onOpenGlobalSearch?.();
+              }}
+            />
+            <IconButton
+              label={resolvedTheme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
+              title={resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+              icon={resolvedTheme === 'dark' ? <FaSun /> : <FaMoon />}
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            />
+            <IconButton label="Sair da conta" title="Sair" tone="danger" icon={<FaSignOutAlt />} onClick={() => void logout()} />
+          </section>
 
           {onInstallApp && (
             <button

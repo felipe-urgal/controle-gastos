@@ -20,6 +20,8 @@ export function MonthSummaryCard({
   detail,
   detailTone = 'neutral',
   detailDirection = 'flat',
+  status = 'ready',
+  detailLoading = false,
 }: {
   label: string;
   count?: number;
@@ -30,7 +32,13 @@ export function MonthSummaryCard({
   detail: string;
   detailTone?: 'positive' | 'negative' | 'neutral';
   detailDirection?: 'up' | 'down' | 'flat';
+  /** `loading`: primeira carga (esqueleto); `refreshing`: troca de período (valores antigos esmaecidos). */
+  status?: 'ready' | 'loading' | 'refreshing';
+  /** Só o comparativo com o mês anterior ainda está carregando. */
+  detailLoading?: boolean;
 }) {
+  const skeleton = 'block animate-pulse rounded-[var(--radius-sm)] bg-[var(--skeleton)]';
+  const loading = status === 'loading';
   const cardTone =
     tone === 'income'
       ? 'border-[var(--income)]/25 bg-[var(--primary-subtle)]/70'
@@ -61,15 +69,31 @@ export function MonthSummaryCard({
         : 'text-[var(--text-muted)]';
 
   return (
-    <article className={`min-h-[138px] rounded-[var(--radius-lg)] border p-4 ${cardTone}`}>
+    <article
+      className={`min-h-[138px] rounded-[var(--radius-lg)] border p-4 ${cardTone}`}
+      aria-busy={status !== 'ready'}
+    >
       <div className="flex items-start gap-3">
         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg ${iconTone}`}>{icon}</span>
-        <div className="min-w-0">
+        <div className={`min-w-0 flex-1 transition-opacity duration-150 ${status === 'refreshing' ? 'opacity-50' : ''}`}>
           <h2 className="text-sm font-bold text-[var(--foreground)]">{label}</h2>
           <p className="mt-0.5 min-h-4 text-xs text-[var(--text-muted)]">
-            {count !== undefined ? `${count} ${countLabel}` : '\u00A0'}
+            {loading ? (
+              count !== undefined ? <span className={`${skeleton} h-3 w-20`} /> : '\u00A0'
+            ) : count !== undefined ? (
+              `${count} ${countLabel}`
+            ) : (
+              '\u00A0'
+            )}
           </p>
-          <strong className={`money mt-2 block text-2xl font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
+          {loading ? (
+            <span className={`${skeleton} mt-2 h-8 w-36`} aria-hidden="true" />
+          ) : (
+            <strong className={`money mt-2 block text-2xl font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
+          )}
+          {loading || detailLoading ? (
+            <span className={`${skeleton} mt-2 h-3 w-32`} aria-hidden="true" />
+          ) : (
           <p className={`mt-1 flex items-center gap-1.5 text-xs ${detailClass}`}>
             {detailDirection === 'up' ? (
               <FaArrowUp aria-hidden="true" />
@@ -82,6 +106,7 @@ export function MonthSummaryCard({
             ) : null}
             {detail}
           </p>
+          )}
         </div>
       </div>
     </article>

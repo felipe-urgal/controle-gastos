@@ -17,7 +17,7 @@ import {
   type ComparisonFilters,
   type ComparisonPreset,
 } from '@/app/components/pages/financial-comparison/financial-comparison-model';
-import { Button, Chip, IconButton, Input } from '@/app/components/ui';
+import { Button, Chip, IconButton, Input, ShowBelow, ShowFrom, CurrencySelect } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import {
@@ -37,8 +37,7 @@ type SearchParamsLike = {
   get(name: string): string | null;
 };
 
-const CURRENCIES: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
-const SUPPORTED_CURRENCIES = new Set<SupportedCurrency>(CURRENCIES);
+const SUPPORTED_CURRENCIES = new Set<SupportedCurrency>(['BRL', 'USD', 'EUR']);
 
 const PRESETS: Array<{ key: ComparisonPreset; label: string }> = [
   { key: 'previous', label: 'Mês anterior × atual' },
@@ -216,22 +215,17 @@ export default function FinancialComparisonPage() {
   const rangeA = rangeFromValues(filters.aFrom, filters.aTo);
   const rangeB = rangeFromValues(filters.bFrom, filters.bTo);
 
+  const headerControls = (
+          <CurrencySelect value={filters.currency} onChange={(item) => updateFilter('currency', item)} />
+  );
+
   return (
     <ProtectedRoute>
       <PageContainer>
-        <PageTitle
-          title="Comparar períodos"
-          description="Compare o realizado entre dois intervalos de até 24 meses, na mesma moeda."
-          actions={
-            <div className="flex gap-2" role="group" aria-label="Moeda">
-              {CURRENCIES.map((item) => (
-                <Chip key={item} selected={item === filters.currency} onClick={() => updateFilter('currency', item)}>
-                  {item}
-                </Chip>
-              ))}
-            </div>
-          }
-        />
+        <PageTitle title="Comparar períodos" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+        <ShowBelow breakpoint="lg">
+          <div className="mt-4">{headerControls}</div>
+        </ShowBelow>
 
         <nav aria-label="Atalhos de comparação" className="mt-5 flex flex-wrap gap-2">
           {PRESETS.map((item) => (

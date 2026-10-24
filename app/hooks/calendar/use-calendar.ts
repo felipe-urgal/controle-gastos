@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { readPersistedCalendarMonth } from "@/app/hooks/calendar/use-calendar-persistence";
 import { accountService } from "@/app/services/account-service";
 import { calendarService } from "@/app/services/calendar-service";
 import type { AccountModel } from "@/app/types/account";
@@ -31,17 +30,23 @@ function isAbortError(error: unknown) {
   return error instanceof Error && error.name === "AbortError";
 }
 
+/** Ao chegar num mês, seleciona o dia 1; no mês atual, seleciona hoje. */
+function landingDate(year: number, monthIndex: number) {
+  const today = new Date();
+  const first = new Date(year, monthIndex, 1);
+  return first.getFullYear() === today.getFullYear() && first.getMonth() === today.getMonth() ? today : first;
+}
+
 function previousMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() - 1, 1);
+  return landingDate(date.getFullYear(), date.getMonth() - 1);
 }
 
 function nextMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  return landingDate(date.getFullYear(), date.getMonth() + 1);
 }
 
 export const useCalendar = () => {
   const [currentDate, setCurrentDate] = useState(() => new Date());
-  const [periodReady, setPeriodReady] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<string | "all">("all");
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
@@ -55,18 +60,6 @@ export const useCalendar = () => {
   const [accountsError, setAccountsError] = useState("");
   const [retryVersion, setRetryVersion] = useState(0);
   const requestSequence = useRef(0);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const persisted = readPersistedCalendarMonth();
-      if (persisted) {
-        setCurrentDate(persisted);
-      }
-      setPeriodReady(true);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -95,7 +88,6 @@ export const useCalendar = () => {
   }, [retryVersion]);
 
   useEffect(() => {
-    if (!periodReady) return;
 
     const sequence = ++requestSequence.current;
     const controller = new AbortController();
@@ -146,7 +138,7 @@ export const useCalendar = () => {
     return () => {
       controller.abort();
     };
-  }, [currentDate, periodReady, retryVersion, selectedAccount]);
+  }, [currentDate, retryVersion, selectedAccount]);
 
   const goToPreviousMonth = useCallback(() => {
     setCurrentDate((value) => previousMonth(value));
@@ -176,7 +168,6 @@ export const useCalendar = () => {
 
   return {
     currentDate,
-    periodReady,
     selectedAccount,
     accounts,
     calendarDays,

@@ -356,6 +356,7 @@ export default function UserForm({ user }: UserFormProps) {
         loading={isSubmitting}
         onCancel={() => router.back()}
         submitLabel={isResend ? 'Reenviar confirmação' : 'Salvar alterações'}
+        iconsOnMobile
       />
     </FormContainer>
   );

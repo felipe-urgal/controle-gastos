@@ -6,14 +6,13 @@ import { useEffect, useState } from 'react';
 
 import { PageError, PageLoading } from '@/app/components/feedback';
 import FinancialCommitmentsView from '@/app/components/pages/financial-commitments/financial-commitments-view';
-import { Chip } from '@/app/components/ui';
+import { Chip, CurrencySelect } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { financialCommitmentsService } from '@/app/services/financial-commitments-service';
 import type { FinancialCommitmentsData } from '@/app/types/financial-commitment';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 const HORIZONS = [7, 30, 60, 90] as const;
-const CURRENCIES: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
 
 export default function FinancialCommitmentsPage() {
   const { user } = useAuth();
@@ -53,14 +52,8 @@ export default function FinancialCommitmentsPage() {
     setData(null);
   }
 
-  return (
-    <ProtectedRoute>
-    <PageContainer as="section">
-      <PageTitle
-        title="Compromissos financeiros"
-        description="Acompanhe separadamente valores a pagar, a receber, vencidos e marcos de planejamento."
-        actions={
-          <div className="grid gap-2 sm:justify-items-end">
+  const headerControls = (
+        <div className="flex flex-wrap items-center gap-2">
             <div className="flex flex-wrap gap-2" role="group" aria-label="Horizonte">
               {HORIZONS.map((option) => (
                 <Chip
@@ -75,23 +68,21 @@ export default function FinancialCommitmentsPage() {
                 </Chip>
               ))}
             </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Moeda">
-              {CURRENCIES.map((option) => (
-                <Chip
-                  key={option}
-                  selected={currency === option}
-                  onClick={() => {
-                    beginReload();
-                    setCurrency(option);
-                  }}
-                >
-                  {option}
-                </Chip>
-              ))}
-            </div>
+            <CurrencySelect
+              value={currency}
+              onChange={(option) => {
+                beginReload();
+                setCurrency(option);
+              }}
+            />
           </div>
-        }
-      />
+  );
+
+  return (
+    <ProtectedRoute>
+    <PageContainer as="section">
+      <PageTitle title="Compromissos financeiros" sidebarAligned />
+      <div className="mt-4">{headerControls}</div>
 
       {error && (
         <PageError

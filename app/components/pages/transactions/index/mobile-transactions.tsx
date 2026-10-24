@@ -1,11 +1,11 @@
 'use client';
 
-import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronLeft, FaChevronRight, FaCreditCard, FaExchangeAlt, FaFilter } from 'react-icons/fa';
-import { Button, Chip, ChipRow, IconButton, IconRenderer } from '@/app/components/ui';
+import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaFilter } from 'react-icons/fa';
+import { Button, Chip, ChipRow, IconRenderer, PeriodSwitcher } from '@/app/components/ui';
 import { isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
-import { MobileQuickFilter, TimelineGroup, displayMoney, formatTransactionAmount, formatTransactionTime, monthTitle, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
+import { MobileQuickFilter, TimelineGroup, displayMoney, formatTransactionAmount, formatTransactionTime, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
 import { TransactionTags } from '@/app/components/pages/transactions/index/desktop-transactions';
 
 export function MobileTransactionsPrototype2({
@@ -18,8 +18,8 @@ export function MobileTransactionsPrototype2({
   activeFiltersCount,
   showValues,
   loading,
+  summaryStatus,
   onMovePeriod,
-  onOpenPeriod,
   onOpenFilters,
   onQuickFilterChange,
   onOpenTransaction,
@@ -36,8 +36,9 @@ export function MobileTransactionsPrototype2({
   activeFiltersCount: number;
   showValues: boolean;
   loading: boolean;
+  /** `loading`: primeira carga (esqueleto); `refreshing`: troca de período (valores esmaecidos). */
+  summaryStatus: 'ready' | 'loading' | 'refreshing';
   onMovePeriod: (offset: number) => void;
-  onOpenPeriod: () => void;
   onOpenFilters: () => void;
   onQuickFilterChange: (filter: MobileQuickFilter) => void;
   onOpenTransaction: (transaction: TransactionDTO) => void;
@@ -45,6 +46,9 @@ export function MobileTransactionsPrototype2({
   hasMore: boolean;
   onLoadMore: () => void;
 }) {
+  const skeleton = 'block animate-pulse rounded-[var(--radius-sm)] bg-[var(--skeleton)]';
+  const summaryLoading = summaryStatus === 'loading';
+  const dim = summaryStatus === 'refreshing' ? 'opacity-50' : '';
   const balanceMessage =
     summary.balance < 0
       ? 'Você gastou mais que recebeu.'
@@ -54,31 +58,14 @@ export function MobileTransactionsPrototype2({
 
   return (
     <div className="space-y-4 pb-3">
-      <section className="grid grid-cols-[44px_minmax(0,1fr)_44px] gap-2">
-        <IconButton
-          label="Mês anterior"
-          icon={<FaChevronLeft />}
-          onClick={() => onMovePeriod(-1)}
-          disabled={loading}
-          className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]"
-        />
-        <button
-          type="button"
-          onClick={onOpenPeriod}
-          aria-haspopup="dialog"
-          className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-bold"
-        >
-          <span className="truncate">{monthTitle(month, year)}</span>
-          <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-        </button>
-        <IconButton
-          label="Próximo mês"
-          icon={<FaChevronRight />}
-          onClick={() => onMovePeriod(1)}
-          disabled={loading}
-          className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]"
-        />
-      </section>
+      <PeriodSwitcher
+        className="w-full"
+        month={month}
+        year={year}
+        onPrevious={() => onMovePeriod(-1)}
+        onNext={() => onMovePeriod(1)}
+        disabled={loading}
+      />
 
       <section
         className="rounded-[var(--radius-lg)] border border-[var(--primary)]/35 bg-[var(--surface)] p-4"
@@ -87,6 +74,7 @@ export function MobileTransactionsPrototype2({
             'linear-gradient(135deg, color-mix(in srgb, var(--primary) 13%, var(--surface)) 0%, var(--surface) 62%)',
         }}
         aria-label="Resumo do mês"
+        aria-busy={summaryStatus !== 'ready'}
       >
         <div className="flex items-start gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--danger-subtle)] text-lg text-[var(--expense)]">
@@ -94,12 +82,21 @@ export function MobileTransactionsPrototype2({
           </span>
           <div className="min-w-0">
             <p className="text-sm text-[var(--text-muted)]">Saldo do mês</p>
-            <strong className={`mt-1 block text-3xl font-black tracking-tight ${
-              summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
-            }`}>
-              <span className="money">{displayMoney(summary.balance, showValues, summary.currency)}</span>
-            </strong>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">{balanceMessage}</p>
+            {summaryLoading ? (
+              <>
+                <span className={`${skeleton} mt-2 h-8 w-40`} aria-hidden="true" />
+                <span className={`${skeleton} mt-2 h-3 w-44`} aria-hidden="true" />
+              </>
+            ) : (
+              <div className={`transition-opacity duration-150 ${dim}`}>
+                <strong className={`mt-1 block text-3xl font-black tracking-tight ${
+                  summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
+                }`}>
+                  <span className="money">{displayMoney(summary.balance, showValues, summary.currency)}</span>
+                </strong>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{balanceMessage}</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -110,9 +107,13 @@ export function MobileTransactionsPrototype2({
             </span>
             <div className="min-w-0">
               <p className="text-xs text-[var(--text-muted)]">Entradas</p>
-              <strong className="mt-0.5 block tabular-nums text-sm text-[var(--income)]">
-                <span className="money">{displayMoney(summary.income, showValues, summary.currency)}</span>
-              </strong>
+              {summaryLoading ? (
+                <span className={`${skeleton} mt-1 h-4 w-20`} aria-hidden="true" />
+              ) : (
+                <strong className={`mt-0.5 block tabular-nums text-sm text-[var(--income)] transition-opacity duration-150 ${dim}`}>
+                  <span className="money">{displayMoney(summary.income, showValues, summary.currency)}</span>
+                </strong>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2.5 pl-3">
@@ -121,9 +122,13 @@ export function MobileTransactionsPrototype2({
             </span>
             <div className="min-w-0">
               <p className="text-xs text-[var(--text-muted)]">Saídas</p>
-              <strong className="mt-0.5 block tabular-nums text-sm text-[var(--expense)]">
-                <span className="money">{displayMoney(summary.expense, showValues, summary.currency)}</span>
-              </strong>
+              {summaryLoading ? (
+                <span className={`${skeleton} mt-1 h-4 w-20`} aria-hidden="true" />
+              ) : (
+                <strong className={`mt-0.5 block tabular-nums text-sm text-[var(--expense)] transition-opacity duration-150 ${dim}`}>
+                  <span className="money">{displayMoney(summary.expense, showValues, summary.currency)}</span>
+                </strong>
+              )}
             </div>
           </div>
         </div>

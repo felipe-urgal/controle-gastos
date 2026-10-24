@@ -5,9 +5,9 @@ import { ListPageHeader } from '@/app/components/base-pages';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaFileImport, FaFilter, FaWallet } from 'react-icons/fa';
+import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaFileImport, FaFilter, FaWallet } from 'react-icons/fa';
 
-import { IconButton, Select } from '@/app/components/ui';
+import { Button, CurrencySelect, PeriodSwitcher } from '@/app/components/ui';
 import { ProtectedRoute } from '@/app/components/layout';
 import type { FilterField } from '@/app/components/navigation/dynamic-filters';
 
@@ -23,8 +23,8 @@ import type { CurrencyFinancialSummary, SupportedCurrency } from '@/app/types/fi
 import type { MerchantDTO } from '@/app/types/merchant';
 import type { TransactionDTO } from '@/app/types/transaction';
 
-import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilter, REFINEMENT_FILTER_KEYS, TIMELINE_INCREMENT, TimelineOrder, buildMonthBars, buildTimelineGroups, displayMoney, formatPeriod, formatTrend, percentageChange, selectSummary, shiftPeriod, todayDateKey, transactionDateKey, usePreviousSummary } from '@/app/components/pages/transactions/index/transactions-view-helpers';
-import { FilterDialog, PeriodDialog, TagFilterField, TransactionDetailLayer } from '@/app/components/pages/transactions/index/transaction-dialogs';
+import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilter, REFINEMENT_FILTER_KEYS, TIMELINE_INCREMENT, TimelineOrder, buildMonthBars, buildTimelineGroups, displayMoney, formatTrend, percentageChange, selectSummary, shiftPeriod, todayDateKey, transactionDateKey, usePreviousSummary } from '@/app/components/pages/transactions/index/transactions-view-helpers';
+import { FilterDialog, TagFilterField, TransactionDetailLayer } from '@/app/components/pages/transactions/index/transaction-dialogs';
 import { MobileTransactionsPrototype2 } from '@/app/components/pages/transactions/index/mobile-transactions';
 import { MonthOverview, MonthSummaryCard, MovementTimeline, UpcomingTransactions } from '@/app/components/pages/transactions/index/desktop-transactions';
 
@@ -52,7 +52,6 @@ export default function OrbitTransactions() {
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
   const isTabletUp = useMediaQuery('(min-width: 640px)');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDTO | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<TimelineOrder>('newest');
   const [mobileQuickFilter, setMobileQuickFilter] = useState<MobileQuickFilter>('all');
@@ -62,6 +61,8 @@ export default function OrbitTransactions() {
     count: INITIAL_TIMELINE_ITEMS,
   });
 
+  // Primeira carga: esqueleto; troca de mês/filtro: valores anteriores esmaecidos até chegarem os novos.
+  const summaryStatus = loading ? (summary ? 'refreshing' : 'loading') : 'ready';
   const month = Number(filters.month) || new Date().getMonth() + 1;
   const year = Number(filters.year) || new Date().getFullYear();
   const previousPeriod = shiftPeriod(month, year, -1);
@@ -283,12 +284,12 @@ export default function OrbitTransactions() {
 
   const summaryCurrencySelect =
     availableSummaries.length > 1 ? (
-      <Select
-        label="Resumo em"
+      <CurrencySelect
         ariaLabel="Moeda do resumo financeiro"
+        className="w-full sm:w-[145px]"
         value={currentSummary.currency}
-        onChange={(value) => setSummaryCurrency(value as SupportedCurrency)}
-        options={availableSummaries.map((item) => ({ value: item.currency, label: item.currency }))}
+        options={availableSummaries.map((item) => item.currency)}
+        onChange={setSummaryCurrency}
       />
     ) : null;
 
@@ -302,7 +303,7 @@ export default function OrbitTransactions() {
         </div>
       )}
       {!isTabletUp && summaryCurrencySelect && (
-        <div className="mb-4 ml-auto w-full sm:w-48">{summaryCurrencySelect}</div>
+        <div className="mb-4">{summaryCurrencySelect}</div>
       )}
       {!isTabletUp && (
       <div>
@@ -316,8 +317,8 @@ export default function OrbitTransactions() {
           activeFiltersCount={activeFiltersCount}
           showValues={showValues}
           loading={loading}
+          summaryStatus={summaryStatus}
           onMovePeriod={movePeriod}
-          onOpenPeriod={() => setPeriodOpen(true)}
           onOpenFilters={() => setFiltersOpen(true)}
           onQuickFilterChange={setMobileQuickFilter}
           onOpenTransaction={setSelectedTransaction}
@@ -330,47 +331,33 @@ export default function OrbitTransactions() {
 
       {isTabletUp && (
       <div>
-              <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="inline-flex shrink-0 items-center gap-1.5">
-                  <IconButton
-                    label="Mês anterior"
-                    icon={<FaChevronLeft />}
-                    onClick={() => movePeriod(-1)}
-                    disabled={loading}
-                    className="border border-[var(--border)] bg-[var(--surface)]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setPeriodOpen(true)}
-                    aria-haspopup="dialog"
-                    aria-expanded={periodOpen}
-                    className="inline-flex min-h-11 sm:min-h-9 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
-                  >
-                    <FaCalendarAlt aria-hidden="true" /> {formatPeriod(month, year)}
-                  </button>
-                  <IconButton
-                    label="Próximo mês"
-                    icon={<FaChevronRight />}
-                    onClick={() => movePeriod(1)}
-                    disabled={loading}
-                    className="border border-[var(--border)] bg-[var(--surface)]"
-                  />
-                </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <PeriodSwitcher
+                  className="shrink-0"
+                  month={month}
+                  year={year}
+                  onPrevious={() => movePeriod(-1)}
+                  onNext={() => movePeriod(1)}
+                  disabled={loading}
+                />
         
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  icon={<FaFilter aria-hidden="true" />}
                   onClick={() => setFiltersOpen(true)}
                   aria-label={activeFiltersCount > 0 ? `Filtros, ${activeFiltersCount} ativos` : 'Filtros'}
-                  className="inline-flex min-h-11 sm:min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
                 >
-                  <FaFilter aria-hidden="true" /> Filtros
-                </button>
-                {summaryCurrencySelect && <div className="ml-auto w-44 shrink-0">{summaryCurrencySelect}</div>}
+                  Filtros
+                </Button>
+                {summaryCurrencySelect && <div className="ml-auto">{summaryCurrencySelect}</div>}
               </div>
 
         
               <section className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Resumo financeiro do período">
                 <MonthSummaryCard
+                  status={summaryStatus}
                   label="Entradas"
                   count={incomeCount}
                   countLabel={incomeCount === 1 ? 'transação' : 'transações'}
@@ -378,10 +365,12 @@ export default function OrbitTransactions() {
                   tone="income"
                   icon={<FaArrowUp aria-hidden="true" />}
                   detail={incomeTrend.text}
-                  detailTone={previousSummaryState.loading ? 'neutral' : incomeTrend.tone}
+                  detailLoading={previousSummaryState.loading}
+                  detailTone={incomeTrend.tone}
                   detailDirection={incomeTrend.direction}
                 />
                 <MonthSummaryCard
+                  status={summaryStatus}
                   label="Saídas"
                   count={expenseCount}
                   countLabel={expenseCount === 1 ? 'transação' : 'transações'}
@@ -389,10 +378,12 @@ export default function OrbitTransactions() {
                   tone="expense"
                   icon={<FaArrowDown aria-hidden="true" />}
                   detail={expenseTrend.text}
-                  detailTone={previousSummaryState.loading ? 'neutral' : expenseTrend.tone}
+                  detailLoading={previousSummaryState.loading}
+                  detailTone={expenseTrend.tone}
                   detailDirection={expenseTrend.direction}
                 />
                 <MonthSummaryCard
+                  status={summaryStatus}
                   label="Saldo do mês"
                   amount={displayMoney(currentSummary.balance, showValues, currentSummary.currency)}
                   tone="primary"
@@ -400,6 +391,7 @@ export default function OrbitTransactions() {
                   detail={currentSummary.balance >= 0 ? 'Positivo neste mês' : 'Negativo neste mês'}
                 />
                 <MonthSummaryCard
+                  status={summaryStatus}
                   label="Agendadas"
                   count={scheduled.length}
                   countLabel={scheduled.length === 1 ? 'lançamento' : 'lançamentos'}
@@ -457,16 +449,6 @@ export default function OrbitTransactions() {
         
         
       </div>
-      )}
-
-      {periodOpen && (
-        <PeriodDialog
-          month={month}
-          year={year}
-          loading={loading}
-          onApply={applyPeriod}
-          onClose={() => setPeriodOpen(false)}
-        />
       )}
 
       {filtersOpen && (

@@ -10,17 +10,15 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaExchangeAlt,
-  FaPlus,
   FaRedo,
   FaWallet,
 } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { CalendarGrid } from '@/app/components/pages/calendar';
-import { Button, IconButton, Select } from '@/app/components/ui';
+import { Button, IconButton, PeriodSwitcher, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useCalendar } from '@/app/hooks/calendar/use-calendar';
-import { useCalendarPersistence } from '@/app/hooks/calendar/use-calendar-persistence';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { monthNames } from '@/app/lib/date/constants';
 import type {
@@ -116,7 +114,6 @@ export default function OrbitCalendar() {
   const showValues = user?.showValues !== false;
   const {
     currentDate,
-    periodReady,
     selectedAccount,
     accounts,
     calendarDays,
@@ -128,13 +125,10 @@ export default function OrbitCalendar() {
     error,
     goToPreviousMonth,
     goToNextMonth,
-    goToToday,
     goToDate,
     handleAccountChange,
     retry,
   } = useCalendar();
-
-  useCalendarPersistence(currentDate, periodReady);
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -168,12 +162,6 @@ export default function OrbitCalendar() {
     goToNextMonth();
   };
 
-  const today = () => {
-    setSelectedDate(null);
-    setShowAllCommitments(false);
-    goToToday();
-  };
-
   const changeAccount = (value: string | number) => {
     setShowAllCommitments(false);
     handleAccountChange(value);
@@ -188,29 +176,14 @@ export default function OrbitCalendar() {
     })),
   ];
 
-  return (
-    <ProtectedRoute>
-      <PageTitle
-        title="Calendário"
-        description="Movimentos, vencimentos e marcos financeiros em uma única visão temporal."
-        actions={
+  const headerControls = (
         <div className="grid w-full grid-cols-[auto_1fr_auto] gap-2 sm:flex sm:w-auto sm:flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<FaChevronLeft />}
-            onClick={previousMonth}
-            aria-label="Mês anterior"
-          />
-          <Button variant="outline" size="sm" onClick={today}>
-            {monthLabel}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<FaChevronRight />}
-            onClick={nextMonth}
-            aria-label="Próximo mês"
+          <PeriodSwitcher
+            className="col-span-3 sm:col-span-1"
+            month={currentDate.getMonth() + 1}
+            year={currentDate.getFullYear()}
+            onPrevious={previousMonth}
+            onNext={nextMonth}
           />
           <div className="col-span-3 w-full sm:col-span-1 sm:w-[190px]">
             <Select
@@ -220,19 +193,15 @@ export default function OrbitCalendar() {
               onChange={changeAccount}
             />
           </div>
-          <Button
-            as="a"
-            href="/transacoes/nova"
-            variant="outline"
-            size="sm"
-            icon={<FaPlus aria-hidden="true" />}
-            className="col-span-3 sm:col-span-1"
-          >
-            Nova transação
-          </Button>
         </div>
-        }
-      />
+  );
+
+  return (
+    <ProtectedRoute>
+      <PageTitle title="Calendário" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+      <ShowBelow breakpoint="lg">
+        <div className="mt-4">{headerControls}</div>
+      </ShowBelow>
 
       {error && (
         <div

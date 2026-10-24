@@ -8,41 +8,11 @@ import { FilterField } from '@/app/components/navigation/dynamic-filters';
 import { Button, Input, Select } from '@/app/components/ui';
 import { statusConfig } from '@/app/lib/constants/transaction.constants';
 import { normalizeTagDisplayName } from '@/app/lib/tags/tag-name';
-import { monthOptions, yearOptions } from '@/app/lib/date/constants';
 import { getTransferDirectionLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { tagService } from '@/app/services/tag-service';
 import { TransactionDTO } from '@/app/types/transaction';
 import { TagDTO } from '@/app/types/tag';
 import { formatTransactionAmount } from '@/app/components/pages/transactions/index/transactions-view-helpers';
-
-export function PeriodDialog({ month, year, loading, onApply, onClose }: { month: number; year: number; loading: boolean; onApply: (month: number, year: number) => void; onClose: () => void }) {
-  const now = new Date();
-  const [draftMonth, setDraftMonth] = useState(Number.isInteger(month) && month >= 1 && month <= 12 ? month : now.getMonth() + 1);
-  const [draftYear, setDraftYear] = useState(Number.isInteger(year) && year > 0 ? year : now.getFullYear());
-
-  return (
-    <ModalShell
-      variant="fullscreen-sheet"
-      eyebrow="Período"
-      title="Selecionar mês"
-      description="Escolha o período usado na listagem de transações."
-      closeLabel="Fechar seleção de período"
-      maxWidthClass="sm:max-w-[430px]"
-      onClose={onClose}
-      footer={
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" className="bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]" onClick={() => { onApply(draftMonth, draftYear); onClose(); }}>Aplicar período</Button>
-        </div>
-      }
-    >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Select label="Mês" value={draftMonth} onChange={(value) => setDraftMonth(Number(value))} options={monthOptions} disabled={loading} />
-        <Select label="Ano" value={draftYear} onChange={(value) => setDraftYear(Number(value))} options={yearOptions} disabled={loading} />
-      </div>
-    </ModalShell>
-  );
-}
 
 export function FilterDialog({ fields, values, loading, total, onApply, onClose }: { fields: FilterField[]; values: Record<string, any>; loading: boolean; total?: number; onApply: (values: Record<string, any>) => void; onClose: () => void }) {
   const [draftValues, setDraftValues] = useState<Record<string, any>>(() => ({ ...values }));
@@ -51,7 +21,6 @@ export function FilterDialog({ fields, values, loading, total, onApply, onClose 
   return (
     <ModalShell
       variant="fullscreen-sheet"
-      eyebrow="Refinar transações"
       title="Filtros"
       description={`${activeCount} filtro${activeCount === 1 ? '' : 's'} selecionado${activeCount === 1 ? '' : 's'}${total !== undefined ? ` · ${total} resultado${total === 1 ? '' : 's'}` : ''}`}
       closeLabel="Fechar filtros"
@@ -62,7 +31,7 @@ export function FilterDialog({ fields, values, loading, total, onApply, onClose 
           <Button size="sm" variant="ghost" onClick={() => setDraftValues({})} disabled={activeCount === 0}>Limpar filtros</Button>
           <div className="grid grid-cols-2 gap-2 sm:flex">
             <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button variant="primary" className="bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]" onClick={() => { onApply(draftValues); onClose(); }}>Aplicar filtros</Button>
+            <Button variant="primary" onClick={() => { onApply(draftValues); onClose(); }}>Aplicar filtros</Button>
           </div>
         </div>
       }

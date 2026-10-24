@@ -10,7 +10,7 @@ import { InvestmentFiscalYearProvider } from '@/app/components/pages/investment/
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { Button, Chip, ChipRow } from '@/app/components/ui';
+import { Button, Chip, ChipRow, ShowBelow, ShowFrom } from '@/app/components/ui';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import { useAuth } from '@/app/context';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
@@ -515,11 +515,7 @@ export default function InvestmentsCenter() {
     setOperationModal(true);
   }
 
-  return (
-    <ProtectedRoute>
-      <InvestmentFiscalYearProvider>
-      <PageContainer as="section">
-        <PageTitle title="Investimentos" description="Posições derivadas das operações, com cotação B3 sob demanda via brapi." actions={
+  const headerControls = (
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
@@ -555,7 +551,16 @@ export default function InvestmentsCenter() {
               ]}
             />
           </div>
-        } />
+  );
+
+  return (
+    <ProtectedRoute>
+      <InvestmentFiscalYearProvider>
+      <PageContainer as="section">
+        <PageTitle title="Investimentos" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+        <ShowBelow breakpoint="lg">
+          <div className="mt-4">{headerControls}</div>
+        </ShowBelow>
 
         {error && (
           <p
