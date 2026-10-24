@@ -92,7 +92,7 @@ function MovementRow({ transaction, account, showValues }: { transaction: Accoun
         aria-label={`Abrir transação ${transaction.description || 'sem descrição'}`}
         className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5"
       >
-        <span className={`grid h-9 w-9 place-items-center rounded-[10px] text-sm ${tone}`} aria-hidden="true">
+        <span className={`grid h-9 w-9 place-items-center rounded-[var(--radius-md)] text-sm ${tone}`} aria-hidden="true">
           {isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
         </span>
         <span className="min-w-0">
@@ -127,7 +127,7 @@ function Movements({ account, showValues }: { account: AccountModel; showValues:
   ];
 
   return (
-    <section className="overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="account-movements-heading">
+    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="account-movements-heading">
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
         <h2 id="account-movements-heading" className="text-base font-bold">Movimentações</h2>
         <Link
@@ -223,11 +223,11 @@ export default function AccountShowView({
 
       <section
         aria-label="Resumo da conta"
-        className="grid gap-5 rounded-[20px] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+        className="grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
         style={{ ['--account-color' as string]: account.color || 'var(--orbit-primary)' }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[14px] text-white" style={{ backgroundColor: account.color || 'var(--text-muted)' }} aria-hidden="true">
+          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white" style={{ backgroundColor: account.color || 'var(--text-muted)' }} aria-hidden="true">
             <IconRenderer iconName={account.icon || 'wallet'} size={22} />
           </span>
           <div className="min-w-0">
@@ -265,7 +265,7 @@ export default function AccountShowView({
 
         <dl className="grid grid-cols-3 gap-2">
           {stats.map((stat) => (
-            <div key={stat.label} className="min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 sm:px-3">
+            <div key={stat.label} className="min-w-0 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 sm:px-3">
               <dt className="text-xs text-[var(--text-muted)] sm:text-sm">{stat.label}</dt>
               <dd className={`money break-words text-xs font-semibold sm:text-base ${stat.tone}`}>{stat.value}</dd>
             </div>
@@ -296,7 +296,7 @@ export default function AccountShowView({
             <ReconciliationPanel account={account} onChanged={onReconciliationChange} />
           </div>
 
-          <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="account-about-heading">
+          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="account-about-heading">
             <h2 id="account-about-heading" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Sobre a conta</h2>
             <dl className="grid gap-2 px-4 pb-4 text-sm sm:px-5">
               <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Criada em</dt><dd>{format(new Date(account.createdAt), 'dd/MM/yyyy')}</dd></div>

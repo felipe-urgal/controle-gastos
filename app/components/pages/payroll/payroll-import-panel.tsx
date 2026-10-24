@@ -51,7 +51,7 @@ export function PayrollImportPanel({
   onClose: () => void;
 }) {
   return (
-    <section aria-labelledby="payroll-import-title" className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <section aria-labelledby="payroll-import-title" className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 id="payroll-import-title" className="text-lg font-bold text-[var(--foreground)]">
@@ -71,7 +71,7 @@ export function PayrollImportPanel({
     {feedback && (
       <div
         role="status"
-        className="mt-4 rounded-[14px] bg-[var(--success-subtle)] p-3 text-sm font-semibold text-[var(--success)]"
+        className="mt-4 rounded-[var(--radius-lg)] bg-[var(--success-subtle)] p-3 text-sm font-semibold text-[var(--success)]"
       >
         {feedback}
       </div>
@@ -80,7 +80,7 @@ export function PayrollImportPanel({
     {actionError && (
       <div
         role="alert"
-        className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+        className="mt-4 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
       >
         {actionError}
       </div>
@@ -108,7 +108,7 @@ export function PayrollImportPanel({
       </div>
     ) : preview.requiresOcr ? (
       <div className="mt-5 space-y-4">
-        <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 text-sm text-[var(--foreground)]">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 text-sm text-[var(--foreground)]">
           <strong>OCR/revisão necessária</strong>
           <p className="mt-1 text-[var(--text-muted)]">
             {preview.warnings[0]}
@@ -129,7 +129,7 @@ export function PayrollImportPanel({
       </div>
     ) : preview.document ? (
       <div className="mt-5 space-y-4">
-        <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
           <span className="text-xs font-semibold uppercase tracking-wide text-[var(--orbit-primary)]">
             Documento detectado
           </span>
@@ -144,7 +144,7 @@ export function PayrollImportPanel({
           </span>
         </div>
 
-        <div className="rounded-[14px] border border-[var(--border)] p-4">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4">
           <Select
             id="payroll-payment-type"
             label="Classificação do pagamento"
@@ -215,7 +215,7 @@ export function PayrollImportPanel({
         </div>
 
         {preview.document.errors.length > 0 && (
-          <div className="rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
             {preview.document.errors.map((item) => (
               <p key={item}>{item}</p>
             ))}
@@ -224,7 +224,7 @@ export function PayrollImportPanel({
 
         {(preview.warnings.length > 0 ||
           preview.document.warnings.length > 0) && (
-          <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-xs text-[var(--text-muted)]">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-xs text-[var(--text-muted)]">
             {[
               ...new Set([
                 ...preview.warnings,
@@ -241,7 +241,7 @@ export function PayrollImportPanel({
             preview.document.duplicate &&
             paymentType === preview.document.paymentType
           ) && (
-            <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
               <strong>Retificação / substituição</strong>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
                 Escolha explicitamente a versão ativa substituída. A
@@ -273,14 +273,14 @@ export function PayrollImportPanel({
 
         {preview.document.duplicate &&
           paymentType === preview.document.paymentType && (
-            <div className="rounded-[14px] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
+            <div className="rounded-[var(--radius-lg)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
               Este documento com esta classificação já foi importado.
             </div>
           )}
 
         {rubrics.length > 0 && (
-          <details className="group rounded-[14px] border border-[var(--border)]">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[14px] px-4 text-sm font-bold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+          <details className="group rounded-[var(--radius-lg)] border border-[var(--border)]">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[var(--radius-lg)] px-4 text-sm font-bold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
               <span>Rubricas ({rubrics.length})</span>
               <FaChevronRight
                 className="shrink-0 text-xs text-[var(--text-muted)] transition-transform group-open:rotate-90"
@@ -292,7 +292,7 @@ export function PayrollImportPanel({
               {rubrics.map((rubric, index) => (
                 <article
                   key={(rubric.code ?? 'rubric') + '-' + index}
-                  className="min-w-0 rounded-[12px] border border-[var(--border)] p-3 text-xs"
+                  className="min-w-0 rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-xs"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <strong className="break-words text-[var(--foreground)]">

@@ -507,7 +507,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
         {heroCurrency || summaryLoaded ? (
           <section
             aria-label="Gasto do mês em estabelecimentos"
-            className="mt-4 grid gap-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+            className="mt-4 grid gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
           >
             {heroCurrency ? (
               <>

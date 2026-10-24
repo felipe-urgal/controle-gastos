@@ -14,11 +14,11 @@ export function PayrollReviewQueue({ items }: { items: PayrollSummary[] }) {
   if (queue.length === 0) return null;
 
   return (
-    <section aria-labelledby="payroll-review-title" className="grid gap-2.5 rounded-[16px] border border-[var(--warning)]/45 bg-[var(--warning-subtle)] p-4">
+    <section aria-labelledby="payroll-review-title" className="grid gap-2.5 rounded-[var(--radius-lg)] border border-[var(--warning)]/45 bg-[var(--warning-subtle)] p-4">
       <h2 id="payroll-review-title" className="text-[15px] font-bold">Para revisar</h2>
       <ul className="grid gap-2">
         {queue.map((summary) => (
-          <li key={`${summary.employerCnpj}-${summary.year}-${summary.month}`} className="rounded-[12px] bg-[var(--surface)] px-3.5 py-2.5">
+          <li key={`${summary.employerCnpj}-${summary.year}-${summary.month}`} className="rounded-[var(--radius-md)] bg-[var(--surface)] px-3.5 py-2.5">
             <strong className="block break-words text-sm">{competence(summary)} · {summary.employerName}</strong>
             <span className="block text-xs leading-relaxed text-[var(--text-muted)]">{summary.reviewReason ?? 'Competência precisa de revisão.'}</span>
           </li>
@@ -54,7 +54,7 @@ export function PayrollCompetencies({
   const sorted = recentFirst(items);
 
   return (
-    <section className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold">Competências</h2>
@@ -66,7 +66,7 @@ export function PayrollCompetencies({
       </div>
 
       {error && (
-        <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]">
+        <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]">
           <span>{error}</span>
           <Button variant="outline" size="sm" pill onClick={onRetry}>Tentar novamente</Button>
         </div>
@@ -104,7 +104,7 @@ export function PayrollCompetencies({
                   <Detail label="IRRF retido" value={payrollSummaryMoney(summary.irrfCents, summary.irrfComplete, showValues)} />
                   <p className="text-xs text-[var(--text-muted)] sm:col-span-3">CNPJ {summary.employerCnpj} · {summary.documentCount} {summary.documentCount === 1 ? 'documento' : 'documentos'}</p>
                   {summary.reviewReason && (
-                    <p className="rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--warning)] sm:col-span-3">{summary.reviewReason}</p>
+                    <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--warning)] sm:col-span-3">{summary.reviewReason}</p>
                   )}
                 </div>
               </details>
@@ -118,7 +118,7 @@ export function PayrollCompetencies({
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-[12px] bg-[var(--surface-raised)] px-3 py-2.5">
+    <div className="min-w-0 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2.5">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="money mt-0.5 block break-words text-sm">{value}</strong>
     </div>

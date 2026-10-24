@@ -66,7 +66,7 @@ export function MobileTransactionsPrototype2({
           type="button"
           onClick={onOpenPeriod}
           aria-haspopup="dialog"
-          className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-bold"
+          className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-bold"
         >
           <span className="truncate">{monthTitle(month, year)}</span>
           <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
@@ -81,7 +81,7 @@ export function MobileTransactionsPrototype2({
       </section>
 
       <section
-        className="rounded-[16px] border border-[var(--orbit-primary)]/35 bg-[var(--surface)] p-4"
+        className="rounded-[var(--radius-lg)] border border-[var(--orbit-primary)]/35 bg-[var(--surface)] p-4"
         style={{
           background:
             'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 13%, var(--surface)) 0%, var(--surface) 62%)',
@@ -203,7 +203,7 @@ export function MobileUpcomingPreview({
       </div>
 
       {!first ? (
-        <div className="mt-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-xs text-[var(--text-muted)]">
+        <div className="mt-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-xs text-[var(--text-muted)]">
           Nenhum lançamento agendado para este período.
         </div>
       ) : (
@@ -211,9 +211,9 @@ export function MobileUpcomingPreview({
           type="button"
           onClick={() => onOpen(first)}
           aria-label={`Abrir detalhe contextual da transação ${first.description || 'Sem descrição'}`}
-          className="mt-2 grid min-h-[58px] w-full grid-cols-[38px_minmax(0,1fr)_auto_12px] items-center gap-2.5 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 text-left"
+          className="mt-2 grid min-h-[58px] w-full grid-cols-[38px_minmax(0,1fr)_auto_12px] items-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 text-left"
         >
-          <span className="grid h-9 w-9 place-items-center rounded-[9px] bg-[var(--surface-raised)] text-[var(--text-muted)]">
+          <span className="grid h-9 w-9 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]">
             <FaCalendarAlt aria-hidden="true" />
           </span>
           <span className="min-w-0">
@@ -253,7 +253,7 @@ export function MobileActivityFeed({
     return (
       <section className="space-y-2" role="status" aria-label="Carregando movimentações">
         {[1, 2, 3, 4, 5].map((item) => (
-          <div key={item} className="h-[56px] animate-pulse rounded-[10px] bg-[var(--skeleton)]" />
+          <div key={item} className="h-[56px] animate-pulse rounded-[var(--radius-md)] bg-[var(--skeleton)]" />
         ))}
       </section>
     );
@@ -261,7 +261,7 @@ export function MobileActivityFeed({
 
   if (groups.length === 0) {
     return (
-      <section className="rounded-[12px] border border-dashed border-[var(--border)] px-4 py-8 text-center">
+      <section className="rounded-[var(--radius-md)] border border-dashed border-[var(--border)] px-4 py-8 text-center">
         <p className="text-sm font-bold">Nenhuma movimentação nesta visão</p>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
           {quickFilter === 'pending' ? 'Nenhuma transação pendente neste período.' : 'Tente outro filtro ou período.'}

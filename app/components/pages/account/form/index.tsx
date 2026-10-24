@@ -78,7 +78,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         </p>
 
         {lock.typeAndCurrency && (
-          <div role="note" className="flex items-start gap-2.5 rounded-[12px] bg-[var(--warning-subtle)] px-3.5 py-3 text-sm leading-relaxed text-[var(--warning)]">
+          <div role="note" className="flex items-start gap-2.5 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3.5 py-3 text-sm leading-relaxed text-[var(--warning)]">
             <span aria-hidden="true">🔒</span>
             <span>
               <strong className="text-[var(--foreground)]">Tipo, moeda{formData.type === 'CREDIT_CARD' ? ' e ciclo da fatura' : ''} estão travados</strong>{' '}
@@ -108,8 +108,8 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           </div>
         )}
 
-        <details className="group rounded-[14px] border border-[var(--border)] bg-[var(--surface)]">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-[14px] px-4 text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+        <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-[var(--radius-lg)] px-4 text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
             <span>Mais opções</span>
             <span className="text-sm font-normal text-[var(--text-muted)]">
               descrição{isEditing ? ' e status' : ''}

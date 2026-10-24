@@ -29,7 +29,7 @@ export function DebtsDues({
     .sort((left, right) => left.days - right.days);
 
   return (
-    <section aria-labelledby="debts-dues-title" className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <section aria-labelledby="debts-dues-title" className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <h2 id="debts-dues-title" className="text-lg font-bold">Próximos vencimentos</h2>
       <p className="mt-1 text-xs text-[var(--text-muted)]">Dívidas ativas com data de vencimento, da mais próxima para a mais distante.</p>
       {dues.length === 0 ? (

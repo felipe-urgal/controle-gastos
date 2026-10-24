@@ -24,7 +24,7 @@ export function CollapsibleCard({ header, children }: { header: ReactNode; child
     <details
       open={open}
       onToggle={(event) => setOverride(event.currentTarget.open)}
-      className="group rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]"
+      className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]"
     >
       <summary className="flex min-h-11 cursor-pointer list-none items-start justify-between gap-3 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:p-5 [&::-webkit-details-marker]:hidden">
         <div className="min-w-0 flex-1">{header}</div>
@@ -48,7 +48,7 @@ export function FiscalCostCard({
   onAdjust: (assetId: string) => void;
 }) {
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -70,7 +70,7 @@ export function FiscalCostCard({
           {portfolio.fiscalPositions.map((item) => (
             <div
               key={item.assetId}
-              className="rounded-[14px] border border-[var(--border)] p-4"
+              className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <span>
@@ -236,7 +236,7 @@ export function IncomesCard({
                 key={item.assetId}
                 type="button"
                 onClick={() => onHistory(item.assetId)}
-                className="rounded-[14px] border border-[var(--border)] p-4 text-left hover:border-[var(--orbit-primary)]/40"
+                className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4 text-left hover:border-[var(--orbit-primary)]/40"
               >
                 <strong className="block text-sm text-[var(--foreground)]">
                   {item.symbol}

@@ -431,7 +431,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
               <GoalSkeleton />
             </div>
           ) : goals.length === 0 ? (
-            <section className="grid justify-items-center gap-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center">
+            <section className="grid justify-items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center">
               <h2 className="text-lg font-bold">Nenhuma meta ainda</h2>
               <p className="max-w-[52ch] text-sm text-[var(--text-muted)]">
                 Metas guardam um objetivo e o progresso até ele, sem mexer no saldo das suas contas. Comece por uma destas ou crie a sua.
@@ -448,7 +448,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
               </Button>
             </section>
           ) : filteredGoals.length === 0 ? (
-            <p className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]">
+            <p className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]">
               Nenhuma meta nesta visão. Altere o filtro para acompanhar outros objetivos.
             </p>
           ) : (

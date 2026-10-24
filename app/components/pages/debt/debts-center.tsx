@@ -698,7 +698,7 @@ function DebtCard({
   return (
     <article
       id={`debt-${debt.id}`}
-      className="scroll-mt-24 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-surface)]"
+      className="scroll-mt-24 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-surface)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

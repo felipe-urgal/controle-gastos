@@ -285,7 +285,7 @@ export default function OrbitTransactions() {
   return (
     <ProtectedRoute>
       {error && (
-        <div role="alert" className="mb-4 rounded-[12px] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm font-semibold text-[var(--expense)]">
+        <div role="alert" className="mb-4 rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm font-semibold text-[var(--expense)]">
           {error}. Tente novamente ou altere o período/filtros.
         </div>
       )}
@@ -328,13 +328,12 @@ export default function OrbitTransactions() {
       <div>
               <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0">
-                  <p className="hidden text-sm font-semibold uppercase tracking-[0.12em] text-[var(--orbit-primary)] sm:block">ORBIT / CENTRO OPERACIONAL</p>
                   <div className="flex items-center justify-between gap-3">
-                    <h1 className={`sm:mt-1 ${pageTitleClassName}`}>Transações</h1>
+                    <h1 className={pageTitleClassName}>Transações</h1>
                     <Link
                       href="/transacoes/importar"
                       aria-label="Importar transações"
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] sm:hidden"
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] sm:hidden"
                     >
                       <FaFileImport aria-hidden="true" />
                     </Link>
@@ -344,10 +343,10 @@ export default function OrbitTransactions() {
         
                 <div className="flex flex-col items-stretch gap-3 sm:items-end">
                   <div className="hidden flex-wrap justify-end gap-2 sm:flex">
-                    <Link href="/transacoes/importar" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+                    <Link href="/transacoes/importar" className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
                       <FaFileImport aria-hidden="true" /> Importar CSV/OFX/QFX/QIF/XLSX
                     </Link>
-                    <Link href="/transacoes/nova" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[var(--orbit-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+                    <Link href="/transacoes/nova" className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[var(--orbit-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
                       <FaPlus aria-hidden="true" /> Nova transação
                     </Link>
                   </div>
@@ -366,7 +365,7 @@ export default function OrbitTransactions() {
                         onClick={() => setPeriodOpen(true)}
                         aria-haspopup="dialog"
                         aria-expanded={periodOpen}
-                        className="inline-flex min-h-11 sm:min-h-9 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
+                        className="inline-flex min-h-11 sm:min-h-9 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
                       >
                         <FaCalendarAlt aria-hidden="true" /> {formatPeriod(month, year)}
                       </button>

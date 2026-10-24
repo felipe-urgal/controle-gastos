@@ -70,7 +70,7 @@ export function FilterDialog({ fields, values, loading, total, onApply, onClose 
       <TransactionFilterFields fields={fields} values={draftValues} loading={loading} onChange={(key, value) => setDraftValues((previous) => ({ ...previous, [key]: value }))} />
       <Link
         href="/transacoes/importar"
-        className="mt-5 flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] sm:hidden"
+        className="mt-5 flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] sm:hidden"
       >
         <FaFileImport aria-hidden="true" /> Importar CSV/OFX/QFX/QIF/XLSX
       </Link>
@@ -143,7 +143,7 @@ export function TagFilterField({
       />
 
       {selectedTag ? (
-        <div className="mt-2 flex min-h-11 items-center justify-between gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3">
+        <div className="mt-2 flex min-h-11 items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3">
           <span className="min-w-0 truncate text-sm font-semibold">
             #{selectedTag.name}{!selectedTag.isActive ? ' · arquivada' : ''}
           </span>
@@ -153,7 +153,7 @@ export function TagFilterField({
         </div>
       ) : null}
 
-      <div className="mt-2 max-h-40 overflow-y-auto rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+      <div className="mt-2 max-h-40 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)]">
         {searching ? (
           <p className="p-3 text-xs text-[var(--text-muted)]">Buscando tags…</p>
         ) : options.length === 0 ? (
@@ -241,7 +241,7 @@ export function OrbitTransactionDetail({ transaction, showValues, compact = fals
   return (
     <div className={compact ? 'p-4' : 'p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]'}>
       <div className="flex items-start gap-3">
-        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[13px] ${iconTone}`} aria-hidden="true">{isTransfer ? <FaExchangeAlt /> : isCardPayment ? <FaCreditCard /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
+        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-md)] ${iconTone}`} aria-hidden="true">{isTransfer ? <FaExchangeAlt /> : isCardPayment ? <FaCreditCard /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</p>
           <p className="mt-0.5 text-sm text-[var(--text-muted)]">{isTransfer ? getTransferDirectionLabel(transaction) : isCardPayment ? 'Pagamento de fatura' : isIncome ? 'Receita' : 'Despesa'}</p>
@@ -251,7 +251,7 @@ export function OrbitTransactionDetail({ transaction, showValues, compact = fals
       <p className={`money mt-5 break-words text-3xl font-bold tracking-tight ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</p>
       <div className="mt-2"><StatusPill status={transaction.status} /></div>
 
-      <dl className="mt-5 overflow-hidden rounded-[13px] border border-[var(--border)]">
+      <dl className="mt-5 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)]">
         <DetailRow label="Data">{new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(date)}</DetailRow>
         <DetailRow label="Conta">{transaction.account?.name ?? '—'}{transaction.account?.currency ? ` · ${transaction.account.currency}` : ''}</DetailRow>
         {isTransfer ? (
@@ -266,16 +266,16 @@ export function OrbitTransactionDetail({ transaction, showValues, compact = fals
 
       <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1">
         {isTransfer && transaction.transferId && (
-          <Link href={`/transacoes/alterar/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar transferência</Link>
+          <Link href={`/transacoes/alterar/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar transferência</Link>
         )}
         {!isTransfer && !isCardPayment && (
           <>
-            <Link href={`/transacoes/alterar/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar</Link>
-            <Link href={`/transacoes/nova?duplicate=${encodeURIComponent(transaction.id)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaCopy aria-hidden="true" /> Duplicar</Link>
-            <Link href={`/modelos?source=${encodeURIComponent(transaction.id)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Salvar modelo</Link>
+            <Link href={`/transacoes/alterar/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar</Link>
+            <Link href={`/transacoes/nova?duplicate=${encodeURIComponent(transaction.id)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaCopy aria-hidden="true" /> Duplicar</Link>
+            <Link href={`/modelos?source=${encodeURIComponent(transaction.id)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Salvar modelo</Link>
           </>
         )}
-        <Link href={`/transacoes/show/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaExternalLinkAlt aria-hidden="true" /> Detalhes</Link>
+        <Link href={`/transacoes/show/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaExternalLinkAlt aria-hidden="true" /> Detalhes</Link>
       </div>
     </div>
   );

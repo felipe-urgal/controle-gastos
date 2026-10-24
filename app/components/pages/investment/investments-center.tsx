@@ -29,7 +29,7 @@ import { portfolioCurrencies, summarizeCurrency } from '@/app/components/pages/i
 // Áreas Fiscal/Informes e o modal de importação só carregam quando usados (dados já são sob demanda).
 function cardFallback() {
   return function CardFallback() {
-    return <div className="h-40 animate-pulse rounded-[18px] bg-[var(--skeleton)]" aria-hidden="true" />;
+    return <div className="h-40 animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" aria-hidden="true" />;
   };
 }
 const AnnualIncomeReportCard = dynamic(() => import('@/app/components/pages/investment/annual-income-report-card').then((m) => m.AnnualIncomeReportCard), { ssr: false, loading: cardFallback() });
@@ -562,7 +562,7 @@ export default function InvestmentsCenter() {
         {error && (
           <p
             role="alert"
-            className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+            className="mt-4 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
           >
             {error}
           </p>
@@ -571,7 +571,7 @@ export default function InvestmentsCenter() {
         {quoteNotice && (
           <p
             role="status"
-            className="mt-4 rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]"
+            className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]"
           >
             {quoteNotice}
           </p>

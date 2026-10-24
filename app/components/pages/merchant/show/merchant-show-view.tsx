@@ -82,10 +82,10 @@ export default function MerchantShowView({
 
       <section
         aria-label="Resumo do estabelecimento"
-        className="grid gap-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+        className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[14px] bg-[var(--orbit-primary)] text-lg font-bold text-[var(--orbit-on-primary)]" aria-hidden="true">
+          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--orbit-primary)] text-lg font-bold text-[var(--orbit-on-primary)]" aria-hidden="true">
             {merchant.name.charAt(0).toUpperCase()}
           </span>
           <div className="min-w-0">
@@ -154,7 +154,7 @@ export default function MerchantShowView({
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
         <div className="space-y-4">
           {bars && activity ? (
-            <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="merchant-history-heading">
+            <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="merchant-history-heading">
               <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
                 <h2 id="merchant-history-heading" className="text-base font-bold">Últimos 6 meses</h2>
                 <p className="text-xs text-[var(--text-muted)]">gasto por mês</p>
@@ -172,7 +172,7 @@ export default function MerchantShowView({
             </section>
           ) : null}
 
-          <section className="overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="merchant-movements-heading">
+          <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="merchant-movements-heading">
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
               <h2 id="merchant-movements-heading" className="text-base font-bold">
                 Movimentações de {activity ? longMonthLabel(activity.month.month) : 'este mês'}
@@ -214,7 +214,7 @@ export default function MerchantShowView({
         <div className="space-y-4">
           <MerchantAliasesCard merchantId={merchant.id} merchantName={merchant.name} />
 
-          <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="merchant-about-heading">
+          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="merchant-about-heading">
             <h2 id="merchant-about-heading" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Sobre</h2>
             <dl className="grid gap-2 px-4 pb-4 text-sm sm:px-5">
               <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Transações</dt><dd className="money">{merchant.transactionsCount}</dd></div>

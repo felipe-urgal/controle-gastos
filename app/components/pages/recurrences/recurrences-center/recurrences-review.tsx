@@ -43,7 +43,7 @@ export default function RecurrencesReview({
   const money = (cents: number, currency: string) => (showValues ? formatCurrency(cents, currency) : '••••');
 
   return (
-    <section className="rounded-[16px] border border-[var(--orbit-primary)] bg-[var(--surface)]" aria-labelledby="recurrences-review-heading">
+    <section className="rounded-[var(--radius-lg)] border border-[var(--orbit-primary)] bg-[var(--surface)]" aria-labelledby="recurrences-review-heading">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 pb-2 pt-4 sm:px-5">
         <h2 id="recurrences-review-heading" className="text-base font-bold">Para revisar</h2>
         <p className="text-xs text-[var(--text-muted)]">
@@ -105,7 +105,7 @@ function RowShell({
 }) {
   return (
     <div className="grid grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-3 sm:grid-cols-[40px_minmax(0,1fr)_auto] sm:px-5">
-      <span className="grid h-10 w-10 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]" aria-hidden="true">
+      <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]" aria-hidden="true">
         {icon}
       </span>
       <div className="min-w-0">

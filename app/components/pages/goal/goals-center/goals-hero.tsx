@@ -26,7 +26,7 @@ export default function GoalsHero({
   const summary = summarizeActive(goals, currency, now);
 
   return (
-    <section aria-labelledby="goals-hero-label" className="grid gap-4 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="goals-hero-label" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p id="goals-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">Você já juntou nas metas ativas</p>
         {currencies.length > 1 && (
@@ -70,7 +70,7 @@ export default function GoalsHero({
 
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="grid gap-0.5 rounded-[12px] bg-[var(--surface-raised)] px-4 py-3.5">
+    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
       <span className="text-[13px] font-semibold text-[var(--text-muted)]">{label}</span>
       <span className="money break-words text-xl font-semibold">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>

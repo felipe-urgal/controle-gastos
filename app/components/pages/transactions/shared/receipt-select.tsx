@@ -178,7 +178,7 @@ export default function ReceiptSelect({
         data-option-index={index}
         tabIndex={activeIndex === index ? 0 : -1}
         onClick={() => selectOption(option)}
-        className={`flex min-h-10 w-full items-center gap-3 rounded-[8px] px-3 py-2 text-left text-sm transition-colors focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 ${
+        className={`flex min-h-10 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm transition-colors focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 ${
           selected
             ? 'bg-[var(--orbit-primary-subtle)] text-[var(--foreground)]'
             : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus:bg-[var(--surface-hover)] focus:text-[var(--foreground)]'
@@ -228,7 +228,7 @@ export default function ReceiptSelect({
           role="listbox"
           aria-label={ariaLabel}
           onKeyDown={handleMenuKeyDown}
-          className={`absolute left-0 right-0 z-[var(--z-popover)] mt-1 max-h-[280px] overflow-y-auto rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface-raised)] p-1.5 shadow-[var(--shadow-surface)] [scrollbar-width:thin] ${menuClassName}`}
+          className={`absolute left-0 right-0 z-[var(--z-popover)] mt-1 max-h-[280px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] p-1.5 shadow-[var(--shadow-surface)] [scrollbar-width:thin] ${menuClassName}`}
         >
           {groups.length
             ? groups.map((group) => (

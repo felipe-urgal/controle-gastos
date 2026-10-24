@@ -283,10 +283,10 @@ export default function FinancialComparisonPage() {
             <div role="status" className="space-y-4" aria-live="polite">
               <p className="text-sm text-[var(--text-muted)]">Comparando períodos…</p>
               <div className="animate-pulse space-y-4" aria-hidden="true">
-                <div className="h-36 rounded-[20px] bg-[var(--skeleton)]" />
+                <div className="h-36 rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
                 <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
-                  <div className="h-72 rounded-[16px] bg-[var(--skeleton)]" />
-                  <div className="h-40 rounded-[16px] bg-[var(--skeleton)]" />
+                  <div className="h-72 rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
+                  <div className="h-40 rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
                 </div>
               </div>
             </div>
@@ -343,7 +343,7 @@ function PeriodCard({
   onTo: (value: string) => void;
 }) {
   return (
-    <div className={`grid gap-1 rounded-[16px] border border-[var(--border)] border-t-4 bg-[var(--surface)] p-4 ${side === 'A' ? 'border-t-[var(--border-strong)]' : 'border-t-[var(--orbit-primary)]'}`}>
+    <div className={`grid gap-1 rounded-[var(--radius-lg)] border border-[var(--border)] border-t-4 bg-[var(--surface)] p-4 ${side === 'A' ? 'border-t-[var(--border-strong)]' : 'border-t-[var(--orbit-primary)]'}`}>
       <span className="text-xs font-bold text-[var(--text-muted)]">{title}</span>
       <span className="break-words text-xl font-extrabold tracking-tight">{range}</span>
       <span className="min-h-5 text-[13px] text-[var(--text-muted)]">{months ?? ' '}</span>

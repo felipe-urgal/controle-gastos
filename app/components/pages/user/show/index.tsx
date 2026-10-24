@@ -192,7 +192,7 @@ export default function Show() {
 
               {activeSection === 'risk' && (
                 <section
-                  className="overflow-hidden rounded-[20px] border border-[var(--danger)]/45 bg-[var(--danger-subtle)]/35"
+                  className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--danger)]/45 bg-[var(--danger-subtle)]/35"
                   aria-labelledby="danger-zone-title"
                 >
                   <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">

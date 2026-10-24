@@ -511,7 +511,7 @@ export default function TransactionTemplatesPage({
         ) : templatesLoading ? (
           <p className="text-sm text-[var(--text-muted)]">Carregando…</p>
         ) : items.length === 0 ? (
-          <div className="grid justify-items-center gap-2.5 rounded-[16px] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center">
+          <div className="grid justify-items-center gap-2.5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center">
             <h3 className="text-lg font-bold">
               {debouncedTemplateSearch ? 'Nenhum modelo encontrado' : 'Nenhum modelo criado'}
             </h3>

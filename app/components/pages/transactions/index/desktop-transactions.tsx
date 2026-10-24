@@ -61,7 +61,7 @@ export function MonthSummaryCard({
         : 'text-[var(--text-muted)]';
 
   return (
-    <article className={`min-h-[138px] rounded-[14px] border p-4 ${cardTone}`}>
+    <article className={`min-h-[138px] rounded-[var(--radius-lg)] border p-4 ${cardTone}`}>
       <div className="flex items-start gap-3">
         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg ${iconTone}`}>{icon}</span>
         <div className="min-w-0">
@@ -112,7 +112,7 @@ export function MovementTimeline({
   onOpen: (transaction: TransactionDTO) => void;
 }) {
   return (
-    <article className="min-h-[620px] rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <article className="min-h-[620px] rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold">Movimentação de {monthTitle(month, year).toLowerCase()}</h2>
         <div className="w-full sm:w-52">
@@ -131,11 +131,11 @@ export function MovementTimeline({
       {loading ? (
         <div className="mt-5 space-y-3" role="status" aria-label="Carregando movimentações">
           {[1, 2, 3, 4, 5].map((item) => (
-            <div key={item} className="h-[66px] animate-pulse rounded-[12px] bg-[var(--skeleton)]" />
+            <div key={item} className="h-[66px] animate-pulse rounded-[var(--radius-md)] bg-[var(--skeleton)]" />
           ))}
         </div>
       ) : groups.length === 0 ? (
-        <div className="mt-5 grid min-h-[420px] place-items-center rounded-[12px] border border-dashed border-[var(--border)]">
+        <div className="mt-5 grid min-h-[420px] place-items-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)]">
           <div className="text-center">
             <p className="text-base font-bold">Nenhuma movimentação neste período</p>
             <p className="mt-1 text-sm text-[var(--text-muted)]">Ajuste os filtros ou registre uma nova transação.</p>
@@ -213,9 +213,9 @@ export function TimelineTransactionRow({
       type="button"
       onClick={onOpen}
       aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
-      className="grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_110px_88px_24px] sm:gap-3"
+      className="grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_110px_88px_24px] sm:gap-3"
     >
-      <span className="grid h-10 w-10 place-items-center rounded-[11px]" style={{ backgroundColor: iconBackground, color: iconColor }}>
+      <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)]" style={{ backgroundColor: iconBackground, color: iconColor }}>
         {isTransfer ? <FaExchangeAlt aria-hidden="true" /> : isCardPayment ? <FaCreditCard aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={16} />}
       </span>
       <span className="min-w-0">
@@ -267,7 +267,7 @@ export function MonthOverview({
   }
 
   return (
-    <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <header className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Visão do mês</h2>
         <Link href="/dashboard" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver relatório →</Link>
@@ -347,7 +347,7 @@ export function MonthOverview({
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
+      <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
           <FaChartLine aria-hidden="true" />
         </span>
@@ -372,7 +372,7 @@ export function UpcomingTransactions({
   onViewAll: () => void;
 }) {
   return (
-    <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <header className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Próximos lançamentos</h2>
         <Link href="/calendario" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver calendário →</Link>
@@ -380,7 +380,7 @@ export function UpcomingTransactions({
 
       <div className="mt-3 divide-y divide-[var(--border)]">
         {items.length === 0 ? (
-          <div className="grid min-h-[210px] place-items-center rounded-[12px] border border-dashed border-[var(--border)] px-4 text-center">
+          <div className="grid min-h-[210px] place-items-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)] px-4 text-center">
             <div>
               <FaCalendarAlt className="mx-auto text-xl text-[var(--orbit-primary)]" aria-hidden="true" />
               <p className="mt-2 text-sm font-bold">Nenhum lançamento agendado</p>
@@ -396,7 +396,7 @@ export function UpcomingTransactions({
               aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
               className="grid min-h-[62px] w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-2 px-1 py-2 text-left transition-colors hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_36px_minmax(0,1fr)_auto] sm:px-0"
             >
-              <span className="grid h-11 w-11 place-content-center rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] text-center">
+              <span className="grid h-11 w-11 place-content-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] text-center">
                 <strong className="text-sm leading-none">{String(transaction.day).padStart(2, '0')}</strong>
                 <span className="mt-1 text-xs font-semibold uppercase text-[var(--text-muted)]">{compactMonth(transaction.month, transaction.year)}</span>
               </span>
@@ -430,7 +430,7 @@ export function UpcomingTransactions({
         <button
           type="button"
           onClick={onViewAll}
-          className="mt-3 flex min-h-11 sm:min-h-9 w-full items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold hover:bg-[var(--surface-hover)]"
+          className="mt-3 flex min-h-11 sm:min-h-9 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold hover:bg-[var(--surface-hover)]"
         >
           Ver todos os agendados ({items.length}) <FaArrowRight aria-hidden="true" />
         </button>

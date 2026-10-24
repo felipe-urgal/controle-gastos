@@ -129,7 +129,7 @@ export default function OrbitAccounts() {
       {error && (
         <div
           role="alert"
-          className="mb-4 flex flex-col gap-3 rounded-[14px] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] p-4 sm:flex-row sm:items-center sm:justify-between"
+          className="mb-4 flex flex-col gap-3 rounded-[var(--radius-lg)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] p-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
             <strong className="text-sm text-[var(--expense)]">Não foi possível carregar as contas</strong>
@@ -186,7 +186,7 @@ export default function OrbitAccounts() {
           )}
 
           <section
-            className={`overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] ${orbitActionTokens}`}
+            className={`overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] ${orbitActionTokens}`}
             aria-label="Minhas contas"
           >
             {loading ? (
@@ -199,7 +199,7 @@ export default function OrbitAccounts() {
                 {!filtering && (
                   <Link
                     href="/contas/nova"
-                    className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[11px] bg-[var(--orbit-primary)] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:w-auto"
+                    className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--orbit-primary)] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:w-auto"
                   >
                     <FaPlus aria-hidden="true" />
                     Criar primeira conta
@@ -269,7 +269,7 @@ function AccountRow({
     <>
       <div className="flex min-w-0 items-center gap-3">
         <span
-          className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] text-white"
+          className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[var(--radius-md)] text-white"
           style={{ backgroundColor: account.color || 'var(--text-muted)' }}
           aria-hidden="true"
         >

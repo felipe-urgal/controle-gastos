@@ -26,7 +26,7 @@ export default function Edit({ id }: { id: string }) {
       {isTransfer && transaction?.transferId ? (
         <TransferForm transferId={transaction.transferId} />
       ) : isCardPayment ? (
-        <div role="alert" className="mt-4 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-muted)]">
+        <div role="alert" className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-muted)]">
           Pagamentos de fatura são mantidos pelo fluxo dedicado do cartão e não podem ser editados como uma transação comum.
         </div>
       ) : (

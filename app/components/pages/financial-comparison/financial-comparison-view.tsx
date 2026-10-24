@@ -16,7 +16,7 @@ import { Button, Chip, IconRenderer } from '@/app/components/ui';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { ComparisonLogicalDate, FinancialComparisonData } from '@/app/types/financial-comparison';
 
-const cardClassName = 'rounded-[16px] border border-[var(--border)] bg-[var(--surface)]';
+const cardClassName = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]';
 const VISIBLE_MOVERS = 5;
 
 const TONE_TEXT: Record<DeltaTone, string> = {
@@ -58,7 +58,7 @@ export default function FinancialComparisonView({
 
   return (
     <div className="space-y-4">
-      <section className="grid gap-3.5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6" aria-labelledby="comparison-verdict-label">
+      <section className="grid gap-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6" aria-labelledby="comparison-verdict-label">
         <p id="comparison-verdict-label" className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Em resumo</p>
         <p className="max-w-[34ch] text-balance text-xl font-bold leading-snug tracking-tight sm:text-2xl">
           {buildVerdict(data, basis, money).map((segment, index) => (
@@ -68,7 +68,7 @@ export default function FinancialComparisonView({
           ))}
         </p>
         {!sameLength && (
-          <div role="note" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-[12px] bg-[var(--warning-subtle)] px-3.5 py-3 text-[13px] font-semibold text-[var(--warning)]">
+          <div role="note" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3.5 py-3 text-[13px] font-semibold text-[var(--warning)]">
             <span>
               Os períodos têm tamanhos diferentes ({data.a.months} e {data.b.months} meses). Totais não são equivalentes; use a média mensal para comparar ritmo.
             </span>
@@ -123,8 +123,8 @@ export default function FinancialComparisonView({
                 </p>
                 <ul className="grid gap-0.5 px-2 pb-3 pt-1 sm:px-3">
                   {visibleMovers.map((category) => (
-                    <li key={category.id} className="grid min-h-16 grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2 py-2.5">
-                      <span className="grid h-9 w-9 place-items-center rounded-[10px]" style={{ backgroundColor: category.color }} aria-hidden="true">
+                    <li key={category.id} className="grid min-h-16 grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 rounded-[var(--radius-md)] px-2 py-2.5">
+                      <span className="grid h-9 w-9 place-items-center rounded-[var(--radius-md)]" style={{ backgroundColor: category.color }} aria-hidden="true">
                         <IconRenderer iconName={category.icon || 'tag'} size={16} className="text-white" />
                       </span>
                       <span className="min-w-0">

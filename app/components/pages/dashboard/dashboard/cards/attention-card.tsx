@@ -24,7 +24,7 @@ export function AttentionCard({
 }) {
   return (
     <section
-      className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
+      className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
       aria-labelledby="dashboard-attention-title"
     >
       <div className="flex items-center justify-between gap-3">
@@ -41,11 +41,11 @@ export function AttentionCard({
       {loading ? (
         <div className="mt-3 space-y-2" role="status" aria-label="Carregando pontos de atenção">
           {[1, 2, 3].map((item) => (
-            <div key={item} className="h-14 animate-pulse rounded-[11px] bg-[var(--skeleton)]" />
+            <div key={item} className="h-14 animate-pulse rounded-[var(--radius-md)] bg-[var(--skeleton)]" />
           ))}
         </div>
       ) : items.length === 0 ? (
-        <p className="mt-3 flex items-center gap-2 rounded-[11px] bg-[var(--surface-subtle)] px-3 py-3 text-sm text-[var(--text-muted)]">
+        <p className="mt-3 flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--surface-subtle)] px-3 py-3 text-sm text-[var(--text-muted)]">
           <FaCheckCircle className="shrink-0 text-[var(--income)]" aria-hidden="true" />
           Nada pendente por aqui. Faturas, orçamentos e categorias estão em dia.
         </p>
@@ -55,7 +55,7 @@ export function AttentionCard({
             const { box, Icon } = toneStyles[item.tone];
             const content = (
               <>
-                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-[9px] ${box}`}>
+                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] ${box}`}>
                   <Icon aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -73,7 +73,7 @@ export function AttentionCard({
               </>
             );
             const className =
-              'flex min-h-[56px] items-center gap-3 rounded-[11px] border border-[var(--border)] px-3 py-2';
+              'flex min-h-[56px] items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2';
 
             return (
               <li key={item.id}>

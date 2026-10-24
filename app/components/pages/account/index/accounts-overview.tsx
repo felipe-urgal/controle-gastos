@@ -112,7 +112,7 @@ export function AccountsOverview({
       aria-label={ariaLabel}
       className={`grid gap-[14px] ${attention.length > 0 ? 'lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]' : ''}`}
     >
-      <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5">
+      <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5">
         {loading || !summary ? (
           <div className="h-36 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando resumo das contas" />
         ) : totals.length === 0 ? (
@@ -142,7 +142,7 @@ export function AccountsOverview({
       </article>
 
       {attention.length > 0 && (
-      <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5" aria-labelledby={`${ariaLabel}-attention`.replace(/\s+/g, '-')}>
+      <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5" aria-labelledby={`${ariaLabel}-attention`.replace(/\s+/g, '-')}>
         <div className="flex items-center justify-between gap-3">
           <h2 id={`${ariaLabel}-attention`.replace(/\s+/g, '-')} className="text-lg font-bold">Precisa de atenção</h2>
           {attention.length > 0 && (
@@ -157,9 +157,9 @@ export function AccountsOverview({
                 <li key={`${item.kind}-${item.accountId}-${item.dueDate?.month ?? ''}-${item.dueDate?.day ?? ''}`}>
                   <Link
                     href={`/contas/show/${encodeURIComponent(item.accountId)}`}
-                    className="flex min-h-[56px] items-center gap-3 rounded-[11px] border border-[var(--border)] px-3 py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                    className="flex min-h-[56px] items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
                   >
-                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-[9px] ${toneStyles[message.tone]}`}>
+                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] ${toneStyles[message.tone]}`}>
                       <FaExclamationCircle aria-hidden="true" />
                     </span>
                     <span className="min-w-0 flex-1">

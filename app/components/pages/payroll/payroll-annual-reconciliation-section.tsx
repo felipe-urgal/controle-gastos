@@ -122,7 +122,7 @@ export function PayrollAnnualReconciliationSection({
       {error && (
         <div
           role="alert"
-          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
           <span>{error}</span>
           <Button variant="outline" size="sm" pill onClick={() => void refresh()}>
@@ -164,7 +164,7 @@ export function PayrollAnnualReconciliationSection({
             {report.items.map((group) => (
               <article
                 key={group.employerCnpj}
-                className="rounded-[14px] border border-[var(--border)] p-4"
+                className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
@@ -186,7 +186,7 @@ export function PayrollAnnualReconciliationSection({
                   </span>
                 </div>
 
-                <div className="mt-3 divide-y divide-[var(--border)] rounded-[12px] border border-[var(--border)]">
+                <div className="mt-3 divide-y divide-[var(--border)] rounded-[var(--radius-md)] border border-[var(--border)]">
                   {group.components.map((component) => (
                     <div key={component.key} className="p-3">
                       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -241,7 +241,7 @@ export function PayrollAnnualReconciliationSection({
                       )}
 
                       {component.sources.length > 0 && (
-                        <details className="mt-3 rounded-[10px] bg-[var(--surface-raised)] p-3">
+                        <details className="mt-3 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
                           <summary className="min-h-11 cursor-pointer content-center text-xs font-bold text-[var(--foreground)]">
                             Ver origem mensal
                           </summary>
@@ -249,7 +249,7 @@ export function PayrollAnnualReconciliationSection({
                             {component.sources.map((source) => (
                               <div
                                 key={source.documentId}
-                                className="rounded-[10px] border border-[var(--border)] p-2 text-xs"
+                                className="rounded-[var(--radius-md)] border border-[var(--border)] p-2 text-xs"
                               >
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <span className="font-semibold text-[var(--foreground)]">
@@ -307,7 +307,7 @@ export function PayrollAnnualReconciliationSection({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
+    <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="mt-1 block break-words text-sm text-[var(--foreground)]">
         {value}

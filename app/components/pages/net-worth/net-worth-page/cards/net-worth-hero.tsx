@@ -44,7 +44,7 @@ export function NetWorthHero({
   const up = variation ? variation.amount >= 0 : true;
 
   return (
-    <section aria-labelledby="net-worth-hero-label" className="grid gap-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="net-worth-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div>
         <p id="net-worth-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">
           Patrimônio líquido em {currency}
@@ -91,7 +91,7 @@ export function NetWorthHero({
         </div>
       </div>
 
-      <details className="group rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)]">
+      <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)]">
         <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm [&::-webkit-details-marker]:hidden">
           <span className={`h-2.5 w-2.5 rounded-full ${quality.tone === 'warning' ? 'bg-[var(--warning)]' : 'bg-[var(--income)]'}`} aria-hidden="true" />
           <strong>{quality.headline}</strong>
@@ -118,13 +118,13 @@ export function NetWorthHero({
             </>
           )}
           {valuation.compositionStatus === 'UNRECONCILED_TRANSACTION_BALANCE' && (
-            <p className="rounded-[10px] bg-[var(--warning-subtle)] px-3 py-2 text-[var(--foreground)]">
+            <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2 text-[var(--foreground)]">
               Composição não conciliada: existe saldo transacional junto com posições. O total usa as posições e preserva{' '}
               {showValues ? formatCurrency(valuation.unreconciledTransactionBalance, currency) : '••••'} como referência transacional, sem somá-lo automaticamente.
             </p>
           )}
           {valuation.staleMarketPositionCount > 0 && (
-            <p className="rounded-[10px] bg-[var(--warning-subtle)] px-3 py-2 text-[var(--foreground)]">
+            <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2 text-[var(--foreground)]">
               {valuation.staleMarketPositionCount}{' '}
               {valuation.staleMarketPositionCount === 1 ? 'posição usa cotação com mais de 7 dias.' : 'posições usam cotações com mais de 7 dias.'}{' '}
               <Link href="/investimentos" className="font-semibold text-[var(--orbit-primary)] underline underline-offset-2">
@@ -140,7 +140,7 @@ export function NetWorthHero({
 
 function Stat({ label, value, detail, dot }: { label: string; value: string; detail: string; dot?: string }) {
   return (
-    <div className="grid gap-0.5 rounded-[12px] bg-[var(--surface-raised)] px-4 py-3.5">
+    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
       <span className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-muted)]">
         {dot && <span className="h-2.5 w-2.5 rounded-full" style={{ background: dot }} aria-hidden="true" />}
         {label}

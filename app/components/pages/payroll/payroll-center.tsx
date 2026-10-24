@@ -353,7 +353,7 @@ export default function PayrollCenter() {
           {activeTab === 'MONTHLY' && (
             <div className="space-y-5">
               {feedback && !showImporter && (
-                <div role="status" className="rounded-[14px] bg-[var(--success-subtle)] p-3 text-sm font-semibold text-[var(--success)]">
+                <div role="status" className="rounded-[var(--radius-lg)] bg-[var(--success-subtle)] p-3 text-sm font-semibold text-[var(--success)]">
                   {feedback}
                 </div>
               )}

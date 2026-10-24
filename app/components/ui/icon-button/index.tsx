@@ -16,7 +16,7 @@ const TONE: Record<IconButtonTone, string> = {
 
 const SIZE: Record<IconButtonSize, string> = {
   md: 'h-11 w-11 rounded-[var(--radius-md)]',
-  lg: 'h-14 w-14 rounded-[16px]',
+  lg: 'h-14 w-14 rounded-[var(--radius-lg)]',
 };
 
 const BASE =

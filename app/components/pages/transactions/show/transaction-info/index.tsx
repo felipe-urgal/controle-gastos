@@ -24,7 +24,7 @@ const RECONCILIATION_LABEL: Record<ReconciliationStatus, string> = {
   RECONCILED: 'Conciliada',
 };
 
-const cardClassName = 'rounded-[16px] border border-[var(--border)] bg-[var(--surface)]';
+const cardClassName = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]';
 const linkClassName =
   'font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
 
@@ -68,10 +68,10 @@ export default function TransactionInfo({
     <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <section
         aria-labelledby="transaction-detail-heading"
-        className="grid gap-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+        className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className={`grid h-12 w-12 place-items-center rounded-[14px] text-lg ${iconTone}`} aria-hidden="true">
+          <span className={`grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-lg ${iconTone}`} aria-hidden="true">
             {isTransfer ? <FaExchangeAlt /> : isCardPayment ? <FaCreditCard /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
           </span>
           <div className="min-w-0">

@@ -26,7 +26,7 @@ export function PayrollYearOverview({
   const money = (cents: number | null) => payrollMoney(cents, showValues);
 
   return (
-    <section aria-labelledby="payroll-hero-label" className="grid gap-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="payroll-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div>
         <p id="payroll-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">
           Líquido recebido em {year}
@@ -49,7 +49,7 @@ export function PayrollYearOverview({
       </div>
 
       {hasMore && (
-        <p className="rounded-[12px] bg-[var(--warning-subtle)] px-4 py-3 text-[13px]">
+        <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-4 py-3 text-[13px]">
           Este ano tem mais competências do que a tela carrega de uma vez. Totais e gráfico cobrem só as mais recentes.
         </p>
       )}
@@ -61,7 +61,7 @@ export function PayrollYearOverview({
 
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="grid min-w-0 gap-0.5 rounded-[12px] bg-[var(--surface-raised)] px-3.5 py-3">
+    <div className="grid min-w-0 gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3">
       <span className="text-[13px] font-semibold text-[var(--text-muted)]">{label}</span>
       <span className="money break-words text-lg font-semibold sm:text-xl">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>

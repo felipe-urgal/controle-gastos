@@ -62,7 +62,7 @@ export function MonthlyFlowCard({
   }
 
   return (
-    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5" aria-labelledby="dashboard-flow-title">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5" aria-labelledby="dashboard-flow-title">
       <h2 id="dashboard-flow-title" className="text-lg font-bold">Entrou vs. saiu</h2>
       <p className="mt-0.5 text-xs text-[var(--text-muted)]">Últimos {bars.length} meses{partial ? ' · o último está em andamento' : ''}.</p>
 
@@ -85,7 +85,7 @@ export function MonthlyFlowCard({
         tabIndex={0}
         onKeyDown={onKeyDown}
         onPointerLeave={(event) => event.pointerType === 'mouse' && setActive(null)}
-        className="mt-2 grid h-36 items-end gap-2 rounded-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]"
+        className="mt-2 grid h-36 items-end gap-2 rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]"
         style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }}
       >
         {bars.map((bar, index) => {

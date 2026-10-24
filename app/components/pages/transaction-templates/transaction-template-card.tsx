@@ -38,10 +38,10 @@ export default function TransactionTemplateCard({
       : '••••';
 
   return (
-    <article className="grid min-w-0 gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="grid min-w-0 gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3">
         <span
-          className={`grid h-10 w-10 place-items-center rounded-[12px] ${income ? 'bg-[var(--primary-subtle)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}
+          className={`grid h-10 w-10 place-items-center rounded-[var(--radius-md)] ${income ? 'bg-[var(--primary-subtle)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}
           aria-hidden="true"
         >
           {income ? <FaArrowDown /> : <FaArrowUp />}

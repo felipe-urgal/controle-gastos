@@ -351,7 +351,7 @@ export default function TransferForm({
 
           {mobileStep === 1 && (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 overflow-hidden rounded-[14px] border border-[var(--border-strong)] bg-[var(--surface)] p-1" aria-label="Tipo da transação">
+              <div className="grid grid-cols-3 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface)] p-1" aria-label="Tipo da transação">
                 <Button
                   variant="ghost"
                   onClick={() => onSelectTransactionType?.('EXPENSE')}
@@ -376,7 +376,7 @@ export default function TransferForm({
               </div>
 
               <div
-                className="min-h-[142px] rounded-[16px] border border-[var(--orbit-primary)] bg-[var(--surface)] p-4"
+                className="min-h-[142px] rounded-[var(--radius-lg)] border border-[var(--orbit-primary)] bg-[var(--surface)] p-4"
                 style={{
                   background:
                     'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 9%, var(--surface)) 0%, var(--surface) 72%)',
@@ -396,7 +396,7 @@ export default function TransferForm({
                     inputMode="numeric"
                     className="min-h-[76px] min-w-0 flex-1 border-0 p-0 text-[44px] font-black tracking-tight min-[360px]:text-[50px]"
                   />
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
                     <FaExchangeAlt />
                   </span>
                 </div>
@@ -414,9 +414,9 @@ export default function TransferForm({
                   disabled={loading || Boolean(transferId)}
                   onChange={handleSourceChange}
                   options={sourceOptions}
-                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
+                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
                 >
-                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
                     <FaWallet aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -434,9 +434,9 @@ export default function TransferForm({
                   disabled={loading || Boolean(transferId) || !selectedSource}
                   onChange={setDestinationAccountId}
                   options={destinationOptions}
-                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
+                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
                 >
-                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
                     <FaWallet aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -452,8 +452,8 @@ export default function TransferForm({
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
                 </ReceiptSelect>
 
-                <label className="relative grid min-h-[76px] cursor-pointer grid-cols-[48px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3">
-                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                <label className="relative grid min-h-[76px] cursor-pointer grid-cols-[48px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3">
+                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
                     <FaCalendarAlt aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -477,8 +477,8 @@ export default function TransferForm({
                   />
                 </label>
 
-                <div className="grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3">
-                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                <div className="grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3">
+                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
                     <FaFileAlt aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -504,9 +504,9 @@ export default function TransferForm({
                   type="button"
                   onClick={advanceMobileTransferStep}
                   disabled={loading}
-                  className="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
+                  className="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
                 >
-                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--surface-raised)] text-[var(--orbit-primary)]">
+                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--orbit-primary)]">
                     <FaSlidersH aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -533,7 +533,7 @@ export default function TransferForm({
                 <p className="mt-1 text-sm text-[var(--text-muted)]">Passo 2 de 3 · ajuste o status da transferência.</p>
               </div>
 
-              <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3">
+              <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3">
                 <p className="text-xs text-[var(--text-muted)]">Transferência</p>
                 <div className="mt-1 flex items-center justify-between gap-3">
                   <strong className="truncate text-sm">{selectedSource?.name ?? 'Origem'} → {selectedDestination?.name ?? 'Destino'}</strong>
@@ -567,7 +567,7 @@ export default function TransferForm({
                 <p className="mt-1 text-sm text-[var(--text-muted)]">Passo 3 de 3 · confira antes de confirmar.</p>
               </div>
 
-              <div className="rounded-[16px] border border-[var(--orbit-primary)]/45 bg-[var(--surface)] p-4">
+              <div className="rounded-[var(--radius-lg)] border border-[var(--orbit-primary)]/45 bg-[var(--surface)] p-4">
                 <p className="text-xs text-[var(--text-muted)]">Transferência</p>
                 <strong className="mt-1 block text-[34px] font-black tracking-tight text-[var(--foreground)]">{formatCentsToCurrency(amountCents)}</strong>
                 <dl className="mt-4 grid gap-2">
@@ -608,12 +608,12 @@ export default function TransferForm({
         className="mt-4 [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
       >
         <section
-          className="w-full overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
+          className="w-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
           aria-label="Nova transferência"
         >
           <div className="p-4 sm:p-6">
             <div
-              className="mx-auto grid max-w-[520px] grid-cols-3 overflow-hidden rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
+              className="mx-auto grid max-w-[520px] grid-cols-3 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
               aria-label="Tipo da transação"
             >
               <Button
@@ -667,14 +667,14 @@ export default function TransferForm({
                     value: String(option.value),
                     label: option.label,
                   }))}
-                  triggerClassName="flex min-h-9 w-full items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                  triggerClassName="flex min-h-9 w-full items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
                   menuClassName="min-w-[190px]"
                 >
                   <span className="h-2 w-2 rounded-full bg-[var(--orbit-primary)]" aria-hidden="true" />
                   <span className="truncate">{selectedStatusLabel}</span>
                   <FaChevronRight className="ml-auto rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
                 </ReceiptSelect>
-                <div className="flex min-h-9 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                <div className="flex min-h-9 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
                   <FaCalendarAlt aria-hidden="true" /> Única
                 </div>
               </div>
@@ -903,7 +903,7 @@ function TransferReviewModal({
 
 function TransferReviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[10px] bg-[var(--surface-raised)] px-3.5 py-3">
+    <div className="flex items-center justify-between gap-4 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3">
       <dt className="text-[var(--text-muted)]">{label}</dt>
       <dd className="max-w-[65%] break-words text-right font-semibold text-[var(--foreground)]">
         {value}

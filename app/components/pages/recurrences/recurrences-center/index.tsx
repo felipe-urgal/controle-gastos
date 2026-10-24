@@ -175,7 +175,7 @@ export default function RecurrencesCenter() {
               />
             </div>
 
-            <details className="group rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
+            <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
               <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between px-4 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
                 Qual a diferença entre recorrência e assinatura?
                 <span className="text-lg text-[var(--text-muted)] group-open:hidden" aria-hidden="true">+</span>

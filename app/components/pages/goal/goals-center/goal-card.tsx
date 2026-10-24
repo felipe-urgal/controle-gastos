@@ -48,7 +48,7 @@ export default function GoalCard({
   return (
     <article
       id={`goal-${goal.id}`}
-      className={`grid min-w-0 scroll-mt-24 content-start gap-3.5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-[18px] ${archived ? 'opacity-80' : ''}`}
+      className={`grid min-w-0 scroll-mt-24 content-start gap-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-[18px] ${archived ? 'opacity-80' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -92,12 +92,12 @@ export default function GoalCard({
       </div>
 
       {goal.status === 'ACTIVE' && goal.monthlyContributionSuggestion !== null && (
-        <p className="rounded-[12px] bg-[var(--surface-raised)] px-3 py-2.5 text-[13px] text-[var(--text-muted)]">
+        <p className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2.5 text-[13px] text-[var(--text-muted)]">
           <MoneyText>{`Para distribuir o restante até o prazo: ${money(goal.monthlyContributionSuggestion)} por mês.`}</MoneyText>
         </p>
       )}
       {pace === 'OVERDUE' && (
-        <p className="rounded-[12px] bg-[var(--warning-subtle)] px-3 py-2.5 text-[13px] font-semibold text-[var(--warning)]">
+        <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2.5 text-[13px] font-semibold text-[var(--warning)]">
           O prazo passou. Edite a meta para ajustar a data.
         </p>
       )}

@@ -71,7 +71,7 @@ export function ExchangeRatesCard({
   const futureReference = referenceDate > currentIsoDate();
 
   return (
-    <article className="min-w-0 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div>
         <h2 className="text-lg font-bold text-[var(--foreground)]">
           Taxas de câmbio
@@ -88,7 +88,7 @@ export function ExchangeRatesCard({
       <form
         onSubmit={onSave}
         noValidate
-        className="mt-4 grid gap-3 rounded-[14px] bg-[var(--surface-raised)] p-3 md:grid-cols-[minmax(0,7.5rem)_minmax(0,7.5rem)_minmax(0,1fr)_minmax(0,10.5rem)_auto] md:items-end"
+        className="mt-4 grid gap-3 rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-3 md:grid-cols-[minmax(0,7.5rem)_minmax(0,7.5rem)_minmax(0,1fr)_minmax(0,10.5rem)_auto] md:items-end"
       >
         <div>
           <span className="ds-label mb-2 block" aria-hidden="true">De</span>
@@ -155,7 +155,7 @@ export function ExchangeRatesCard({
       {error && (
         <p
           role="alert"
-          className="mt-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+          className="mt-3 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
           {error}
         </p>
@@ -210,17 +210,17 @@ export function ExchangeRatesCard({
       <div className="mt-3">
         {loading ? (
           <div
-            className="h-20 animate-pulse rounded-[12px] bg-[var(--skeleton)]"
+            className="h-20 animate-pulse rounded-[var(--radius-md)] bg-[var(--skeleton)]"
             role="status"
             aria-label="Carregando taxas de câmbio"
           />
         ) : rates.length === 0 ? (
-          <p className="rounded-[12px] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-muted)]">
+          <p className="rounded-[var(--radius-md)] border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-muted)]">
             Nenhuma taxa de câmbio encontrada.
           </p>
         ) : (
           <>
-            <div className="divide-y divide-[var(--border)] rounded-[12px] border border-[var(--border)] px-3">
+            <div className="divide-y divide-[var(--border)] rounded-[var(--radius-md)] border border-[var(--border)] px-3">
               {rates.map((rate) => (
                 <div
                   key={rate.id}

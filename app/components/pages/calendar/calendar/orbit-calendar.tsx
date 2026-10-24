@@ -240,7 +240,7 @@ export default function OrbitCalendar() {
       {error && (
         <div
           role="alert"
-          className={`mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 ${orbitActionTokens}`}
+          className={`mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 ${orbitActionTokens}`}
         >
           <p className="text-sm font-semibold text-[var(--expense)]">{error}</p>
           <Button
@@ -333,7 +333,7 @@ function CalendarSummary({
         return (
           <article
             key={metric.key}
-            className="rounded-[15px] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4"
+            className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4"
           >
             <p className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)] sm:text-xs">
               <Icon aria-hidden="true" /> {metric.label}
@@ -371,7 +371,7 @@ function CalendarSummary({
         );
       })}
 
-      <article className="rounded-[15px] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4">
+      <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4">
         <p className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)] sm:text-xs">
           <FaCalendarCheck aria-hidden="true" /> Compromissos do período
         </p>
@@ -592,7 +592,7 @@ function TimelineEvent({
     <button
       type="button"
       onClick={() => onOpen(event)}
-      className="relative mb-2.5 grid w-full grid-cols-[54px_34px_minmax(0,1fr)] items-center gap-2 rounded-[13px] border border-[var(--border)] bg-[var(--surface-raised)] p-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:grid-cols-[68px_42px_minmax(0,1fr)_auto] sm:gap-2.5 sm:p-3"
+      className="relative mb-2.5 grid w-full grid-cols-[54px_34px_minmax(0,1fr)] items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:grid-cols-[68px_42px_minmax(0,1fr)_auto] sm:gap-2.5 sm:p-3"
     >
       <span
         className={`absolute left-[-17px] top-[21px] h-[9px] w-[9px] rounded-full border-2 border-[var(--surface)] sm:left-[-21px] sm:top-[23px] ${marker}`}
@@ -602,7 +602,7 @@ function TimelineEvent({
         {eventStatusLabel(event)}
       </span>
       <span
-        className={`grid h-[34px] w-[34px] place-items-center rounded-[11px] sm:h-[38px] sm:w-[38px] ${iconTone}`}
+        className={`grid h-[34px] w-[34px] place-items-center rounded-[var(--radius-md)] sm:h-[38px] sm:w-[38px] ${iconTone}`}
         aria-hidden="true"
       >
         {isMilestone ? (

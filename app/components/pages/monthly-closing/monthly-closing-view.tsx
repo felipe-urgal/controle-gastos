@@ -21,7 +21,7 @@ import type { MonthlyClosingData, MonthlyClosingRetrospective } from '@/app/type
 
 type Retrospective = MonthlyClosingRetrospective;
 
-const cardClassName = 'rounded-[16px] border border-[var(--border)] bg-[var(--surface)]';
+const cardClassName = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]';
 const linkClassName =
   'inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
 
@@ -60,7 +60,7 @@ export default function MonthlyClosingView({
 
   return (
     <div className="space-y-4">
-      <section aria-labelledby="closing-result-label" className="grid gap-6 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+      <section aria-labelledby="closing-result-label" className="grid gap-6 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
         <div className="grid gap-1.5">
           <p id="closing-result-label" className="text-sm font-semibold text-[var(--text-muted)]">Resultado do mês</p>
           <strong className={`money break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${summary.balance < 0 ? 'text-[var(--expense)]' : ''}`}>
@@ -116,7 +116,7 @@ export default function MonthlyClosingView({
                   {!item.ok && (
                     <Link
                       href={item.href}
-                      className="col-start-2 inline-flex min-h-11 items-center justify-center justify-self-start whitespace-nowrap rounded-[12px] border border-[var(--border-strong)] px-4 text-[13px] font-bold hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:col-start-3"
+                      className="col-start-2 inline-flex min-h-11 items-center justify-center justify-self-start whitespace-nowrap rounded-[var(--radius-md)] border border-[var(--border-strong)] px-4 text-[13px] font-bold hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:col-start-3"
                     >
                       {item.actionLabel}
                     </Link>
@@ -131,7 +131,7 @@ export default function MonthlyClosingView({
                 </summary>
                 <div className="grid gap-2 px-4 pb-4 sm:px-5">
                   {detailAccounts.map((account) => (
-                    <Link key={account.accountId} href={account.href} className="flex min-h-11 items-center justify-between gap-3 rounded-[10px] border border-[var(--border)] px-3 py-2 hover:bg-[var(--surface-hover)]">
+                    <Link key={account.accountId} href={account.href} className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 hover:bg-[var(--surface-hover)]">
                       <span className="min-w-0">
                         <span className="block break-words text-sm font-semibold">{account.accountName}</span>
                         <span className="block text-xs text-[var(--text-muted)]">
@@ -142,7 +142,7 @@ export default function MonthlyClosingView({
                     </Link>
                   ))}
                   {detailStatements.map((statement) => (
-                    <Link key={statement.cardId + '-' + statement.closingDate.month + '-' + statement.closingDate.year} href={statement.href} className="flex min-h-11 items-center justify-between gap-3 rounded-[10px] border border-[var(--border)] px-3 py-2 hover:bg-[var(--surface-hover)]">
+                    <Link key={statement.cardId + '-' + statement.closingDate.month + '-' + statement.closingDate.year} href={statement.href} className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 hover:bg-[var(--surface-hover)]">
                       <span className="min-w-0">
                         <span className="block break-words text-sm font-semibold">{statement.cardName}</span>
                         <span className="block text-xs text-[var(--text-muted)]">Vence {formatLogicalDate(statement.dueDate)} · {CARD_STATE_LABELS[statement.state]}</span>
@@ -169,9 +169,9 @@ export default function MonthlyClosingView({
                     <li key={category.id}>
                       <Link
                         href={transactionsHref + '&categoryId=' + encodeURIComponent(category.id)}
-                        className="grid min-h-14 grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2 py-2 hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]"
+                        className="grid min-h-14 grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 rounded-[var(--radius-md)] px-2 py-2 hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]"
                       >
-                        <span className="grid h-9 w-9 place-items-center rounded-[10px]" style={{ backgroundColor: category.color }} aria-hidden="true">
+                        <span className="grid h-9 w-9 place-items-center rounded-[var(--radius-md)]" style={{ backgroundColor: category.color }} aria-hidden="true">
                           <IconRenderer iconName={category.icon || 'tag'} size={16} className="text-white" />
                         </span>
                         <span className="min-w-0">
@@ -216,7 +216,7 @@ export default function MonthlyClosingView({
                   </MoneyText>
                 </p>
                 {planning.overBudgetCategories > 0 && (
-                  <p className="rounded-[10px] bg-[var(--warning-subtle)] px-3 py-2.5 text-[13px] font-semibold text-[var(--warning)]">
+                  <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2.5 text-[13px] font-semibold text-[var(--warning)]">
                     {planning.overBudgetCategories === 1 ? '1 categoria passou do limite.' : `${planning.overBudgetCategories} categorias passaram do limite.`}
                   </p>
                 )}
@@ -281,7 +281,7 @@ export default function MonthlyClosingView({
 
 function FlowItem({ label, dot, amount, delta }: { label: string; dot: string; amount: string; delta: { text: string; tone: ClosingTone } }) {
   return (
-    <div className="grid gap-0.5 rounded-[12px] bg-[var(--surface-raised)] px-4 py-3.5">
+    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
       <span className="text-[13px] font-semibold text-[var(--text-muted)]">
         <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: dot }} aria-hidden="true" />
         {label}

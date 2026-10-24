@@ -188,7 +188,7 @@ export function PayrollAdvanceReconciliationSection({
       {error && (
         <div
           role="alert"
-          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
           <span>{error}</span>
           <Button variant="outline" size="sm" pill onClick={() => void retry()}>
@@ -210,7 +210,7 @@ export function PayrollAdvanceReconciliationSection({
           {items.map((item) => (
             <article
               key={item.advanceDocumentId}
-              className="rounded-[14px] border border-[var(--border)] p-4"
+              className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -255,7 +255,7 @@ export function PayrollAdvanceReconciliationSection({
                   )}
 
                   {item.candidates.length === 0 ? (
-                    <p className="rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs text-[var(--warning)]">
+                    <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] p-3 text-xs text-[var(--warning)]">
                       Nenhuma rubrica de adiantamento foi encontrada em uma
                       folha REGULAR ativa desta competência.
                     </p>
@@ -298,7 +298,7 @@ export function PayrollAdvanceReconciliationSection({
                   )}
                 </div>
               ) : (
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[12px] bg-[var(--success-subtle)] p-3">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] bg-[var(--success-subtle)] p-3">
                   <p className="text-xs text-[var(--foreground)]">
                     Compensação confirmada:{' '}
                     <strong>
@@ -327,7 +327,7 @@ export function PayrollAdvanceReconciliationSection({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
+    <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="mt-1 block text-sm text-[var(--foreground)]">
         {value}

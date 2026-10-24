@@ -192,7 +192,7 @@ export function GoalEntryModal({
       closeDisabled={saving}
     >
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="rounded-[14px] bg-[var(--surface-raised)] p-4">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-4">
           <strong className="block text-[var(--foreground)]">{goal.name}</strong>
           <span className="mt-1 block text-sm text-[var(--text-muted)]">
             Progresso atual:{' '}
@@ -294,11 +294,11 @@ export function GoalDetailModal({
               Histórico
             </h3>
             {!goal.entries?.length ? (
-              <p className="mt-3 rounded-[12px] bg-[var(--surface-raised)] p-4 text-sm text-[var(--text-muted)]">
+              <p className="mt-3 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-4 text-sm text-[var(--text-muted)]">
                 Nenhuma contribuição ou retirada registrada.
               </p>
             ) : (
-              <div className="mt-3 divide-y divide-[var(--border)] rounded-[14px] border border-[var(--border)]">
+              <div className="mt-3 divide-y divide-[var(--border)] rounded-[var(--radius-lg)] border border-[var(--border)]">
                 {goal.entries.map((entry) => (
                   <div
                     key={entry.id}
@@ -371,7 +371,7 @@ export function SimpleConfirmModal({
 
 export function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
+    <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
       <span className="text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="money mt-1 block text-base text-[var(--foreground)]">{value}</strong>
     </div>
@@ -380,6 +380,6 @@ export function MiniMetric({ label, value }: { label: string; value: string }) {
 
 export function GoalSkeleton() {
   return (
-    <div className="h-72 animate-pulse rounded-[20px] border border-[var(--border)] bg-[var(--surface)]" />
+    <div className="h-72 animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" />
   );
 }

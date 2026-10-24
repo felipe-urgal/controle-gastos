@@ -18,7 +18,7 @@ export function ConsolidationCard({
   showValues: boolean;
 }) {
   return (
-    <article className="min-w-0 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -44,13 +44,13 @@ export function ConsolidationCard({
       </div>
 
       {!baseCurrency ? (
-        <div className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
+        <div className="mt-4 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
           Nenhuma moeda está sendo convertida. Os totais nominais abaixo permanecem a fonte original.
         </div>
       ) : consolidation ? (
         <div className="mt-4 space-y-3">
           <div
-            className={`rounded-[14px] border p-4 ${
+            className={`rounded-[var(--radius-lg)] border p-4 ${
               consolidation.complete && !consolidation.stale
                 ? 'border-[var(--income)]/30 bg-[var(--primary-subtle)]'
                 : 'border-[var(--expense)]/30 bg-[var(--danger-subtle)]'
@@ -78,14 +78,14 @@ export function ConsolidationCard({
           </div>
 
           {consolidation.complete && consolidation.stale && (
-            <p className="rounded-[12px] border border-[var(--expense)]/25 p-3 text-sm text-[var(--text-muted)]">
+            <p className="rounded-[var(--radius-md)] border border-[var(--expense)]/25 p-3 text-sm text-[var(--text-muted)]">
               O total usa ao menos uma taxa com mais de 7 dias de defasagem e deve
               ser lido como estimativa. Cadastre ou busque uma taxa mais recente.
             </p>
           )}
 
           {consolidation.missingRates.length > 0 && (
-            <div className="rounded-[12px] border border-[var(--expense)]/25 p-3">
+            <div className="rounded-[var(--radius-md)] border border-[var(--expense)]/25 p-3">
               <strong className="text-sm text-[var(--expense)]">
                 Faltam taxas para concluir a conversão:
               </strong>
@@ -97,7 +97,7 @@ export function ConsolidationCard({
             </div>
           )}
 
-          <div className="divide-y divide-[var(--border)] rounded-[12px] border border-[var(--border)] px-3">
+          <div className="divide-y divide-[var(--border)] rounded-[var(--radius-md)] border border-[var(--border)] px-3">
             {consolidation.convertedItems.map((item) => (
               <div
                 key={item.original.currency}

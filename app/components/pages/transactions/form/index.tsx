@@ -55,7 +55,7 @@ export default function TransactionForm({
         confirmLabel={isEditing ? 'Salvar alterações' : 'Criar transação'}
       >
         {isEditing && hasLearningSuggestions ? (
-          <div className="mt-4 rounded-[12px] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+          <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
             <p className="text-sm font-semibold text-[var(--foreground)]">Aplicar a futuras transações semelhantes?</p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
               Nada é alterado sem sua confirmação. Se já existir um alias equivalente em outro estabelecimento, ele será movido para a escolha abaixo.

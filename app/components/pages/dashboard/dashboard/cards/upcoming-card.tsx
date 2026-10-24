@@ -24,7 +24,7 @@ export function UpcomingCard({
   onRetry?: () => void;
 }) {
   return (
-    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Próximos compromissos</h2>
         <Link href="/compromissos" className="inline-flex min-h-11 items-center px-2 -mx-2 text-sm font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
@@ -54,7 +54,7 @@ export function UpcomingCard({
                 <div className="divide-y divide-[var(--border)]">
                   {group.items.map((item) => (
                     <Link key={item.id} href={item.href} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
-                      <span className="grid h-[43px] w-[43px] place-content-center rounded-[9px] border border-[var(--border-strong)] text-center">
+                      <span className="grid h-[43px] w-[43px] place-content-center rounded-[var(--radius-md)] border border-[var(--border-strong)] text-center">
                         <strong className="text-sm leading-none">{String(item.date.day).padStart(2, '0')}</strong>
                         <span className="mt-1 text-xs font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
                       </span>
@@ -64,7 +64,7 @@ export function UpcomingCard({
                           {item.amount === null ? 'Marco sem valor financeiro' : <span className="money">{displayMoney(item.amount, showValues, currency)}</span>}
                         </p>
                       </div>
-                      <span className={`rounded-[8px] px-2.5 py-1.5 text-xs font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
+                      <span className={`rounded-[var(--radius-sm)] px-2.5 py-1.5 text-xs font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
                         {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
                       </span>
                     </Link>

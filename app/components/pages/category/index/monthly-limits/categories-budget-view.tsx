@@ -56,7 +56,7 @@ function BudgetRow({ item, currency, showValues, disabled, onEditLimit }: {
 
   return (
     <li className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-[var(--border)] px-4 py-3 sm:grid-cols-[auto_minmax(0,1.1fr)_minmax(0,1fr)_auto] sm:px-5">
-      <span className="grid h-9 w-9 place-items-center rounded-[10px] text-white" style={{ backgroundColor: item.category.color || DEFAULT_CATEGORY_COLOR }} aria-hidden="true">
+      <span className="grid h-9 w-9 place-items-center rounded-[var(--radius-md)] text-white" style={{ backgroundColor: item.category.color || DEFAULT_CATEGORY_COLOR }} aria-hidden="true">
         <IconRenderer iconName={item.category.icon || 'tag'} size={16} />
       </span>
       <div className="min-w-0">
@@ -187,10 +187,10 @@ export default function CategoriesBudgetView({
       } />
 
       {error && (
-        <p role="alert" className="rounded-[12px] border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">{error}</p>
+        <p role="alert" className="rounded-[var(--radius-md)] border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">{error}</p>
       )}
 
-      <section aria-label="Orçamento do mês" className="grid gap-4 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+      <section aria-label="Orçamento do mês" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
         {loading ? (
           <div className="h-32 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando orçamento" />
         ) : (
@@ -228,7 +228,7 @@ export default function CategoriesBudgetView({
                 { label: 'Estourou', value: counts.over, tone: 'text-[var(--expense)]' },
                 { label: 'Sem limite', value: counts.noLimit, tone: '' },
               ].map((entry) => (
-                <div key={entry.label} className="rounded-[12px] border border-[var(--border)] px-3 py-2">
+                <div key={entry.label} className="rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2">
                   <dt className="text-xs text-[var(--text-muted)] sm:text-sm">{entry.label}</dt>
                   <dd className={`money text-lg font-semibold ${entry.tone}`}>{entry.value}</dd>
                 </div>
@@ -246,7 +246,7 @@ export default function CategoriesBudgetView({
       </section>
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <section className="overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="categories-expenses-title">
+        <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="categories-expenses-title">
           <div className="grid gap-3 px-4 pb-3 pt-4 sm:px-5">
             <h2 id="categories-expenses-title" className="text-base font-bold">Despesas por categoria</h2>
             <Input
@@ -283,7 +283,7 @@ export default function CategoriesBudgetView({
         </section>
 
         <div className="grid gap-4">
-          <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="categories-attention-title">
+          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="categories-attention-title">
             <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-4 sm:px-5">
               <h2 id="categories-attention-title" className="text-base font-bold">Precisa de atenção</h2>
               {attention.length > 0 && <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">{attention.length}</span>}
@@ -296,7 +296,7 @@ export default function CategoriesBudgetView({
                   <li key={item.category.id}>
                     <Link
                       href={`/categorias/show/${encodeURIComponent(item.category.id)}`}
-                      className="flex min-h-14 items-center justify-between gap-3 rounded-[11px] border border-[var(--border)] px-3 py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                      className="flex min-h-14 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
                     >
                       <span className="min-w-0">
                         <strong className="block truncate text-sm">{item.category.name}</strong>
@@ -312,7 +312,7 @@ export default function CategoriesBudgetView({
             )}
           </section>
 
-          <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="categories-distribution-title">
+          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="categories-distribution-title">
             <h2 id="categories-distribution-title" className="px-4 pb-3 pt-4 text-base font-bold sm:px-5">Para onde foi o dinheiro</h2>
             {distribution.entries.length === 0 ? (
               <p className="px-4 text-sm text-[var(--text-muted)] sm:px-5">Nenhum gasto neste mês.</p>
@@ -338,7 +338,7 @@ export default function CategoriesBudgetView({
             )}
           </section>
 
-          <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] pb-3" aria-labelledby="categories-income-title">
+          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-3" aria-labelledby="categories-income-title">
             <h2 id="categories-income-title" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Receitas</h2>
             {incomeRows.length === 0 ? (
               <p className="px-4 pb-1 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma categoria de receita{query ? ' neste filtro' : ''}.</p>
@@ -350,7 +350,7 @@ export default function CategoriesBudgetView({
                       href={`/categorias/show/${encodeURIComponent(category.id)}`}
                       className="flex min-h-11 items-center gap-3 px-4 py-1.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5"
                     >
-                      <span className="grid h-8 w-8 place-items-center rounded-[9px] text-white" style={{ backgroundColor: category.color || DEFAULT_CATEGORY_COLOR }} aria-hidden="true">
+                      <span className="grid h-8 w-8 place-items-center rounded-[var(--radius-md)] text-white" style={{ backgroundColor: category.color || DEFAULT_CATEGORY_COLOR }} aria-hidden="true">
                         <IconRenderer iconName={category.icon || 'tag'} size={14} />
                       </span>
                       <span className="truncate">{category.name}</span>

@@ -52,7 +52,7 @@ export function AccountFormCard({
   return (
     <section
       aria-label="Conta"
-      className="relative grid gap-5 rounded-[20px] border border-[color-mix(in_srgb,var(--account-color)_40%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_16%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+      className="relative grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--account-color)_40%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_16%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
       style={{ ['--account-color' as string]: values.color }}
     >
       <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
@@ -103,7 +103,7 @@ export function AccountFormCard({
       </div>
 
       {lookOpen && (
-        <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3.5">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3.5">
           <ColorIconSelector
             color={values.color}
             icon={values.icon}
@@ -138,7 +138,7 @@ export function AccountFormCard({
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
               <label htmlFor="account-closing-day" className="block text-sm text-[var(--text-muted)]">
                 Dia de fechamento
               </label>
@@ -155,7 +155,7 @@ export function AccountFormCard({
                 required
               />
             </div>
-            <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
               <label htmlFor="account-due-day" className="block text-sm text-[var(--text-muted)]">
                 Dia de vencimento
               </label>
@@ -176,7 +176,7 @@ export function AccountFormCard({
 
           <p
             aria-live="polite"
-            className="rounded-[10px] bg-[color-mix(in_srgb,var(--account-color)_10%,var(--surface-raised))] px-3 py-2.5 text-sm leading-relaxed text-[var(--text-muted)]"
+            className="rounded-[var(--radius-md)] bg-[color-mix(in_srgb,var(--account-color)_10%,var(--surface-raised))] px-3 py-2.5 text-sm leading-relaxed text-[var(--text-muted)]"
           >
             {describeCardCycle(values.statementClosingDay, values.statementDueDay)}
           </p>

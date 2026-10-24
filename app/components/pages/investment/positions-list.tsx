@@ -17,7 +17,7 @@ export function PositionsList({
   onHistory: (assetId: string) => void;
 }) {
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <h2 className="text-lg font-bold text-[var(--foreground)]">Posições</h2>
       <p className="mt-1 text-xs text-[var(--text-muted)]">Ordenadas pelo valor. Toque no símbolo para ver o histórico do ativo.</p>
 

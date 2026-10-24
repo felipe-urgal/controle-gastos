@@ -126,7 +126,7 @@ export default function MerchantAliasesCard({ merchantId, merchantName }: { merc
   }
 
   return (
-    <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="merchant-recognition-heading">
+    <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="merchant-recognition-heading">
       <div className="px-4 pb-2 pt-4 sm:px-5">
         <h2 id="merchant-recognition-heading" className="text-base font-bold">Como reconhecemos</h2>
         <p className="mt-1 text-sm text-[var(--text-muted)]">

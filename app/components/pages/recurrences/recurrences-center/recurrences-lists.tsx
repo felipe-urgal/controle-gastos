@@ -13,7 +13,7 @@ import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { RecurrenceLogicalDate, RecurrenceSummaryItem } from '@/app/types/recurrence';
 import type { SubscriptionItem } from '@/app/types/subscription';
 
-const cardClassName = 'rounded-[16px] border border-[var(--border)] bg-[var(--surface)]';
+const cardClassName = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]';
 
 export function FormalList({
   items,

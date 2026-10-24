@@ -119,7 +119,7 @@ export default function MonthlyClosingPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="inline-flex items-center rounded-[12px] border border-[var(--border)] bg-[var(--surface)]" role="group" aria-label="Período do fechamento">
+            <div className="inline-flex items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)]" role="group" aria-label="Período do fechamento">
               <IconButton label="Mês anterior" icon={<FaChevronLeft />} onClick={() => goTo(-1)} />
               <output className="min-w-[150px] text-center text-sm font-bold capitalize">{monthTitle(year, month)}</output>
               <IconButton label="Próximo mês" icon={<FaChevronRight />} disabled={atCurrentMonth} onClick={() => goTo(1)} />
@@ -139,10 +139,10 @@ export default function MonthlyClosingPage() {
             <div role="status" className="space-y-4" aria-live="polite">
               <p className="text-sm text-[var(--text-muted)]">Carregando revisão do período…</p>
               <div className="animate-pulse space-y-4" aria-hidden="true">
-                <div className="h-56 rounded-[20px] bg-[var(--skeleton)]" />
+                <div className="h-56 rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
                 <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
-                  <div className="h-64 rounded-[16px] bg-[var(--skeleton)]" />
-                  <div className="h-64 rounded-[16px] bg-[var(--skeleton)]" />
+                  <div className="h-64 rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
+                  <div className="h-64 rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
                 </div>
               </div>
             </div>
@@ -151,7 +151,7 @@ export default function MonthlyClosingPage() {
           {error && <PageError message={error} buttonText="Tentar novamente" onRetry={retry} />}
 
           {data?.status === 'FUTURE' && (
-            <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-6">
+            <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-6">
               <h2 className="text-lg font-bold">Este período ainda é futuro</h2>
               <p className="mt-2 text-sm text-[var(--text-muted)]">
                 Fechamento é uma retrospectiva. Use Planejamento e Compromissos para consultar projeções futuras.

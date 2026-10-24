@@ -264,7 +264,7 @@ export function PayrollTransactionReconciliationSection({
       {error && (
         <div
           role="alert"
-          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
           <span>{error}</span>
           <Button variant="outline" size="sm" pill onClick={() => void retry()}>
@@ -286,7 +286,7 @@ export function PayrollTransactionReconciliationSection({
           {result.items.map((item) => (
             <article
               key={item.documentId}
-              className="rounded-[14px] border border-[var(--border)] p-4"
+              className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -328,7 +328,7 @@ export function PayrollTransactionReconciliationSection({
               )}
 
               {item.matchedTransaction && (
-                <div className="mt-3 rounded-[12px] bg-[var(--surface-raised)] p-3">
+                <div className="mt-3 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
                   <TransactionSummary
                     transaction={item.matchedTransaction}
                     showValues={showValues}
@@ -355,7 +355,7 @@ export function PayrollTransactionReconciliationSection({
                     return (
                       <div
                         key={candidate.id}
-                        className="rounded-[12px] bg-[var(--surface-raised)] p-3"
+                        className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3"
                       >
                         <TransactionSummary
                           transaction={candidate}

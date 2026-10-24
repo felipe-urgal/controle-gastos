@@ -158,7 +158,7 @@ export function InvestmentImportModal({
       {error && (
         <p
           role="alert"
-          className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+          className="mt-4 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
           {error}
         </p>
@@ -207,7 +207,7 @@ export function InvestmentImportModal({
       ) : (
         <div className="mt-5 space-y-4">
           {preview.detectedSource && (
-            <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--foreground)]">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--foreground)]">
               Arquivo detectado: <strong>{preview.detectedSource === 'NUBANK_BROKERAGE_NOTE' ? 'Notas de corretagem Nu Investimentos' : 'Extrato B3'}</strong>
             </div>
           )}
@@ -220,7 +220,7 @@ export function InvestmentImportModal({
           </div>
 
           {unresolved.length > 0 && (
-            <section aria-labelledby="unresolved-tickers-title" className="rounded-[16px] border border-[var(--warning)]/40 bg-[var(--warning-subtle)] p-4">
+            <section aria-labelledby="unresolved-tickers-title" className="rounded-[var(--radius-lg)] border border-[var(--warning)]/40 bg-[var(--warning-subtle)] p-4">
               <h3 id="unresolved-tickers-title" className="text-sm font-bold text-[var(--foreground)]">
                 Informe o ticker destes ativos
               </h3>
@@ -248,7 +248,7 @@ export function InvestmentImportModal({
             </section>
           )}
 
-          <div className="rounded-[16px] border border-[var(--border)]">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)]">
             <div className="border-b border-[var(--border)] px-4 py-3">
               <strong className="text-sm text-[var(--foreground)]">
                 {preview.kind === 'INCOMES' ? 'Proventos' : 'Movimentações'} ·{' '}
@@ -290,7 +290,7 @@ export function InvestmentImportModal({
           </div>
 
           {preview.brokerageNotes && preview.brokerageNotes.length > 0 && (
-            <div className="rounded-[16px] border border-[var(--border)]">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)]">
               <div className="border-b border-[var(--border)] px-4 py-3">
                 <strong className="text-sm text-[var(--foreground)]">Notas detectadas</strong>
               </div>
@@ -328,7 +328,7 @@ export function InvestmentImportModal({
           )}
 
           {preview.summary.invalid > 0 && (
-            <div className="rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]">
               {preview.items
                 .filter((item) => item.errors.length > 0)
                 .slice(0, 5)
@@ -367,7 +367,7 @@ export function InvestmentImportModal({
 
 function Summary({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+    <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="mt-1 block text-lg text-[var(--foreground)]">
         {value}

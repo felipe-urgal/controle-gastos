@@ -157,7 +157,7 @@ export function MonthPaceCard({
 
   return (
     <section
-      className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
+      className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
       aria-labelledby="dashboard-pace-title"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">

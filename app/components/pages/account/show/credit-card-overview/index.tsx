@@ -271,11 +271,11 @@ export default function CreditCardOverview({
 
       <section
         aria-label="Resumo do cartão"
-        className="grid gap-5 rounded-[20px] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+        className="grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
         style={{ ['--account-color' as string]: account.color || 'var(--orbit-primary)' }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[14px] text-white" style={{ backgroundColor: account.color || 'var(--orbit-primary)' }} aria-hidden="true">
+          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white" style={{ backgroundColor: account.color || 'var(--orbit-primary)' }} aria-hidden="true">
             <FaCreditCard />
           </span>
           <div className="min-w-0">
@@ -338,7 +338,7 @@ export default function CreditCardOverview({
         </nav>
       </section>
 
-      <section className="overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
+      <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
         <div className="flex flex-wrap gap-2 px-4 pb-3 pt-4 sm:px-5" role="group" aria-label="Faturas">
           {tabs.map((item) => (
             <Chip key={item.key} selected={tab === item.key} onClick={() => setTab(item.key)}>
@@ -413,7 +413,7 @@ export default function CreditCardOverview({
         )}
       </section>
 
-      <details className="group rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
+      <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
         <summary className="flex min-h-11 cursor-pointer list-none items-center px-4 text-sm text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
           Zona de risco
         </summary>
@@ -474,7 +474,7 @@ export default function CreditCardOverview({
           />
 
           {paymentAccountsError ? (
-            <div className="rounded-[12px] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] p-3 text-sm">
+            <div className="rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] p-3 text-sm">
               <p className="font-semibold text-[var(--expense)]">{paymentAccountsError}</p>
               <Button
                 variant="outline"
@@ -488,7 +488,7 @@ export default function CreditCardOverview({
               </Button>
             </div>
           ) : paymentAccounts.length === 0 && !loadingPaymentAccounts ? (
-            <p className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
+            <p className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
               Cadastre uma conta ativa em {account.currency} para registrar o pagamento.
             </p>
           ) : null}

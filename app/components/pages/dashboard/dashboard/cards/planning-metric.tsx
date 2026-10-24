@@ -11,7 +11,7 @@ export function PlanningMetric({
   danger?: boolean;
 }) {
   return (
-    <div className="rounded-[10px] bg-[var(--surface-raised)] p-3">
+    <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
       <p className="text-xs text-[var(--text-muted)]">{label}</p>
       <strong className={`money mt-1 block text-sm ${danger ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
         {value}

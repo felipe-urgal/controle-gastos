@@ -26,12 +26,12 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
         className="mt-4 [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
       >
         <section
-          className="w-full overflow-visible rounded-[20px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
+          className="w-full overflow-visible rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-surface)]"
           aria-label={isEditing ? 'Editar transação' : 'Nova transação'}
         >
           <div className="p-4 sm:p-6">
             <div
-              className="mx-auto grid max-w-[520px] grid-cols-3 overflow-hidden rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
+              className="mx-auto grid max-w-[520px] grid-cols-3 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
               aria-label="Tipo da transação"
             >
               <Button
@@ -111,7 +111,7 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
                     value: String(option.value),
                     label: option.label,
                   }))}
-                  triggerClassName="flex min-h-11 w-full items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                  triggerClassName="flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
                   menuClassName="min-w-[190px]"
                 >
                   <span className="h-2 w-2 rounded-full bg-[var(--orbit-primary)]" aria-hidden="true" />
@@ -130,7 +130,7 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
                       { value: 'recurring', label: 'Recorrente' },
                       { value: 'installment', label: 'Parcelada' },
                     ]}
-                    triggerClassName="flex min-h-11 w-full items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                    triggerClassName="flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
                     menuClassName="min-w-[190px]"
                   >
                     <FaCalendarAlt aria-hidden="true" />
@@ -138,7 +138,7 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
                     <FaChevronRight className="ml-auto rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
                   </ReceiptSelect>
                 ) : (
-                  <div className="flex min-h-11 items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
+                  <div className="flex min-h-11 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
                     <FaCalendarAlt aria-hidden="true" /> Única
                   </div>
                 )}

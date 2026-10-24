@@ -41,7 +41,7 @@ export function PortfolioSummary({
   const active = summary.allocation.find((slice) => slice.type === activeType) ?? null;
 
   return (
-    <section aria-labelledby="portfolio-hero-label" className="grid gap-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="portfolio-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p id="portfolio-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">
@@ -80,7 +80,7 @@ export function PortfolioSummary({
       </div>
 
       {(summary.unpricedCount > 0 || summary.staleCount > 0) && (
-        <div className="grid gap-1 rounded-[12px] bg-[var(--warning-subtle)] px-4 py-3 text-[13px] text-[var(--foreground)]">
+        <div className="grid gap-1 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-4 py-3 text-[13px] text-[var(--foreground)]">
           {summary.unpricedCount > 0 && (
             <p>
               {summary.unpricedCount} {summary.unpricedCount === 1 ? 'posição sem cotação não entra' : 'posições sem cotação não entram'} no valor de mercado nem no resultado. {summary.unpricedCount === 1 ? 'Ela aparece' : 'Elas aparecem'} a custo na lista.
@@ -119,7 +119,7 @@ export function PortfolioSummary({
               </Chip>
             ))}
           </ChipRow>
-          <p className="min-h-10 rounded-[12px] bg-[var(--surface-raised)] px-3 py-2 text-sm" aria-live="polite">
+          <p className="min-h-10 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2 text-sm" aria-live="polite">
             {active ? (
               <>
                 <strong>{typeLabel(active.type)}</strong> · <MoneyText>{money(active.value)}</MoneyText> · {percent(active.share)} da carteira
@@ -137,7 +137,7 @@ export function PortfolioSummary({
 
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="grid gap-0.5 rounded-[12px] bg-[var(--surface-raised)] px-4 py-3.5">
+    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
       <span className="text-[13px] font-semibold text-[var(--text-muted)]">{label}</span>
       <span className="money break-words text-xl font-semibold">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>

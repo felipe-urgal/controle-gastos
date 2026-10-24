@@ -55,7 +55,7 @@ export function PeriodicSummaryCard({
     <section className="ds-panel p-4 sm:p-5" aria-labelledby="periodic-summary-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[var(--surface-raised)] text-[var(--orbit-primary)]">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--orbit-primary)]">
             <FaCalendarWeek aria-hidden="true" />
           </span>
           <div>
@@ -85,11 +85,11 @@ export function PeriodicSummaryCard({
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
+        <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-2.5">
           <span className="block text-[var(--text-muted)]">Entradas</span>
           <strong className="mt-1 block text-[var(--income)]"><span className="money">{money(summary.totals.income, showValues, summary.currency)}</span></strong>
         </div>
-        <div className="rounded-[10px] bg-[var(--surface-subtle)] p-2.5">
+        <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-2.5">
           <span className="block text-[var(--text-muted)]">Saídas líquidas</span>
           <strong className="mt-1 block text-[var(--expense)]"><span className="money">{money(summary.totals.expense, showValues, summary.currency)}</span></strong>
         </div>

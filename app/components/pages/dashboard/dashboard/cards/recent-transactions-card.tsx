@@ -24,7 +24,7 @@ export function RecentTransactionsCard({
   onRetry?: () => void;
 }) {
   return (
-    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Últimas transações</h2>
         <Link href="/transacoes" className="inline-flex min-h-11 items-center px-2 -mx-2 text-sm font-semibold text-[var(--orbit-primary)]">Ver todas</Link>

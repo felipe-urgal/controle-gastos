@@ -126,7 +126,7 @@ export function InvestmentTaxPaymentReconciliationSection({
       {error && (
         <p
           role="alert"
-          className="mt-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
+          className="mt-3 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
         >
           {error}
         </p>
@@ -145,7 +145,7 @@ export function InvestmentTaxPaymentReconciliationSection({
           {items.map((item) => (
             <article
               key={item.paymentId}
-              className="rounded-[14px] border border-[var(--border)] p-3"
+              className="rounded-[var(--radius-lg)] border border-[var(--border)] p-3"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -186,7 +186,7 @@ export function InvestmentTaxPaymentReconciliationSection({
               ) : null}
 
               {item.matchedTransaction ? (
-                <div className="mt-3 rounded-[12px] bg-[var(--surface-raised)] p-3">
+                <div className="mt-3 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
                   <TransactionSummary
                     transaction={item.matchedTransaction}
                     showValues={showValues}
@@ -205,7 +205,7 @@ export function InvestmentTaxPaymentReconciliationSection({
                     return (
                       <div
                         key={candidate.id}
-                        className="rounded-[12px] bg-[var(--surface-raised)] p-3"
+                        className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3"
                       >
                         <TransactionSummary
                           transaction={candidate}

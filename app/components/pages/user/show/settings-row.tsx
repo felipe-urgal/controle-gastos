@@ -18,7 +18,7 @@ export function SettingsPanel({
 }) {
   return (
     <section
-      className="overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]"
+      className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]"
       aria-labelledby={id}
       aria-busy={busy || undefined}
     >
@@ -51,7 +51,7 @@ export function SettingsRow({
 }) {
   return (
     <div className={`grid items-center gap-x-4 gap-y-3 border-t border-[var(--border)] px-4 py-4 first:border-t-0 sm:px-5 ${inlineControl ? 'grid-cols-[auto_minmax(0,1fr)_auto]' : 'grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto]'}`}>
-      <span className="grid h-10 w-10 place-items-center rounded-[12px] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">{icon}</span>
+      <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">{icon}</span>
       <div className="min-w-0">
         <h3 className="text-[15px] font-semibold text-[var(--foreground)]">{title}</h3>
         {description && <p className="mt-0.5 text-sm leading-relaxed text-[var(--text-muted)]">{description}</p>}

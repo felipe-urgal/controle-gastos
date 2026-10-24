@@ -77,7 +77,7 @@ export function FiscalYearEndSnapshotCard({
   );
 
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -103,7 +103,7 @@ export function FiscalYearEndSnapshotCard({
           Gerando snapshot fiscal...
         </p>
       ) : error ? (
-        <p className="mt-4 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
+        <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
           {error}
         </p>
       ) : !snapshot ? null : snapshot.current.items.length === 0 &&
@@ -215,7 +215,7 @@ function SnapshotTotals({
   );
 
   return (
-    <div className="rounded-[14px] bg-[var(--surface-raised)] p-4">
+    <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-4">
       <span className="text-xs font-semibold text-[var(--text-muted)]">
         Custo fiscal · {label}
       </span>

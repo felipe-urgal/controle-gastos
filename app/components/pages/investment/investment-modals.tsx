@@ -501,7 +501,7 @@ export function FiscalCostModal({ portfolio, fiscalCostForm, setFiscalCostForm, 
               {portfolio.fiscalCostAdjustments.some(
                 (item) => item.assetId === fiscalCostForm.assetId,
               ) && (
-                <div className="rounded-[14px] border border-[var(--border)] p-3">
+                <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-3">
                   <h3 className="text-sm font-bold text-[var(--foreground)]">
                     Ajustes anteriores
                   </h3>

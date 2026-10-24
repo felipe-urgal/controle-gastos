@@ -34,7 +34,7 @@ export function Pagination({
 
 export function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-[12px] bg-[var(--surface-raised)] p-3">
+    <div className="min-w-0 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="mt-1 block break-words text-sm text-[var(--foreground)]">
         {value}

@@ -193,7 +193,7 @@ export function ForeignInvestmentAnnualTaxCard({
   ).filter((item) => item >= 2024);
 
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -222,12 +222,12 @@ export function ForeignInvestmentAnnualTaxCard({
       </div>
 
       {error && (
-        <p className="mt-4 rounded-[12px] border border-[var(--expense)]/30 p-3 text-sm text-[var(--expense)]">
+        <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--expense)]/30 p-3 text-sm text-[var(--expense)]">
           {error}
         </p>
       )}
       {notice && (
-        <p className="mt-4 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
+        <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
           {notice}
         </p>
       )}
@@ -286,7 +286,7 @@ export function ForeignInvestmentAnnualTaxCard({
           </div>
 
           {report.status === 'PENDING' && (
-            <div className="mt-4 rounded-[14px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
+            <div className="mt-4 rounded-[var(--radius-lg)] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
               <strong className="block text-sm">Apuração pendente</strong>
               <span className="mt-1 block">
                 O imposto não é fechado enquanto houver PTAX, classificação,
@@ -304,7 +304,7 @@ export function ForeignInvestmentAnnualTaxCard({
                     item.year,
                     item.eventId ?? item.assetId ?? index,
                   ].join(':')}
-                  className="rounded-[12px] border border-[var(--border)] p-3 text-xs"
+                  className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-xs"
                 >
                   <strong className="text-[var(--foreground)]">
                     {item.symbol ?? `Ano ${item.year}`} · {item.code}
@@ -317,7 +317,7 @@ export function ForeignInvestmentAnnualTaxCard({
             </div>
           )}
 
-          <details className="mt-4 rounded-[14px] border border-[var(--border)] p-3">
+          <details className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] p-3">
             <summary className="cursor-pointer text-sm font-bold text-[var(--foreground)]">
               Imposto pago no exterior
             </summary>
@@ -419,7 +419,7 @@ export function ForeignInvestmentAnnualTaxCard({
                 {report.foreignTaxCredits.map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs"
+                    className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3 text-xs"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
@@ -464,7 +464,7 @@ export function ForeignInvestmentAnnualTaxCard({
           </details>
 
           {report.annualRows.length > 0 && (
-            <details className="mt-4 rounded-[14px] border border-[var(--border)] p-3">
+            <details className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] p-3">
               <summary className="cursor-pointer text-sm font-bold text-[var(--foreground)]">
                 Histórico da compensação de perdas
               </summary>
@@ -472,7 +472,7 @@ export function ForeignInvestmentAnnualTaxCard({
                 {report.annualRows.map((row) => (
                   <div
                     key={row.year}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] bg-[var(--surface-raised)] p-3 text-xs"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3 text-xs"
                   >
                     <strong className="text-[var(--foreground)]">
                       {row.year} · {row.status === 'OK' ? 'Fechado' : 'Pendente'}
@@ -504,7 +504,7 @@ export function ForeignInvestmentAnnualTaxCard({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[14px] bg-[var(--surface-raised)] p-4">
+    <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-4">
       <span className="text-xs font-semibold text-[var(--text-muted)]">
         {label}
       </span>

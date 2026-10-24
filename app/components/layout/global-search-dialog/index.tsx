@@ -313,7 +313,7 @@ export default function GlobalSearchDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="global-search-title"
-        className="flex w-full flex-col overflow-hidden border-[var(--border)] bg-[var(--surface)] pt-[env(safe-area-inset-top)] shadow-2xl max-sm:h-dvh max-sm:max-w-none sm:max-w-2xl sm:rounded-[18px] sm:border sm:pt-0"
+        className="flex w-full flex-col overflow-hidden border-[var(--border)] bg-[var(--surface)] pt-[env(safe-area-inset-top)] shadow-2xl max-sm:h-dvh max-sm:max-w-none sm:max-w-2xl sm:rounded-[var(--radius-lg)] sm:border sm:pt-0"
       >
         <header className="flex items-center gap-3 border-b border-[var(--border)] p-3 sm:p-4">
           <FaSearch className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
@@ -408,13 +408,13 @@ export default function GlobalSearchDialog({
                         onMouseEnter={() => setActiveIndex(index)}
                         onClick={() => activate(result)}
                         className={
-                          'flex min-h-14 w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                          'flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
                           (active
                             ? 'bg-[var(--primary-subtle)]'
                             : 'hover:bg-[var(--surface-hover)]')
                         }
                       >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--surface-raised)] text-[var(--primary)]">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--primary)]">
                           <Icon aria-hidden="true" />
                         </span>
                         <span className="min-w-0 flex-1">
@@ -456,13 +456,13 @@ export default function GlobalSearchDialog({
                         onMouseEnter={() => setActiveIndex(index)}
                         onClick={() => activate(result)}
                         className={
-                          'flex min-h-14 w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                          'flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
                           (active
                             ? 'bg-[var(--primary-subtle)]'
                             : 'hover:bg-[var(--surface-hover)]')
                         }
                       >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--surface-raised)] text-[var(--text-muted)]">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]">
                           <Icon aria-hidden="true" />
                         </span>
                         <span className="min-w-0 flex-1">
@@ -489,7 +489,7 @@ export default function GlobalSearchDialog({
             {query.trim().length >= 2 && !loading && error && (
               <p
                 role="alert"
-                className="rounded-[12px] bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+                className="rounded-[var(--radius-md)] bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
               >
                 {error}
                 <button type="button" className="ml-3 underline" onClick={() => setRetryVersion((version) => version + 1)}>Tentar novamente</button>
@@ -525,13 +525,13 @@ export default function GlobalSearchDialog({
                           onMouseEnter={() => setActiveIndex(index)}
                           onClick={() => activate(result)}
                           className={
-                            'flex min-h-14 w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                            'flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
                             (active
                               ? 'bg-[var(--primary-subtle)]'
                               : 'hover:bg-[var(--surface-hover)]')
                           }
                         >
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--surface-raised)] text-[var(--text-muted)]">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]">
                             <Icon aria-hidden="true" />
                           </span>
                           <span className="min-w-0 flex-1">

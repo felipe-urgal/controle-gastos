@@ -402,7 +402,7 @@ export default function NetWorthPage() {
         {error && (
           <p
             role="alert"
-            className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+            className="mt-4 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
           >
             {error}
           </p>
@@ -463,7 +463,7 @@ export default function NetWorthPage() {
                 />
 
                 {data.realEvolution?.error && (
-                  <article className="rounded-[18px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 sm:p-5">
+                  <article className="rounded-[var(--radius-lg)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 sm:p-5">
                     <h2 className="font-bold text-[var(--foreground)]">
                       Evolução real indisponível
                     </h2>
@@ -515,7 +515,7 @@ export default function NetWorthPage() {
                 </>
               )}
 
-              <details className="group rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
+              <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
                 <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 sm:px-5 [&::-webkit-details-marker]:hidden">
                   <span>
                     <span className="block text-lg font-bold">Câmbio e consolidação</span>

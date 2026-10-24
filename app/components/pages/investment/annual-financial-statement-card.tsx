@@ -263,7 +263,7 @@ export function AnnualFinancialStatementCard({
   );
 
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -285,14 +285,14 @@ export function AnnualFinancialStatementCard({
       {error && (
         <p
           role="alert"
-          className="mt-4 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+          className="mt-4 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
         >
           {error}
         </p>
       )}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-        <section className="rounded-[14px] border border-[var(--border)] p-4">
+        <section className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4">
           <h3 className="text-sm font-bold text-[var(--foreground)]">
             Importar informe Nubank
           </h3>
@@ -316,7 +316,7 @@ export function AnnualFinancialStatementCard({
             </div>
           ) : preview.requiresOcr ? (
             <div className="mt-4 space-y-3">
-              <div className="rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs text-[var(--text-muted)]">
+              <div className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] p-3 text-xs text-[var(--text-muted)]">
                 <strong className="text-[var(--foreground)]">OCR/revisão necessária</strong>
                 <p className="mt-1">{preview.warnings[0]}</p>
               </div>
@@ -326,7 +326,7 @@ export function AnnualFinancialStatementCard({
             </div>
           ) : preview.statement ? (
             <div className="mt-4 space-y-3">
-              <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
+              <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
                 <strong className="text-sm text-[var(--foreground)]">
                   {preview.statement.sourceInstitution} · {preview.statement.calendarYear}
                 </strong>
@@ -346,7 +346,7 @@ export function AnnualFinancialStatementCard({
               </div>
 
               {preview.statement.positions.length > 0 && (
-                <details className="rounded-[12px] border border-[var(--border)] p-3">
+                <details className="rounded-[var(--radius-md)] border border-[var(--border)] p-3">
                   <summary className="cursor-pointer text-xs font-bold text-[var(--foreground)]">
                     Itens patrimoniais
                   </summary>
@@ -354,7 +354,7 @@ export function AnnualFinancialStatementCard({
                     {preview.statement.positions.map((position, index) => (
                       <div
                         key={(position.symbol ?? position.description) + ':' + index}
-                        className="rounded-[10px] bg-[var(--surface-raised)] p-2 text-xs"
+                        className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-2 text-xs"
                       >
                         <strong className="text-[var(--foreground)]">
                           {position.symbol ?? position.description}
@@ -373,7 +373,7 @@ export function AnnualFinancialStatementCard({
               )}
 
               {preview.statement.errors.length > 0 && (
-                <div className="rounded-[12px] bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]">
+                <div className="rounded-[var(--radius-md)] bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]">
                   {preview.statement.errors.map((item) => (
                     <p key={item}>{item}</p>
                   ))}
@@ -381,7 +381,7 @@ export function AnnualFinancialStatementCard({
               )}
 
               {[...new Set([...preview.warnings, ...preview.statement.warnings])].length > 0 && (
-                <div className="rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs text-[var(--text-muted)]">
+                <div className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] p-3 text-xs text-[var(--text-muted)]">
                   {[...new Set([...preview.warnings, ...preview.statement.warnings])].map((item) => (
                     <p key={item}>{item}</p>
                   ))}
@@ -389,7 +389,7 @@ export function AnnualFinancialStatementCard({
               )}
 
               {preview.statement.duplicate && (
-                <p className="rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs text-[var(--text-muted)]">
+                <p className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3 text-xs text-[var(--text-muted)]">
                   Este informe já foi importado.
                 </p>
               )}
@@ -410,7 +410,7 @@ export function AnnualFinancialStatementCard({
           ) : null}
         </section>
 
-        <section className="rounded-[14px] border border-[var(--border)] p-4">
+        <section className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="text-sm font-bold text-[var(--foreground)]">
@@ -487,7 +487,7 @@ export function AnnualFinancialStatementCard({
                         ':' +
                         (position.symbol ?? position.description)
                       }
-                      className="rounded-[12px] border border-[var(--border)]"
+                      className="rounded-[var(--radius-md)] border border-[var(--border)]"
                     >
                       <summary className="cursor-pointer list-none p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -571,7 +571,7 @@ export function AnnualFinancialStatementCard({
                   {reconciliation.incomes.map((income, index) => (
                     <details
                       key={(income.symbol ?? 'unlinked') + ':' + index}
-                      className="rounded-[12px] border border-[var(--border)]"
+                      className="rounded-[var(--radius-md)] border border-[var(--border)]"
                     >
                       <summary className="cursor-pointer list-none p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -627,7 +627,7 @@ export function AnnualFinancialStatementCard({
                     reconciliation.withholdings.map((item, index) => (
                       <details
                         key={(item.symbol ?? 'unlinked-irrf') + ':' + index}
-                        className="rounded-[12px] border border-[var(--border)]"
+                        className="rounded-[var(--radius-md)] border border-[var(--border)]"
                       >
                         <summary className="cursor-pointer list-none p-3">
                           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -666,7 +666,7 @@ export function AnnualFinancialStatementCard({
                             item.internalAssetId &&
                             item.internalAssetType &&
                             item.statementAmountCents !== null && (
-                              <div className="mt-3 rounded-[12px] bg-[var(--surface-raised)] p-3">
+                              <div className="mt-3 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
                                 {withholdingDraft?.index === index ? (
                                   <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
                                     <Input label="Data/competência exata do IRRF" type="date" value={withholdingDraft.date} onChange={(event) =>
@@ -730,7 +730,7 @@ export function AnnualFinancialStatementCard({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
+    <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="mt-1 block text-xs text-[var(--foreground)]">{value}</strong>
     </div>

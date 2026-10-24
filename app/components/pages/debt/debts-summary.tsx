@@ -31,7 +31,7 @@ export function DebtsSummaryPanel({
   const next = summary.nextDue;
 
   return (
-    <section aria-labelledby="debts-hero-label" className="grid gap-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="debts-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p id="debts-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">Você deve em {summary.currency}</p>
@@ -52,7 +52,7 @@ export function DebtsSummaryPanel({
       </div>
 
       {summary.overdue.length > 0 && (
-        <p role="alert" className="rounded-[12px] bg-[var(--danger-subtle)] px-4 py-2.5 text-sm font-semibold text-[var(--expense)]">
+        <p role="alert" className="rounded-[var(--radius-md)] bg-[var(--danger-subtle)] px-4 py-2.5 text-sm font-semibold text-[var(--expense)]">
           {summary.overdue.length === 1 ? '1 parcela vencida: ' : `${summary.overdue.length} parcelas vencidas: `}
           {summary.overdue.map((item) => `${item.debt.name} (${item.daysLate} ${item.daysLate === 1 ? 'dia' : 'dias'})`).join(', ')}.
         </p>
@@ -95,7 +95,7 @@ export function DebtsSummaryPanel({
 
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="grid min-w-0 gap-0.5 rounded-[12px] bg-[var(--surface-raised)] px-3.5 py-3">
+    <div className="grid min-w-0 gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3">
       <span className="text-[13px] font-semibold text-[var(--text-muted)]">{label}</span>
       <span className="money break-words text-lg font-semibold">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
@@ -122,7 +122,7 @@ export function InstallmentLoadPanel({
   const money = (cents: number) => (showValues ? formatCurrency(cents, currency) : '••••');
 
   return (
-    <section aria-labelledby="debts-load-title" className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <section aria-labelledby="debts-load-title" className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <h2 id="debts-load-title" className="text-lg font-bold">Quanto você paga por mês</h2>
       <p className="mt-1 text-xs text-[var(--text-muted)]">
         Soma das parcelas das dívidas ativas nos próximos {months.length} meses. Passe o cursor ou toque numa coluna.
