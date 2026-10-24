@@ -70,8 +70,8 @@ export default function ShowPage<T>({
   children,
 }: ShowPageProps<T>) {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
-  // Com `mobileContent`, monta só a árvore do viewport (sem duplicar DOM escondido por CSS).
-  const showDesktop = !mobileContent || isDesktop;
+  // Com `mobileContent` (mesmo `null` enquanto carrega), monta só a árvore do viewport (sem duplicar DOM escondido por CSS).
+  const showDesktop = mobileContent === undefined || isDesktop;
 
   return (
     <ProtectedRoute>
