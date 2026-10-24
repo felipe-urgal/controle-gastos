@@ -12,6 +12,7 @@ import {
 
 import {
   getAppNavigation,
+  mobileMoreExtraKeys,
   mobileMoreNavigationGroups,
   type AppNavigationItem,
 } from '@/app/components/layout/app-navigation';
@@ -29,9 +30,10 @@ export default function MobileMoreMenu({
   const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
 
   const groups = mobileMoreNavigationGroups
-    .map((group) => ({
+    .map((group, index) => ({
       ...group,
-      items: group.keys
+      // O Calendário, fora da barra inferior, abre o primeiro grupo.
+      items: [...(index === 0 ? mobileMoreExtraKeys : []), ...group.keys]
         .map((key) => navigation.find((item) => item.key === key))
         .filter((item): item is AppNavigationItem => item !== undefined)
         .filter(

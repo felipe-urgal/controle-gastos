@@ -6,9 +6,20 @@ import { FaEllipsisH } from 'react-icons/fa';
 
 import {
   getAppNavigation,
-  mobilePrimaryNavigationKeys,
+  mobileBottomNavigationKeys,
 } from '@/app/components/layout/app-navigation';
 
+const itemBase =
+  'relative flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1.5 text-xs transition-colors duration-150 ' +
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ';
+
+function itemTone(active: boolean) {
+  return active
+    ? 'bg-[var(--primary-subtle)] font-semibold text-[var(--primary)]'
+    : 'font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]';
+}
+
+/** Barra inferior flutuante (pílula): Início, Transações, Contas e Mais. */
 export default function BottomNav({
   onOpenMore,
   moreOpen = false,
@@ -19,28 +30,25 @@ export default function BottomNav({
   const pathname = usePathname();
   const allNavigation = getAppNavigation();
   const navigation = allNavigation.filter((item) =>
-    mobilePrimaryNavigationKeys.includes(
-      item.key as (typeof mobilePrimaryNavigationKeys)[number],
-    ),
+    mobileBottomNavigationKeys.includes(item.key as (typeof mobileBottomNavigationKeys)[number]),
   );
   const moreActive = allNavigation.some(
     (item) =>
-      !mobilePrimaryNavigationKeys.includes(
-        item.key as (typeof mobilePrimaryNavigationKeys)[number],
-      ) && item.isActive(pathname),
+      !mobileBottomNavigationKeys.includes(item.key as (typeof mobileBottomNavigationKeys)[number]) &&
+      item.isActive(pathname),
   );
 
   return (
     <nav
       aria-label="Navegação principal"
-      className="orbit-navigation-surface fixed inset-x-0 bottom-0 z-[var(--z-nav)] border-t border-[var(--border)] lg:hidden"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-[var(--z-nav)] lg:hidden"
       style={{
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        paddingLeft: 'env(safe-area-inset-left)',
-        paddingRight: 'env(safe-area-inset-right)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)',
+        paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
+        paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
       }}
     >
-      <div className="mx-auto grid min-h-[calc(var(--app-mobile-bottom-nav-height)-1px)] max-w-xl grid-cols-5 px-1 sm:px-2">
+      <div className="pointer-events-auto mx-auto grid max-w-sm grid-cols-4 gap-1 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] p-1.5 shadow-[var(--shadow-elevated)] backdrop-blur-xl">
         {navigation.map((item) => {
           const active = item.isActive(pathname);
           const Icon = item.icon;
@@ -52,32 +60,10 @@ export default function BottomNav({
               href={item.href}
               aria-current={active ? 'page' : undefined}
               aria-label={label}
-              className={
-                'relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] px-1 py-2 ' +
-                'text-sm transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] ' +
-                (active
-                  ? 'font-semibold text-[var(--foreground)]'
-                  : 'font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]')
-              }
+              className={itemBase + itemTone(active)}
             >
-              <span
-                className={
-                  'flex h-8 min-w-9 items-center justify-center rounded-full border px-1.5 transition-colors duration-150 ' +
-                  (active
-                    ? 'border-[var(--primary)]/30 bg-[var(--primary-subtle)] text-[var(--primary)]'
-                    : 'border-transparent text-[var(--text-subtle)]')
-                }
-                aria-hidden="true"
-              >
-                <Icon className="h-[18px] w-[18px]" />
-              </span>
+              <Icon className="h-5 w-5" aria-hidden="true" />
               <span className="max-w-full truncate max-[359px]:sr-only">{label}</span>
-              {active && (
-                <span
-                  className="absolute bottom-0 h-0.5 w-8 rounded-full bg-[var(--primary)]"
-                  aria-hidden="true"
-                />
-              )}
             </Link>
           );
         })}
@@ -88,32 +74,10 @@ export default function BottomNav({
           aria-label="Mais"
           aria-haspopup="dialog"
           aria-expanded={moreOpen}
-          className={
-            'relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] px-1 py-2 ' +
-            'text-sm transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] ' +
-            (moreActive || moreOpen
-              ? 'font-semibold text-[var(--foreground)]'
-              : 'font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]')
-          }
+          className={itemBase + itemTone(moreActive || moreOpen)}
         >
-          <span
-            className={
-              'flex h-8 min-w-9 items-center justify-center rounded-full border px-1.5 transition-colors duration-150 ' +
-              (moreActive || moreOpen
-                ? 'border-[var(--primary)]/30 bg-[var(--primary-subtle)] text-[var(--primary)]'
-                : 'border-transparent text-[var(--text-subtle)]')
-            }
-            aria-hidden="true"
-          >
-            <FaEllipsisH className="h-[18px] w-[18px]" />
-          </span>
+          <FaEllipsisH className="h-5 w-5" aria-hidden="true" />
           <span className="max-w-full truncate max-[359px]:sr-only">Mais</span>
-          {moreActive && (
-            <span
-              className="absolute bottom-0 h-0.5 w-8 rounded-full bg-[var(--primary)]"
-              aria-hidden="true"
-            />
-          )}
         </button>
       </div>
     </nav>

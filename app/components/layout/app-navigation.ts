@@ -171,6 +171,12 @@ export const mobilePrimaryNavigationKeys = [
   'calendar',
 ] as const;
 
+/** Itens da barra inferior flutuante no mobile; o "Mais" abre o restante. */
+export const mobileBottomNavigationKeys = ['dashboard', 'transactions', 'accounts'] as const;
+
+/** Vão para o "Mais" no mobile, mas continuam no grupo "Principal" da sidebar. */
+export const mobileMoreExtraKeys = ['calendar'] as const;
+
 export const mobileMoreNavigationGroups = [
   {
     label: 'Planejamento',
