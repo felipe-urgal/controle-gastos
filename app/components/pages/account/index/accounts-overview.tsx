@@ -110,7 +110,7 @@ export function AccountsOverview({
   return (
     <section
       aria-label={ariaLabel}
-      className={`grid gap-[14px] ${attention.length > 0 ? 'lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]' : ''}`}
+      className={`grid items-start gap-[14px] ${attention.length > 0 ? 'lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]' : ''}`}
     >
       <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5">
         {loading || !summary ? (
@@ -118,25 +118,29 @@ export function AccountsOverview({
         ) : totals.length === 0 ? (
           <p className="text-sm text-[var(--text-muted)]">Nenhuma conta ativa ainda. Crie uma conta para ver seu dinheiro aqui.</p>
         ) : (
-          <div className="space-y-6 divide-y divide-[var(--border)] [&>*:not(:first-child)]:pt-6">
-            {totals.map((item) => (
-              <CurrencyHero
-                key={item.currency}
-                totals={item}
-                showValues={showValues}
-                showCurrency={totals.length > 1}
-              />
-            ))}
-            {totals.length > 1 && <p className="text-xs text-[var(--text-muted)]">Sem conversão entre moedas.</p>}
-            <Link href="/patrimonio" className="inline-flex text-xs font-semibold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
-              Ver patrimônio
-            </Link>
-            {attention.length === 0 && (
-              <p className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-                <FaCheckCircle className="shrink-0 text-[var(--income)]" aria-hidden="true" />
-                Nenhuma conta precisa de atenção.
-              </p>
-            )}
+          <div className="space-y-5">
+            <div className="space-y-6 divide-y divide-[var(--border)] [&>*:not(:first-child)]:pt-6">
+              {totals.map((item) => (
+                <CurrencyHero
+                  key={item.currency}
+                  totals={item}
+                  showValues={showValues}
+                  showCurrency={totals.length > 1}
+                />
+              ))}
+            </div>
+            <div className="space-y-2 border-t border-[var(--border)] pt-4">
+              {totals.length > 1 && <p className="text-xs text-[var(--text-muted)]">Sem conversão entre moedas.</p>}
+              {attention.length === 0 && (
+                <p className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                  <FaCheckCircle className="shrink-0 text-[var(--income)]" aria-hidden="true" />
+                  Nenhuma conta precisa de atenção.
+                </p>
+              )}
+              <Link href="/patrimonio" className="inline-flex text-xs font-semibold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+                Ver patrimônio
+              </Link>
+            </div>
           </div>
         )}
       </article>

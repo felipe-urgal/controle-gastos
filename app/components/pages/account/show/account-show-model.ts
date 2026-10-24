@@ -84,15 +84,14 @@ export function accountShowActions(account: Pick<AccountModel, 'id' | 'type'>): 
   if (account.type === 'INVESTMENT') {
     return [
       { key: 'operation', label: 'Nova operação', href: '/investimentos', primary: true },
-      { key: 'incomes', label: 'Proventos', href: '/investimentos' },
-      { key: 'positions', label: 'Posições', href: '/investimentos' },
+      { key: 'positions', label: 'Ver posições', href: '/investimentos' },
     ];
   }
 
   return [
     { key: 'new', label: 'Lançar', href: '/transacoes/nova', primary: true },
     { key: 'transfer', label: 'Transferir', href: '/transacoes/nova?mode=transfer' },
-    { key: 'reconcile', label: 'Conciliar', href: '#account-reconciliation' },
+    { key: 'reconcile', label: 'Reconciliar', href: '#account-reconciliation' },
   ];
 }
 

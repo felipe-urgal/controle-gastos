@@ -190,7 +190,8 @@ export default function AccountShowView({
   const value = getAccountPrimaryValue(account);
   const activity = account.activity ?? null;
   const monthName = monthNames[new Date().getMonth()];
-  const actions = accountShowActions(account);
+  // Conta inativa não recebe lançamentos novos: em vez das ações, oferece reativar.
+  const actions = account.isActive ? accountShowActions(account) : [];
   const series = activity?.balanceSeries ?? [];
   const sparkLabel = showValues && series.length > 1
     ? `Saldo dos últimos 30 dias: de ${formatCurrency(series[0], account.currency)} a ${formatCurrency(series[series.length - 1], account.currency)}`
@@ -272,20 +273,27 @@ export default function AccountShowView({
           ))}
         </dl>
 
-        <nav aria-label="Ações da conta" className="grid grid-cols-3 gap-2">
-          {actions.map((action) => (
-            <Button
-              key={action.key}
-              as="a"
-              href={action.href}
-              variant={action.primary ? 'primary' : 'outline'}
-              size="xs"
-              className="w-full px-1 text-center leading-tight"
-            >
-              {action.label}
-            </Button>
-          ))}
-        </nav>
+        {actions.length > 0 ? (
+          <nav aria-label="Ações da conta" className="grid auto-cols-fr grid-flow-col gap-2">
+            {actions.map((action) => (
+              <Button
+                key={action.key}
+                as="a"
+                href={action.href}
+                variant={action.primary ? 'primary' : 'outline'}
+                size="xs"
+                className="w-full px-1 text-center leading-tight"
+              >
+                {action.label}
+              </Button>
+            ))}
+          </nav>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-muted)]">
+            <span>Conta inativa: não recebe novos lançamentos e o histórico continua guardado.</span>
+            <Button as="a" href={editUrl} variant="outline" size="xs">Reativar conta</Button>
+          </div>
+        )}
       </section>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">

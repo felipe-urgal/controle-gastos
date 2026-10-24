@@ -55,6 +55,8 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         onClearError={() => setSubmitError(null)}
         className="gap-5"
       >
+        {!lock.typeAndCurrency && (
+        <>
         <div role="group" aria-label="Tipo de conta" className="grid grid-cols-3 gap-2">
           {accountTypeCards.map((option) => (
             <Chip
@@ -73,6 +75,8 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         <p className="-mt-2 px-1 text-sm text-[var(--text-muted)]">
           {accountTypeCards.find((option) => option.value === formData.type)?.description}
         </p>
+        </>
+        )}
 
         {lock.typeAndCurrency && (
           <div role="note" className="flex items-start gap-2.5 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3.5 py-3 text-sm leading-relaxed text-[var(--warning)]">
@@ -108,9 +112,13 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
           <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-[var(--radius-lg)] px-4 text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
             <span>Mais opções</span>
-            <span className="text-sm font-normal text-[var(--text-muted)]">
-              descrição{isEditing ? ' e status' : ''}
-            </span>
+            {isEditing && !formData.isActive ? (
+              <span className="text-sm font-semibold text-[var(--warning)]">Conta inativa</span>
+            ) : (
+              <span className="text-sm font-normal text-[var(--text-muted)]">
+                descrição{isEditing ? ' e status' : ''}
+              </span>
+            )}
           </summary>
           <div className="grid gap-4 px-4 pb-4">
             <Input

@@ -107,10 +107,10 @@ describe('buildSparkline', () => {
 });
 
 describe('accountShowActions', () => {
-  it('conta corrente: lançar em destaque, transferir e conciliar (extrato fica junto da lista)', () => {
+  it('conta corrente: lançar em destaque, transferir e reconciliar (extrato fica junto da lista)', () => {
     const actions = accountShowActions({ id: 'a1', type: 'CREDIT_DEBIT' });
 
-    expect(actions.map((action) => action.label)).toEqual(['Lançar', 'Transferir', 'Conciliar']);
+    expect(actions.map((action) => action.label)).toEqual(['Lançar', 'Transferir', 'Reconciliar']);
     expect(actions.filter((action) => action.primary)).toHaveLength(1);
   });
 
