@@ -1,6 +1,5 @@
 'use client';
 
-import { format } from 'date-fns';
 import Link from 'next/link';
 import { useState } from 'react';
 import { FaArrowDown, FaArrowUp, FaExchangeAlt } from 'react-icons/fa';
@@ -14,7 +13,6 @@ import {
   investmentValueSourceLabel,
   type MovementFilter,
 } from '@/app/components/pages/account/show/account-show-model';
-import ReconciliationPanel from '@/app/components/pages/account/show/reconciliation-panel';
 import { ChartCursor } from '@/app/components/charts/chart-cursor';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
 import { Button, Chip, IconRenderer, ShowBelow } from '@/app/components/ui';
@@ -73,12 +71,6 @@ function MovementRow({ transaction, account, showValues }: { transaction: Accoun
   const isOpening = transaction.kind === 'OPENING_BALANCE';
   const isIncome = transaction.type === 'INCOME';
   const pending = transaction.status === 'PENDING';
-  const reconciliation =
-    transaction.status === 'COMPLETED' && transaction.reconciliationStatus === 'RECONCILED'
-      ? 'Reconciliada'
-      : transaction.status === 'COMPLETED' && transaction.reconciliationStatus === 'CLEARED'
-        ? 'Conferida'
-        : null;
   const tone = isTransfer
     ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
     : isIncome
@@ -100,7 +92,6 @@ function MovementRow({ transaction, account, showValues }: { transaction: Accoun
           <span className="block break-words text-sm font-semibold text-[var(--foreground)]">
             {transaction.description || 'Sem descrição'}
             {pending && <span className="ml-2 align-middle text-xs font-semibold text-[var(--pending)]">pendente</span>}
-            {reconciliation && <span className="ml-2 align-middle text-xs font-semibold text-[var(--primary)]">{reconciliation}</span>}
           </span>
           <span className="block truncate text-xs text-[var(--text-muted)]">
             {isTransfer ? getTransferCounterpartLabel(transaction) : isOpening ? 'Abertura da conta' : transaction.category?.name ?? 'Sem categoria'}
@@ -173,7 +164,6 @@ export default function AccountShowView({
   editUrl,
   isDeleting,
   onDeleteRequest,
-  onReconciliationChange,
 }: {
   account: AccountModel;
   typeLabels: Record<string, string>;
@@ -181,7 +171,6 @@ export default function AccountShowView({
   editUrl: string;
   isDeleting: boolean;
   onDeleteRequest: () => void;
-  onReconciliationChange?: () => Promise<void> | void;
 }) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
@@ -261,6 +250,7 @@ export default function AccountShowView({
                 Com os pendentes concluídos: <strong className={`money ${projected < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>{money(projected)}</strong>
               </p>
             )}
+            {account.description && <p className="mt-2 text-sm text-[var(--text-muted)]">{account.description}</p>}
             {!showValues && <p className="mt-1 text-sm text-[var(--text-subtle)]">Valores ocultos pelas suas preferências.</p>}
           </div>
           {series.length > 1 && <Sparkline series={series} label={sparkLabel} currency={account.currency} showValues={showValues} />}
@@ -298,38 +288,24 @@ export default function AccountShowView({
         )}
       </section>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <Movements account={account} showValues={showValues} />
+      <Movements account={account} showValues={showValues} />
 
-        <div className="space-y-4">
-          <ReconciliationPanel account={account} onChanged={onReconciliationChange} />
-
-          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="account-about-heading">
-            <h2 id="account-about-heading" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Sobre a conta</h2>
-            <dl className="grid gap-2 px-4 pb-4 text-sm sm:px-5">
-              <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Criada em</dt><dd>{format(new Date(account.createdAt), 'dd/MM/yyyy')}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Última atualização</dt><dd>{format(new Date(account.updatedAt), 'dd/MM/yyyy')}</dd></div>
-              {account.description && <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Descrição</dt><dd className="text-right">{account.description}</dd></div>}
-            </dl>
-            <details className="group border-t border-[var(--border)]">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center px-4 text-sm text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
-                Zona de risco
-              </summary>
-              <div className="grid gap-3 px-4 pb-4 text-sm text-[var(--text-muted)] sm:px-5">
-                <p>
-                  {hasHistory
-                    ? 'Esta conta tem histórico financeiro, então não pode ser excluída. Inative para guardar o histórico e tirá-la dos lançamentos novos.'
-                    : 'Inativar guarda o histórico e tira a conta dos lançamentos novos. Esta conta ainda não tem movimentações e pode ser excluída.'}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button as="a" href={editUrl} variant="outline" size="sm">Inativar conta</Button>
-                  <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest} disabled={hasHistory}>Excluir conta</Button>
-                </div>
-              </div>
-            </details>
-          </section>
+      <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center px-4 text-sm text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
+          Zona de risco
+        </summary>
+        <div className="grid gap-3 px-4 pb-4 text-sm text-[var(--text-muted)] sm:px-5">
+          <p>
+            {hasHistory
+              ? 'Esta conta tem histórico financeiro, então não pode ser excluída. Inative para guardar o histórico e tirá-la dos lançamentos novos.'
+              : 'Inativar guarda o histórico e tira a conta dos lançamentos novos. Esta conta ainda não tem movimentações e pode ser excluída.'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button as="a" href={editUrl} variant="outline" size="sm">Inativar conta</Button>
+            <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest} disabled={hasHistory}>Excluir conta</Button>
+          </div>
         </div>
-      </div>
+      </details>
     </div>
   );
 }

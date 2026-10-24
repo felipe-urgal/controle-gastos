@@ -52,7 +52,6 @@ export default function MonthlyClosingView({
   const { summary, comparison, planning, netWorth, readiness } = retrospective;
   const isEmpty = summary.income === 0 && summary.expense === 0;
   const todo = buildTodoItems({ readiness, money, pendingHref: transactionsHref + '&status=PENDING' });
-  const detailAccounts = readiness.reconciliation.accounts.filter((account) => account.status !== 'RECONCILED');
   const detailStatements = readiness.cardStatements.items;
   const spent = spentShare(summary);
   const budget = budgetUsage(planning);
@@ -124,23 +123,12 @@ export default function MonthlyClosingView({
                 </li>
               ))}
             </ul>
-            {(detailAccounts.length > 0 || detailStatements.length > 0) && (
+            {detailStatements.length > 0 && (
               <details className="border-t border-[var(--border)]">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center px-4 text-sm text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
-                  Ver contas e faturas em detalhe
+                  Ver faturas em detalhe
                 </summary>
                 <div className="grid gap-2 px-4 pb-4 sm:px-5">
-                  {detailAccounts.map((account) => (
-                    <Link key={account.accountId} href={account.href} className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 hover:bg-[var(--surface-hover)]">
-                      <span className="min-w-0">
-                        <span className="block break-words text-sm font-semibold">{account.accountName}</span>
-                        <span className="block text-xs text-[var(--text-muted)]">
-                          {account.status === 'NEVER_RECONCILED' ? 'Nunca conciliada' : account.status === 'PARTIAL' ? 'Conciliação parcial' : 'Lançamentos não conciliados'}
-                          {account.unreconciledCount > 0 ? ' · ' + account.unreconciledCount : ''}
-                        </span>
-                      </span>
-                    </Link>
-                  ))}
                   {detailStatements.map((statement) => (
                     <Link key={statement.cardId + '-' + statement.closingDate.month + '-' + statement.closingDate.year} href={statement.href} className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 hover:bg-[var(--surface-hover)]">
                       <span className="min-w-0">

@@ -16,13 +16,7 @@ import {
   getTransferDirectionLabel,
   isTransferTransaction,
 } from '@/app/lib/transactions/transaction-presentation';
-import type { ReconciliationStatus, TransactionAccountDTO } from '@/app/types/transaction';
-
-const RECONCILIATION_LABEL: Record<ReconciliationStatus, string> = {
-  UNCLEARED: 'Não compensada',
-  CLEARED: 'Compensada',
-  RECONCILED: 'Conciliada',
-};
+import type { TransactionAccountDTO } from '@/app/types/transaction';
 
 const cardClassName = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]';
 const linkClassName =
@@ -198,7 +192,6 @@ export default function TransactionInfo({
               </Row>
             ) : null}
 
-            <Row label="Conciliação">{RECONCILIATION_LABEL[transaction.reconciliationStatus] ?? '—'}</Row>
             {transaction.importSource && <Row label="Origem">Importada de {transaction.importSource}</Row>}
             <Row label="Criada em">{format(new Date(transaction.createdAt), 'dd/MM/yyyy HH:mm')}</Row>
             <Row label="Atualizada em">{format(new Date(transaction.updatedAt), 'dd/MM/yyyy HH:mm')}</Row>

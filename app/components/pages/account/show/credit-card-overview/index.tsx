@@ -403,7 +403,7 @@ export default function CreditCardOverview({
           <p>Inativar guarda o histórico e tira o cartão dos lançamentos novos. Excluir só é possível quando o cartão não tem movimentações.</p>
           <div className="flex flex-wrap gap-2">
             <Button as="a" href={editUrl} variant="outline" size="sm">Inativar cartão</Button>
-            <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest}>Excluir cartão</Button>
+            <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest} disabled={account.isDeletable === false}>Excluir cartão</Button>
           </div>
         </div>
       </details>

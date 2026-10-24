@@ -15,7 +15,6 @@ export default function Show({ id }: { id: string }) {
     handleDelete,
     handleBack,
     typeLabels,
-    refreshAccount,
   } = useAccounts({ id });
 
   const accountView = account ? (
@@ -26,7 +25,6 @@ export default function Show({ id }: { id: string }) {
       editUrl={`/contas/alterar/${id}`}
       isDeleting={isDeleting}
       onDeleteRequest={() => setIsDeleteModalOpen(true)}
-      onReconciliationChange={refreshAccount}
     />
   ) : null;
 
