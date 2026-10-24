@@ -55,7 +55,11 @@ function CurrencyHero({
     { label: 'Correntes', value: money(totals.available), color: 'var(--income)' },
     { label: 'Investido', value: money(totals.invested), color: 'var(--orbit-primary)' },
     ...(totals.statements > 0
-      ? [{ label: 'Faturas abertas', value: `− ${money(totals.statements)}`, color: 'var(--warning)' }]
+      ? [
+          { label: 'Faturas abertas', value: `− ${money(totals.statements)}`, color: 'var(--warning)' },
+          // Liquidez depois de pagar as faturas abertas; patrimônio fica em /patrimonio.
+          { label: 'Disponível após faturas', value: money(totals.available - totals.statements), color: 'var(--text-subtle)' },
+        ]
       : []),
   ];
 
@@ -124,6 +128,9 @@ export function AccountsOverview({
               />
             ))}
             {totals.length > 1 && <p className="text-xs text-[var(--text-muted)]">Sem conversão entre moedas.</p>}
+            <Link href="/patrimonio" className="inline-flex text-xs font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+              Ver patrimônio
+            </Link>
             {attention.length === 0 && (
               <p className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
                 <FaCheckCircle className="shrink-0 text-[var(--income)]" aria-hidden="true" />

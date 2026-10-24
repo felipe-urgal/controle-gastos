@@ -107,12 +107,11 @@ describe('buildSparkline', () => {
 });
 
 describe('accountShowActions', () => {
-  it('conta corrente: lançar em destaque, transferir, conciliar e extrato', () => {
+  it('conta corrente: lançar em destaque, transferir e conciliar (extrato fica junto da lista)', () => {
     const actions = accountShowActions({ id: 'a1', type: 'CREDIT_DEBIT' });
 
-    expect(actions.map((action) => action.label)).toEqual(['Lançar', 'Transferir', 'Conciliar', 'Extrato']);
+    expect(actions.map((action) => action.label)).toEqual(['Lançar', 'Transferir', 'Conciliar']);
     expect(actions.filter((action) => action.primary)).toHaveLength(1);
-    expect(actions[3].href).toBe('/transacoes?accountId=a1');
   });
 
   it('investimento: nova operação em destaque', () => {

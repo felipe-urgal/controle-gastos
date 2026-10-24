@@ -49,7 +49,13 @@ function Sparkline({ series, label, currency, showValues }: { series: number[]; 
             {dayLabel}: <strong className="money text-[var(--foreground)]">{showValues ? formatCurrency(series[activeIndex], currency) : '••••'}</strong>
           </>
         ) : (
-          'Passe o cursor ou toque para ver o saldo de cada dia.'
+          <>
+            Saldo dos últimos {series.length} dias
+            <span className="money">
+              {' · '}
+              {showValues ? `${formatCurrency(Math.min(...series), currency)} a ${formatCurrency(Math.max(...series), currency)}` : '••••'}
+            </span>
+          </>
         )}
       </p>
       <svg viewBox="0 0 300 64" className="h-16 w-full touch-pan-y" role="img" aria-label={label} {...handlers}>
@@ -201,6 +207,9 @@ export default function AccountShowView({
         { label: `Saiu em ${monthName}`, value: activity ? `− ${money(activity.monthExpense)}` : '—', tone: 'text-[var(--expense)]' },
         { label: 'A vir (pendentes)', value: activity ? (activity.pendingCount === 0 ? money(0) : signed(activity.pendingNet)) : '—', tone: '' },
       ];
+  // Com pendentes, mostra onde o saldo chega se todas forem concluídas (não altera o saldo realizado).
+  const projected = !isInvestment && activity && activity.pendingCount > 0 ? account.balance + activity.pendingNet : null;
+  const hasHistory = account.hasFinancialHistory === true;
 
   return (
     <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
@@ -244,6 +253,11 @@ export default function AccountShowView({
                   : 'Valor das posições; sem cotação, usa o custo investido.'
                 : 'Saldo hoje, só com o que já foi concluído.'}
             </p>
+            {projected !== null && (
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                Com os pendentes concluídos: <strong className={`money ${projected < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>{money(projected)}</strong>
+              </p>
+            )}
             {!showValues && <p className="mt-1 text-sm text-[var(--text-subtle)]">Valores ocultos pelas suas preferências.</p>}
           </div>
           {series.length > 1 && <Sparkline series={series} label={sparkLabel} currency={account.currency} showValues={showValues} />}
@@ -258,7 +272,7 @@ export default function AccountShowView({
           ))}
         </dl>
 
-        <nav aria-label="Ações da conta" className="grid grid-cols-4 gap-2">
+        <nav aria-label="Ações da conta" className="grid grid-cols-3 gap-2">
           {actions.map((action) => (
             <Button
               key={action.key}
@@ -294,10 +308,14 @@ export default function AccountShowView({
                 Zona de risco
               </summary>
               <div className="grid gap-3 px-4 pb-4 text-sm text-[var(--text-muted)] sm:px-5">
-                <p>Inativar guarda o histórico e tira a conta dos lançamentos novos. Excluir só é possível quando a conta não tem movimentações.</p>
+                <p>
+                  {hasHistory
+                    ? 'Esta conta tem histórico financeiro, então não pode ser excluída. Inative para guardar o histórico e tirá-la dos lançamentos novos.'
+                    : 'Inativar guarda o histórico e tira a conta dos lançamentos novos. Esta conta ainda não tem movimentações e pode ser excluída.'}
+                </p>
                 <div className="flex flex-wrap gap-2">
                   <Button as="a" href={editUrl} variant="outline" size="sm">Inativar conta</Button>
-                  <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest}>Excluir conta</Button>
+                  <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest} disabled={hasHistory}>Excluir conta</Button>
                 </div>
               </div>
             </details>
