@@ -62,6 +62,8 @@ export default function OrbitTransactions() {
     count: INITIAL_TIMELINE_ITEMS,
   });
 
+  // Primeira carga: esqueleto; troca de mês/filtro: valores anteriores esmaecidos até chegarem os novos.
+  const summaryStatus = loading ? (summary ? 'refreshing' : 'loading') : 'ready';
   const month = Number(filters.month) || new Date().getMonth() + 1;
   const year = Number(filters.year) || new Date().getFullYear();
   const previousPeriod = shiftPeriod(month, year, -1);
@@ -316,6 +318,7 @@ export default function OrbitTransactions() {
           activeFiltersCount={activeFiltersCount}
           showValues={showValues}
           loading={loading}
+          summaryStatus={summaryStatus}
           onMovePeriod={movePeriod}
           onOpenPeriod={() => setPeriodOpen(true)}
           onOpenFilters={() => setFiltersOpen(true)}
@@ -357,6 +360,7 @@ export default function OrbitTransactions() {
         
               <section className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Resumo financeiro do período">
                 <MonthSummaryCard
+                  status={summaryStatus}
                   label="Entradas"
                   count={incomeCount}
                   countLabel={incomeCount === 1 ? 'transação' : 'transações'}
@@ -364,10 +368,12 @@ export default function OrbitTransactions() {
                   tone="income"
                   icon={<FaArrowUp aria-hidden="true" />}
                   detail={incomeTrend.text}
-                  detailTone={previousSummaryState.loading ? 'neutral' : incomeTrend.tone}
+                  detailLoading={previousSummaryState.loading}
+                  detailTone={incomeTrend.tone}
                   detailDirection={incomeTrend.direction}
                 />
                 <MonthSummaryCard
+                  status={summaryStatus}
                   label="Saídas"
                   count={expenseCount}
                   countLabel={expenseCount === 1 ? 'transação' : 'transações'}
@@ -375,10 +381,12 @@ export default function OrbitTransactions() {
                   tone="expense"
                   icon={<FaArrowDown aria-hidden="true" />}
                   detail={expenseTrend.text}
-                  detailTone={previousSummaryState.loading ? 'neutral' : expenseTrend.tone}
+                  detailLoading={previousSummaryState.loading}
+                  detailTone={expenseTrend.tone}
                   detailDirection={expenseTrend.direction}
                 />
                 <MonthSummaryCard
+                  status={summaryStatus}
                   label="Saldo do mês"
                   amount={displayMoney(currentSummary.balance, showValues, currentSummary.currency)}
                   tone="primary"
@@ -386,6 +394,7 @@ export default function OrbitTransactions() {
                   detail={currentSummary.balance >= 0 ? 'Positivo neste mês' : 'Negativo neste mês'}
                 />
                 <MonthSummaryCard
+                  status={summaryStatus}
                   label="Agendadas"
                   count={scheduled.length}
                   countLabel={scheduled.length === 1 ? 'lançamento' : 'lançamentos'}

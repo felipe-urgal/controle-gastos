@@ -18,6 +18,7 @@ export function MobileTransactionsPrototype2({
   activeFiltersCount,
   showValues,
   loading,
+  summaryStatus,
   onMovePeriod,
   onOpenPeriod,
   onOpenFilters,
@@ -36,6 +37,8 @@ export function MobileTransactionsPrototype2({
   activeFiltersCount: number;
   showValues: boolean;
   loading: boolean;
+  /** `loading`: primeira carga (esqueleto); `refreshing`: troca de período (valores esmaecidos). */
+  summaryStatus: 'ready' | 'loading' | 'refreshing';
   onMovePeriod: (offset: number) => void;
   onOpenPeriod: () => void;
   onOpenFilters: () => void;
@@ -45,6 +48,9 @@ export function MobileTransactionsPrototype2({
   hasMore: boolean;
   onLoadMore: () => void;
 }) {
+  const skeleton = 'block animate-pulse rounded-[var(--radius-sm)] bg-[var(--skeleton)]';
+  const summaryLoading = summaryStatus === 'loading';
+  const dim = summaryStatus === 'refreshing' ? 'opacity-50' : '';
   const balanceMessage =
     summary.balance < 0
       ? 'Você gastou mais que recebeu.'
@@ -70,6 +76,7 @@ export function MobileTransactionsPrototype2({
             'linear-gradient(135deg, color-mix(in srgb, var(--primary) 13%, var(--surface)) 0%, var(--surface) 62%)',
         }}
         aria-label="Resumo do mês"
+        aria-busy={summaryStatus !== 'ready'}
       >
         <div className="flex items-start gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--danger-subtle)] text-lg text-[var(--expense)]">
@@ -77,12 +84,21 @@ export function MobileTransactionsPrototype2({
           </span>
           <div className="min-w-0">
             <p className="text-sm text-[var(--text-muted)]">Saldo do mês</p>
-            <strong className={`mt-1 block text-3xl font-black tracking-tight ${
-              summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
-            }`}>
-              <span className="money">{displayMoney(summary.balance, showValues, summary.currency)}</span>
-            </strong>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">{balanceMessage}</p>
+            {summaryLoading ? (
+              <>
+                <span className={`${skeleton} mt-2 h-8 w-40`} aria-hidden="true" />
+                <span className={`${skeleton} mt-2 h-3 w-44`} aria-hidden="true" />
+              </>
+            ) : (
+              <div className={`transition-opacity duration-150 ${dim}`}>
+                <strong className={`mt-1 block text-3xl font-black tracking-tight ${
+                  summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
+                }`}>
+                  <span className="money">{displayMoney(summary.balance, showValues, summary.currency)}</span>
+                </strong>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{balanceMessage}</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -93,9 +109,13 @@ export function MobileTransactionsPrototype2({
             </span>
             <div className="min-w-0">
               <p className="text-xs text-[var(--text-muted)]">Entradas</p>
-              <strong className="mt-0.5 block tabular-nums text-sm text-[var(--income)]">
-                <span className="money">{displayMoney(summary.income, showValues, summary.currency)}</span>
-              </strong>
+              {summaryLoading ? (
+                <span className={`${skeleton} mt-1 h-4 w-20`} aria-hidden="true" />
+              ) : (
+                <strong className={`mt-0.5 block tabular-nums text-sm text-[var(--income)] transition-opacity duration-150 ${dim}`}>
+                  <span className="money">{displayMoney(summary.income, showValues, summary.currency)}</span>
+                </strong>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2.5 pl-3">
@@ -104,9 +124,13 @@ export function MobileTransactionsPrototype2({
             </span>
             <div className="min-w-0">
               <p className="text-xs text-[var(--text-muted)]">Saídas</p>
-              <strong className="mt-0.5 block tabular-nums text-sm text-[var(--expense)]">
-                <span className="money">{displayMoney(summary.expense, showValues, summary.currency)}</span>
-              </strong>
+              {summaryLoading ? (
+                <span className={`${skeleton} mt-1 h-4 w-20`} aria-hidden="true" />
+              ) : (
+                <strong className={`mt-0.5 block tabular-nums text-sm text-[var(--expense)] transition-opacity duration-150 ${dim}`}>
+                  <span className="money">{displayMoney(summary.expense, showValues, summary.currency)}</span>
+                </strong>
+              )}
             </div>
           </div>
         </div>
