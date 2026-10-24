@@ -20,7 +20,7 @@ export function MobileTransactionsPrototype2({
   loading,
   summaryStatus,
   onMovePeriod,
-  onOpenPeriod,
+  periodInput,
   onOpenFilters,
   onQuickFilterChange,
   onOpenTransaction,
@@ -40,7 +40,7 @@ export function MobileTransactionsPrototype2({
   /** `loading`: primeira carga (esqueleto); `refreshing`: troca de período (valores esmaecidos). */
   summaryStatus: 'ready' | 'loading' | 'refreshing';
   onMovePeriod: (offset: number) => void;
-  onOpenPeriod: () => void;
+  periodInput: { value: string; onChange: (value: string) => void; min?: string; max?: string };
   onOpenFilters: () => void;
   onQuickFilterChange: (filter: MobileQuickFilter) => void;
   onOpenTransaction: (transaction: TransactionDTO) => void;
@@ -66,7 +66,7 @@ export function MobileTransactionsPrototype2({
         onPrevious={() => onMovePeriod(-1)}
         onNext={() => onMovePeriod(1)}
         disabled={loading}
-        onOpen={onOpenPeriod}
+        monthInput={periodInput}
       />
 
       <section

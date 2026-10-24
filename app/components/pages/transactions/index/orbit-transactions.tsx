@@ -24,7 +24,7 @@ import type { MerchantDTO } from '@/app/types/merchant';
 import type { TransactionDTO } from '@/app/types/transaction';
 
 import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilter, REFINEMENT_FILTER_KEYS, TIMELINE_INCREMENT, TimelineOrder, buildMonthBars, buildTimelineGroups, displayMoney, formatPeriod, formatTrend, percentageChange, selectSummary, shiftPeriod, todayDateKey, transactionDateKey, usePreviousSummary } from '@/app/components/pages/transactions/index/transactions-view-helpers';
-import { FilterDialog, PeriodDialog, TagFilterField, TransactionDetailLayer } from '@/app/components/pages/transactions/index/transaction-dialogs';
+import { FilterDialog, TagFilterField, TransactionDetailLayer } from '@/app/components/pages/transactions/index/transaction-dialogs';
 import { MobileTransactionsPrototype2 } from '@/app/components/pages/transactions/index/mobile-transactions';
 import { MonthOverview, MonthSummaryCard, MovementTimeline, UpcomingTransactions } from '@/app/components/pages/transactions/index/desktop-transactions';
 
@@ -52,7 +52,6 @@ export default function OrbitTransactions() {
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
   const isTabletUp = useMediaQuery('(min-width: 640px)');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDTO | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<TimelineOrder>('newest');
   const [mobileQuickFilter, setMobileQuickFilter] = useState<MobileQuickFilter>('all');
@@ -278,6 +277,17 @@ export default function OrbitTransactions() {
     }));
   }
 
+  // Escolha direta do mês (campo nativo), igual ao Dashboard; sem modal.
+  const periodInput = {
+    value: `${year}-${String(month).padStart(2, '0')}`,
+    onChange: (value: string) => {
+      const [nextYear, nextMonth] = value.split('-').map(Number);
+      if (nextYear && nextMonth) applyPeriod(nextMonth, nextYear);
+    },
+    min: '2000-01',
+    max: '2100-12',
+  };
+
   function movePeriod(offset: number) {
     const next = shiftPeriod(month, year, offset);
     applyPeriod(next.month, next.year);
@@ -320,7 +330,7 @@ export default function OrbitTransactions() {
           loading={loading}
           summaryStatus={summaryStatus}
           onMovePeriod={movePeriod}
-          onOpenPeriod={() => setPeriodOpen(true)}
+          periodInput={periodInput}
           onOpenFilters={() => setFiltersOpen(true)}
           onQuickFilterChange={setMobileQuickFilter}
           onOpenTransaction={setSelectedTransaction}
@@ -340,8 +350,7 @@ export default function OrbitTransactions() {
                   onPrevious={() => movePeriod(-1)}
                   onNext={() => movePeriod(1)}
                   disabled={loading}
-                  onOpen={() => setPeriodOpen(true)}
-                  expanded={periodOpen}
+                  monthInput={periodInput}
                 />
         
                 <Button
@@ -452,16 +461,6 @@ export default function OrbitTransactions() {
         
         
       </div>
-      )}
-
-      {periodOpen && (
-        <PeriodDialog
-          month={month}
-          year={year}
-          loading={loading}
-          onApply={applyPeriod}
-          onClose={() => setPeriodOpen(false)}
-        />
       )}
 
       {filtersOpen && (
