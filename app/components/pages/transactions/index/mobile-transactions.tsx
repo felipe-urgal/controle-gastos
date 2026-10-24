@@ -344,7 +344,7 @@ export function MobileTransactionRow({
       <span className="min-w-0">
         <strong className="block truncate text-sm">{transaction.description || 'Sem descrição'}</strong>
         <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
-          {transaction.account?.name ?? 'Conta'} • {isTransfer ? 'Transferência' : isCardPayment ? 'Pagamento de fatura' : transaction.category?.name ?? 'Sem categoria'}
+          {transaction.account?.name ?? 'Conta'} • {isTransfer ? 'Transferência' : isCardPayment ? 'Pagamento de fatura' : transaction.kind === 'OPENING_BALANCE' ? 'Saldo inicial' : transaction.category?.name ?? 'Sem categoria'}
         </span>
         <TransactionTags transaction={transaction} />
       </span>

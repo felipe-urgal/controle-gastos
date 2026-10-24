@@ -30,6 +30,8 @@ export function useAccountForm({ account, isEditing }: AccountFormProps) {
               : '',
           statementClosingDay: account.statementClosingDay?.toString() ?? '',
           statementDueDay: account.statementDueDay?.toString() ?? '',
+          openingBalance: '',
+          openingNegative: false,
         }
       : initialFormData,
   );
@@ -79,8 +81,9 @@ export function useAccountForm({ account, isEditing }: AccountFormProps) {
         return;
       }
 
+      const { openingBalance: openingText, openingNegative, ...fields } = formData;
       const payload = {
-        ...formData,
+        ...fields,
         description: formData.description || null,
         creditLimit,
         statementClosingDay,
@@ -90,7 +93,17 @@ export function useAccountForm({ account, isEditing }: AccountFormProps) {
       if (isEditing && account) {
         await accountService.update(account.id, payload);
       } else {
-        await accountService.create(payload);
+        // Saldo inicial só na criação e fora do cartão; vazio ou zero começa do zero.
+        const typedOpening = isCreditCard ? '' : openingText.trim();
+        const openingCents = typedOpening ? parseMoneyInputToCents(typedOpening) : null;
+        if (typedOpening && openingCents === null && /[1-9]/.test(typedOpening)) {
+          setSubmitError('Informe um saldo inicial válido.');
+          return;
+        }
+        await accountService.create({
+          ...payload,
+          ...(openingCents ? { openingBalance: openingNegative ? -openingCents : openingCents } : {}),
+        });
       }
 
       handleRedirect();

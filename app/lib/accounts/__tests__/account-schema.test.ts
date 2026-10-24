@@ -175,4 +175,23 @@ describe("account schemas", () => {
       ),
     ).toBeTruthy();
   });
+
+  it("accepts a signed opening balance in cents only for non-card accounts", () => {
+    const base = { name: "Conta principal", description: null };
+
+    expect(createAccountSchema.parse({ ...base, type: "CREDIT_DEBIT", openingBalance: 150_000 }).openingBalance).toBe(150_000);
+    expect(createAccountSchema.parse({ ...base, type: "CREDIT_DEBIT", openingBalance: -2_500 }).openingBalance).toBe(-2_500);
+    expect(createAccountSchema.safeParse({ ...base, type: "CREDIT_DEBIT", openingBalance: 10.5 }).success).toBe(false);
+    expect(createAccountSchema.safeParse({ ...base, type: "CREDIT_DEBIT", openingBalance: 2_147_483_648 }).success).toBe(false);
+    expect(
+      createAccountSchema.safeParse({
+        ...base,
+        type: "CREDIT_CARD",
+        creditLimit: 500_000,
+        statementClosingDay: 5,
+        statementDueDay: 12,
+        openingBalance: 1_000,
+      }).success,
+    ).toBe(false);
+  });
 });

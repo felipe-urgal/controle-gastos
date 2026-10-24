@@ -6,7 +6,7 @@ export type TransactionStatus = "COMPLETED" | "PENDING" | "CANCELLED";
 
 export type ReconciliationStatus = "UNCLEARED" | "CLEARED" | "RECONCILED";
 
-export type TransactionKind = "NORMAL" | "TRANSFER" | "CARD_PAYMENT";
+export type TransactionKind = "NORMAL" | "TRANSFER" | "CARD_PAYMENT" | "OPENING_BALANCE";
 
 export type TransactionImportSource = "CSV" | "OFX" | "QIF" | "XLSX";
 

@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   assertAccountDeletable,
   assertAccountStructuralChangeAllowed,
+  isAccountDeletable,
 } from "@/app/lib/accounts/account-structure";
 
 const emptyUsage = {
   transactions: 0,
+  openingBalances: 0,
   investmentOperations: 0,
   investmentIncomes: 0,
   investmentFiscalEvents: 0,
@@ -102,5 +104,26 @@ describe("account structural invariants", () => {
         { ...emptyUsage, transactions: 3 },
       ),
     ).not.toThrow();
+  });
+
+  it("keeps the structure locked by an opening balance without blocking deletion", () => {
+    const withOpening = { ...emptyUsage, openingBalances: 1 };
+
+    expect(isAccountDeletable(withOpening)).toBe(true);
+    expect(() => assertAccountDeletable(withOpening)).not.toThrow();
+    expectDomainError(
+      () =>
+        assertAccountStructuralChangeAllowed(
+          { type: "CREDIT_CARD", statementClosingDay: 5, statementDueDay: 12 } as any,
+          bank as any,
+          withOpening,
+        ),
+      "CREDIT_CARD_STRUCTURE_LOCKED",
+    );
+  });
+
+  it("is not deletable once there is any other financial history", () => {
+    expect(isAccountDeletable({ ...emptyUsage, transactions: 1 })).toBe(false);
+    expect(isAccountDeletable({ ...emptyUsage, cardPayments: 1 })).toBe(false);
   });
 });

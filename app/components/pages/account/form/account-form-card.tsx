@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FaPen } from 'react-icons/fa';
 
 import { describeCardCycle } from '@/app/components/pages/account/form/account-form-model';
-import { Button, ColorIconSelector, IconButton, IconRenderer, InlineInput, MoneyInlineInput, Select } from '@/app/components/ui';
+import { Button, Chip, ColorIconSelector, IconButton, IconRenderer, InlineInput, MoneyInlineInput, Select } from '@/app/components/ui';
 import { ACCOUNT_NAME_MAX_LENGTH, accountTypeOptions, currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { AccountType } from '@/app/types/account';
@@ -18,6 +18,8 @@ export type AccountCardValues = {
   creditLimit: string;
   statementClosingDay: string;
   statementDueDay: string;
+  openingBalance: string;
+  openingNegative: boolean;
 };
 
 const currencySymbols: Record<string, string> = { BRL: 'R$', USD: 'US$', EUR: '€' };
@@ -183,15 +185,46 @@ export function AccountFormCard({
         </div>
       ) : (
         <div className="grid gap-1">
-          <span className="text-sm text-[var(--text-muted)]">{values.type === 'INVESTMENT' ? 'Patrimônio' : 'Saldo'}</span>
-          <strong className="money text-3xl font-semibold tracking-tight text-[var(--foreground)]">
-            {isEditing && currentBalance != null ? formatCurrency(currentBalance, values.currency) : `${symbol} 0,00`}
-          </strong>
-          <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            {isEditing
-              ? 'O saldo continua calculado pelas transações concluídas.'
-              : 'O saldo começa em zero e passa a ser calculado pelas transações que você lançar.'}
-          </p>
+          {isEditing ? (
+            <>
+              <span className="text-sm text-[var(--text-muted)]">{values.type === 'INVESTMENT' ? 'Patrimônio' : 'Saldo'}</span>
+              <strong className="money text-3xl font-semibold tracking-tight text-[var(--foreground)]">
+                {currentBalance != null ? formatCurrency(currentBalance, values.currency) : `${symbol} 0,00`}
+              </strong>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+                O saldo continua calculado pelas transações concluídas.
+              </p>
+            </>
+          ) : (
+            <>
+              <label htmlFor="account-opening-balance" className="text-sm text-[var(--text-muted)]">
+                {values.type === 'INVESTMENT' ? 'Saldo em caixa hoje' : 'Quanto você tem nesta conta hoje?'}
+              </label>
+              <div className="flex items-baseline gap-2">
+                <span className="money text-xl text-[var(--text-muted)]">{values.openingNegative ? `− ${symbol}` : symbol}</span>
+                <MoneyInlineInput
+                  id="account-opening-balance"
+                  size="amount"
+                  value={values.openingBalance}
+                  onValueChange={(openingBalance) => onChange({ openingBalance })}
+                  disabled={loading}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <Chip
+                  selected={values.openingNegative}
+                  onClick={() => onChange({ openingNegative: !values.openingNegative })}
+                  disabled={loading}
+                >
+                  Saldo devedor
+                </Chip>
+              </div>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+                Vira um lançamento de saldo inicial, sem contar como receita ou despesa. Deixe em branco para começar do zero.
+              </p>
+            </>
+          )}
         </div>
       )}
     </section>

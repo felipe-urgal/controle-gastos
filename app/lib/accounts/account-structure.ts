@@ -8,7 +8,10 @@ type AccountUpdate = z.infer<typeof updateAccountSchema>;
 type AccountDb = PrismaClient | Prisma.TransactionClient;
 
 export type AccountFinancialUsage = {
+  /** Movimentações, sem contar o lançamento de saldo inicial. */
   transactions: number;
+  /** Lançamento de saldo inicial: trava a estrutura, mas não impede excluir a conta. */
+  openingBalances: number;
   investmentOperations: number;
   investmentIncomes: number;
   investmentFiscalEvents: number;
@@ -39,12 +42,14 @@ export async function getAccountFinancialUsage(
 ): Promise<AccountFinancialUsage> {
   const [
     transactions,
+    openingBalances,
     investmentOperations,
     investmentIncomes,
     investmentFiscalEvents,
     cardPayments,
   ] = await Promise.all([
-    db.transaction.count({ where: { userId, accountId } }),
+    db.transaction.count({ where: { userId, accountId, kind: { not: "OPENING_BALANCE" } } }),
+    db.transaction.count({ where: { userId, accountId, kind: "OPENING_BALANCE" } }),
     db.investmentOperation.count({ where: { userId, accountId } }),
     db.investmentIncome.count({ where: { userId, accountId } }),
     db.investmentFiscalEvent.count({ where: { userId, accountId } }),
@@ -58,6 +63,7 @@ export async function getAccountFinancialUsage(
 
   return {
     transactions,
+    openingBalances,
     investmentOperations,
     investmentIncomes,
     investmentFiscalEvents,
@@ -67,6 +73,17 @@ export async function getAccountFinancialUsage(
 
 function hasFinancialHistory(usage: AccountFinancialUsage) {
   return Object.values(usage).some((count) => count > 0);
+}
+
+/** A conta só tem, no máximo, o saldo inicial (que sai junto com ela). */
+export function isAccountDeletable(usage: AccountFinancialUsage) {
+  return (
+    usage.transactions === 0 &&
+    usage.investmentOperations === 0 &&
+    usage.investmentIncomes === 0 &&
+    usage.investmentFiscalEvents === 0 &&
+    usage.cardPayments === 0
+  );
 }
 
 export function assertAccountDeletable(usage: AccountFinancialUsage) {

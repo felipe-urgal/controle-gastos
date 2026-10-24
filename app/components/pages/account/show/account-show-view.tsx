@@ -70,6 +70,7 @@ function Sparkline({ series, label, currency, showValues }: { series: number[]; 
 
 function MovementRow({ transaction, account, showValues }: { transaction: AccountRecentTransaction; account: AccountModel; showValues: boolean }) {
   const isTransfer = isTransferTransaction(transaction);
+  const isOpening = transaction.kind === 'OPENING_BALANCE';
   const isIncome = transaction.type === 'INCOME';
   const pending = transaction.status === 'PENDING';
   const reconciliation =
@@ -102,7 +103,7 @@ function MovementRow({ transaction, account, showValues }: { transaction: Accoun
             {reconciliation && <span className="ml-2 align-middle text-xs font-semibold text-[var(--primary)]">{reconciliation}</span>}
           </span>
           <span className="block truncate text-xs text-[var(--text-muted)]">
-            {isTransfer ? getTransferCounterpartLabel(transaction) : transaction.category?.name ?? 'Sem categoria'}
+            {isTransfer ? getTransferCounterpartLabel(transaction) : isOpening ? 'Abertura da conta' : transaction.category?.name ?? 'Sem categoria'}
           </span>
         </span>
         <span className={`money text-sm font-semibold ${isTransfer ? 'text-[var(--primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--foreground)]'}`}>
@@ -210,7 +211,7 @@ export default function AccountShowView({
       ];
   // Com pendentes, mostra onde o saldo chega se todas forem concluídas (não altera o saldo realizado).
   const projected = !isInvestment && activity && activity.pendingCount > 0 ? account.balance + activity.pendingNet : null;
-  const hasHistory = account.hasFinancialHistory === true;
+  const hasHistory = account.isDeletable === false;
 
   return (
     <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>

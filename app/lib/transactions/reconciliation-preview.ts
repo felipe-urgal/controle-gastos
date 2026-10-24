@@ -10,7 +10,7 @@ type PreviewRow = {
   id: string;
   amount: number;
   type: "INCOME" | "EXPENSE";
-  kind: "NORMAL" | "TRANSFER" | "CARD_PAYMENT";
+  kind: "NORMAL" | "TRANSFER" | "CARD_PAYMENT" | "OPENING_BALANCE";
   description: string;
   reconciliationStatus: "UNCLEARED" | "CLEARED" | "RECONCILED";
   year: number;

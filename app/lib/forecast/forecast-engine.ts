@@ -9,7 +9,7 @@ export type ForecastHorizonDays = 30 | 60 | 90;
 
 type ForecastTransactionType = "INCOME" | "EXPENSE";
 type ForecastTransactionStatus = "PENDING" | "COMPLETED" | "CANCELLED";
-type ForecastTransactionKind = "NORMAL" | "TRANSFER" | "CARD_PAYMENT";
+type ForecastTransactionKind = "NORMAL" | "TRANSFER" | "CARD_PAYMENT" | "OPENING_BALANCE";
 
 export type ForecastAccountInput = {
   id: string;

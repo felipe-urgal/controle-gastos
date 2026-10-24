@@ -318,6 +318,8 @@ async function loadCalendarTransactions(
       userId,
       year: input.year,
       month: input.month,
+      // O saldo inicial não é um evento do calendário.
+      kind: { not: 'OPENING_BALANCE' },
       ...(input.accountId ? { accountId: input.accountId } : {}),
       account: {
         is: {
