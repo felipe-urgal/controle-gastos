@@ -5,6 +5,7 @@ import { FaPowerOff } from 'react-icons/fa';
 import { ShowPage } from '@/app/components/base-pages';
 import AccountShowView from '@/app/components/pages/account/show/account-show-view';
 import { DELETE_BLOCKED_HINT } from '@/app/components/pages/account/show/account-app-bar-actions';
+import AccountShowSkeleton from '@/app/components/pages/account/show/account-show-skeleton';
 import CreditCardOverview from '@/app/components/pages/account/show/credit-card-overview';
 import { pageBarButtonProps } from '@/app/components/base-pages/page-bar';
 import { Button } from '@/app/components/ui';
@@ -51,6 +52,7 @@ export default function Show({ id }: { id: string }) {
       entityName="conta"
       titleFallback="Detalhes da conta"
       sidebarAligned
+      loadingSkeleton={<AccountShowSkeleton backUrl={handleBack} />}
       breadcrumb={[{ label: 'Contas', href: '/contas' }, { label: account?.name ?? 'Conta' }]}
       loading={loading}
       editUrl={editUrl}

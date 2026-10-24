@@ -34,6 +34,8 @@ interface ShowPageProps<T> {
   deleteHint?: string;
   sidebarAligned?: boolean;
   breadcrumb?: Crumb[];
+  /** Esqueleto próprio do carregamento (no lugar do genérico). */
+  loadingSkeleton?: React.ReactNode;
 
   emptyRedirectTo?: string;
   mobileContent?: React.ReactNode;
@@ -62,6 +64,7 @@ export default function ShowPage<T>({
   deleteHint,
   sidebarAligned = false,
   breadcrumb,
+  loadingSkeleton,
   emptyRedirectTo,
   mobileContent,
   children,
@@ -96,7 +99,7 @@ export default function ShowPage<T>({
       )}
 
       {loading ? (
-        <PageLoading type="details" />
+        loadingSkeleton ?? <PageLoading type="details" />
       ) : !entity ? (
         <PageEmpty
           title={`${entityName.charAt(0).toUpperCase() + entityName.slice(1)} não encontrada`}
