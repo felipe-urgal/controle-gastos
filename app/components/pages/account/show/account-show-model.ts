@@ -91,7 +91,6 @@ export function accountShowActions(account: Pick<AccountModel, 'id' | 'type'>): 
   return [
     { key: 'new', label: 'Lançar', href: '/transacoes/nova', primary: true },
     { key: 'transfer', label: 'Transferir', href: '/transacoes/nova?mode=transfer' },
-    { key: 'reconcile', label: 'Reconciliar', href: '#account-reconciliation' },
   ];
 }
 

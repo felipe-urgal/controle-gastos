@@ -242,25 +242,26 @@ export default function ReconciliationPanel({
 
   if (!isOpen) {
     return (
-      <section className="ds-panel p-5 sm:p-6" aria-labelledby="reconciliation-heading">
-        <div className="flex flex-col gap-4">
-          <div>
-            <h3 id="reconciliation-heading" className="text-xl font-semibold text-[var(--foreground)]">
-              Reconciliação do extrato
+      <section className="ds-panel px-4 py-3.5 sm:px-5" aria-labelledby="reconciliation-heading">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 flex-1 basis-56">
+            <h3 id="reconciliation-heading" className="text-base font-semibold text-[var(--foreground)]">
+              Conferir com o extrato
             </h3>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
+            <p className="mt-0.5 text-sm leading-snug text-[var(--text-muted)]">
               {account.type === 'INVESTMENT'
-                ? 'Confira o caixa por transações contra o extrato; o valor das posições de investimento não entra nesta reconciliação.'
-                : 'Confira lançamentos contra o extrato sem alterar o saldo realizado da conta.'}
+                ? 'Confira o caixa contra o extrato; o valor das posições não entra.'
+                : 'Veja se o saldo do app bate com o do banco, sem alterá-lo.'}
             </p>
           </div>
           <Button
             ref={triggerRef}
             variant="outline"
+            size="sm"
             icon={<FaBalanceScale />}
             onClick={openPanel}
           >
-            Iniciar reconciliação
+            Conferir extrato
           </Button>
         </div>
       </section>
@@ -281,7 +282,7 @@ export default function ReconciliationPanel({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h3 id="reconciliation-heading" className="text-xl font-semibold text-[var(--foreground)]">
-              Reconciliação do extrato
+              Conferir com o extrato
             </h3>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
               {account.type === 'INVESTMENT'

@@ -302,9 +302,7 @@ export default function AccountShowView({
         <Movements account={account} showValues={showValues} />
 
         <div className="space-y-4">
-          <div id="account-reconciliation">
-            <ReconciliationPanel account={account} onChanged={onReconciliationChange} />
-          </div>
+          <ReconciliationPanel account={account} onChanged={onReconciliationChange} />
 
           <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="account-about-heading">
             <h2 id="account-about-heading" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Sobre a conta</h2>
