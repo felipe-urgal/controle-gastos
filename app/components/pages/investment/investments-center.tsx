@@ -9,7 +9,7 @@ import { InvestmentFiscalYearProvider } from '@/app/components/pages/investment/
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { Chip, ChipRow, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import { useAuth } from '@/app/context';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
@@ -515,23 +515,37 @@ export default function InvestmentsCenter() {
   }
 
   const headerControls = (
-    <InvestmentActionsMenu
-      items={[
-        {
-          label: refreshingQuotes ? 'Atualizando cotações...' : 'Atualizar cotações',
-          onSelect: refreshQuotes,
-          disabled: !hasQuoteablePositions || refreshingQuotes,
-        },
-        { label: 'Nova operação', onSelect: openOperationModal, disabled: !portfolio?.accounts.some((account) => account.isActive) || !portfolio?.assets.length },
-        { label: 'Novo ativo', onSelect: () => setAssetModal(true) },
-        { label: 'Novo provento', onSelect: openIncomeModal, disabled: !portfolio?.accounts.some((account) => account.isActive) || !portfolio?.assets.length },
-        {
-          label: 'Importar extrato',
-          onSelect: () => setImportModal(true),
-          disabled: !portfolio?.accounts.some((account) => account.isActive && account.currency === 'BRL'),
-        },
-      ]}
-    />
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-[10.5rem] shrink-0">
+        <Select
+          ariaLabel="Área de investimentos"
+          value={area}
+          onChange={(value) => setArea(value as 'PORTFOLIO' | 'FISCAL' | 'STATEMENTS')}
+          options={[
+            { value: 'PORTFOLIO', label: 'Carteira' },
+            { value: 'FISCAL', label: 'Fiscal' },
+            { value: 'STATEMENTS', label: 'Informes / IR' },
+          ]}
+        />
+      </div>
+      <InvestmentActionsMenu
+        items={[
+          {
+            label: refreshingQuotes ? 'Atualizando cotações...' : 'Atualizar cotações',
+            onSelect: refreshQuotes,
+            disabled: !hasQuoteablePositions || refreshingQuotes,
+          },
+          { label: 'Nova operação', onSelect: openOperationModal, disabled: !portfolio?.accounts.some((account) => account.isActive) || !portfolio?.assets.length },
+          { label: 'Novo ativo', onSelect: () => setAssetModal(true) },
+          { label: 'Novo provento', onSelect: openIncomeModal, disabled: !portfolio?.accounts.some((account) => account.isActive) || !portfolio?.assets.length },
+          {
+            label: 'Importar extrato',
+            onSelect: () => setImportModal(true),
+            disabled: !portfolio?.accounts.some((account) => account.isActive && account.currency === 'BRL'),
+          },
+        ]}
+      />
+    </div>
   );
 
   return (
@@ -560,22 +574,6 @@ export default function InvestmentsCenter() {
             {quoteNotice}
           </p>
         )}
-
-        <ChipRow label="Áreas de investimentos" className="mt-5">
-          {[
-            ['PORTFOLIO', 'Carteira'],
-            ['FISCAL', 'Fiscal'],
-            ['STATEMENTS', 'Informes / IR'],
-          ].map(([value, label]) => (
-            <Chip
-              key={value}
-              selected={area === value}
-              onClick={() => setArea(value as 'PORTFOLIO' | 'FISCAL' | 'STATEMENTS')}
-            >
-              {label}
-            </Chip>
-          ))}
-        </ChipRow>
 
         {loading ? (
           <div className="mt-5">
