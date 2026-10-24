@@ -21,7 +21,7 @@ export default function PageBar({ crumbs, actions }: { crumbs: Crumb[]; actions?
   const parents = crumbs.slice(0, -1);
 
   return (
-    <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-center sm:justify-between lg:sticky lg:top-0 lg:z-[var(--z-header)] lg:-mx-[var(--orbit-page-padding-inline)] lg:-mt-[var(--orbit-page-padding-block)] lg:min-h-[var(--app-sidebar-header-height)] lg:bg-[var(--orbit-navigation-surface)] lg:px-[var(--orbit-page-padding-inline)] lg:py-2">
+    <header className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-5 lg:sticky lg:top-0 lg:z-[var(--z-header)] lg:-mx-[var(--orbit-page-padding-inline)] lg:-mt-[var(--orbit-page-padding-block)] lg:min-h-[var(--app-sidebar-header-height)] lg:bg-[var(--orbit-navigation-surface)] lg:px-[var(--orbit-page-padding-inline)] lg:py-2">
       <nav aria-label="Você está em" className="min-w-0">
         <ol className="flex min-w-0 items-center gap-2">
           {parents.map((crumb) => (
@@ -44,7 +44,7 @@ export default function PageBar({ crumbs, actions }: { crumbs: Crumb[]; actions?
           </li>
         </ol>
       </nav>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </header>
   );
 }

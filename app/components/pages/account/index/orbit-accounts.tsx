@@ -11,7 +11,7 @@ import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { AccountsOverview } from '@/app/components/pages/account/index/accounts-overview';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Pagination } from '@/app/components/navigation';
-import { Button, Chip, ChipRow, IconRenderer, Input } from '@/app/components/ui';
+import { Button, Chip, ChipRow, IconRenderer, Input, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
 import {
@@ -145,9 +145,17 @@ export default function OrbitAccounts() {
             title="Contas"
             sidebarAligned
             actions={
-              <Button as="a" href="/contas/nova" {...pageBarButtonProps} icon={<FaPlus aria-hidden="true" />}>
-                Nova conta
-              </Button>
+              <>
+                {/* Celular: só o ícone, na linha do título. */}
+                <ShowBelow breakpoint="sm">
+                  <Button as="a" href="/contas/nova" aria-label="Nova conta" icon={<FaPlus aria-hidden="true" />} />
+                </ShowBelow>
+                <ShowFrom breakpoint="sm">
+                  <Button as="a" href="/contas/nova" {...pageBarButtonProps} icon={<FaPlus aria-hidden="true" />}>
+                    Nova conta
+                  </Button>
+                </ShowFrom>
+              </>
             }
           />
 
