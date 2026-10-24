@@ -11,8 +11,8 @@ const center =
 
 /**
  * Seletor de período (mês/ano) padrão: anterior, rótulo e próximo, tudo com 44px de altura.
- * O rótulo pode abrir um seletor (`onOpen`), escolher o mês pelo campo nativo (`monthInput`),
- * disparar uma ação (`onCenterClick`, ex.: ir para hoje) ou ser só texto.
+ * O rótulo pode abrir um seletor (`onOpen`), disparar uma ação (`onCenterClick`, ex.: ir para
+ * hoje) ou, por padrão, ser só texto: o período muda pelos botões anterior e próximo.
  */
 export default function PeriodSwitcher({
   label,
@@ -23,7 +23,6 @@ export default function PeriodSwitcher({
   disabled = false,
   onOpen,
   expanded,
-  monthInput,
   onCenterClick,
   className = '',
 }: {
@@ -37,8 +36,6 @@ export default function PeriodSwitcher({
   /** O rótulo abre um diálogo de escolha de período. */
   onOpen?: () => void;
   expanded?: boolean;
-  /** O rótulo escolhe o mês pelo campo nativo (`YYYY-MM`). */
-  monthInput?: { value: string; onChange: (value: string) => void; min?: string; max?: string };
   /** O rótulo é um botão de ação simples (sem diálogo). */
   onCenterClick?: () => void;
   className?: string;
@@ -53,29 +50,7 @@ export default function PeriodSwitcher({
         className={surface}
       />
 
-      {monthInput ? (
-        <label title="Escolher mês" className={`${center} relative cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]`}>
-          <span className="truncate capitalize">{label}</span>
-          <span className="sr-only">Escolher mês</span>
-          <input
-            type="month"
-            value={monthInput.value}
-            min={monthInput.min}
-            max={monthInput.max}
-            disabled={disabled}
-            onChange={(event) => event.currentTarget.value && monthInput.onChange(event.currentTarget.value)}
-            // No Chrome o campo só abre o calendário pelo ícone nativo; o clique no rótulo abre direto.
-            onClick={(event) => {
-              try {
-                event.currentTarget.showPicker?.();
-              } catch {
-                // Navegador sem showPicker ou sem gesto: o campo segue editável pelo teclado.
-              }
-            }}
-            className="absolute -inset-px cursor-pointer opacity-0"
-          />
-        </label>
-      ) : onOpen || onCenterClick ? (
+      {onOpen || onCenterClick ? (
         <button
           type="button"
           onClick={onOpen ?? onCenterClick}

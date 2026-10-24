@@ -58,7 +58,6 @@ export default function OrbitDashboardV2() {
         onPrevious={() => setPeriodValue(periodOffset(periodValue, -1))}
         onNext={() => setPeriodValue(periodOffset(periodValue, 1))}
         disabled={loading}
-        monthInput={{ value: periodValue, onChange: setPeriodValue, min: '2000-01', max: '2100-12' }}
       />
     </div>
   );

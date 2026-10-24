@@ -277,17 +277,6 @@ export default function OrbitTransactions() {
     }));
   }
 
-  // Escolha direta do mês (campo nativo), igual ao Dashboard; sem modal.
-  const periodInput = {
-    value: `${year}-${String(month).padStart(2, '0')}`,
-    onChange: (value: string) => {
-      const [nextYear, nextMonth] = value.split('-').map(Number);
-      if (nextYear && nextMonth) applyPeriod(nextMonth, nextYear);
-    },
-    min: '2000-01',
-    max: '2100-12',
-  };
-
   function movePeriod(offset: number) {
     const next = shiftPeriod(month, year, offset);
     applyPeriod(next.month, next.year);
@@ -330,7 +319,6 @@ export default function OrbitTransactions() {
           loading={loading}
           summaryStatus={summaryStatus}
           onMovePeriod={movePeriod}
-          periodInput={periodInput}
           onOpenFilters={() => setFiltersOpen(true)}
           onQuickFilterChange={setMobileQuickFilter}
           onOpenTransaction={setSelectedTransaction}
@@ -350,7 +338,6 @@ export default function OrbitTransactions() {
                   onPrevious={() => movePeriod(-1)}
                   onNext={() => movePeriod(1)}
                   disabled={loading}
-                  monthInput={periodInput}
                 />
         
                 <Button
