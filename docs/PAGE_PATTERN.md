@@ -4,7 +4,7 @@
 
 ## Estrutura
 
-- **Mobile:** barra superior, conteúdo no meio, barra inferior flutuante (Início, Transações, Contas, Mais). Lista/central migrada usa a `PageBar` como barra superior fixa (a `MobileTopbar` não renderiza em `/contas`, `/categorias` e `/transacoes`); as ainda não migradas usam a barra global (`MobileTopbar`); detalhe e formulário usam `MobileAppBar` (fixa, com voltar, título e ações). O conteúdo reserva o espaço da barra inferior por `--app-mobile-bottom-nav-height`.
+- **Mobile:** barra superior, conteúdo no meio, barra inferior flutuante (Início, Transações, Contas, Mais). Lista/central migrada usa a `PageBar` como barra superior fixa (a `MobileTopbar` não renderiza nas rotas listadas em `PAGE_BAR_LISTS`; ao migrar uma lista, inclua a rota lá); as ainda não migradas usam a barra global (`MobileTopbar`); detalhe e formulário usam `MobileAppBar` (fixa, com voltar, título e ações). O conteúdo reserva o espaço da barra inferior por `--app-mobile-bottom-nav-height`.
 - **Desktop (`lg`+):** a faixa do título é o `PageBar`: encostada na sidebar, na cor dela, com a altura do bloco do logo (`--app-sidebar-header-height`, a linha de baixo é uma só) e fixa ao rolar.
 - Telas com sidebar ligam `sidebarAligned` em `PageTitle`, `ShowPage`, `NewPage` e `EditPage` e informam `breadcrumb`: níveis acima são links e o último é o `h1`. No modo faixa a descrição é ignorada; não use eyebrow.
 - Detalhe, criação e edição escondem o cabeçalho no mobile (`hideHeaderOnMobile` / `ShowBelow`) e usam `MobileAppBar`.
@@ -31,7 +31,7 @@
 
 ## Adoção
 
-- Concluído: Contas, Categorias, Transações (lista, detalhe, nova, editar, transferência, Importar e Regras).
+- Concluído: Contas, Categorias, Transações (lista, detalhe, nova, editar, transferência, Importar e Regras), Estabelecimentos, Tags, Modelos, Recorrências, Metas e Dívidas.
 - Exceção em Transações: o resumo de confirmação fixo da revisão do Importar (informa o que será criado antes de confirmar).
-- Pendente (usam cabeçalho próprio ou o padrão anterior): Dashboard, Calendário, Metas, Dívidas, Investimentos, Patrimônio, Fechamento, Comparar, Compromissos, Modelos, Recorrências, Rendimentos, Estabelecimentos, Tags, Usuário.
+- Pendente (usam cabeçalho próprio ou o padrão anterior): Dashboard, Calendário, Investimentos, Patrimônio, Fechamento, Comparar, Compromissos, Rendimentos, Usuário.
 - Ao migrar uma tela, ligue `sidebarAligned` e `breadcrumb`, remova a descrição e o eyebrow, mova ações para o cabeçalho e atualize esta lista.

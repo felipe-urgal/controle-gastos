@@ -3,11 +3,13 @@
 import { useState } from 'react';
 
 import { PageHeader } from '@/app/components/base-pages';
+import { pageBarButtonProps } from '@/app/components/base-pages/page-bar';
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { ConfirmationModal, DeleteOverlay } from '@/app/components/overlays';
 import MerchantShowView from '@/app/components/pages/merchant/show/merchant-show-view';
-import { ShowFrom } from '@/app/components/ui';
+import { Button, ShowFrom } from '@/app/components/ui';
+import { FaPowerOff } from 'react-icons/fa';
 import { useDelete } from '@/app/hooks/crud/delete';
 import { useShow } from '@/app/hooks/crud/show';
 import { merchantService } from '@/app/services/merchant-service';
@@ -37,12 +39,31 @@ export default function Show({ id }: { id: string }) {
     }
   }
 
+  const toggleActive = () => {
+    if (entity) void update({ isActive: !entity.isActive }).catch(() => undefined);
+  };
+
   return (
     <ProtectedRoute>
       <DeleteOverlay isOpen={isDeleting} entityName="estabelecimento" title="Excluindo estabelecimento" />
 
       <ShowFrom breakpoint="lg">
-        <PageHeader title="Detalhes do estabelecimento" backUrl={BACK_URL} loading={loading} isDeleting={isDeleting} />
+        <PageHeader
+          title="Detalhes do estabelecimento"
+          backUrl={BACK_URL}
+          sidebarAligned
+          breadcrumb={[{ label: 'Estabelecimentos', href: BACK_URL }, { label: entity?.name ?? 'Estabelecimento' }]}
+          actions={
+            entity ? (
+              <Button variant="outline" {...pageBarButtonProps} icon={<FaPowerOff />} onClick={toggleActive} disabled={isDeleting}>
+                {entity.isActive ? 'Inativar' : 'Reativar'}
+              </Button>
+            ) : undefined
+          }
+          onDelete={entity ? () => setIsDeleteModalOpen(true) : undefined}
+          loading={loading}
+          isDeleting={isDeleting}
+        />
       </ShowFrom>
 
       {loading ? (
@@ -57,6 +78,7 @@ export default function Show({ id }: { id: string }) {
             isBusy={isDeleting}
             error={actionError}
             onUpdate={update}
+            onToggleActive={toggleActive}
             onDeleteRequest={() => setIsDeleteModalOpen(true)}
           />
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { PageContainer, PageTitle } from '@/app/components/base-pages';
+import { ListPageHeader, PageContainer } from '@/app/components/base-pages';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaPlus } from 'react-icons/fa';
 
@@ -370,15 +370,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <PageTitle
-          title="Metas"
-          description="Acompanhe objetivos sem misturar planejamento com saldo financeiro."
-          actions={
-            <Button icon={<FaPlus aria-hidden="true" />} onClick={() => openCreate()}>
-              Nova meta
-            </Button>
-          }
-        />
+        <ListPageHeader title="Metas" onCreate={() => openCreate()} createLabel="Nova meta" />
 
         {error && (
           <div className="mt-4">

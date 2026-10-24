@@ -1,6 +1,6 @@
 'use client';
 
-import { PageContainer, PageTitle } from '@/app/components/base-pages';
+import { ListPageHeader, PageContainer } from '@/app/components/base-pages';
 import {
   useCallback,
   useEffect,
@@ -445,20 +445,13 @@ export default function TransactionTemplatesPage({
   return (
     <ProtectedRoute>
     <PageContainer>
-      <PageTitle
+      <ListPageHeader
         title="Modelos de lançamento"
-        description="Um modelo só preenche uma nova transação. Nada é lançado sem a sua confirmação."
-        actions={
-          <Button
-            icon={<FaPlus aria-hidden="true" />}
-            onClick={() => {
-              resetForm();
-              setFormOpen(true);
-            }}
-          >
-            Novo modelo
-          </Button>
-        }
+        createLabel="Novo modelo"
+        onCreate={() => {
+          resetForm();
+          setFormOpen(true);
+        }}
       />
 
       {actionError && (

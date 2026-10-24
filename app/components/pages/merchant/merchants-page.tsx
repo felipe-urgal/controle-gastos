@@ -499,10 +499,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
   return (
     <ProtectedRoute>
       <PageContainer>
-        <PageTitle
-          title="Estabelecimentos"
-          description="Padronize onde suas transações aconteceram sem alterar a descrição original."
-        />
+        <PageTitle title="Estabelecimentos" sidebarAligned />
 
         {heroCurrency || summaryLoaded ? (
           <section

@@ -1,9 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FaArrowRight } from 'react-icons/fa';
 
-import { PageContainer, PageTitle } from '@/app/components/base-pages';
+import { ListPageHeader, PageContainer } from '@/app/components/base-pages';
 import { Alert, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
@@ -106,15 +105,7 @@ export default function RecurrencesCenter() {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <PageTitle
-          title="Recorrências e assinaturas"
-          description="Acompanhe séries cadastradas e revise padrões detectados antes de transformá-los em recorrências."
-          actions={
-            <Button as="a" href="/transacoes/nova" variant="outline" size="sm" icon={<FaArrowRight aria-hidden="true" />} iconPosition="right">
-              Nova transação
-            </Button>
-          }
-        />
+        <ListPageHeader title="Recorrências e assinaturas" createHref="/transacoes/nova" createLabel="Nova transação" />
 
         {error && !data && (
           <div className="mt-4">

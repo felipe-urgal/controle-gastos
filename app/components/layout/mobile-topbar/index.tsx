@@ -9,6 +9,19 @@ import { getAppNavigation } from '@/app/components/layout/app-navigation';
 import OfflinePendingBadge from '@/app/components/pwa/offline-pending-badge';
 import { useAuth, useTheme } from '@/app/context';
 
+/** Listas que usam a `PageBar` como barra superior no mobile. */
+const PAGE_BAR_LISTS = [
+  '/contas',
+  '/categorias',
+  '/transacoes',
+  '/estabelecimentos',
+  '/tags',
+  '/modelos',
+  '/recorrencias',
+  '/metas',
+  '/dividas',
+];
+
 export default function MobileTopbar({
   onOpenGlobalSearch,
 }: {
@@ -31,7 +44,8 @@ export default function MobileTopbar({
   const accountDetailActive =
     pathname === '/contas/nova' ||
     pathname.startsWith('/contas/alterar/') ||
-    pathname.startsWith('/contas/show/');
+    pathname.startsWith('/contas/show/') ||
+    pathname.startsWith('/estabelecimentos/show/');
   const categoryComposeActive =
     pathname === '/categorias/nova' || pathname.startsWith('/categorias/alterar/');
   const categoryShowActive = pathname.startsWith('/categorias/show/');
@@ -40,7 +54,7 @@ export default function MobileTopbar({
   if (accountDetailActive) return null;
 
   // Listas migradas para o padrão de telas usam a faixa de breadcrumb (`PageBar`) como barra superior.
-  if (pathname === '/contas' || pathname === '/categorias' || pathname === '/transacoes') return null;
+  if (PAGE_BAR_LISTS.includes(pathname)) return null;
 
   if (
     transactionComposeActive ||
