@@ -187,11 +187,17 @@ export const accountCrud = baseCrudHandler({
     // Tipo, moeda e ciclo do cartão travam com qualquer histórico financeiro; a tela de edição avisa antes de salvar.
     const usage = await getAccountFinancialUsage(prisma, userId, account.id);
     const hasFinancialHistory = Object.values(usage).some((count) => count > 0);
-    const transactions = await prisma.transaction.findMany({
-      where: { userId, accountId: account.id },
-      ...recentTransactionsQuery,
-      take: RECENT_TRANSACTIONS_IN_DETAIL,
-    });
+    // Pendentes futuras não podem ocupar a vaga das realizadas: cada grupo tem o seu limite.
+    const [completedTransactions, pendingTransactions] = await Promise.all(
+      (["COMPLETED", "PENDING"] as const).map((status) =>
+        prisma.transaction.findMany({
+          where: { userId, accountId: account.id, status },
+          ...recentTransactionsQuery,
+          take: RECENT_TRANSACTIONS_IN_DETAIL,
+        }),
+      ),
+    );
+    const transactions = [...completedTransactions, ...pendingTransactions];
     const activity =
       account.type === "CREDIT_DEBIT"
         ? await getAccountActivity({

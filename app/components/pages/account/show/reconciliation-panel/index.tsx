@@ -243,7 +243,7 @@ export default function ReconciliationPanel({
   if (!isOpen) {
     return (
       <section className="ds-panel p-5 sm:p-6" aria-labelledby="reconciliation-heading">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4">
           <div>
             <h3 id="reconciliation-heading" className="text-xl font-semibold text-[var(--foreground)]">
               Reconciliação do extrato
