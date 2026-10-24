@@ -27,6 +27,8 @@ export type ListboxSelectGroup = {
 };
 
 type ListboxSelectProps = {
+  /** `id` do gatilho (para um `<label htmlFor>`). */
+  id?: string;
   ariaLabel: string;
   value: string;
   onChange: (value: string) => void;
@@ -43,6 +45,7 @@ type ListboxSelectProps = {
  * opção atual. O gatilho é livre (`children` + `triggerClassName`) para cada tela desenhar o seu.
  */
 export default function ListboxSelect({
+  id: triggerId,
   ariaLabel,
   value,
   onChange,
@@ -209,6 +212,7 @@ export default function ListboxSelect({
     <div ref={rootRef} className="relative">
       <button
         type="button"
+        id={triggerId}
         data-listbox-select-trigger
         aria-label={ariaLabel}
         aria-haspopup="listbox"
@@ -237,9 +241,11 @@ export default function ListboxSelect({
           {groups.length
             ? groups.map((group) => (
                 <div key={group.label} className="py-1">
-                  <p className="px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
-                    {group.label}
-                  </p>
+                  {group.label && (
+                    <p className="px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+                      {group.label}
+                    </p>
+                  )}
                   {group.options.map((option) => {
                     const currentIndex = optionIndex;
                     optionIndex += 1;

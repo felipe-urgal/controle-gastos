@@ -23,7 +23,6 @@ export function PeriodDialog({ month, year, loading, onApply, onClose }: { month
   return (
     <ModalShell
       variant="fullscreen-sheet"
-      eyebrow="Período"
       title="Selecionar mês"
       description="Escolha o período usado na listagem de transações."
       closeLabel="Fechar seleção de período"
@@ -32,7 +31,7 @@ export function PeriodDialog({ month, year, loading, onApply, onClose }: { month
       footer={
         <div className="grid grid-cols-2 gap-2">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" className="bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]" onClick={() => { onApply(draftMonth, draftYear); onClose(); }}>Aplicar período</Button>
+          <Button variant="primary" onClick={() => { onApply(draftMonth, draftYear); onClose(); }}>Aplicar período</Button>
         </div>
       }
     >
@@ -51,7 +50,6 @@ export function FilterDialog({ fields, values, loading, total, onApply, onClose 
   return (
     <ModalShell
       variant="fullscreen-sheet"
-      eyebrow="Refinar transações"
       title="Filtros"
       description={`${activeCount} filtro${activeCount === 1 ? '' : 's'} selecionado${activeCount === 1 ? '' : 's'}${total !== undefined ? ` · ${total} resultado${total === 1 ? '' : 's'}` : ''}`}
       closeLabel="Fechar filtros"
@@ -62,7 +60,7 @@ export function FilterDialog({ fields, values, loading, total, onApply, onClose 
           <Button size="sm" variant="ghost" onClick={() => setDraftValues({})} disabled={activeCount === 0}>Limpar filtros</Button>
           <div className="grid grid-cols-2 gap-2 sm:flex">
             <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button variant="primary" className="bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]" onClick={() => { onApply(draftValues); onClose(); }}>Aplicar filtros</Button>
+            <Button variant="primary" onClick={() => { onApply(draftValues); onClose(); }}>Aplicar filtros</Button>
           </div>
         </div>
       }
