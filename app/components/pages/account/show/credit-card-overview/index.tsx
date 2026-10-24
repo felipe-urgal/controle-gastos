@@ -1,7 +1,7 @@
 'use client';
 
 import { ShowBelow } from '@/app/components/ui';
-import { Button, Chip, Input, Select } from '@/app/components/ui';
+import { Button, Chip, IconLink, Input, Select } from '@/app/components/ui';
 import {
   closingDistanceLabel,
   dueDistanceLabel,
@@ -10,11 +10,10 @@ import {
   pickStatementToPay,
   usagePercent,
 } from '@/app/components/pages/account/show/credit-card-overview/card-show-model';
-import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
+import { MobileAppBar } from '@/app/components/layout';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  FaArrowLeft,
   FaCalendarAlt,
   FaCheckCircle,
   FaChevronRight,
@@ -247,25 +246,12 @@ export default function CreditCardOverview({
   return (
     <div className={`w-full space-y-4 pb-5 transition-opacity ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
-        <div className="flex items-center justify-between gap-3">
-          <Link
-            href={backUrl}
-            aria-label="Voltar para contas"
-            className="grid h-11 w-11 place-items-center rounded-full text-[var(--foreground)]"
-          >
-            <FaArrowLeft aria-hidden="true" />
-          </Link>
-          <h1 className={`text-center ${appBarTitleClassName}`}>
-            {account.name}
-          </h1>
-          <Link
-            href={editUrl}
-            aria-label="Editar cartão"
-            className="grid h-11 w-11 place-items-center rounded-full text-[var(--primary)]"
-          >
-            <FaPen aria-hidden="true" />
-          </Link>
-        </div>
+        <MobileAppBar
+          title={account.name}
+          backHref={backUrl}
+          backLabel="Voltar para contas"
+          action={<IconLink label="Editar cartão" href={editUrl} icon={<FaPen />} tone="primary" />}
+        />
       </ShowBelow>
 
       <section
@@ -313,7 +299,7 @@ export default function CreditCardOverview({
           </div>
         </div>
 
-        <nav aria-label="Ações do cartão" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <nav aria-label="Ações do cartão" className="grid auto-cols-fr grid-flow-col gap-2">
           {toPay ? (
             <Button type="button" size="xs" className="w-full" onClick={() => openPayment(toPay)}>
               Pagar fatura
@@ -330,9 +316,6 @@ export default function CreditCardOverview({
           )}
           <Button as="a" href={`/transacoes?accountId=${encodeURIComponent(account.id)}`} variant="outline" size="xs" className="w-full">
             Compras
-          </Button>
-          <Button as="a" href={editUrl} variant="outline" size="xs" className="w-full">
-            Editar
           </Button>
         </nav>
       </section>

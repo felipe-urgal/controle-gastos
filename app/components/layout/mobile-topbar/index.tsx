@@ -26,18 +26,21 @@ export default function MobileTopbar({
   const transactionComposeActive =
     pathname === '/transacoes/nova' || pathname.startsWith('/transacoes/alterar/');
   const transactionShowActive = pathname.startsWith('/transacoes/show/');
-  const accountComposeActive =
-    pathname === '/contas/nova' || pathname.startsWith('/contas/alterar/');
-  const accountShowActive = pathname.startsWith('/contas/show/');
+  // Detalhe e formulário de conta têm a própria MobileAppBar (fixa no topo, com voltar).
+  const accountDetailActive =
+    pathname === '/contas/nova' ||
+    pathname.startsWith('/contas/alterar/') ||
+    pathname.startsWith('/contas/show/');
   const categoryComposeActive =
     pathname === '/categorias/nova' || pathname.startsWith('/categorias/alterar/');
   const categoryShowActive = pathname.startsWith('/categorias/show/');
 
+  // A MobileAppBar da tela já respeita a área segura do topo.
+  if (accountDetailActive) return null;
+
   if (
     transactionComposeActive ||
     transactionShowActive ||
-    accountComposeActive ||
-    accountShowActive ||
     categoryComposeActive ||
     categoryShowActive
   ) {

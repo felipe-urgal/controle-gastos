@@ -3,9 +3,9 @@
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useState } from 'react';
-import { FaArrowDown, FaArrowLeft, FaArrowUp, FaExchangeAlt } from 'react-icons/fa';
+import { FaArrowDown, FaArrowUp, FaExchangeAlt } from 'react-icons/fa';
 
-import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
+import { MobileAppBar } from '@/app/components/layout';
 import {
   accountShowActions,
   buildSparkline,
@@ -17,7 +17,7 @@ import {
 import ReconciliationPanel from '@/app/components/pages/account/show/reconciliation-panel';
 import { ChartCursor } from '@/app/components/charts/chart-cursor';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
-import { Button, Chip, IconLink, IconRenderer, ShowBelow } from '@/app/components/ui';
+import { Button, Chip, IconRenderer, ShowBelow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { getAccountPrimaryValue } from '@/app/lib/accounts/account-presentation';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -216,11 +216,12 @@ export default function AccountShowView({
   return (
     <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
-        <header className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2">
-          <IconLink label="Voltar para contas" href={backUrl} icon={<FaArrowLeft />} className="rounded-full text-lg text-[var(--foreground)]" />
-          <h1 className={`text-center ${appBarTitleClassName}`}>{account.name}</h1>
-          <Button as="a" href={editUrl} variant="outline" size="xs">Editar conta</Button>
-        </header>
+        <MobileAppBar
+          title={account.name}
+          backHref={backUrl}
+          backLabel="Voltar para contas"
+          action={<Button as="a" href={editUrl} variant="outline" size="xs">Editar</Button>}
+        />
       </ShowBelow>
 
       <section

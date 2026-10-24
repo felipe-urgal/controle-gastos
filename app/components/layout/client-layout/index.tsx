@@ -32,17 +32,10 @@ export default function ClientLayout({
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const accountComposeActive =
-    pathname === '/contas/nova' || pathname.startsWith('/contas/alterar/');
-  const accountShowActive = pathname.startsWith('/contas/show/');
   const categoryComposeActive =
     pathname === '/categorias/nova' || pathname.startsWith('/categorias/alterar/');
   const categoryShowActive = pathname.startsWith('/categorias/show/');
-  const immersiveMobile =
-    accountComposeActive ||
-    accountShowActive ||
-    categoryComposeActive ||
-    categoryShowActive;
+  const immersiveMobile = categoryComposeActive || categoryShowActive;
   const mounted = useSyncExternalStore(
     subscribeHydration,
     () => true,

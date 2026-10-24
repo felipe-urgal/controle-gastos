@@ -1,8 +1,6 @@
 'use client';
 
-import { FaArrowLeft } from 'react-icons/fa';
-
-import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
+import { MobileAppBar } from '@/app/components/layout';
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { AccountFormCard } from '@/app/components/pages/account/form/account-form-card';
 import {
@@ -10,7 +8,7 @@ import {
   accountStructureLock,
   accountTypeCards,
 } from '@/app/components/pages/account/form/account-form-model';
-import { ActiveToggle, Chip, IconButton, Input, ShowBelow } from '@/app/components/ui';
+import { ActiveToggle, Chip, Input, ShowBelow } from '@/app/components/ui';
 import { useAccountForm } from '@/app/hooks/accounts/use-account-form';
 import { ACCOUNT_DESCRIPTION_MAX_LENGTH } from '@/app/lib/constants/account.constants';
 import { AccountFormProps } from '@/app/lib/interface/accounts.interface';
@@ -34,17 +32,13 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
   return (
     <div className="w-full">
       <ShowBelow breakpoint="lg">
-        <header className="mb-4 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
-          <IconButton
-            label="Voltar"
-            icon={<FaArrowLeft />}
-            onClick={handleRedirect}
-            disabled={loading}
-            className="rounded-full text-lg text-[var(--foreground)]"
+        <div className="mb-4">
+          <MobileAppBar
+            title={isEditing ? 'Editar conta' : 'Nova conta'}
+            onBack={handleRedirect}
+            backDisabled={loading}
           />
-          <h1 className={`text-center ${appBarTitleClassName}`}>{isEditing ? 'Editar conta' : 'Nova conta'}</h1>
-          <span aria-hidden="true" />
-        </header>
+        </div>
 
       </ShowBelow>
 
@@ -147,7 +141,7 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           </div>
         </details>
 
-        <div className="max-lg:sticky max-lg:bottom-0 max-lg:-mx-1 max-lg:bg-[var(--background)] max-lg:px-1 max-lg:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="max-lg:sticky max-lg:bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] max-lg:z-[var(--z-nav)] max-lg:-mx-1 max-lg:bg-[var(--background)] max-lg:px-1 max-lg:pb-2">
           <FormActions
             isEditing={isEditing}
             loading={loading}
