@@ -13,13 +13,12 @@ import {
   periodValue,
   shiftPeriod,
 } from '@/app/components/pages/monthly-closing/monthly-closing-model';
-import { Chip, PeriodSwitcher, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { CurrencySelect, PeriodSwitcher, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { monthlyClosingService } from '@/app/services/monthly-closing-service';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { MonthlyClosingData } from '@/app/types/monthly-closing';
 
-const CURRENCIES: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
 
 const PERIOD_STATUS_LABELS = {
   IN_PROGRESS: 'Mês em andamento',
@@ -97,6 +96,7 @@ export default function MonthlyClosingPage() {
 
   const headerControls = (
         <div className="flex flex-wrap items-center gap-2.5">
+          <CurrencySelect value={currency} onChange={setCurrency} />
           <PeriodSwitcher
             month={month}
             year={year}
@@ -104,13 +104,6 @@ export default function MonthlyClosingPage() {
             onNext={() => goTo(1)}
             nextDisabled={atCurrentMonth}
           />
-          <div className="flex gap-2" role="group" aria-label="Moeda">
-            {CURRENCIES.map((item) => (
-              <Chip key={item} selected={item === currency} onClick={() => setCurrency(item)}>
-                {item}
-              </Chip>
-            ))}
-          </div>
         </div>
   );
 
