@@ -1,13 +1,12 @@
 'use client';
 
-import { PageContainer, PageTitle } from '@/app/components/base-pages';
+import { ListPageHeader, PageContainer } from '@/app/components/base-pages';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FaArchive,
   FaCheck,
   FaEdit,
   FaHistory,
-  FaPlus,
   FaTrash,
 } from 'react-icons/fa';
 
@@ -446,15 +445,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <PageTitle
-          title="Dívidas"
-          description="Passivos manuais, separados das contas e sem alterar saldos financeiros."
-          actions={
-            <Button icon={<FaPlus aria-hidden="true" />} onClick={openCreate}>
-              Nova dívida
-            </Button>
-          }
-        />
+        <ListPageHeader title="Dívidas" onCreate={openCreate} createLabel="Nova dívida" />
 
         {error && (
           <div className="mt-4">

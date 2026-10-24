@@ -4,9 +4,9 @@ import { MonthBarsChart } from '@/app/components/charts/month-bars-chart';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useState } from 'react';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaPowerOff, FaTrash } from 'react-icons/fa';
 
-import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
+import { MobileAppBar } from '@/app/components/layout';
 import { Alert } from '@/app/components/feedback';
 import MerchantAliasesCard from '@/app/components/pages/merchant/show/merchant-aliases-card';
 import {
@@ -14,7 +14,7 @@ import {
   describeMonth,
   longMonthLabel,
 } from '@/app/components/pages/merchant/show/merchant-show-model';
-import { Button, IconLink, Input, ShowBelow } from '@/app/components/ui';
+import { Button, IconButton, Input, ShowBelow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { MerchantDTO } from '@/app/types/merchant';
@@ -25,6 +25,7 @@ export default function MerchantShowView({
   isBusy,
   error,
   onUpdate,
+  onToggleActive,
   onDeleteRequest,
 }: {
   merchant: MerchantDTO;
@@ -32,6 +33,7 @@ export default function MerchantShowView({
   isBusy: boolean;
   error: string;
   onUpdate: (data: { name?: string; isActive?: boolean }) => Promise<void>;
+  onToggleActive: () => void;
   onDeleteRequest: () => void;
 }) {
   const { user } = useAuth();
@@ -72,10 +74,22 @@ export default function MerchantShowView({
   return (
     <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isBusy ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
-        <header className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
-          <IconLink label="Voltar para estabelecimentos" href={backUrl} icon={<FaArrowLeft />} className="rounded-full text-lg text-[var(--foreground)]" />
-          <h1 className={`text-center ${appBarTitleClassName}`}>{merchant.name}</h1>
-        </header>
+        <MobileAppBar
+          title={merchant.name}
+          backHref={backUrl}
+          backLabel="Voltar para estabelecimentos"
+          action={
+            <div className="flex">
+              <IconButton
+                label={merchant.isActive ? 'Inativar estabelecimento' : 'Reativar estabelecimento'}
+                icon={<FaPowerOff />}
+                onClick={onToggleActive}
+                disabled={disabled}
+              />
+              <IconButton label="Excluir estabelecimento" icon={<FaTrash />} tone="danger" onClick={onDeleteRequest} disabled={disabled} />
+            </div>
+          }
+        />
       </ShowBelow>
 
       {error ? <Alert variant="error" message={error} /> : null}
@@ -221,20 +235,6 @@ export default function MerchantShowView({
               <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Criado em</dt><dd>{format(new Date(merchant.createdAt), 'dd/MM/yyyy')}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Atualizado em</dt><dd>{format(new Date(merchant.updatedAt), 'dd/MM/yyyy')}</dd></div>
             </dl>
-            <details className="border-t border-[var(--border)]">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center px-4 text-sm text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
-                Zona de risco
-              </summary>
-              <div className="grid gap-3 px-4 pb-4 text-sm text-[var(--text-muted)] sm:px-5">
-                <p>Com transações ou aliases vinculados, só é possível inativar: o histórico é preservado e o estabelecimento deixa de ser sugerido. Para excluir, remova antes os aliases.</p>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => void run({ isActive: !merchant.isActive })}>
-                    {merchant.isActive ? 'Inativar estabelecimento' : 'Reativar estabelecimento'}
-                  </Button>
-                  <Button type="button" variant="danger" size="sm" disabled={disabled} onClick={onDeleteRequest}>Excluir estabelecimento</Button>
-                </div>
-              </div>
-            </details>
           </section>
         </div>
       </div>
