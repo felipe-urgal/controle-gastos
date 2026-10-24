@@ -36,7 +36,7 @@ export default function PageBar({ crumbs, actions }: { crumbs: Crumb[]; actions?
               ) : (
                 <span className="text-xl font-semibold tracking-tight text-[var(--text-muted)]">{crumb.label}</span>
               )}
-              <FaChevronRight className="text-xs text-[var(--text-subtle)]" aria-hidden="true" />
+              <FaChevronRight className="translate-y-px text-xs text-[var(--text-subtle)]" aria-hidden="true" />
             </li>
           ))}
           <li aria-current="page" className="min-w-0">
