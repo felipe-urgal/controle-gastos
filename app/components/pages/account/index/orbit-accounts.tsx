@@ -148,7 +148,7 @@ export default function OrbitAccounts() {
               <>
                 {/* Celular: só o ícone, na linha do título. */}
                 <ShowBelow breakpoint="sm">
-                  <Button as="a" href="/contas/nova" aria-label="Nova conta" icon={<FaPlus aria-hidden="true" />} />
+                  <Button as="a" href="/contas/nova" size="compact" aria-label="Nova conta" icon={<FaPlus aria-hidden="true" />} />
                 </ShowBelow>
                 <ShowFrom breakpoint="sm">
                   <Button as="a" href="/contas/nova" {...pageBarButtonProps} icon={<FaPlus aria-hidden="true" />}>

@@ -36,7 +36,8 @@ type ButtonVariant =
   | 'ghost'
   | 'link';
 
-type ButtonSize = 'xs' | 'sm' | 'md' | 'cta' | 'lg' | 'xl';
+/** `compact`: 36px (sem a área de toque de 44px); para controles de cabeçalho em que o botão grande pesa. */
+type ButtonSize = 'compact' | 'xs' | 'sm' | 'md' | 'cta' | 'lg' | 'xl';
 
 type ButtonProps = BaseButtonProps &
   (BaseButtonProps['as'] extends 'a'
@@ -100,6 +101,9 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     const isIconOnly = Boolean(icon && !children);
 
     const sizes: Record<ButtonSize, string> = {
+      compact: isIconOnly
+        ? 'p-2 min-h-9 min-w-9'
+        : 'px-3 py-1.5 text-sm gap-1.5 min-h-9',
       xs: isIconOnly
         ? 'p-2 min-h-11 min-w-11'
         : 'px-3 py-2 text-sm gap-1.5 min-h-11 sm:min-h-9',
@@ -122,6 +126,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     };
 
     const iconSizes: Record<ButtonSize, string> = {
+      compact: 'w-4 h-4',
       xs: 'w-4 h-4',
       sm: 'w-4 h-4',
       md: 'w-5 h-5',
@@ -131,6 +136,7 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     };
 
     const spinnerSizes: Record<ButtonSize, string> = {
+      compact: 'w-4 h-4 border-2',
       xs: 'w-4 h-4 border-2',
       sm: 'w-4 h-4 border-2',
       md: 'w-5 h-5 border-2',
