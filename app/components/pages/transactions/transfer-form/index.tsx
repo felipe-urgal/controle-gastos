@@ -19,7 +19,7 @@ import {
 
 import { FormContainer } from '@/app/components/forms';
 import { Button, Input, RadioGroup } from '@/app/components/ui';
-import ReceiptSelect from '@/app/components/pages/transactions/shared/receipt-select';
+import ListboxSelect from '@/app/components/ui/listbox-select';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import {
   getTransferIdempotencyAttempt,
@@ -402,7 +402,7 @@ export default function TransferForm({
               </div>
 
               <div className="grid gap-2.5">
-                <ReceiptSelect
+                <ListboxSelect
                   ariaLabel="Conta de origem"
                   value={sourceAccountId}
                   disabled={loading || Boolean(transferId)}
@@ -420,9 +420,9 @@ export default function TransferForm({
                     </span>
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
-                </ReceiptSelect>
+                </ListboxSelect>
 
-                <ReceiptSelect
+                <ListboxSelect
                   ariaLabel="Conta de destino"
                   value={destinationAccountId}
                   disabled={loading || Boolean(transferId) || !selectedSource}
@@ -444,7 +444,7 @@ export default function TransferForm({
                     </span>
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
-                </ReceiptSelect>
+                </ListboxSelect>
 
                 <label className="relative grid min-h-[76px] cursor-pointer grid-cols-[48px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3">
                   <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
@@ -652,7 +652,7 @@ export default function TransferForm({
               </div>
 
               <div className="grid gap-2 border-t border-[var(--border)] pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-                <ReceiptSelect
+                <ListboxSelect
                   ariaLabel="Status"
                   value={status}
                   disabled={loading}
@@ -667,7 +667,7 @@ export default function TransferForm({
                   <span className="h-2 w-2 rounded-full bg-[var(--primary)]" aria-hidden="true" />
                   <span className="truncate">{selectedStatusLabel}</span>
                   <FaChevronRight className="ml-auto rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                </ReceiptSelect>
+                </ListboxSelect>
                 <div className="flex min-h-9 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
                   <FaCalendarAlt aria-hidden="true" /> Única
                 </div>
@@ -675,7 +675,7 @@ export default function TransferForm({
             </div>
 
             <div className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
-              <ReceiptSelect
+              <ListboxSelect
                 ariaLabel="Conta de origem"
                 value={sourceAccountId}
                 disabled={loading || Boolean(transferId)}
@@ -689,9 +689,9 @@ export default function TransferForm({
                   {selectedSource ? `${selectedSource.name} · ${selectedSource.currency}` : 'Selecione a origem'}
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-              </ReceiptSelect>
+              </ListboxSelect>
 
-              <ReceiptSelect
+              <ListboxSelect
                 ariaLabel="Conta de destino"
                 value={destinationAccountId}
                 disabled={loading || Boolean(transferId) || !selectedSource}
@@ -705,7 +705,7 @@ export default function TransferForm({
                   {selectedDestination ? `${selectedDestination.name} · ${selectedDestination.currency}` : selectedSource ? 'Selecione o destino' : 'Selecione primeiro a origem'}
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-              </ReceiptSelect>
+              </ListboxSelect>
 
               <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
                 <FaCalendarAlt className="text-[var(--text-muted)]" aria-hidden="true" />

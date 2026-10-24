@@ -13,7 +13,7 @@ import { FaCheck } from 'react-icons/fa';
 
 import IconRenderer from '@/app/components/ui/icon-renderer';
 
-export type ReceiptSelectOption = {
+export type ListboxSelectOption = {
   value: string;
   label: string;
   disabled?: boolean;
@@ -21,24 +21,28 @@ export type ReceiptSelectOption = {
   icon?: string | null;
 };
 
-export type ReceiptSelectGroup = {
+export type ListboxSelectGroup = {
   label: string;
-  options: ReceiptSelectOption[];
+  options: ListboxSelectOption[];
 };
 
-type ReceiptSelectProps = {
+type ListboxSelectProps = {
   ariaLabel: string;
   value: string;
   onChange: (value: string) => void;
-  options?: ReceiptSelectOption[];
-  groups?: ReceiptSelectGroup[];
+  options?: ListboxSelectOption[];
+  groups?: ListboxSelectGroup[];
   disabled?: boolean;
   children: ReactNode;
   triggerClassName: string;
   menuClassName?: string;
 };
 
-export default function ReceiptSelect({
+/**
+ * Select próprio (lista customizada, não a nativa): segue o tema, tem teclado completo e marca a
+ * opção atual. O gatilho é livre (`children` + `triggerClassName`) para cada tela desenhar o seu.
+ */
+export default function ListboxSelect({
   ariaLabel,
   value,
   onChange,
@@ -48,7 +52,7 @@ export default function ReceiptSelect({
   children,
   triggerClassName,
   menuClassName = '',
-}: ReceiptSelectProps) {
+}: ListboxSelectProps) {
   const id = useId().replace(/:/g, '');
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -122,7 +126,7 @@ export default function ReceiptSelect({
     if (event.key === 'Escape') {
       event.preventDefault();
       setOpen(false);
-      rootRef.current?.querySelector<HTMLButtonElement>('[data-receipt-select-trigger]')?.focus();
+      rootRef.current?.querySelector<HTMLButtonElement>('[data-listbox-select-trigger]')?.focus();
       return;
     }
 
@@ -156,16 +160,16 @@ export default function ReceiptSelect({
     }
   };
 
-  const selectOption = (option: ReceiptSelectOption) => {
+  const selectOption = (option: ListboxSelectOption) => {
     if (option.disabled) return;
     onChange(option.value);
     setOpen(false);
     requestAnimationFrame(() => {
-      rootRef.current?.querySelector<HTMLButtonElement>('[data-receipt-select-trigger]')?.focus();
+      rootRef.current?.querySelector<HTMLButtonElement>('[data-listbox-select-trigger]')?.focus();
     });
   };
 
-  const renderOption = (option: ReceiptSelectOption, index: number) => {
+  const renderOption = (option: ListboxSelectOption, index: number) => {
     const selected = option.value === value;
 
     return (
@@ -205,11 +209,11 @@ export default function ReceiptSelect({
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        data-receipt-select-trigger
+        data-listbox-select-trigger
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-controls={open ? `receipt-select-${id}` : undefined}
+        aria-controls={open ? `listbox-select-${id}` : undefined}
         disabled={disabled}
         onClick={() => {
           if (open) setOpen(false);
@@ -224,7 +228,7 @@ export default function ReceiptSelect({
       {open && (
         <div
           ref={menuRef}
-          id={`receipt-select-${id}`}
+          id={`listbox-select-${id}`}
           role="listbox"
           aria-label={ariaLabel}
           onKeyDown={handleMenuKeyDown}

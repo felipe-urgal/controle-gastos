@@ -1,6 +1,6 @@
 'use client';
 
-import ReceiptSelect from '@/app/components/pages/transactions/shared/receipt-select';
+import ListboxSelect from '@/app/components/ui/listbox-select';
 import ReceiptOcrScanner from '@/app/components/pages/transactions/form/receipt-ocr-scanner';
 import { FaArrowDown, FaArrowRight, FaArrowUp, FaCalendarAlt, FaCalculator, FaCheck, FaChevronRight, FaCog, FaExchangeAlt, FaFileAlt, FaStore, FaTag, FaWallet } from 'react-icons/fa';
 import { FormContainer } from '@/app/components/forms';
@@ -144,7 +144,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
               </div>
 
               <div className="grid gap-2.5">
-                <ReceiptSelect
+                <ListboxSelect
                   ariaLabel="Conta"
                   value={formData.accountId}
                   disabled={loading}
@@ -160,9 +160,9 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                     <span className="mt-1 block truncate text-sm text-[var(--text-muted)]">{selectedAccount?.name ?? 'Selecione uma conta'}</span>
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
-                </ReceiptSelect>
+                </ListboxSelect>
 
-                <ReceiptSelect
+                <ListboxSelect
                   ariaLabel="Categoria"
                   value={formData.categoryId}
                   disabled={loading}
@@ -181,9 +181,9 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                     <span className="mt-1 block truncate text-sm text-[var(--text-muted)]">{selectedCategory?.name ?? 'Selecione uma categoria'}</span>
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
-                </ReceiptSelect>
+                </ListboxSelect>
 
-                <ReceiptSelect
+                <ListboxSelect
                   ariaLabel="Estabelecimento"
                   value={formData.merchantId ?? ''}
                   disabled={loading}
@@ -218,7 +218,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                     ) : null}
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
-                </ReceiptSelect>
+                </ListboxSelect>
 
                 {renderAllocationEditor()}
               <details className="group" open={(formData.tagIds?.length ?? 0) > 0 || undefined}>
@@ -344,7 +344,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 {!isEditing && (
                   <div>
                     <p className="mb-2 text-xs font-semibold text-[var(--text-muted)]">Criar como</p>
-                    <ReceiptSelect
+                    <ListboxSelect
                       ariaLabel="Criar como"
                       value={creationMode}
                       disabled={loading}
@@ -358,7 +358,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                     >
                       <span>{creationModeLabel}</span>
                       <FaChevronRight className="rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                    </ReceiptSelect>
+                    </ListboxSelect>
                   </div>
                 )}
 
@@ -368,7 +368,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                       <strong className="text-sm text-[var(--foreground)]">Recorrência</strong>
                       <p className="mt-1 text-xs text-[var(--text-muted)]">Configure quando este lançamento deve se repetir.</p>
                     </div>
-                    <ReceiptSelect
+                    <ListboxSelect
                       ariaLabel="Frequência"
                       value={recurrencePreset}
                       disabled={loading}
@@ -378,7 +378,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                     >
                       <span>{recurrencePresetLabel}</span>
                       <FaChevronRight className="rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                    </ReceiptSelect>
+                    </ListboxSelect>
                     <RadioGroup
                       name="recurrence-mode-mobile"
                       label="Terminar por"

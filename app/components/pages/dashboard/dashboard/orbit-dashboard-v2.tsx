@@ -2,12 +2,12 @@
 
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaChevronDown, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import { PageTitle } from '@/app/components/base-pages';
 import { ProtectedRoute } from '@/app/components/layout';
 
-import { Button, IconButton, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Button, IconButton, ListboxSelect, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useDashboardHome } from '@/app/hooks/dashboard/use-dashboard-home';
 import { usePeriodicSummary } from '@/app/hooks/dashboard/use-periodic-summary';
@@ -54,6 +54,20 @@ export default function OrbitDashboardV2() {
 
   const periodControls = (
     <div className="flex min-w-0 flex-1 items-center gap-2 lg:flex-none">
+      <div className="w-[116px] shrink-0 sm:w-[145px]">
+        <ListboxSelect
+          ariaLabel="Moeda"
+          value={currency}
+          options={currencyOptions.map((option) => ({ value: String(option.value), label: option.label }))}
+          onChange={(value) => setCurrency(value as SupportedCurrency)}
+          disabled={loading}
+          triggerClassName="flex min-h-11 w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
+          menuClassName="min-w-[9rem]"
+        >
+          <span className="truncate">{currencyOptions.find((option) => option.value === currency)?.label ?? currency}</span>
+          <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
+        </ListboxSelect>
+      </div>
       <IconButton
         label="Mês anterior"
         icon={<FaChevronLeft />}
@@ -81,15 +95,6 @@ export default function OrbitDashboardV2() {
         disabled={loading}
         className="border border-[var(--border)] bg-[var(--surface)]"
       />
-      <div className="w-[116px] shrink-0 sm:w-[145px]">
-        <Select
-          ariaLabel="Moeda"
-          value={currency}
-          options={currencyOptions}
-          onChange={(value) => setCurrency(value as SupportedCurrency)}
-          disabled={loading}
-        />
-      </div>
     </div>
   );
 

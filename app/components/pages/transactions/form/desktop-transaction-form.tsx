@@ -1,6 +1,6 @@
 'use client';
 
-import ReceiptSelect from '@/app/components/pages/transactions/shared/receipt-select';
+import ListboxSelect from '@/app/components/ui/listbox-select';
 import ReceiptOcrScanner from '@/app/components/pages/transactions/form/receipt-ocr-scanner';
 import { FaArrowDown, FaArrowRight, FaArrowUp, FaCalendarAlt, FaCheck, FaChevronRight, FaCreditCard, FaExchangeAlt, FaFileAlt, FaStore, FaRedoAlt, FaSlidersH, FaTag, FaWallet } from 'react-icons/fa';
 import { FormContainer } from '@/app/components/forms';
@@ -97,7 +97,7 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
               </div>
 
               <div className="grid gap-2 border-t border-[var(--border)] pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-                <ReceiptSelect
+                <ListboxSelect
                   ariaLabel="Status"
                   value={formData.status}
                   disabled={loading}
@@ -117,10 +117,10 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
                   <span className="h-2 w-2 rounded-full bg-[var(--primary)]" aria-hidden="true" />
                   <span className="truncate">{selectedStatusLabel}</span>
                   <FaChevronRight className="ml-auto rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                </ReceiptSelect>
+                </ListboxSelect>
 
                 {!isEditing ? (
-                  <ReceiptSelect
+                  <ListboxSelect
                     ariaLabel="Criar como"
                     value={creationMode}
                     disabled={loading}
@@ -136,7 +136,7 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
                     <FaCalendarAlt aria-hidden="true" />
                     <span className="truncate">{creationModeLabel}</span>
                     <FaChevronRight className="ml-auto rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                  </ReceiptSelect>
+                  </ListboxSelect>
                 ) : (
                   <div className="flex min-h-11 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs text-[var(--text-muted)]">
                     <FaCalendarAlt aria-hidden="true" /> Única
@@ -147,7 +147,7 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
             </div>
 
             <div className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
-              <ReceiptSelect
+              <ListboxSelect
                 ariaLabel="Conta"
                 value={formData.accountId}
                 disabled={loading}
@@ -163,9 +163,9 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
                   {selectedAccount?.name ?? 'Selecione uma conta'}
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-              </ReceiptSelect>
+              </ListboxSelect>
 
-              <ReceiptSelect
+              <ListboxSelect
                 ariaLabel="Categoria"
                 value={formData.categoryId}
                 disabled={loading}
@@ -188,9 +188,9 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
                   {selectedCategory?.name ?? 'Selecione uma categoria'}
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-              </ReceiptSelect>
+              </ListboxSelect>
 
-              <ReceiptSelect
+              <ListboxSelect
                 ariaLabel="Estabelecimento"
                 value={formData.merchantId ?? ''}
                 disabled={loading}
@@ -223,7 +223,7 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
                   ) : null}
                 </span>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-              </ReceiptSelect>
+              </ListboxSelect>
 
               {renderAllocationEditor()}
               {renderTagEditor('desktop')}
@@ -335,7 +335,7 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
                         </div>
                         <div>
                           <p className="ds-label mb-2 block">Frequência</p>
-                          <ReceiptSelect
+                          <ListboxSelect
                             ariaLabel="Frequência"
                             value={recurrencePreset}
                             disabled={loading}
@@ -348,7 +348,7 @@ export function DesktopTransactionForm({ form }: { form: TransactionFormState })
                           >
                             <span className="truncate">{recurrencePresetLabel}</span>
                             <FaChevronRight className="rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
-                          </ReceiptSelect>
+                          </ListboxSelect>
                         </div>
                         <RadioGroup
                           name="recurrence-mode"
