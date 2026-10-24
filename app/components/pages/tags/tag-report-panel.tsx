@@ -48,7 +48,7 @@ export default function TagReportPanel({
         {tag && report && !loading ? (
           <Link
             href={`/transacoes?tagId=${encodeURIComponent(tag.id)}`}
-            className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-[var(--orbit-primary)]"
+            className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-[var(--primary)]"
           >
             Abrir transações
           </Link>

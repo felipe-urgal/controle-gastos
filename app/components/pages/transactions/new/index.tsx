@@ -465,7 +465,7 @@ export default function New({
       {offlineDraft && canUseOfflineDraft && !isTransfer && (
         <section
           role="status"
-          className="mt-4 rounded-[var(--radius-lg)] border border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)] p-4"
+          className="mt-4 rounded-[var(--radius-lg)] border border-[var(--primary)]/35 bg-[var(--primary-subtle)] p-4"
           aria-label="Rascunho offline"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

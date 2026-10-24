@@ -550,7 +550,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
           <div className="grid gap-3 border-b border-[var(--border)] p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <FaStore className="text-[var(--orbit-primary)]" aria-hidden="true" />
+                <FaStore className="text-[var(--primary)]" aria-hidden="true" />
                 <h2 id="merchant-list-heading" className="font-semibold text-[var(--foreground)]">
                   {editing ? 'Editar estabelecimento' : 'Onde você gasta'}
                 </h2>
@@ -658,7 +658,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
 
                     {spend && spend.expense > 0 ? (
                       <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`Participação de ${item.name} no gasto da página`}>
-                        <div className="h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${shareWidth(spend.expense, maxSpend)}%` }} />
+                        <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${shareWidth(spend.expense, maxSpend)}%` }} />
                       </div>
                     ) : null}
 

@@ -43,7 +43,7 @@ export default function GoalCard({
   const money = (amount: number) => (showValues ? formatCurrency(amount, goal.currency) : '••••');
   const completed = goal.status === 'COMPLETED';
   const archived = goal.status === 'ARCHIVED';
-  const barTone = completed ? 'bg-[var(--income)]' : pace === 'OVERDUE' || pace === 'BEHIND' ? 'bg-[var(--warning)]' : 'bg-[var(--orbit-primary)]';
+  const barTone = completed ? 'bg-[var(--income)]' : pace === 'OVERDUE' || pace === 'BEHIND' ? 'bg-[var(--warning)]' : 'bg-[var(--primary)]';
 
   return (
     <article
@@ -59,7 +59,7 @@ export default function GoalCard({
               <span className="rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--text-muted)]">Arquivada</span>
             ) : (
               <>
-                <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--orbit-primary)]">Ativa</span>
+                <span className="rounded-full bg-[var(--primary-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--primary)]">Ativa</span>
                 {pace && <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${PACE_PILL[pace].tone}`}>{PACE_PILL[pace].label}</span>}
               </>
             )}
@@ -82,7 +82,7 @@ export default function GoalCard({
           <div className={`h-full rounded-full ${barTone}`} style={{ width: `${percentage}%` }} />
         </div>
         <div className="flex justify-between text-sm">
-          <strong className={completed ? 'text-[var(--income)]' : pace === 'OVERDUE' || pace === 'BEHIND' ? 'text-[var(--warning)]' : 'text-[var(--orbit-primary)]'}>
+          <strong className={completed ? 'text-[var(--income)]' : pace === 'OVERDUE' || pace === 'BEHIND' ? 'text-[var(--warning)]' : 'text-[var(--primary)]'}>
             {goal.percentage.toLocaleString('pt-BR')}%
           </strong>
           <span className="text-[var(--text-muted)]">

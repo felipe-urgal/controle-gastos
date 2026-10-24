@@ -32,7 +32,7 @@ export function PeriodDialog({ month, year, loading, onApply, onClose }: { month
       footer={
         <div className="grid grid-cols-2 gap-2">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" className="bg-[var(--orbit-primary)] text-white hover:bg-[var(--orbit-primary-hover)]" onClick={() => { onApply(draftMonth, draftYear); onClose(); }}>Aplicar período</Button>
+          <Button variant="primary" className="bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]" onClick={() => { onApply(draftMonth, draftYear); onClose(); }}>Aplicar período</Button>
         </div>
       }
     >
@@ -62,7 +62,7 @@ export function FilterDialog({ fields, values, loading, total, onApply, onClose 
           <Button size="sm" variant="ghost" onClick={() => setDraftValues({})} disabled={activeCount === 0}>Limpar filtros</Button>
           <div className="grid grid-cols-2 gap-2 sm:flex">
             <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button variant="primary" className="bg-[var(--orbit-primary)] text-white hover:bg-[var(--orbit-primary-hover)]" onClick={() => { onApply(draftValues); onClose(); }}>Aplicar filtros</Button>
+            <Button variant="primary" className="bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]" onClick={() => { onApply(draftValues); onClose(); }}>Aplicar filtros</Button>
           </div>
         </div>
       }
@@ -228,12 +228,12 @@ export function OrbitTransactionDetail({ transaction, showValues, compact = fals
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
   const date = new Date(transaction.year, transaction.month - 1, transaction.day);
   const iconTone = isTransfer || isCardPayment
-    ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+    ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
     : isIncome
       ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
       : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
   const amountTone = isTransfer || isCardPayment
-    ? 'text-[var(--orbit-primary)]'
+    ? 'text-[var(--primary)]'
     : isIncome
       ? 'text-[var(--income)]'
       : 'text-[var(--expense)]';

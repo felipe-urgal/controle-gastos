@@ -26,7 +26,7 @@ const RECONCILIATION_LABEL: Record<ReconciliationStatus, string> = {
 
 const cardClassName = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]';
 const linkClassName =
-  'font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
+  'font-semibold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
 
 export default function TransactionInfo({
   transaction,
@@ -54,12 +54,12 @@ export default function TransactionInfo({
         ? 'Receita'
         : 'Despesa';
   const amountTone = !isNormal
-    ? 'text-[var(--orbit-primary)]'
+    ? 'text-[var(--primary)]'
     : isIncome
       ? 'text-[var(--income)]'
       : 'text-[var(--expense)]';
   const iconTone = !isNormal
-    ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+    ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
     : isIncome
       ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
       : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
@@ -125,7 +125,7 @@ export default function TransactionInfo({
           {transaction.series && (
             <section className={`${cardClassName} p-4 sm:p-5`} aria-labelledby="transaction-series-heading">
               <div className="flex items-start gap-3">
-                <FaLayerGroup className="mt-1 shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
+                <FaLayerGroup className="mt-1 shrink-0 text-[var(--primary)]" aria-hidden="true" />
                 <div>
                   <h2 id="transaction-series-heading" className="text-base font-bold">
                     {isInstallment

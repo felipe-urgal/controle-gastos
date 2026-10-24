@@ -131,7 +131,7 @@ export default function FinancialComparisonView({
                         <span className="block break-words text-sm font-semibold">{category.name}</span>
                         <span className="mt-1.5 grid gap-[3px]" aria-hidden="true">
                           <span className="block h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]"><span className="block h-full rounded-full bg-[var(--border-strong)]" style={{ width: category.widths[0] + '%' }} /></span>
-                          <span className="block h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]"><span className="block h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: category.widths[1] + '%' }} /></span>
+                          <span className="block h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]"><span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: category.widths[1] + '%' }} /></span>
                         </span>
                       </span>
                       <span className="grid justify-items-end gap-1 text-right">
@@ -210,7 +210,7 @@ function BarRow({ who, width, amount, tone }: { who: string; width: number; amou
     <div className="grid grid-cols-[22px_minmax(0,1fr)_auto] items-center gap-2.5">
       <span className="text-xs font-extrabold text-[var(--text-muted)]">{who}</span>
       <span className="block h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]" aria-hidden="true">
-        <span className={`block h-full rounded-full ${tone === 'a' ? 'bg-[var(--border-strong)]' : 'bg-[var(--orbit-primary)]'}`} style={{ width: width + '%' }} />
+        <span className={`block h-full rounded-full ${tone === 'a' ? 'bg-[var(--border-strong)]' : 'bg-[var(--primary)]'}`} style={{ width: width + '%' }} />
       </span>
       <span className="money min-w-24 text-right text-sm font-semibold sm:min-w-28">{amount}</span>
     </div>

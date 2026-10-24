@@ -30,9 +30,6 @@ import type {
 import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 
 const compactWeekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-const orbitActionTokens =
-  '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
-
 function dateKey(date: Date) {
   return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
 }
@@ -197,7 +194,7 @@ export default function OrbitCalendar() {
         title="Calendário"
         description="Movimentos, vencimentos e marcos financeiros em uma única visão temporal."
         actions={
-        <div className={`grid w-full grid-cols-[auto_1fr_auto] gap-2 sm:flex sm:w-auto sm:flex-wrap ${orbitActionTokens}`}>
+        <div className="grid w-full grid-cols-[auto_1fr_auto] gap-2 sm:flex sm:w-auto sm:flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -240,7 +237,7 @@ export default function OrbitCalendar() {
       {error && (
         <div
           role="alert"
-          className={`mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 ${orbitActionTokens}`}
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3"
         >
           <p className="text-sm font-semibold text-[var(--expense)]">{error}</p>
           <Button
@@ -409,7 +406,7 @@ function MonthNavigator({
 }) {
   return (
     <aside
-      className={`-mx-4 border-y border-[var(--border)] bg-[var(--surface)] py-4 sm:mx-0 sm:rounded-2xl sm:border sm:p-4 ${orbitActionTokens}`}
+      className="-mx-4 border-y border-[var(--border)] bg-[var(--surface)] py-4 sm:mx-0 sm:rounded-2xl sm:border sm:p-4"
       aria-label="Navegação mensal"
     >
       <div className="mb-3 flex items-center justify-between gap-2 px-4 sm:px-0">
@@ -450,7 +447,7 @@ function MonthNavigator({
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-[var(--border)] pt-3 text-xs text-[var(--text-muted)]">
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--income)]" />Receita</span>
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--expense)]" />Despesa</span>
-        <span><i className="mr-1 inline-block h-1.5 w-1.5 rotate-45 bg-[var(--orbit-primary)]" />Transferência</span>
+        <span><i className="mr-1 inline-block h-1.5 w-1.5 rotate-45 bg-[var(--primary)]" />Transferência</span>
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--warning)]" />Pendente</span>
         <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--text-muted)]" />Marco</span>
       </div>
@@ -473,7 +470,7 @@ function FinancialTimeline({
 }) {
   return (
     <article
-      className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 ${orbitActionTokens}`}
+      className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5"
       aria-labelledby="calendar-timeline-title"
     >
       <header className="mb-3 flex flex-wrap items-end justify-between gap-3">
@@ -563,7 +560,7 @@ function TimelineEvent({
       : isMilestone
         ? 'bg-[var(--text-muted)]'
         : isTransfer
-          ? 'bg-[var(--orbit-primary)]'
+          ? 'bg-[var(--primary)]'
           : isPending
             ? 'bg-[var(--warning)]'
             : isIncome
@@ -573,7 +570,7 @@ function TimelineEvent({
   const iconTone = isMilestone
     ? 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'
     : isTransfer
-      ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+      ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
       : isIncome
         ? 'bg-[color-mix(in_srgb,var(--income)_12%,transparent)] text-[var(--income)]'
         : isPending
@@ -583,7 +580,7 @@ function TimelineEvent({
   const amountTone = isMilestone
     ? 'text-[var(--text-muted)]'
     : isTransfer
-      ? 'text-[var(--orbit-primary)]'
+      ? 'text-[var(--primary)]'
       : isIncome
         ? 'text-[var(--income)]'
         : 'text-[var(--expense)]';
@@ -649,7 +646,7 @@ function CommitmentsAgenda({
 }) {
   return (
     <aside
-      className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 ${orbitActionTokens} ${className}`}
+      className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 ${className}`}
       aria-labelledby="calendar-upcoming-title"
     >
       <header className="mb-3 flex items-end justify-between gap-2">
@@ -747,7 +744,7 @@ function EventDetailDrawer({
       description={eventKindLabel(event)}
       closeLabel="Fechar detalhe"
       onClose={onClose}
-      maxWidthClass={`max-w-lg ${orbitActionTokens}`}
+      maxWidthClass="max-w-lg"
     >
       <dl className=" grid grid-cols-2 gap-2.5">
         <DetailBox label="Valor" value={signedAmount(event, showValues)} mono />

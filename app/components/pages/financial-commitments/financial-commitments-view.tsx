@@ -46,7 +46,7 @@ const FILTERS: Array<{ key: CommitmentFilter; label: string }> = [
 const ICON_TONE: Record<FinancialCommitmentDirection, string> = {
   PAYABLE: 'bg-[var(--danger-subtle)] text-[var(--expense)]',
   RECEIVABLE: 'bg-[var(--primary-subtle)] text-[var(--income)]',
-  MILESTONE: 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]',
+  MILESTONE: 'bg-[var(--primary-subtle)] text-[var(--primary)]',
 };
 
 export default function FinancialCommitmentsView({
@@ -87,7 +87,7 @@ export default function FinancialCommitmentsView({
             <div className="grid gap-3 sm:grid-cols-3">
               <Legend dot="var(--expense)" label="A pagar" value={money(payable.amount)} detail={`${payable.count} compromisso${payable.count === 1 ? '' : 's'}`} />
               <Legend dot="var(--income)" label="A receber" value={money(receivable.amount)} detail={`${receivable.count} entrada${receivable.count === 1 ? '' : 's'}`} />
-              <Legend dot="var(--orbit-primary)" label="Marcos" value={String(milestoneCount)} detail="sem valor monetário" />
+              <Legend dot="var(--primary)" label="Marcos" value={String(milestoneCount)} detail="sem valor monetário" />
             </div>
           </div>
         )}

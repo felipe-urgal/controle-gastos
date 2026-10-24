@@ -27,9 +27,6 @@ import type {
   AccountType,
 } from '@/app/types/account';
 
-const orbitActionTokens =
-  '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
-
 const typeLabels: Record<AccountType, string> = {
   CREDIT_DEBIT: typeConfig.CREDIT_DEBIT.label,
   INVESTMENT: typeConfig.INVESTMENT.label,
@@ -135,7 +132,7 @@ export default function OrbitAccounts() {
             <strong className="text-sm text-[var(--expense)]">Não foi possível carregar as contas</strong>
             <p className="mt-1 text-sm text-[var(--text-muted)]">{error}</p>
           </div>
-          <Button variant="outline" onClick={() => void refetch()} disabled={loading} className={orbitActionTokens}>
+          <Button variant="outline" onClick={() => void refetch()} disabled={loading}>
             Tentar novamente
           </Button>
         </div>
@@ -157,7 +154,7 @@ export default function OrbitAccounts() {
 
           {showFilters && (
             <section
-              className={`flex flex-col gap-2.5 sm:flex-row sm:items-center ${orbitActionTokens}`}
+              className="flex flex-col gap-2.5 sm:flex-row sm:items-center"
               aria-label="Buscar e filtrar contas"
             >
               <div className="min-w-0 flex-1">
@@ -186,7 +183,7 @@ export default function OrbitAccounts() {
           )}
 
           <section
-            className={`overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] ${orbitActionTokens}`}
+            className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]"
             aria-label="Minhas contas"
           >
             {loading ? (
@@ -199,7 +196,7 @@ export default function OrbitAccounts() {
                 {!filtering && (
                   <Link
                     href="/contas/nova"
-                    className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--orbit-primary)] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:w-auto"
+                    className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--primary)] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:w-auto"
                   >
                     <FaPlus aria-hidden="true" />
                     Criar primeira conta
@@ -241,7 +238,7 @@ function dueShortLabel(date: { month: number; day: number }) {
   return `${String(date.day).padStart(2, '0')}/${String(date.month).padStart(2, '0')}`;
 }
 
-const rowMeterTone = { ok: 'bg-[var(--orbit-primary)]', near: 'bg-[var(--warning)]', over: 'bg-[var(--expense)]' } as const;
+const rowMeterTone = { ok: 'bg-[var(--primary)]', near: 'bg-[var(--warning)]', over: 'bg-[var(--expense)]' } as const;
 
 function AccountRow({
   account,

@@ -85,7 +85,7 @@ export default function MerchantShowView({
         className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--orbit-primary)] text-lg font-bold text-[var(--orbit-on-primary)]" aria-hidden="true">
+          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--primary)] text-lg font-bold text-[var(--on-primary)]" aria-hidden="true">
             {merchant.name.charAt(0).toUpperCase()}
           </span>
           <div className="min-w-0">
@@ -177,7 +177,7 @@ export default function MerchantShowView({
               <h2 id="merchant-movements-heading" className="text-base font-bold">
                 Movimentações de {activity ? longMonthLabel(activity.month.month) : 'este mês'}
               </h2>
-              <Link href={filterHref} className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
+              <Link href={filterHref} className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]">Ver todas</Link>
             </div>
             {!activity || activity.recent.length === 0 ? (
               <p className="border-t border-[var(--border)] px-4 py-6 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma movimentação neste estabelecimento neste mês.</p>

@@ -53,7 +53,7 @@ export function CategoriesCard({
                 ) : (
                   <span className="flex items-center gap-3">
                     <span className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
-                      <span className="block h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${Math.min(100, category.sharePercentage)}%` }} />
+                      <span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${Math.min(100, category.sharePercentage)}%` }} />
                     </span>
                     <span className="w-12 text-right text-xs font-semibold text-[var(--text-muted)]">{category.sharePercentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
                   </span>

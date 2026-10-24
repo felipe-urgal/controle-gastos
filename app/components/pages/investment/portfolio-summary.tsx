@@ -11,7 +11,7 @@ import type { InvestmentAssetType } from '@/app/types/investment';
 
 // Cores do tema, distintas entre si e legíveis nos dois temas.
 const typeColors: Record<InvestmentAssetType, string> = {
-  STOCK: 'var(--orbit-primary)',
+  STOCK: 'var(--primary)',
   FII: 'var(--info)',
   ETF: 'var(--pending)',
   FIXED_INCOME: 'var(--income)',

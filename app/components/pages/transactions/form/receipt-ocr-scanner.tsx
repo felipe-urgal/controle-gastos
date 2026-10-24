@@ -47,7 +47,7 @@ const PHASE_LABEL: Record<ReceiptOcrPhase, string> = {
 const CONFIDENCE_LABEL = { high: 'Alta', medium: 'Média', low: 'Baixa — somente revisão' } as const;
 
 const BUTTON_FOCUS =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)]';
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
 
 function formatSuggestedAmount(amountCents: number) {
   return new Intl.NumberFormat('pt-BR', {
@@ -305,7 +305,7 @@ export default function ReceiptOcrScanner({
               aria-hidden="true"
             >
               <div
-                className="h-full rounded-full bg-[var(--orbit-primary)] transition-[width]"
+                className="h-full rounded-full bg-[var(--primary)] transition-[width]"
                 style={{ width: `${Math.max(4, Math.round(progress * 100))}%` }}
               />
             </div>

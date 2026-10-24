@@ -20,7 +20,7 @@ import { typeConfig } from '@/app/lib/constants/category.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { CategoryModel } from '@/app/types/category';
 
-const meterTone = { NO_LIMIT: 'bg-[var(--orbit-primary)]', OK: 'bg-[var(--orbit-primary)]', NEAR: 'bg-[var(--warning)]', OVER: 'bg-[var(--expense)]' } as const;
+const meterTone = { NO_LIMIT: 'bg-[var(--primary)]', OK: 'bg-[var(--primary)]', NEAR: 'bg-[var(--warning)]', OVER: 'bg-[var(--expense)]' } as const;
 const statePill = {
   NO_LIMIT: null,
   OK: { label: 'Dentro do limite', className: 'bg-[var(--surface-subtle)] text-[var(--income)]' },
@@ -176,7 +176,7 @@ export default function CategoryShowView({
               <h2 id="category-movements-heading" className="text-base font-bold">
                 Movimentações de {activity ? longMonthLabel(activity.month.month) : 'este mês'}
               </h2>
-              <Link href={filterHref} className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
+              <Link href={filterHref} className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]">Ver todas</Link>
             </div>
             {!activity || activity.recent.length === 0 ? (
               <p className="border-t border-[var(--border)] px-4 py-6 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma movimentação nesta categoria neste mês.</p>

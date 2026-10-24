@@ -55,7 +55,7 @@ export function PeriodicSummaryCard({
     <section className="ds-panel p-4 sm:p-5" aria-labelledby="periodic-summary-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--orbit-primary)]">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--primary)]">
             <FaCalendarWeek aria-hidden="true" />
           </span>
           <div>

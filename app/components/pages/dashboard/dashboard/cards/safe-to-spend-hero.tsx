@@ -75,7 +75,7 @@ export function SafeToSpendHero({
     ? [
         { label: 'Saldo realizado', value: money(safeToSpend.realizedBalance), sign: '', color: 'var(--text-subtle)' },
         { label: 'Pendências conhecidas', value: money(safeToSpend.pendingExpenses), sign: safeToSpend.pendingExpenses > 0 ? '− ' : '', color: 'var(--warning)' },
-        { label: 'Faturas em aberto', value: money(safeToSpend.cardCommitments), sign: safeToSpend.cardCommitments > 0 ? '− ' : '', color: 'var(--orbit-primary)' },
+        { label: 'Faturas em aberto', value: money(safeToSpend.cardCommitments), sign: safeToSpend.cardCommitments > 0 ? '− ' : '', color: 'var(--primary)' },
         ...(safeToSpend.transferNet !== 0
           ? [{ label: 'Transferências', value: money(Math.abs(safeToSpend.transferNet)), sign: safeToSpend.transferNet > 0 ? '+ ' : '− ', color: 'var(--info)' }]
           : []),
@@ -86,7 +86,7 @@ export function SafeToSpendHero({
     ? [
         { key: 'free', value: Math.max(safeToSpend.safeToSpend, 0), color: 'var(--income)' },
         { key: 'pending', value: safeToSpend.pendingExpenses, color: 'var(--warning)' },
-        { key: 'cards', value: safeToSpend.cardCommitments, color: 'var(--orbit-primary)' },
+        { key: 'cards', value: safeToSpend.cardCommitments, color: 'var(--primary)' },
       ].filter((part) => part.value > 0)
     : [];
 
@@ -144,7 +144,7 @@ export function SafeToSpendHero({
           )}
 
           <details className="group">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
               Como chegamos nesse valor
               <FaChevronDown className="text-xs transition-transform group-open:rotate-180" aria-hidden="true" />
             </summary>
@@ -163,7 +163,7 @@ export function SafeToSpendHero({
               Receitas futuras não entram na conta; metas e dívidas só contam quando já viraram compromisso. Saldo de {cashAccounts.length} {cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}.
             </p>
             <div className="flex flex-wrap gap-x-5">
-              <Link href="/contas" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]">Ver contas</Link>
+              <Link href="/contas" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]">Ver contas</Link>
               <Button type="button" size="sm" variant="ghost" onClick={onOpenForecast} disabled={!forecastEnabled}>
                 Ver projeção dos próximos 30 dias
               </Button>

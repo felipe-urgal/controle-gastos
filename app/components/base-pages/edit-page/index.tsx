@@ -35,7 +35,7 @@ export default function EditPage({
 
   return (
     <ProtectedRoute>
-      <div className="mx-auto">
+      <div className="mx-auto space-y-6">
         {(!hideHeaderOnMobile || isDesktop) && (
           <PageHeader
             title={title}

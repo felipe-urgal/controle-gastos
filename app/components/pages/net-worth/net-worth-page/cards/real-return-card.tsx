@@ -71,9 +71,9 @@ export function RealReturnCard({
                 {displayPercent(summary.inflation.percentage, showValues)}
               </dd>
             </div>
-            <div className="rounded-[var(--radius-lg)] bg-[var(--orbit-primary-subtle)] p-3">
-              <dt className="text-xs font-semibold text-[var(--orbit-primary)]">Evolução real</dt>
-              <dd className="money mt-1 text-lg font-semibold text-[var(--orbit-primary)]">
+            <div className="rounded-[var(--radius-lg)] bg-[var(--primary-subtle)] p-3">
+              <dt className="text-xs font-semibold text-[var(--primary)]">Evolução real</dt>
+              <dd className="money mt-1 text-lg font-semibold text-[var(--primary)]">
                 {displayPercent(data.realPercentage, showValues)}
               </dd>
             </div>

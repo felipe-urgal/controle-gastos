@@ -24,7 +24,7 @@ export default function NewPage({
 
   return (
     <ProtectedRoute>
-      <div className="w-full">
+      <div className="w-full space-y-6">
         {(!hideHeaderOnMobile || isDesktop) && (
           <PageHeader
             title={title}

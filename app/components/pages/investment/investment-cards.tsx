@@ -235,7 +235,7 @@ export function IncomesCard({
                 key={item.assetId}
                 type="button"
                 onClick={() => onHistory(item.assetId)}
-                className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4 text-left hover:border-[var(--orbit-primary)]/40"
+                className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4 text-left hover:border-[var(--primary)]/40"
               >
                 <strong className="block text-sm text-[var(--foreground)]">
                   {item.symbol}
@@ -327,7 +327,7 @@ export function OperationsCard({
     <CollapsibleCard
       header={
         <div className="flex items-center gap-2">
-          <FaHistory className="text-[var(--orbit-primary)]" aria-hidden="true" />
+          <FaHistory className="text-[var(--primary)]" aria-hidden="true" />
           <h2 className="text-lg font-bold text-[var(--foreground)]">Operações</h2>
         </div>
       }

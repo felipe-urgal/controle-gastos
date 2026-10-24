@@ -421,7 +421,7 @@ export default function NetWorthPage() {
             </p>
             <Link
               href="/contas"
-              className="mx-auto mt-4 flex min-h-11 w-fit items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-5 font-bold text-white"
+              className="mx-auto mt-4 flex min-h-11 w-fit items-center gap-2 rounded-full bg-[var(--primary)] px-5 font-bold text-white"
             >
               Ver contas
               <FaChevronRight aria-hidden="true" />

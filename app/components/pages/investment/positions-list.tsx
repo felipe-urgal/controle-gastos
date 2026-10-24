@@ -60,7 +60,7 @@ export function PositionsList({
                     )}
                   </span>
                   <span className="col-span-full h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`Peso relativo ${Math.round(weightPercent)}% da maior posição`}>
-                    <span className="block h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${weightPercent}%` }} />
+                    <span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${weightPercent}%` }} />
                   </span>
                   {(!priced || position.quote?.isStale) && (
                     <span className="col-span-full flex flex-wrap gap-2 text-xs font-bold tracking-[0.02em]">

@@ -106,7 +106,7 @@ export default function MonthlyClosingPage() {
             <div className="flex flex-wrap items-center gap-3">
               <h1 className={`text-balance ${pageTitleClassName}`}>Fechamento de {monthName(month)}</h1>
               {data && (
-                <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--orbit-primary)]">
+                <span className="rounded-full bg-[var(--primary-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--primary)]">
                   {PERIOD_STATUS_LABELS[data.status]}
                 </span>
               )}
@@ -156,7 +156,7 @@ export default function MonthlyClosingPage() {
               <p className="mt-2 text-sm text-[var(--text-muted)]">
                 Fechamento é uma retrospectiva. Use Planejamento e Compromissos para consultar projeções futuras.
               </p>
-              <Link href="/compromissos" className="mt-3 inline-flex min-h-11 items-center font-bold text-[var(--orbit-primary)]">
+              <Link href="/compromissos" className="mt-3 inline-flex min-h-11 items-center font-bold text-[var(--primary)]">
                 Ver compromissos
               </Link>
             </section>

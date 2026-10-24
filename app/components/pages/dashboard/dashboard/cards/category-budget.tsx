@@ -10,7 +10,7 @@ export function categoryBudgetState(limit: DashboardCategoryLimit): { percent: n
   return { percent, tone: percent >= 90 ? 'near' : 'ok' };
 }
 
-const barTone = { ok: 'bg-[var(--orbit-primary)]', near: 'bg-[var(--warning)]', over: 'bg-[var(--expense)]' } as const;
+const barTone = { ok: 'bg-[var(--primary)]', near: 'bg-[var(--warning)]', over: 'bg-[var(--expense)]' } as const;
 const textTone = { ok: 'text-[var(--text-muted)]', near: 'text-[var(--warning)]', over: 'text-[var(--expense)]' } as const;
 
 export function CategoryBudgetBar({

@@ -765,7 +765,7 @@ export default function ImportRuleManagementPage({ focusRuleId }: { focusRuleId?
             {formOpen ? (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">
+                  <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
                     {editingId ? 'Editar regra' : 'Nova regra'}
                   </p>
                   <h2 id="rule-form-title" className="mt-1 text-lg font-semibold text-[var(--foreground)]">
@@ -938,7 +938,7 @@ export default function ImportRuleManagementPage({ focusRuleId }: { focusRuleId?
               </form>
             ) : (
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Como funciona</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">Como funciona</p>
                 <h2 id="rule-form-title" className="mt-1 text-lg font-semibold text-[var(--foreground)]">Automação sob controle</h2>
                 <ul className="mt-4 space-y-3 text-sm leading-relaxed text-[var(--text-muted)]">
                   <li>• a primeira regra elegível por prioridade e especificidade produz a sugestão;</li>

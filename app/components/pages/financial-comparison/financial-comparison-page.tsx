@@ -343,7 +343,7 @@ function PeriodCard({
   onTo: (value: string) => void;
 }) {
   return (
-    <div className={`grid gap-1 rounded-[var(--radius-lg)] border border-[var(--border)] border-t-4 bg-[var(--surface)] p-4 ${side === 'A' ? 'border-t-[var(--border-strong)]' : 'border-t-[var(--orbit-primary)]'}`}>
+    <div className={`grid gap-1 rounded-[var(--radius-lg)] border border-[var(--border)] border-t-4 bg-[var(--surface)] p-4 ${side === 'A' ? 'border-t-[var(--border-strong)]' : 'border-t-[var(--primary)]'}`}>
       <span className="text-xs font-bold text-[var(--text-muted)]">{title}</span>
       <span className="break-words text-xl font-extrabold tracking-tight">{range}</span>
       <span className="min-h-5 text-sm text-[var(--text-muted)]">{months ?? ' '}</span>

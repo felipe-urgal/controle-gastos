@@ -50,7 +50,7 @@ export function DistributionCard({
               >
                 <span
                   className="grid h-11 w-11 place-items-center rounded-[var(--radius-md)] text-white"
-                  style={{ backgroundColor: account.color || 'var(--orbit-primary)' }}
+                  style={{ backgroundColor: account.color || 'var(--primary)' }}
                   aria-hidden="true"
                 >
                   <IconRenderer
@@ -67,7 +67,7 @@ export function DistributionCard({
                     {account.name}
                   </strong>
                   <span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${share.toLocaleString('pt-BR')}% dos ativos`}>
-                    <span className={`block h-full rounded-full ${account.balance < 0 ? 'bg-[var(--expense)]' : 'bg-[var(--orbit-primary)]'}`} style={{ width: `${barPercent}%` }} />
+                    <span className={`block h-full rounded-full ${account.balance < 0 ? 'bg-[var(--expense)]' : 'bg-[var(--primary)]'}`} style={{ width: `${barPercent}%` }} />
                   </span>
                   <span className="mt-1.5 block text-xs text-[var(--text-muted)]">
                     {investment

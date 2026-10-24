@@ -142,12 +142,12 @@ export function ForecastBalanceChart({
         </text>
       ))}
 
-      <path d={area} fill="var(--orbit-primary)" fillOpacity="0.12" clipPath="url(#forecast-above-zero)" />
+      <path d={area} fill="var(--primary)" fillOpacity="0.12" clipPath="url(#forecast-above-zero)" />
       {hasNegative && <path d={area} fill="var(--expense)" fillOpacity="0.16" clipPath="url(#forecast-below-zero)" />}
-      <path d={path} fill="none" stroke="var(--orbit-primary)" strokeWidth="2.2" strokeLinejoin="round" clipPath="url(#forecast-above-zero)" />
+      <path d={path} fill="none" stroke="var(--primary)" strokeWidth="2.2" strokeLinejoin="round" clipPath="url(#forecast-above-zero)" />
       {hasNegative && <path d={path} fill="none" stroke="var(--expense)" strokeWidth="2.2" strokeLinejoin="round" clipPath="url(#forecast-below-zero)" />}
 
-      <circle cx={x(startDay)} cy={y(series.startBalance)} r="4" fill="var(--orbit-primary)" stroke="var(--surface)" strokeWidth="2" />
+      <circle cx={x(startDay)} cy={y(series.startBalance)} r="4" fill="var(--primary)" stroke="var(--surface)" strokeWidth="2" />
       {lowestIsRelevant && (
         <g>
           <circle cx={lowestX} cy={y(series.lowest.balance)} r="5" fill={series.lowest.balance < 0 ? 'var(--expense)' : 'var(--warning)'} stroke="var(--surface)" strokeWidth="2" />
@@ -164,7 +164,7 @@ export function ForecastBalanceChart({
           </text>
         </g>
       )}
-      {shown && <ChartCursor x={shown.x} y={shown.y} top={PAD.top} bottom={HEIGHT - PAD.bottom} color={shown.balance < 0 ? 'var(--expense)' : 'var(--orbit-primary)'} />}
+      {shown && <ChartCursor x={shown.x} y={shown.y} top={PAD.top} bottom={HEIGHT - PAD.bottom} color={shown.balance < 0 ? 'var(--expense)' : 'var(--primary)'} />}
     </svg>
     </div>
   );

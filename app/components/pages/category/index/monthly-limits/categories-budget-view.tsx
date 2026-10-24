@@ -18,7 +18,6 @@ import {
   categoryUsageLabel,
   categoryUsagePercentage,
   displayMoney,
-  orbitActionTokens,
   stateBarClass,
   stateTextClass,
 } from '@/app/components/pages/category/index/monthly-limits/monthly-limits-helpers';
@@ -160,7 +159,7 @@ export default function CategoriesBudgetView({
   const pill = paceText[pace];
 
   return (
-    <section aria-labelledby="categories-title" className={`grid gap-4 ${orbitActionTokens}`}>
+    <section aria-labelledby="categories-title" className="grid gap-4">
       <PageTitle title="Categorias / Limites" description="Acompanhe o orçamento do mês e defina quanto cada categoria pode gastar." actions={
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[180px_150px_auto_auto]">
           <Input
@@ -214,7 +213,7 @@ export default function CategoriesBudgetView({
 
             {summary.budget > 0 && (
               <div className="relative h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${usedPercent}% do orçamento consumido`}>
-                <div className={`h-full rounded-full ${pace === 'OVER' ? 'bg-[var(--expense)]' : pace === 'AHEAD' ? 'bg-[var(--warning)]' : 'bg-[var(--orbit-primary)]'}`} style={{ width: `${Math.min(100, usedPercent)}%` }} />
+                <div className={`h-full rounded-full ${pace === 'OVER' ? 'bg-[var(--expense)]' : pace === 'AHEAD' ? 'bg-[var(--warning)]' : 'bg-[var(--primary)]'}`} style={{ width: `${Math.min(100, usedPercent)}%` }} />
                 {elapsed !== null && elapsed > 0 && elapsed < 1 && (
                   <span className="absolute inset-y-0 w-0.5 bg-[var(--foreground)] opacity-60" style={{ left: `${Math.round(elapsed * 100)}%` }} aria-hidden="true" />
                 )}

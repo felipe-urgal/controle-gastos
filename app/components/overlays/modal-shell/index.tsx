@@ -122,7 +122,7 @@ export function ModalShell({
           {icon && <span className="mr-3 shrink-0" aria-hidden="true">{icon}</span>}
           <div className="min-w-0 flex-1">
             {eyebrow && (
-              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--primary)]">
                 {eyebrow}
               </p>
             )}

@@ -75,13 +75,13 @@ export function NetWorthHero({
         >
           {share !== null && (
             <>
-              <span className="h-full bg-[var(--orbit-primary)]" style={{ width: `${100 - debtWidth}%` }} />
+              <span className="h-full bg-[var(--primary)]" style={{ width: `${100 - debtWidth}%` }} />
               <span className="h-full bg-[var(--expense)] opacity-85" style={{ width: `${debtWidth}%` }} />
             </>
           )}
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Stat dot="var(--orbit-primary)" label="Ativos" value={displayMoney(assetsTotal, showValues, currency)} detail={`${accountCount} ${accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}`} />
+          <Stat dot="var(--primary)" label="Ativos" value={displayMoney(assetsTotal, showValues, currency)} detail={`${accountCount} ${accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}`} />
           <Stat dot="var(--expense)" label="Passivos" value={displayMoney(liabilitiesTotal, showValues, currency)} detail={`${debtCount} ${debtCount === 1 ? 'dívida com saldo' : 'dívidas com saldo'}`} />
           <Stat
             label="Dívidas pesam"
@@ -127,7 +127,7 @@ export function NetWorthHero({
             <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2 text-[var(--foreground)]">
               {valuation.staleMarketPositionCount}{' '}
               {valuation.staleMarketPositionCount === 1 ? 'posição usa cotação com mais de 7 dias.' : 'posições usam cotações com mais de 7 dias.'}{' '}
-              <Link href="/investimentos" className="font-semibold text-[var(--orbit-primary)] underline underline-offset-2">
+              <Link href="/investimentos" className="font-semibold text-[var(--primary)] underline underline-offset-2">
                 Revisar investimentos
               </Link>
             </p>

@@ -128,7 +128,7 @@ export function PayrollImportPanel({
     ) : preview.document ? (
       <div className="mt-5 space-y-4">
         <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-[var(--orbit-primary)]">
+          <span className="text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">
             Documento detectado
           </span>
           <strong className="mt-1 block text-[var(--foreground)]">

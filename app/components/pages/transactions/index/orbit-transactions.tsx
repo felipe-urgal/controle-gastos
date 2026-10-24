@@ -346,7 +346,7 @@ export default function OrbitTransactions() {
                     <Link href="/transacoes/importar" className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
                       <FaFileImport aria-hidden="true" /> Importar CSV/OFX/QFX/QIF/XLSX
                     </Link>
-                    <Link href="/transacoes/nova" className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--orbit-primary)]/45 bg-[var(--orbit-primary)] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[var(--orbit-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+                    <Link href="/transacoes/nova" className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--primary)]/45 bg-[var(--primary)] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[var(--primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
                       <FaPlus aria-hidden="true" /> Nova transação
                     </Link>
                   </div>

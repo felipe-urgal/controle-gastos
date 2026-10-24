@@ -47,7 +47,7 @@ export function TransactionReviewModal({
       onClose={onClose}
       closeDisabled={isLoading}
       maxWidthClass="max-w-[520px]"
-      sectionClassName="[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary:var(--orbit-primary)]"
+      sectionClassName=" "
       footer={
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="secondary" onClick={onClose} disabled={isLoading}>

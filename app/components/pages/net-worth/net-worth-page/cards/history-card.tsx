@@ -95,8 +95,8 @@ export function HistoryCard({
       >
         <defs>
           <linearGradient id="net-worth-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="var(--orbit-primary)" stopOpacity="0.28" />
-            <stop offset="1" stopColor="var(--orbit-primary)" stopOpacity="0" />
+            <stop offset="0" stopColor="var(--primary)" stopOpacity="0.28" />
+            <stop offset="1" stopColor="var(--primary)" stopOpacity="0" />
           </linearGradient>
         </defs>
         {ticks.map((tick) => (
@@ -110,7 +110,7 @@ export function HistoryCard({
           </g>
         ))}
         {area && <path d={area} fill="url(#net-worth-area)" />}
-        {line && <path d={line} fill="none" stroke="var(--orbit-primary)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
+        {line && <path d={line} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
         {points.map((point, index) =>
           index % labelStep === 0 || index === points.length - 1 ? (
             <text key={`${point.year}-${point.month}`} x={point.x} y={HEIGHT - 8} textAnchor="middle" fontSize="11" fill="var(--text-muted)">

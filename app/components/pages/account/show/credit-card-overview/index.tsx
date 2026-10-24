@@ -237,7 +237,7 @@ export default function CreditCardOverview({
   const focus = toPay ?? data.current;
   const percent = usagePercent(data.card);
   const tone = limitTone(data.card);
-  const meterTone = { ok: 'bg-[var(--orbit-primary)]', near: 'bg-[var(--warning)]', over: 'bg-[var(--expense)]' } as const;
+  const meterTone = { ok: 'bg-[var(--primary)]', near: 'bg-[var(--warning)]', over: 'bg-[var(--expense)]' } as const;
   const tabs: Array<{ key: CardTab; label: string }> = [
     { key: 'current', label: 'Fatura atual' },
     ...(data.future.length > 0 ? [{ key: 'future' as const, label: 'Próximas faturas' }] : []),
@@ -261,7 +261,7 @@ export default function CreditCardOverview({
           <Link
             href={editUrl}
             aria-label="Editar cartão"
-            className="grid h-11 w-11 place-items-center rounded-full text-[var(--orbit-primary)]"
+            className="grid h-11 w-11 place-items-center rounded-full text-[var(--primary)]"
           >
             <FaPen aria-hidden="true" />
           </Link>
@@ -271,10 +271,10 @@ export default function CreditCardOverview({
       <section
         aria-label="Resumo do cartão"
         className="grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
-        style={{ ['--account-color' as string]: account.color || 'var(--orbit-primary)' }}
+        style={{ ['--account-color' as string]: account.color || 'var(--primary)' }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white" style={{ backgroundColor: account.color || 'var(--orbit-primary)' }} aria-hidden="true">
+          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white" style={{ backgroundColor: account.color || 'var(--primary)' }} aria-hidden="true">
             <FaCreditCard />
           </span>
           <div className="min-w-0">
@@ -559,7 +559,7 @@ function CurrentStatementPanel({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3 sm:px-5">
-        <Link href={`/transacoes?accountId=${encodeURIComponent(accountId)}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]">
+        <Link href={`/transacoes?accountId=${encodeURIComponent(accountId)}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]">
           {statement.transactionCount > visible.length ? 'Ver todas as compras' : 'Ver no extrato'}
         </Link>
         {payable && (

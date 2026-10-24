@@ -37,22 +37,22 @@ export function MonthSummaryCard({
       : tone === 'expense'
         ? 'border-[var(--expense)]/25 bg-[var(--danger-subtle)]/55'
         : tone === 'primary'
-          ? 'border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)]'
-          : 'border-[var(--orbit-primary)]/20 bg-[var(--surface-raised)]';
+          ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)]'
+          : 'border-[var(--primary)]/20 bg-[var(--surface-raised)]';
   const iconTone =
     tone === 'income'
       ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
       : tone === 'expense'
         ? 'bg-[var(--danger-subtle)] text-[var(--expense)]'
-        : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]';
+        : 'bg-[var(--primary-subtle)] text-[var(--primary)]';
   const amountTone =
     tone === 'income'
       ? 'text-[var(--income)]'
       : tone === 'expense'
         ? 'text-[var(--expense)]'
         : tone === 'primary'
-          ? 'text-[var(--orbit-primary)]'
-          : 'text-[var(--orbit-focus)]';
+          ? 'text-[var(--primary)]'
+          : 'text-[var(--focus)]';
   const detailClass =
     detailTone === 'positive'
       ? 'text-[var(--income)]'
@@ -143,12 +143,12 @@ export function MovementTimeline({
         </div>
       ) : (
         <div className="relative mt-5">
-          <span className="absolute bottom-8 left-[15px] top-5 hidden w-px border-l border-dashed border-[var(--orbit-primary)]/45 md:block" aria-hidden="true" />
+          <span className="absolute bottom-8 left-[15px] top-5 hidden w-px border-l border-dashed border-[var(--primary)]/45 md:block" aria-hidden="true" />
           <div className="space-y-3">
             {groups.map((group) => (
               <div key={group.key} className="grid gap-2 md:grid-cols-[145px_minmax(0,1fr)] md:gap-3">
                 <div className="relative flex items-start gap-3 md:pl-10">
-                  <span className="absolute left-[5px] top-1.5 hidden h-5 w-5 rounded-full border-[6px] border-[var(--orbit-primary)] bg-[var(--surface)] md:block" aria-hidden="true" />
+                  <span className="absolute left-[5px] top-1.5 hidden h-5 w-5 rounded-full border-[6px] border-[var(--primary)] bg-[var(--surface)] md:block" aria-hidden="true" />
                   <div>
                     <p className="text-sm font-bold text-[var(--foreground)]">{group.primaryLabel}</p>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">{group.secondaryLabel}</p>
@@ -198,14 +198,14 @@ export function TimelineTransactionRow({
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
   const isIncome = transaction.type === 'INCOME';
   const amountTone = isTransfer || isCardPayment
-    ? 'text-[var(--orbit-primary)]'
+    ? 'text-[var(--primary)]'
     : isIncome
       ? 'text-[var(--income)]'
       : 'text-[var(--expense)]';
   const iconBackground = isTransfer || isCardPayment
-    ? 'var(--orbit-primary-subtle)'
+    ? 'var(--primary-subtle)'
     : transaction.category?.color || 'var(--surface-subtle)';
-  const iconColor = isTransfer || isCardPayment ? 'var(--orbit-primary)' : '#ffffff';
+  const iconColor = isTransfer || isCardPayment ? 'var(--primary)' : '#ffffff';
 
   return (
     <button
@@ -269,7 +269,7 @@ export function MonthOverview({
     <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <header className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Visão do mês</h2>
-        <Link href="/dashboard" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver relatório →</Link>
+        <Link href="/dashboard" className="text-xs font-semibold text-[var(--primary)]">Ver relatório →</Link>
       </header>
 
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)_135px] items-end gap-4">
@@ -347,7 +347,7 @@ export function MonthOverview({
       </div>
 
       <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--primary-subtle)] text-[var(--primary)]">
           <FaChartLine aria-hidden="true" />
         </span>
         <div>
@@ -374,14 +374,14 @@ export function UpcomingTransactions({
     <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <header className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Próximos lançamentos</h2>
-        <Link href="/calendario" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver calendário →</Link>
+        <Link href="/calendario" className="text-xs font-semibold text-[var(--primary)]">Ver calendário →</Link>
       </header>
 
       <div className="mt-3 divide-y divide-[var(--border)]">
         {items.length === 0 ? (
           <div className="grid min-h-[210px] place-items-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)] px-4 text-center">
             <div>
-              <FaCalendarAlt className="mx-auto text-xl text-[var(--orbit-primary)]" aria-hidden="true" />
+              <FaCalendarAlt className="mx-auto text-xl text-[var(--primary)]" aria-hidden="true" />
               <p className="mt-2 text-sm font-bold">Nenhum lançamento agendado</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">Seus próximos compromissos aparecerão aqui.</p>
             </div>
@@ -401,7 +401,7 @@ export function UpcomingTransactions({
               </span>
               <span
                 className="hidden h-9 w-9 place-items-center rounded-full text-white sm:grid"
-                style={{ backgroundColor: transaction.category?.color || 'var(--orbit-primary)' }}
+                style={{ backgroundColor: transaction.category?.color || 'var(--primary)' }}
               >
                 <IconRenderer iconName={transaction.category?.icon || 'calendar'} size={14} />
               </span>
@@ -417,7 +417,7 @@ export function UpcomingTransactions({
                 </strong>
                 <span className="flex items-center gap-2">
                   <span className="text-xs text-[var(--text-muted)]">{scheduledDistanceLabel(transaction)}</span>
-                  <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-1 text-xs font-bold text-[var(--orbit-primary)]">Agendada</span>
+                  <span className="rounded-full bg-[var(--primary-subtle)] px-2 py-1 text-xs font-bold text-[var(--primary)]">Agendada</span>
                 </span>
               </span>
             </button>

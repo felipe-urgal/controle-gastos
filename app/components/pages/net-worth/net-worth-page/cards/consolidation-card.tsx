@@ -22,7 +22,7 @@ export function ConsolidationCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <FaExchangeAlt className="text-[var(--orbit-primary)]" aria-hidden="true" />
+            <FaExchangeAlt className="text-[var(--primary)]" aria-hidden="true" />
             <h2 className="text-lg font-bold text-[var(--foreground)]">
               Consolidação opcional
             </h2>

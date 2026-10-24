@@ -81,10 +81,10 @@ export function MobileTransactionsPrototype2({
       </section>
 
       <section
-        className="rounded-[var(--radius-lg)] border border-[var(--orbit-primary)]/35 bg-[var(--surface)] p-4"
+        className="rounded-[var(--radius-lg)] border border-[var(--primary)]/35 bg-[var(--surface)] p-4"
         style={{
           background:
-            'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 13%, var(--surface)) 0%, var(--surface) 62%)',
+            'linear-gradient(135deg, color-mix(in srgb, var(--primary) 13%, var(--surface)) 0%, var(--surface) 62%)',
         }}
         aria-label="Resumo do mês"
       >
@@ -151,7 +151,7 @@ export function MobileTransactionsPrototype2({
         >
           Filtros
           {activeFiltersCount > 0 && (
-            <span className="ml-2 rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-0.5 text-xs font-bold text-[var(--orbit-primary)]">
+            <span className="ml-2 rounded-full bg-[var(--primary-subtle)] px-2 py-0.5 text-xs font-bold text-[var(--primary)]">
               {activeFiltersCount}
             </span>
           )}
@@ -316,12 +316,12 @@ export function MobileTransactionRow({
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
   const isIncome = transaction.type === 'INCOME';
   const amountTone = isTransfer || isCardPayment
-    ? 'text-[var(--orbit-primary)]'
+    ? 'text-[var(--primary)]'
     : isIncome
       ? 'text-[var(--income)]'
       : 'text-[var(--expense)]';
   const iconBackground = isTransfer || isCardPayment
-    ? 'var(--orbit-primary)'
+    ? 'var(--primary)'
     : transaction.category?.color || 'var(--surface-subtle)';
 
   return (

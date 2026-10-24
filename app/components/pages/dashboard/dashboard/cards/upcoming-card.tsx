@@ -27,7 +27,7 @@ export function UpcomingCard({
     <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Próximos compromissos</h2>
-        <Link href="/compromissos" className="inline-flex min-h-11 items-center px-2 -mx-2 text-sm font-semibold text-[var(--orbit-primary)]">Ver todos</Link>
+        <Link href="/compromissos" className="inline-flex min-h-11 items-center px-2 -mx-2 text-sm font-semibold text-[var(--primary)]">Ver todos</Link>
       </div>
 
       <div className="mt-2 divide-y divide-[var(--border)]">
@@ -64,7 +64,7 @@ export function UpcomingCard({
                           {item.amount === null ? 'Marco sem valor financeiro' : <span className="money">{displayMoney(item.amount, showValues, currency)}</span>}
                         </p>
                       </div>
-                      <span className={`rounded-[var(--radius-sm)] px-2.5 py-1.5 text-xs font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'}`}>
+                      <span className={`rounded-[var(--radius-sm)] px-2.5 py-1.5 text-xs font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--primary-subtle)] text-[var(--primary)]'}`}>
                         {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
                       </span>
                     </Link>

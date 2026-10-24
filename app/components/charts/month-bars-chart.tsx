@@ -20,7 +20,7 @@ export type MonthBarDatum = {
 export function MonthBarsChart({
   bars,
   ariaLabel,
-  accentColor = 'var(--orbit-primary)',
+  accentColor = 'var(--primary)',
   heightClass = 'h-28',
   overlay,
 }: {

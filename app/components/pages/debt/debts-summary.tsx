@@ -83,7 +83,7 @@ export function DebtsSummaryPanel({
                 <span className="money shrink-0 text-[var(--text-muted)]">{money(debt.balance)} · {percent(share)}</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${percent(share)} do saldo devedor`}>
-                <div className="h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${share}%` }} />
+                <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${share}%` }} />
               </div>
             </div>
           ))}

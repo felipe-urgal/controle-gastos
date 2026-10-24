@@ -38,7 +38,7 @@ export function buildCurrencyTotals(summary: AccountListSummary): CurrencyTotals
 const toneStyles: Record<AttentionTone, string> = {
   urgent: 'bg-[var(--danger-subtle)] text-[var(--expense)]',
   warning: 'bg-[var(--warning-subtle)] text-[var(--warning)]',
-  info: 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]',
+  info: 'bg-[var(--primary-subtle)] text-[var(--primary)]',
 };
 
 function CurrencyHero({
@@ -53,7 +53,7 @@ function CurrencyHero({
   const money = (cents: number) => (showValues ? formatCurrency(cents, totals.currency) : '••••');
   const rows = [
     { label: 'Correntes', value: money(totals.available), color: 'var(--income)' },
-    { label: 'Investido', value: money(totals.invested), color: 'var(--orbit-primary)' },
+    { label: 'Investido', value: money(totals.invested), color: 'var(--primary)' },
     ...(totals.statements > 0
       ? [
           { label: 'Faturas abertas', value: `− ${money(totals.statements)}`, color: 'var(--warning)' },
@@ -128,7 +128,7 @@ export function AccountsOverview({
               />
             ))}
             {totals.length > 1 && <p className="text-xs text-[var(--text-muted)]">Sem conversão entre moedas.</p>}
-            <Link href="/patrimonio" className="inline-flex text-xs font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+            <Link href="/patrimonio" className="inline-flex text-xs font-semibold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
               Ver patrimônio
             </Link>
             {attention.length === 0 && (
@@ -166,7 +166,7 @@ export function AccountsOverview({
                       <strong className="block text-sm leading-snug text-[var(--foreground)]">{message.title}</strong>
                       <span className="money mt-0.5 block text-xs text-[var(--text-muted)]">{message.detail}</span>
                     </span>
-                    <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--orbit-primary)]">
+                    <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--primary)]">
                       {message.action}
                       <FaChevronRight className="text-xs" aria-hidden="true" />
                     </span>

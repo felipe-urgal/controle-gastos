@@ -47,7 +47,7 @@ export default function GoalsHero({
 
       <div>
         <div className="h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${summary.percent}% do total das metas ativas`}>
-          <div className="h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${summary.percent}%` }} />
+          <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${summary.percent}%` }} />
         </div>
         <div className="mt-1.5 flex justify-between gap-2 text-sm text-[var(--text-muted)]">
           <strong className="text-[var(--foreground)]">{summary.percent}%</strong>

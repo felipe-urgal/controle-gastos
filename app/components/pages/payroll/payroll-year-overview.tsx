@@ -155,7 +155,7 @@ function MonthlyChart({
               width={barWidth}
               height={Math.max(2, height - pad.bottom - y(point.barCents))}
               rx="5"
-              fill={point.status === 'COMPLETE' ? 'var(--orbit-primary)' : 'url(#payroll-incomplete)'}
+              fill={point.status === 'COMPLETE' ? 'var(--primary)' : 'url(#payroll-incomplete)'}
               stroke={point.status === 'COMPLETE' ? undefined : 'var(--warning)'}
               strokeDasharray={point.status === 'COMPLETE' ? undefined : '3 3'}
               opacity={dim ? 0.45 : 1}

@@ -38,7 +38,7 @@ export function statusClasses(status: FinancialGoalStatus) {
   if (status === 'ARCHIVED') {
     return 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)]';
   }
-  return 'border-[var(--orbit-primary)]/30 bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]';
+  return 'border-[var(--primary)]/30 bg-[var(--primary-subtle)] text-[var(--primary)]';
 }
 
 export function dateLabel(value: string | null) {

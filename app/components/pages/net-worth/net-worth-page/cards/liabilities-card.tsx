@@ -23,7 +23,7 @@ export function LiabilitiesCard({
             Dívidas com saldo devedor nesta moeda.
           </p>
         </div>
-        <Link href="/dividas" className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-[var(--orbit-primary)]">
+        <Link href="/dividas" className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-[var(--primary)]">
           Gerenciar
         </Link>
       </div>

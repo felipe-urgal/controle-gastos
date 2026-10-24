@@ -9,7 +9,7 @@ type IconButtonSize = 'md' | 'lg';
 const TONE: Record<IconButtonTone, string> = {
   neutral: 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]',
   danger: 'text-[var(--expense)] hover:bg-[var(--danger-subtle)]',
-  primary: 'text-[var(--orbit-primary)] hover:bg-[var(--orbit-primary-subtle)]',
+  primary: 'text-[var(--primary)] hover:bg-[var(--primary-subtle)]',
   // Sobre um fundo colorido definido pelo chamador (ex.: cor da conta): só o texto branco.
   solid: 'text-white hover:brightness-110',
 };

@@ -1,10 +1,4 @@
 .authenticated-shell {
-  --orbit-primary: #8b9aff;
-  --orbit-primary-hover: #a3afff;
-  --orbit-primary-subtle: #1e2447;
-  --orbit-on-primary: #0b1030;
-  --orbit-focus: #8b9aff;
-
   --orbit-navigation-surface: #0a0d15;
   --orbit-navigation-raised: #111626;
   --orbit-page-padding-inline: 1rem;
@@ -12,23 +6,11 @@
 }
 
 [data-theme="light"] .authenticated-shell {
-  --orbit-primary: #3f4fd8;
-  --orbit-primary-hover: #3340b8;
-  --orbit-primary-subtle: #e6e9ff;
-  --orbit-on-primary: #ffffff;
-  --orbit-focus: #3f4fd8;
-
   --orbit-navigation-surface: #fbfbfe;
   --orbit-navigation-raised: #eef0f8;
 }
 
 .authenticated-shell .orbit-navigation-surface {
-  --primary: var(--orbit-primary);
-  --primary-hover: var(--orbit-primary-hover);
-  --primary-subtle: var(--orbit-primary-subtle);
-  --on-primary: var(--orbit-on-primary);
-  --focus: var(--orbit-focus);
-
   background: var(--orbit-navigation-surface);
 }
 

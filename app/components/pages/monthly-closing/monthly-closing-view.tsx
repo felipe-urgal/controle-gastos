@@ -23,7 +23,7 @@ type Retrospective = MonthlyClosingRetrospective;
 
 const cardClassName = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]';
 const linkClassName =
-  'inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
+  'inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
 
 const TONE_CLASS: Record<ClosingTone, string> = {
   good: 'text-[var(--income)]',
@@ -85,7 +85,7 @@ export default function MonthlyClosingView({
             <div className="grid gap-3 sm:grid-cols-3">
               <FlowItem label="Receitas" dot="var(--income)" amount={money(summary.income)} delta={describeDelta(comparison.income, previousMonth)} />
               <FlowItem label="Despesas" dot="var(--expense)" amount={money(summary.expense)} delta={describeDelta(comparison.expense, previousMonth, true)} />
-              <FlowItem label="Sobrou" dot="var(--orbit-primary)" amount={money(summary.balance)} delta={describeDelta(comparison.balance, previousMonth)} />
+              <FlowItem label="Sobrou" dot="var(--primary)" amount={money(summary.balance)} delta={describeDelta(comparison.balance, previousMonth)} />
             </div>
           </div>
         )}
@@ -206,7 +206,7 @@ export default function MonthlyClosingView({
                   <span className="text-sm text-[var(--text-muted)]">de <span className="money">{money(planning.budget)}</span></span>
                 </div>
                 <div className="h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${budget.percent}% do orçamento usado`}>
-                  <span className={`block h-full rounded-full ${budget.percent > 100 ? 'bg-[var(--expense)]' : 'bg-[var(--orbit-primary)]'}`} style={{ width: budget.barPercent + '%' }} />
+                  <span className={`block h-full rounded-full ${budget.percent > 100 ? 'bg-[var(--expense)]' : 'bg-[var(--primary)]'}`} style={{ width: budget.barPercent + '%' }} />
                 </div>
                 <p className="text-sm text-[var(--text-muted)]">
                   <MoneyText>

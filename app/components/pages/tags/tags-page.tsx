@@ -346,7 +346,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
           <section className="ds-panel p-4" aria-labelledby="tag-list-title">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <FaTag className="text-[var(--orbit-primary)]" aria-hidden="true" />
+                <FaTag className="text-[var(--primary)]" aria-hidden="true" />
                 <h2 id="tag-list-title" className="font-bold">Suas tags</h2>
               </div>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Filtro de tags">

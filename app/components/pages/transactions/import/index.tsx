@@ -490,7 +490,7 @@ export default function TransactionImportPage() {
         <form onSubmit={handlePreview} className="ds-panel overflow-hidden">
           <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)]">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Import Inbox</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">Import Inbox</p>
               <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">Escolha de onde vamos revisar</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
                 CSV, OFX/QFX, QIF e XLSX, até 2 MB e 1.000 transações. Gerar preview é somente leitura: nenhum lançamento é criado nesta etapa.
@@ -573,7 +573,7 @@ export default function TransactionImportPage() {
           <header className="ds-panel p-5 sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--orbit-primary)]">Inbox de revisão</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">Inbox de revisão</p>
                 <h2 id="preview-title" className="mt-1 text-xl font-semibold text-[var(--foreground)]">{preview.fileName}</h2>
                 <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
                   {account?.name ?? 'Conta selecionada'} · {account?.currency ?? 'moeda da conta'} · {preview.summary.total} linha(s)

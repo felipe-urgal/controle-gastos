@@ -79,7 +79,7 @@ function MovementRow({ transaction, account, showValues }: { transaction: Accoun
         ? 'Conferida'
         : null;
   const tone = isTransfer
-    ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+    ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
     : isIncome
       ? 'bg-[var(--surface-subtle)] text-[var(--income)]'
       : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
@@ -99,13 +99,13 @@ function MovementRow({ transaction, account, showValues }: { transaction: Accoun
           <span className="block break-words text-sm font-semibold text-[var(--foreground)]">
             {transaction.description || 'Sem descrição'}
             {pending && <span className="ml-2 align-middle text-xs font-semibold text-[var(--pending)]">pendente</span>}
-            {reconciliation && <span className="ml-2 align-middle text-xs font-semibold text-[var(--orbit-primary)]">{reconciliation}</span>}
+            {reconciliation && <span className="ml-2 align-middle text-xs font-semibold text-[var(--primary)]">{reconciliation}</span>}
           </span>
           <span className="block truncate text-xs text-[var(--text-muted)]">
             {isTransfer ? getTransferCounterpartLabel(transaction) : transaction.category?.name ?? 'Sem categoria'}
           </span>
         </span>
-        <span className={`money text-sm font-semibold ${isTransfer ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--foreground)]'}`}>
+        <span className={`money text-sm font-semibold ${isTransfer ? 'text-[var(--primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--foreground)]'}`}>
           {isIncome ? '+ ' : '− '}
           {amount}
         </span>
@@ -132,7 +132,7 @@ function Movements({ account, showValues }: { account: AccountModel; showValues:
         <h2 id="account-movements-heading" className="text-base font-bold">Movimentações</h2>
         <Link
           href={`/transacoes?accountId=${encodeURIComponent(account.id)}`}
-          className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]"
         >
           Ver extrato completo
         </Link>
@@ -224,7 +224,7 @@ export default function AccountShowView({
       <section
         aria-label="Resumo da conta"
         className="grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
-        style={{ ['--account-color' as string]: account.color || 'var(--orbit-primary)' }}
+        style={{ ['--account-color' as string]: account.color || 'var(--primary)' }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
           <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white" style={{ backgroundColor: account.color || 'var(--text-muted)' }} aria-hidden="true">

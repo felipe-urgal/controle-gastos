@@ -110,7 +110,7 @@ export default function ClientLayout({
     >
       <a
         href="#main-content"
-        className="sr-only z-[var(--z-toast)] rounded-[var(--radius-md)] bg-[var(--orbit-primary)] px-4 py-3 text-base font-semibold text-[var(--orbit-on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus-visible:outline-[var(--orbit-focus)]"
+        className="sr-only z-[var(--z-toast)] rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-3 text-base font-semibold text-[var(--on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus-visible:outline-[var(--focus)]"
       >
         Pular para o conteúdo
       </a>

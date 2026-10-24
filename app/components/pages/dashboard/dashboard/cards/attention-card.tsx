@@ -9,7 +9,7 @@ import type { AttentionItem, AttentionTone } from '@/app/components/pages/dashbo
 const toneStyles: Record<AttentionTone, { box: string; Icon: typeof FaInfoCircle }> = {
   urgent: { box: 'bg-[var(--danger-subtle)] text-[var(--expense)]', Icon: FaExclamationCircle },
   warning: { box: 'bg-[var(--warning-subtle)] text-[var(--warning)]', Icon: FaExclamationCircle },
-  info: { box: 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]', Icon: FaInfoCircle },
+  info: { box: 'bg-[var(--primary-subtle)] text-[var(--primary)]', Icon: FaInfoCircle },
 };
 
 export function AttentionCard({
@@ -65,7 +65,7 @@ export function AttentionCard({
                   )}
                 </span>
                 {item.href && (
-                  <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--orbit-primary)]">
+                  <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--primary)]">
                     {item.action}
                     <FaChevronRight className="text-xs" aria-hidden="true" />
                   </span>

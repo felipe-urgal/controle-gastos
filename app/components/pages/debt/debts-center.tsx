@@ -65,7 +65,7 @@ function statusLabel(status: DebtStatus) {
 function statusClass(status: DebtStatus) {
   if (status === 'PAID') return 'border-[var(--income)]/35 text-[var(--income)]';
   if (status === 'ARCHIVED') return 'border-[var(--border)] text-[var(--text-muted)]';
-  return 'border-[var(--orbit-primary)]/35 text-[var(--orbit-primary)]';
+  return 'border-[var(--primary)]/35 text-[var(--primary)]';
 }
 
 function dateLabel(value: string | null) {

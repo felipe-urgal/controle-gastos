@@ -16,9 +16,6 @@ import { CATEGORY_DESCRIPTION_MAX_LENGTH } from '@/app/lib/categories/category-l
 import { CategoryFormProps } from '@/app/lib/interface/category.interface';
 import type { CategoryType } from '@/app/types/category';
 
-const orbitSelectionTokens =
-  '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
-
 export default function CategoryForm({ category, isEditing }: CategoryFormProps) {
   const {
     formData,
@@ -42,7 +39,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
   }
 
   return (
-    <div className={`w-full ${orbitSelectionTokens}`}>
+    <div className="w-full">
       <ShowBelow breakpoint="lg">
         <header className="mb-4 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
           <IconButton

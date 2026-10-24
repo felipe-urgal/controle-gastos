@@ -180,21 +180,21 @@ export default function ReceiptSelect({
         onClick={() => selectOption(option)}
         className={`flex min-h-10 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm transition-colors focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 ${
           selected
-            ? 'bg-[var(--orbit-primary-subtle)] text-[var(--foreground)]'
+            ? 'bg-[var(--primary-subtle)] text-[var(--foreground)]'
             : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus:bg-[var(--surface-hover)] focus:text-[var(--foreground)]'
         }`}
       >
         {(option.color || option.icon) && (
           <span
             className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white"
-            style={{ backgroundColor: option.color || 'var(--orbit-primary)' }}
+            style={{ backgroundColor: option.color || 'var(--primary)' }}
             aria-hidden="true"
           >
             <IconRenderer iconName={option.icon || 'tag'} size={12} />
           </span>
         )}
         <span className="min-w-0 flex-1 truncate">{option.label}</span>
-        {selected && <FaCheck className="shrink-0 text-xs text-[var(--orbit-primary)]" aria-hidden="true" />}
+        {selected && <FaCheck className="shrink-0 text-xs text-[var(--primary)]" aria-hidden="true" />}
       </button>
     );
   };
