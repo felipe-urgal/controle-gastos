@@ -2,17 +2,9 @@
 
 import { pageTitleClassName } from '@/app/components/base-pages/page-title';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
-import { useMediaQuery } from '@/app/hooks/use-media-query';
 import Link from 'next/link';
-import { useMemo, useState, type ReactNode } from 'react';
-import {
-  FaChevronRight,
-  FaExternalLinkAlt,
-  FaList,
-  FaPen,
-  FaPlus,
-  FaSearch,
-} from 'react-icons/fa';
+import { useMemo } from 'react';
+import { FaChevronRight, FaPlus, FaSearch } from 'react-icons/fa';
 
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { AccountsOverview } from '@/app/components/pages/account/index/accounts-overview';
@@ -25,7 +17,6 @@ import {
   creditCardRowSummary,
   getAccountPrimaryValue,
   latestAccountTransaction,
-  sortAccountTransactions,
 } from '@/app/lib/accounts/account-presentation';
 import { typeConfig } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -35,8 +26,6 @@ import type {
   AccountRecentTransaction,
   AccountType,
 } from '@/app/types/account';
-
-type AccountFilter = 'all' | AccountType;
 
 const orbitActionTokens =
   '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
@@ -93,105 +82,10 @@ function groupTotal(items: Array<{ currency: string; value: number }> | undefine
   return items && items.length === 1 && items[0].value !== 0 ? items[0] : null;
 }
 
-function MobileAccountsCenter({
-  accounts,
-  loading,
-  showValues,
-  summary,
-}: {
-  accounts: AccountModel[];
-  loading: boolean;
-  showValues: boolean;
-  summary?: AccountListSummary;
-}) {
-  return (
-    <div className="space-y-[22px] pb-3">
-      <header className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className={pageTitleClassName}>
-            Contas
-          </h1>
-          <p className="mt-2 text-base text-[var(--text-muted)]">
-            Seu dinheiro em um só lugar.
-          </p>
-        </div>
-
-        <Link
-          href="/contas/nova"
-          aria-label="Nova conta"
-          className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-[var(--orbit-primary)] text-[22px] text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--orbit-primary)_28%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          <FaPlus aria-hidden="true" />
-        </Link>
-      </header>
-
-      <AccountsOverview
-        summary={summary}
-        loading={loading}
-        showValues={showValues}
-        ariaLabel="Resumo das contas no mobile"
-      />
-
-      <section aria-labelledby="mobile-accounts-title">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2
-            id="mobile-accounts-title"
-            className="text-[25px] font-extrabold tracking-tight text-[var(--foreground)]"
-          >
-            Minhas contas
-          </h2>
-          {!loading && accounts.length > 0 && (
-            <span className="text-sm text-[var(--text-muted)]">
-              {accounts.length} {accounts.length === 1 ? 'conta' : 'contas'}
-            </span>
-          )}
-        </div>
-
-        {loading ? (
-          <div className="h-[310px] animate-pulse rounded-[18px] border border-[var(--border)] bg-[var(--surface)]" />
-        ) : accounts.length === 0 ? (
-          <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4">
-            <PageEmpty title="Nenhuma conta encontrada" />
-            <Link
-              href="/contas/nova"
-              className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[11px] bg-[var(--orbit-primary)] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-            >
-              <FaPlus aria-hidden="true" />
-              Criar primeira conta
-            </Link>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
-            {groupAccounts(accounts, summary).map((group) => (
-              <section key={group.key} aria-label={group.title}>
-                <h3 className="flex items-baseline justify-between gap-3 px-3.5 pb-2 pt-4 text-sm font-bold text-[var(--text-muted)]">
-                  {group.title}
-                  {group.total && (
-                    <span className="money text-xs font-medium">
-                      {money(group.total.value, group.total.currency, showValues)}
-                      {group.totalLabel ? ` ${group.totalLabel}` : ''}
-                    </span>
-                  )}
-                </h3>
-                {group.items.map((account) => (
-                  <AccountRow
-                    key={account.id}
-                    account={account}
-                    showValues={showValues}
-                    href={`/contas/show/${encodeURIComponent(account.id)}`}
-                  />
-                ))}
-              </section>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
+/** A busca e os filtros só compensam com uma lista longa; com filtro ativo continuam visíveis para poder limpá-lo. */
+const FILTERS_MIN_ACCOUNTS = 6;
 
 export default function OrbitAccounts() {
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const {
@@ -211,57 +105,24 @@ export default function OrbitAccounts() {
     setFilters,
   } = useAccounts();
 
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-
-  const selectedAccount =
-    accounts.find((account) => account.id === selectedAccountId) ?? accounts[0] ?? null;
-
   const accountSummary = summary as AccountListSummary | undefined;
   const grouped = useMemo(() => groupAccounts(accounts, accountSummary), [accounts, accountSummary]);
 
   const accountFilter = (filters.type ?? '') as '' | AccountType;
-  const filterOptions: Array<{
-    value: AccountFilter;
-    queryValue: '' | AccountType;
-    label: string;
-    count: number;
-  }> = [
-    { value: 'all', queryValue: '', label: 'Todas', count: accountSummary?.totalCount ?? total ?? 0 },
-    {
-      value: 'CREDIT_DEBIT',
-      queryValue: 'CREDIT_DEBIT',
-      label: 'Bancos e carteiras',
-      count: accountSummary?.typeCounts.CREDIT_DEBIT ?? 0,
-    },
-    {
-      value: 'INVESTMENT',
-      queryValue: 'INVESTMENT',
-      label: 'Investimentos',
-      count: accountSummary?.typeCounts.INVESTMENT ?? 0,
-    },
-    {
-      value: 'CREDIT_CARD',
-      queryValue: 'CREDIT_CARD',
-      label: 'Cartões',
-      count: accountSummary?.typeCounts.CREDIT_CARD ?? 0,
-    },
+  const totalCount = accountSummary?.totalCount ?? total ?? 0;
+  const filtering = Boolean(filters.search) || accountFilter !== '';
+  const showFilters = totalCount > FILTERS_MIN_ACCOUNTS || filtering;
+  const filterOptions: Array<{ queryValue: '' | AccountType; label: string; count: number }> = [
+    { queryValue: '', label: 'Todas', count: totalCount },
+    { queryValue: 'CREDIT_DEBIT', label: 'Bancos e carteiras', count: accountSummary?.typeCounts.CREDIT_DEBIT ?? 0 },
+    { queryValue: 'INVESTMENT', label: 'Investimentos', count: accountSummary?.typeCounts.INVESTMENT ?? 0 },
+    { queryValue: 'CREDIT_CARD', label: 'Cartões', count: accountSummary?.typeCounts.CREDIT_CARD ?? 0 },
   ];
 
   const pagination =
     hasPagination && totalPages && totalPages > 1
-      ? {
-          page,
-          pageSize,
-          total,
-          totalPages,
-          onPageChange: setPage,
-          onPageSizeChange: setPageSize,
-        }
+      ? { page, pageSize, total, totalPages, onPageChange: setPage, onPageSizeChange: setPageSize }
       : null;
-
-  function selectAccount(account: AccountModel) {
-    setSelectedAccountId(account.id);
-  }
 
   return (
     <ProtectedRoute>
@@ -274,166 +135,112 @@ export default function OrbitAccounts() {
             <strong className="text-sm text-[var(--expense)]">Não foi possível carregar as contas</strong>
             <p className="mt-1 text-sm text-[var(--text-muted)]">{error}</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => void refetch()}
-            disabled={loading}
-            className={orbitActionTokens}
-          >
+          <Button variant="outline" onClick={() => void refetch()} disabled={loading} className={orbitActionTokens}>
             Tentar novamente
           </Button>
         </div>
       )}
+
       {(!error || accounts.length > 0) && (
-        <>
-      {!isDesktop && (
-      <div>
-        <MobileAccountsCenter
-          accounts={accounts}
-          loading={loading}
-          showValues={showValues}
-          summary={summary as AccountListSummary | undefined}
-        />
-        {pagination && (
-          <div className="mt-4 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3">
-            <Pagination {...pagination} loading={loading} />
-          </div>
-        )}
-      </div>
-      )}
-
-      {isDesktop && (
-      <div>
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className={pageTitleClassName}>
-            Contas
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Gerencie seu portfólio de contas com clareza e controle.
-          </p>
-        </div>
-
-        <div className="hidden flex-wrap gap-2 sm:flex">
-          <Button
-            variant="outline"
-            icon={<FaSearch />}
-            onClick={() => document.getElementById('accounts-search')?.focus()}
-            className={orbitActionTokens}
-          >
-            Buscar
-          </Button>
-          <Button
-            as="a"
-            href="/contas/nova"
-            icon={<FaPlus />}
-            className={orbitActionTokens}
-          >
-            Nova conta
-          </Button>
-        </div>
-      </header>
-
-      <div className="mt-[22px]">
-        <AccountsOverview
-          summary={accountSummary}
-          loading={loading}
-          showValues={showValues}
-          ariaLabel="Resumo das contas"
-        />
-      </div>
-
-      <section
-        className={`my-[18px] flex flex-col gap-2.5 sm:flex-row sm:items-center ${orbitActionTokens}`}
-        aria-label="Buscar e filtrar contas"
-      >
-        <div className="min-w-0 flex-1">
-          <Input
-            id="accounts-search"
-            value={filters.search ?? ''}
-            onChange={(event) =>
-              setFilters((previous) => ({ ...previous, search: event.target.value }))
-            }
-            placeholder="Buscar contas..."
-            aria-label="Buscar contas"
-            icon={<FaSearch />}
-            disabled={loading}
-          />
-        </div>
-
-        <ChipRow label="Tipos de conta">
-          {filterOptions.map((option) => (
-            <Chip
-              key={option.value}
-              selected={accountFilter === option.queryValue}
-              onClick={() => setFilters((previous) => ({ ...previous, type: option.queryValue }))}
+        <div className="space-y-[18px] pb-3">
+          <header className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className={pageTitleClassName}>Contas</h1>
+              <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">Seu dinheiro em um só lugar.</p>
+            </div>
+            <div className="hidden sm:block">
+              <Button as="a" href="/contas/nova" icon={<FaPlus />} className={orbitActionTokens}>
+                Nova conta
+              </Button>
+            </div>
+            <Link
+              href="/contas/nova"
+              aria-label="Nova conta"
+              className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-[var(--orbit-primary)] text-[22px] text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--orbit-primary)_28%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:hidden"
             >
-              {option.label} · {option.count}
-            </Chip>
-          ))}
-        </ChipRow>
-      </section>
+              <FaPlus aria-hidden="true" />
+            </Link>
+          </header>
 
-      <div className="grid min-w-0 items-start gap-4 grid-cols-[minmax(520px,1.2fr)_minmax(390px,.9fr)]">
-        <section
-          className={`overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] ${orbitActionTokens}`}
-          aria-label="Portfólio de contas"
-        >
-          {loading ? (
-            <div className="p-4">
-              <PageLoading type="list" />
-            </div>
-          ) : accounts.length === 0 ? (
-            <div className="p-4">
-              <PageEmpty title="Nenhuma conta encontrada" />
-            </div>
-          ) : (
-            grouped.map((group) => (
-              <section key={group.key} aria-label={group.title}>
-                <h2 className="flex items-baseline justify-between gap-3 px-[18px] pb-2 pt-4 text-sm font-bold text-[var(--text-muted)]">
-                  {group.title}
-                  {group.total && (
-                    <span className="money text-xs font-medium">
-                      {money(group.total.value, group.total.currency, showValues)}
-                      {group.totalLabel ? ` ${group.totalLabel}` : ''}
-                    </span>
-                  )}
-                </h2>
-                {group.items.map((account) => (
-                  <AccountRow
-                    key={account.id}
-                    account={account}
-                    selected={account.id === selectedAccount?.id}
-                    showValues={showValues}
-                    onSelect={selectAccount}
-                  />
+          <AccountsOverview summary={accountSummary} loading={loading} showValues={showValues} ariaLabel="Resumo das contas" />
+
+          {showFilters && (
+            <section
+              className={`flex flex-col gap-2.5 sm:flex-row sm:items-center ${orbitActionTokens}`}
+              aria-label="Buscar e filtrar contas"
+            >
+              <div className="min-w-0 flex-1">
+                <Input
+                  id="accounts-search"
+                  value={filters.search ?? ''}
+                  onChange={(event) => setFilters((previous) => ({ ...previous, search: event.target.value }))}
+                  placeholder="Buscar contas..."
+                  aria-label="Buscar contas"
+                  icon={<FaSearch />}
+                  disabled={loading}
+                />
+              </div>
+              <ChipRow label="Tipos de conta">
+                {filterOptions.map((option) => (
+                  <Chip
+                    key={option.queryValue || 'all'}
+                    selected={accountFilter === option.queryValue}
+                    onClick={() => setFilters((previous) => ({ ...previous, type: option.queryValue }))}
+                  >
+                    {option.label} · {option.count}
+                  </Chip>
                 ))}
-              </section>
-            ))
+              </ChipRow>
+            </section>
           )}
 
-          {pagination && (
-            <div className="border-t border-[var(--border)] p-3">
-              <Pagination {...pagination} loading={loading} />
-            </div>
-          )}
-        </section>
+          <section
+            className={`overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] ${orbitActionTokens}`}
+            aria-label="Minhas contas"
+          >
+            {loading ? (
+              <div className="p-4">
+                <PageLoading type="list" />
+              </div>
+            ) : accounts.length === 0 ? (
+              <div className="p-4">
+                <PageEmpty title="Nenhuma conta encontrada" />
+                {!filtering && (
+                  <Link
+                    href="/contas/nova"
+                    className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[11px] bg-[var(--orbit-primary)] px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:w-auto"
+                  >
+                    <FaPlus aria-hidden="true" />
+                    Criar primeira conta
+                  </Link>
+                )}
+              </div>
+            ) : (
+              grouped.map((group) => (
+                <section key={group.key} aria-label={group.title}>
+                  <h2 className="flex items-baseline justify-between gap-3 px-3.5 pb-2 pt-4 text-sm font-bold text-[var(--text-muted)] sm:px-[18px]">
+                    {group.title}
+                    {group.total && (
+                      <span className="money text-xs font-medium">
+                        {money(group.total.value, group.total.currency, showValues)}
+                        {group.totalLabel ? ` ${group.totalLabel}` : ''}
+                      </span>
+                    )}
+                  </h2>
+                  {group.items.map((account) => (
+                    <AccountRow key={account.id} account={account} showValues={showValues} />
+                  ))}
+                </section>
+              ))
+            )}
 
-        {selectedAccount && (
-          <>
-            <aside
-              className={`sticky top-[18px] block max-h-[calc(100vh-36px)] overflow-y-auto rounded-[18px] border border-[var(--border)] bg-[var(--surface)] ${orbitActionTokens}`}
-              aria-label={`Detalhe da conta ${selectedAccount.name}`}
-            >
-              <AccountDetail account={selectedAccount} showValues={showValues} />
-            </aside>
-          </>
-        )}
-      </div>
-
-      </div>
-      )}
-        </>
+            {pagination && (
+              <div className="border-t border-[var(--border)] p-3">
+                <Pagination {...pagination} loading={loading} />
+              </div>
+            )}
+          </section>
+        </div>
       )}
     </ProtectedRoute>
   );
@@ -447,17 +254,10 @@ const rowMeterTone = { ok: 'bg-[var(--orbit-primary)]', near: 'bg-[var(--warning
 
 function AccountRow({
   account,
-  selected = false,
   showValues,
-  onSelect,
-  href,
 }: {
   account: AccountModel;
-  selected?: boolean;
   showValues: boolean;
-  /** No desktop a linha escolhe a conta do painel; no celular ela abre a tela da conta. */
-  onSelect?: (account: AccountModel) => void;
-  href?: string;
 }) {
   const latest = latestAccountTransaction(account);
   const card = creditCardRowSummary(account);
@@ -473,11 +273,7 @@ function AccountRow({
   const flag = !account.isActive ? 'Inativa' : card && card.overdueCount > 0 ? 'Fatura vencida' : negative ? 'Negativa' : null;
   const flagClass = flag === 'Inativa' ? 'text-[var(--text-muted)]' : 'text-[var(--expense)]';
 
-  const rowClass = `grid min-h-[68px] w-full grid-cols-[minmax(0,1fr)_minmax(105px,auto)_20px] items-center gap-2 border-t border-[var(--border)] px-3.5 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:grid-cols-[minmax(0,1fr)_minmax(120px,auto)_minmax(70px,.5fr)_20px] ${
-    selected
-      ? 'bg-[var(--orbit-primary-subtle)] shadow-[inset_3px_0_0_var(--orbit-primary)]'
-      : 'hover:bg-[var(--surface-hover)]'
-  }`;
+  const rowClass = `grid min-h-[68px] w-full grid-cols-[minmax(0,1fr)_minmax(105px,auto)_20px] items-center gap-2 border-t border-[var(--border)] px-3.5 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:grid-cols-[minmax(0,1fr)_minmax(120px,auto)_minmax(70px,.5fr)_20px] hover:bg-[var(--surface-hover)]`;
   const content = (
     <>
       <div className="flex min-w-0 items-center gap-3">
@@ -557,251 +353,9 @@ function AccountRow({
     </>
   );
 
-  return href ? (
-    <Link href={href} className={rowClass}>
+  return (
+    <Link href={`/contas/show/${encodeURIComponent(account.id)}`} className={rowClass}>
       {content}
     </Link>
-  ) : (
-    <button type="button" onClick={() => onSelect?.(account)} aria-pressed={selected} className={rowClass}>
-      {content}
-    </button>
-  );
-}
-
-/** Ações do painel: a primeira é a mais provável para o tipo de conta. */
-function detailActions(account: AccountModel): Array<{ label: string; href: string; icon: ReactNode; primary?: boolean }> {
-  const show = `/contas/show/${encodeURIComponent(account.id)}`;
-  const transactions = { label: 'Transações', href: `/transacoes?accountId=${encodeURIComponent(account.id)}`, icon: <FaList aria-hidden="true" /> };
-  const edit = { label: 'Editar', href: `/contas/alterar/${encodeURIComponent(account.id)}`, icon: <FaPen aria-hidden="true" /> };
-
-  if (account.type === 'CREDIT_CARD') {
-    return [
-      { label: 'Faturas', href: show, icon: <FaExternalLinkAlt aria-hidden="true" />, primary: true },
-      { label: 'Lançar compra', href: '/transacoes/nova', icon: <FaPlus aria-hidden="true" /> },
-      transactions,
-      edit,
-    ];
-  }
-  if (account.type === 'INVESTMENT') {
-    return [
-      { label: 'Investimentos', href: '/investimentos', icon: <FaExternalLinkAlt aria-hidden="true" />, primary: true },
-      transactions,
-      { label: 'Mais', href: show, icon: <FaExternalLinkAlt aria-hidden="true" /> },
-      edit,
-    ];
-  }
-  return [
-    { label: 'Lançar', href: '/transacoes/nova', icon: <FaPlus aria-hidden="true" />, primary: true },
-    transactions,
-    { label: 'Conciliar', href: show, icon: <FaExternalLinkAlt aria-hidden="true" /> },
-    edit,
-  ];
-}
-
-function AccountDetail({ account, showValues }: { account: AccountModel; showValues: boolean }) {
-  const card = creditCardRowSummary(account);
-  const recent = sortAccountTransactions(account.transactions).slice(0, 6);
-  const latest = recent[0] ?? null;
-  const displayedValue =
-    account.type === 'CREDIT_CARD'
-      ? account.creditLimit ?? 0
-      : getAccountPrimaryValue(account);
-  const valueLabel =
-    account.type === 'INVESTMENT'
-      ? 'VALOR DA POSIÇÃO'
-      : account.type === 'CREDIT_CARD'
-        ? 'LIMITE TOTAL'
-        : 'SALDO DISPONÍVEL';
-
-  return (
-    <div className="p-4 sm:p-5">
-      <header className="flex items-start justify-between gap-3 ">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] text-white"
-            style={{ backgroundColor: account.color || 'var(--text-muted)' }}
-            aria-hidden="true"
-          >
-            <IconRenderer iconName={account.icon || 'wallet'} size={20} />
-          </span>
-          <div className="min-w-0">
-            <h2 className="truncate text-xl font-bold sm:text-[22px]">{account.name}</h2>
-            <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
-              {typeLabels[account.type]} · {account.currency}
-            </p>
-          </div>
-        </div>
-
-        <span
-          className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${
-            account.isActive
-              ? 'border-[var(--income)]/35 bg-[color-mix(in_srgb,var(--income)_12%,transparent)] text-[var(--income)]'
-              : 'border-[var(--border)] text-[var(--text-muted)]'
-          }`}
-        >
-          {account.isActive ? 'Ativa' : 'Inativa'}
-        </span>
-      </header>
-
-      {card ? (
-        <section className="my-[18px] space-y-3" aria-label="Fatura e limite do cartão">
-          <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]">
-            <p className="text-xs text-[var(--text-muted)]">
-              {card.statementDueDate ? `FATURA ATUAL · VENCE ${dueShortLabel(card.statementDueDate)}` : 'FATURA ATUAL'}
-            </p>
-            <strong className="money mt-2 block break-words text-[27px] font-extrabold text-[var(--foreground)] sm:text-[31px]">
-              {card.statementAmount === null ? '—' : money(card.statementAmount, account.currency, showValues)}
-            </strong>
-            <small className="mt-1 block text-xs text-[var(--text-muted)]">
-              {card.overdueCount > 0
-                ? `${card.overdueCount} ${card.overdueCount === 1 ? 'fatura vencida' : 'faturas vencidas'} sem pagamento`
-                : card.statementAmount === null
-                  ? 'Nenhuma fatura aberta'
-                  : 'Compras já lançadas até o fechamento'}
-            </small>
-          </article>
-
-          <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]">
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="text-xs text-[var(--text-muted)]">LIMITE USADO</p>
-              {card.usedPercent !== null && <span className="money text-xs font-semibold">{card.usedPercent}%</span>}
-            </div>
-            {card.usedPercent !== null && (
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${card.usedPercent}% do limite usado`}>
-                <span className={`block h-full rounded-full ${rowMeterTone[card.tone]}`} style={{ width: `${Math.min(100, card.usedPercent)}%` }} />
-              </div>
-            )}
-            <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
-              <div>
-                <dt className="text-[var(--text-muted)]">Usado</dt>
-                <dd className="money mt-0.5 font-semibold">{money(card.usedLimit, account.currency, showValues)}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--text-muted)]">Disponível</dt>
-                <dd className="money mt-0.5 font-semibold">
-                  {account.cardStatus?.availableLimit == null ? '—' : money(account.cardStatus.availableLimit, account.currency, showValues)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[var(--text-muted)]">Limite</dt>
-                <dd className="money mt-0.5 font-semibold">
-                  {card.creditLimit === null ? '—' : money(card.creditLimit, account.currency, showValues)}
-                </dd>
-              </div>
-            </dl>
-          </article>
-        </section>
-      ) : (
-      <section
-        className="my-[18px] grid gap-3 sm:grid-cols-[1.3fr_.9fr]"
-        aria-label="Saldo e atividade da conta"
-      >
-        <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]">
-          <p className="text-xs text-[var(--text-muted)]">{valueLabel}</p>
-          <strong
-            className={`mt-2 block break-words text-[27px] font-extrabold sm:text-[31px] ${
-              account.type === 'CREDIT_CARD'
-              ? 'text-[var(--foreground)]'
-              : displayedValue < 0
-                ? 'text-[var(--expense)]'
-                : 'text-[var(--income)]'
-            }`}
-          >
-            <span className="money">{money(getAccountPrimaryValue(account), account.currency, showValues)}</span>
-          </strong>
-          <small className="mt-1 block text-xs text-[var(--text-muted)]">
-            {account.type === 'CREDIT_CARD'
-              ? 'Consulte faturas para valores em aberto e limite utilizado'
-              : account.type === 'INVESTMENT'
-                ? 'Valor atual das posições da conta'
-                : 'Derivado de movimentações concluídas'}
-          </small>
-        </article>
-
-        <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]">
-          <p className="text-xs text-[var(--text-muted)]">ATIVIDADE RECENTE</p>
-          <strong
-            className={`mt-2 block text-xl font-bold ${
-              latest?.type === 'INCOME'
-                ? 'text-[var(--income)]'
-                : latest
-                  ? 'text-[var(--expense)]'
-                  : ''
-            }`}
-          >
-            {latest ? transactionMoney(latest, account.currency, showValues) : '—'}
-          </strong>
-          <small className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-            {latest?.description ?? 'Nenhuma movimentação'}
-          </small>
-        </article>
-      </section>
-      )}
-
-      <nav className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Ações da conta">
-        {detailActions(account).map((action) => (
-          <Link
-            key={action.label}
-            href={action.href}
-            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border px-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-              action.primary
-                ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)]'
-                : 'border-[var(--border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-hover)]'
-            }`}
-          >
-            {action.icon} {action.label}
-          </Link>
-        ))}
-      </nav>
-
-      <section
-        className="mt-[18px] rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-[15px]"
-        aria-labelledby="account-recent-title"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <p id="account-recent-title" className="text-xs text-[var(--text-muted)]">
-            ÚLTIMAS TRANSAÇÕES
-          </p>
-          <Link
-            href={`/transacoes?accountId=${encodeURIComponent(account.id)}`}
-            className="rounded-[8px] border border-[var(--border)] px-2 py-1.5 text-xs font-semibold"
-          >
-            Ver todas
-          </Link>
-        </div>
-
-        {recent.length === 0 ? (
-          <p className="mt-3 text-sm text-[var(--text-muted)]">Nenhuma transação vinculada.</p>
-        ) : (
-          <div className="mt-2 divide-y divide-[var(--border)]">
-            {recent.slice(0, 5).map((transaction) => (
-              <Link
-                key={transaction.id}
-                href={`/transacoes/show/${transaction.id}`}
-                className="flex items-center justify-between gap-3 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">
-                    {transaction.description || 'Sem descrição'}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
-                    {transaction.category?.name ?? 'Sem categoria'}
-                  </p>
-                </div>
-                <strong
-                  className={`shrink-0 text-sm ${
-                    transaction.type === 'INCOME'
-                      ? 'text-[var(--income)]'
-                      : 'text-[var(--expense)]'
-                  }`}
-                >
-                  {transactionMoney(transaction, account.currency, showValues)}
-                </strong>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
   );
 }

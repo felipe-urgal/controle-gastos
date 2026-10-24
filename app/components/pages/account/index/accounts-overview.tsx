@@ -45,19 +45,12 @@ function CurrencyHero({
   totals,
   showValues,
   showCurrency,
-  activeCount,
-  totalCount,
 }: {
   totals: CurrencyTotals;
   showValues: boolean;
   showCurrency: boolean;
-  activeCount: number;
-  totalCount: number;
 }) {
   const money = (cents: number) => (showValues ? formatCurrency(cents, totals.currency) : '••••');
-  const positiveAvailable = Math.max(totals.available, 0);
-  const positiveInvested = Math.max(totals.invested, 0);
-  const barTotal = positiveAvailable + positiveInvested;
   const rows = [
     { label: 'Correntes', value: money(totals.available), color: 'var(--income)' },
     { label: 'Investido', value: money(totals.invested), color: 'var(--orbit-primary)' },
@@ -81,13 +74,6 @@ function CurrencyHero({
         </strong>
       </div>
 
-      {barTotal > 0 && (
-        <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
-          {positiveAvailable > 0 && <span className="block min-w-[3px] bg-[var(--income)]" style={{ flex: positiveAvailable }} />}
-          {positiveInvested > 0 && <span className="block min-w-[3px] bg-[var(--orbit-primary)]" style={{ flex: positiveInvested }} />}
-        </div>
-      )}
-
       <dl className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between gap-3">
@@ -98,13 +84,6 @@ function CurrencyHero({
             <dd className="money text-[0.8125rem] font-medium text-[var(--foreground)]">{row.value}</dd>
           </div>
         ))}
-        <div className="flex items-center justify-between gap-3">
-          <dt className="flex items-center gap-2 text-[var(--text-muted)]">
-            <span className="h-2 w-2 shrink-0 rounded-sm bg-[var(--text-subtle)]" aria-hidden="true" />
-            Contas ativas
-          </dt>
-          <dd className="money text-[0.8125rem] font-medium text-[var(--foreground)]">{activeCount} de {totalCount}</dd>
-        </div>
       </dl>
     </div>
   );
@@ -125,7 +104,10 @@ export function AccountsOverview({
   const attention = summary?.attention ?? [];
 
   return (
-    <section aria-label={ariaLabel} className="grid gap-[14px] lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+    <section
+      aria-label={ariaLabel}
+      className={`grid gap-[14px] ${attention.length > 0 ? 'lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]' : ''}`}
+    >
       <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5">
         {loading || !summary ? (
           <div className="h-36 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando resumo das contas" />
@@ -139,15 +121,20 @@ export function AccountsOverview({
                 totals={item}
                 showValues={showValues}
                 showCurrency={totals.length > 1}
-                activeCount={summary.activeCount}
-                totalCount={summary.totalCount}
               />
             ))}
-            <p className="text-xs text-[var(--text-muted)]">Sem conversão entre moedas.</p>
+            {totals.length > 1 && <p className="text-xs text-[var(--text-muted)]">Sem conversão entre moedas.</p>}
+            {attention.length === 0 && (
+              <p className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                <FaCheckCircle className="shrink-0 text-[var(--income)]" aria-hidden="true" />
+                Nenhuma conta precisa de atenção.
+              </p>
+            )}
           </div>
         )}
       </article>
 
+      {attention.length > 0 && (
       <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5" aria-labelledby={`${ariaLabel}-attention`.replace(/\s+/g, '-')}>
         <div className="flex items-center justify-between gap-3">
           <h2 id={`${ariaLabel}-attention`.replace(/\s+/g, '-')} className="text-lg font-bold">Precisa de atenção</h2>
@@ -156,17 +143,7 @@ export function AccountsOverview({
           )}
         </div>
 
-        {loading || !summary ? (
-          <div className="mt-3 space-y-2" role="status" aria-label="Carregando pontos de atenção">
-            {[1, 2].map((item) => <div key={item} className="h-14 animate-pulse rounded-[11px] bg-[var(--skeleton)]" />)}
-          </div>
-        ) : attention.length === 0 ? (
-          <p className="mt-3 flex items-center gap-2 rounded-[11px] bg-[var(--surface-subtle)] px-3 py-3 text-sm text-[var(--text-muted)]">
-            <FaCheckCircle className="shrink-0 text-[var(--income)]" aria-hidden="true" />
-            Nenhuma conta precisa de atenção. Saldos, faturas e limites estão em dia.
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-2">
+        <ul className="mt-3 space-y-2">
             {attention.map((item) => {
               const message = accountAttentionMessage(item, showValues);
               return (
@@ -190,9 +167,9 @@ export function AccountsOverview({
                 </li>
               );
             })}
-          </ul>
-        )}
+        </ul>
       </article>
+      )}
     </section>
   );
 }
