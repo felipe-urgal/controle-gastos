@@ -13,7 +13,7 @@ import {
 import { ProtectedRoute } from '@/app/components/layout';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { Alert, PageEmpty } from '@/app/components/feedback';
-import { Button, Chip, ChipRow, IconButton, Input, MoneyInput, Select } from '@/app/components/ui';
+import { Button, IconButton, Input, MoneyInput, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -445,7 +445,26 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <ListPageHeader title="Dívidas" onCreate={openCreate} createLabel="Nova dívida" />
+        <ListPageHeader
+          title="Dívidas"
+          onCreate={openCreate}
+          createLabel="Nova dívida"
+          controls={
+            <div className="w-[10.5rem]">
+              <Select
+                ariaLabel="Filtrar dívidas"
+                value={filter}
+                onChange={(value) => setFilter(value as DebtFilter)}
+                options={[
+                  { value: 'ALL', label: 'Todas' },
+                  { value: 'ACTIVE', label: 'Ativas' },
+                  { value: 'PAID', label: 'Quitadas' },
+                  { value: 'ARCHIVED', label: 'Arquivadas' },
+                ]}
+              />
+            </div>
+          }
+        />
 
         {error && (
           <div className="mt-4">
@@ -460,19 +479,6 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
             <DebtsDues debts={items.filter((debt) => debt.currency === summary.currency)} today={today} showValues={showValues} onPay={openPayment} />
           </div>
         )}
-
-        <ChipRow label="Filtrar dívidas" className="mt-5">
-          {([
-            ['ALL', 'Todas'],
-            ['ACTIVE', 'Ativas'],
-            ['PAID', 'Quitadas'],
-            ['ARCHIVED', 'Arquivadas'],
-          ] as const).map(([value, label]) => (
-            <Chip key={value} selected={filter === value} onClick={() => setFilter(value)}>
-              {label}
-            </Chip>
-          ))}
-        </ChipRow>
 
         <section className="mt-4">
           {loading ? (
