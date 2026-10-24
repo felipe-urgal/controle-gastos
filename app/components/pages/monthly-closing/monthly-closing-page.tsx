@@ -10,7 +10,6 @@ import MonthlyClosingView from '@/app/components/pages/monthly-closing/monthly-c
 import {
   countItemsToReview,
   monthName,
-  monthTitle,
   periodValue,
   shiftPeriod,
 } from '@/app/components/pages/monthly-closing/monthly-closing-model';
@@ -99,7 +98,8 @@ export default function MonthlyClosingPage() {
   const headerControls = (
         <div className="flex flex-wrap items-center gap-2.5">
           <PeriodSwitcher
-            label={monthTitle(year, month)}
+            month={month}
+            year={year}
             onPrevious={() => goTo(-1)}
             onNext={() => goTo(1)}
             nextDisabled={atCurrentMonth}

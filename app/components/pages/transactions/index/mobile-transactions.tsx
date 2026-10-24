@@ -5,7 +5,7 @@ import { Button, Chip, ChipRow, IconRenderer, PeriodSwitcher } from '@/app/compo
 import { isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
-import { MobileQuickFilter, TimelineGroup, displayMoney, formatTransactionAmount, formatTransactionTime, monthTitle, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
+import { MobileQuickFilter, TimelineGroup, displayMoney, formatTransactionAmount, formatTransactionTime, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
 import { TransactionTags } from '@/app/components/pages/transactions/index/desktop-transactions';
 
 export function MobileTransactionsPrototype2({
@@ -60,7 +60,8 @@ export function MobileTransactionsPrototype2({
     <div className="space-y-4 pb-3">
       <PeriodSwitcher
         className="w-full"
-        label={monthTitle(month, year)}
+        month={month}
+        year={year}
         onPrevious={() => onMovePeriod(-1)}
         onNext={() => onMovePeriod(1)}
         disabled={loading}

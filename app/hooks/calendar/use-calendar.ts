@@ -30,12 +30,19 @@ function isAbortError(error: unknown) {
   return error instanceof Error && error.name === "AbortError";
 }
 
+/** Ao chegar num mês, seleciona o dia 1; no mês atual, seleciona hoje. */
+function landingDate(year: number, monthIndex: number) {
+  const today = new Date();
+  const first = new Date(year, monthIndex, 1);
+  return first.getFullYear() === today.getFullYear() && first.getMonth() === today.getMonth() ? today : first;
+}
+
 function previousMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() - 1, 1);
+  return landingDate(date.getFullYear(), date.getMonth() - 1);
 }
 
 function nextMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  return landingDate(date.getFullYear(), date.getMonth() + 1);
 }
 
 export const useCalendar = () => {

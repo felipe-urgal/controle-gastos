@@ -3,41 +3,32 @@
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import { IconButton } from '@/app/components/ui/icon-button';
+import { monthNames } from '@/app/lib/date/constants';
 
 const surface = 'border border-[var(--border)] bg-[var(--surface)]';
-const center =
-  'inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-[var(--radius-md)] px-3 text-center text-sm font-semibold text-[var(--foreground)] sm:min-w-[11rem] sm:flex-none ' +
-  surface;
 
 /**
- * Seletor de período (mês/ano) padrão: anterior, rótulo e próximo, tudo com 44px de altura.
- * O rótulo pode abrir um seletor (`onOpen`), disparar uma ação (`onCenterClick`, ex.: ir para
- * hoje) ou, por padrão, ser só texto: o período muda pelos botões anterior e próximo.
+ * Seletor de período padrão: anterior, "Mês / Ano" e próximo, tudo com 44px de altura. O período
+ * muda só pelos botões; o rótulo é texto, sem clique.
  */
 export default function PeriodSwitcher({
-  label,
+  month,
+  year,
   onPrevious,
   onNext,
   previousDisabled = false,
   nextDisabled = false,
   disabled = false,
-  onOpen,
-  expanded,
-  onCenterClick,
   className = '',
 }: {
-  /** Período exibido (ex.: "Outubro de 2026"). */
-  label: string;
+  /** Mês de 1 a 12. */
+  month: number;
+  year: number;
   onPrevious: () => void;
   onNext: () => void;
   previousDisabled?: boolean;
   nextDisabled?: boolean;
   disabled?: boolean;
-  /** O rótulo abre um diálogo de escolha de período. */
-  onOpen?: () => void;
-  expanded?: boolean;
-  /** O rótulo é um botão de ação simples (sem diálogo). */
-  onCenterClick?: () => void;
   className?: string;
 }) {
   return (
@@ -50,22 +41,13 @@ export default function PeriodSwitcher({
         className={surface}
       />
 
-      {onOpen || onCenterClick ? (
-        <button
-          type="button"
-          onClick={onOpen ?? onCenterClick}
-          disabled={disabled}
-          aria-haspopup={onOpen ? 'dialog' : undefined}
-          aria-expanded={onOpen ? expanded : undefined}
-          className={`${center} transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50`}
-        >
-          <span className="truncate capitalize">{label}</span>
-        </button>
-      ) : (
-        <output className={center}>
-          <span className="truncate capitalize">{label}</span>
-        </output>
-      )}
+      <output
+        className={`inline-flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-md)] px-3 text-center text-sm font-semibold text-[var(--foreground)] sm:min-w-[11rem] sm:flex-none ${surface}`}
+      >
+        <span className="truncate">
+          {monthNames[month - 1] ?? ''} / {year}
+        </span>
+      </output>
 
       <IconButton
         label="Próximo mês"

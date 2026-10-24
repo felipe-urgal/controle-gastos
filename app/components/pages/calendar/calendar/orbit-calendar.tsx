@@ -125,7 +125,6 @@ export default function OrbitCalendar() {
     error,
     goToPreviousMonth,
     goToNextMonth,
-    goToToday,
     goToDate,
     handleAccountChange,
     retry,
@@ -163,12 +162,6 @@ export default function OrbitCalendar() {
     goToNextMonth();
   };
 
-  const today = () => {
-    setSelectedDate(null);
-    setShowAllCommitments(false);
-    goToToday();
-  };
-
   const changeAccount = (value: string | number) => {
     setShowAllCommitments(false);
     handleAccountChange(value);
@@ -187,10 +180,10 @@ export default function OrbitCalendar() {
         <div className="grid w-full grid-cols-[auto_1fr_auto] gap-2 sm:flex sm:w-auto sm:flex-wrap">
           <PeriodSwitcher
             className="col-span-3 sm:col-span-1"
-            label={monthLabel}
+            month={currentDate.getMonth() + 1}
+            year={currentDate.getFullYear()}
             onPrevious={previousMonth}
             onNext={nextMonth}
-            onCenterClick={today}
           />
           <div className="col-span-3 w-full sm:col-span-1 sm:w-[190px]">
             <Select

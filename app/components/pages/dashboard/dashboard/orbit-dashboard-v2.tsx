@@ -54,7 +54,8 @@ export default function OrbitDashboardV2() {
       <CurrencySelect value={currency} onChange={setCurrency} disabled={loading} />
       <PeriodSwitcher
         className="min-w-0 flex-1 lg:flex-none"
-        label={monthLabel(periodValue)}
+        month={Number(periodValue.slice(5, 7))}
+        year={Number(periodValue.slice(0, 4))}
         onPrevious={() => setPeriodValue(periodOffset(periodValue, -1))}
         onNext={() => setPeriodValue(periodOffset(periodValue, 1))}
         disabled={loading}

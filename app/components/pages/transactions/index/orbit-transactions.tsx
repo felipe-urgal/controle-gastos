@@ -23,7 +23,7 @@ import type { CurrencyFinancialSummary, SupportedCurrency } from '@/app/types/fi
 import type { MerchantDTO } from '@/app/types/merchant';
 import type { TransactionDTO } from '@/app/types/transaction';
 
-import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilter, REFINEMENT_FILTER_KEYS, TIMELINE_INCREMENT, TimelineOrder, buildMonthBars, buildTimelineGroups, displayMoney, formatPeriod, formatTrend, percentageChange, selectSummary, shiftPeriod, todayDateKey, transactionDateKey, usePreviousSummary } from '@/app/components/pages/transactions/index/transactions-view-helpers';
+import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilter, REFINEMENT_FILTER_KEYS, TIMELINE_INCREMENT, TimelineOrder, buildMonthBars, buildTimelineGroups, displayMoney, formatTrend, percentageChange, selectSummary, shiftPeriod, todayDateKey, transactionDateKey, usePreviousSummary } from '@/app/components/pages/transactions/index/transactions-view-helpers';
 import { FilterDialog, TagFilterField, TransactionDetailLayer } from '@/app/components/pages/transactions/index/transaction-dialogs';
 import { MobileTransactionsPrototype2 } from '@/app/components/pages/transactions/index/mobile-transactions';
 import { MonthOverview, MonthSummaryCard, MovementTimeline, UpcomingTransactions } from '@/app/components/pages/transactions/index/desktop-transactions';
@@ -334,7 +334,8 @@ export default function OrbitTransactions() {
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <PeriodSwitcher
                   className="shrink-0"
-                  label={formatPeriod(month, year) ?? ''}
+                  month={month}
+                  year={year}
                   onPrevious={() => movePeriod(-1)}
                   onNext={() => movePeriod(1)}
                   disabled={loading}
