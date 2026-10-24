@@ -10,7 +10,6 @@ export default function Edit({ id }: { id: string }) {
   return (
     <EditPage
       title="Editar conta"
-      description="Atualize os dados cadastrais e a identidade visual sem alterar a origem do saldo, que continua sendo calculado pelas transações."
       loading={loading}
       error={error}
       backUrl={handleBack}

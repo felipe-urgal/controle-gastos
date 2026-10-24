@@ -6,7 +6,6 @@ export default function New() {
     <NewPage
       backUrl="/contas"
       title="Nova conta"
-      description="Cadastre uma conta para organizar movimentações. O saldo será sempre derivado das transações concluídas."
       hideHeaderOnMobile
     >
       <AccountForm isEditing={false} />

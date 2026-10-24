@@ -139,7 +139,7 @@ export default function OrbitAccounts() {
       )}
 
       {(!error || accounts.length > 0) && (
-        <div className="space-y-[18px] pb-3">
+        <div className="space-y-6 pb-3">
           <PageTitle
             title="Contas"
             actions={

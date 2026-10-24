@@ -18,7 +18,7 @@ export default function PageTitle({
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+    <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <h1 className={pageTitleClassName}>
           {title}
