@@ -64,6 +64,14 @@ export default function PeriodSwitcher({
             max={monthInput.max}
             disabled={disabled}
             onChange={(event) => event.currentTarget.value && monthInput.onChange(event.currentTarget.value)}
+            // No Chrome o campo só abre o calendário pelo ícone nativo; o clique no rótulo abre direto.
+            onClick={(event) => {
+              try {
+                event.currentTarget.showPicker?.();
+              } catch {
+                // Navegador sem showPicker ou sem gesto: o campo segue editável pelo teclado.
+              }
+            }}
             className="absolute -inset-px cursor-pointer opacity-0"
           />
         </label>
