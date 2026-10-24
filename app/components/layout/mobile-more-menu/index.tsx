@@ -13,8 +13,8 @@ import {
 } from '@/app/components/layout/app-navigation';
 import { useAuth, useTheme } from '@/app/context';
 
-/** Distância do painel até a borda de baixo: respiro da pílula (0,75rem) + a pílula (4rem) + um vão. */
-const PANEL_BOTTOM = 'calc(env(safe-area-inset-bottom) + 0.75rem + 4rem + 0.5rem)';
+/** Distância do painel até a borda de baixo: respiro da pílula (0,75rem) + a pílula (66px) + um vão mínimo, para os dois lerem como um bloco só. */
+const PANEL_BOTTOM = 'calc(env(safe-area-inset-bottom) + 0.75rem + 4.125rem + 0.25rem)';
 
 /**
  * Menu "Mais" do mobile: um painel que sobe de cima da barra inferior flutuante, que continua
