@@ -132,7 +132,7 @@ export default function ClientLayout({
 
       {!immersiveMobile && (
         <BottomNav
-          onOpenMore={() => setMobileMoreOpen(true)}
+          onOpenMore={() => setMobileMoreOpen((open) => !open)}
           moreOpen={mobileMoreOpen}
         />
       )}
