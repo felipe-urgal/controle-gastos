@@ -9,12 +9,10 @@ export const appBarTitleClassName =
   'min-w-0 flex-1 truncate text-xl font-bold tracking-tight text-[var(--foreground)]';
 
 export default function PageTitle({
-  eyebrow,
   title,
   description,
   actions,
 }: {
-  eyebrow?: string;
   title: string;
   description?: string;
   actions?: ReactNode;
@@ -22,12 +20,7 @@ export default function PageTitle({
   return (
     <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        {eyebrow && (
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--orbit-primary)]">
-            {eyebrow}
-          </p>
-        )}
-        <h1 className={`mt-1 ${pageTitleClassName}`}>
+        <h1 className={pageTitleClassName}>
           {title}
         </h1>
         {description && (

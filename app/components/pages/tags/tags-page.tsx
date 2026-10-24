@@ -340,7 +340,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
   return (
     <ProtectedRoute>
       <PageContainer>
-        <PageTitle eyebrow="Contexto" title="Tags" description="Classifique transações por contexto sem alterar categoria, saldo ou tipo financeiro." />
+        <PageTitle title="Tags" description="Classifique transações por contexto sem alterar categoria, saldo ou tipo financeiro." />
 
         <section className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <section className="ds-panel p-4" aria-labelledby="tag-list-title">

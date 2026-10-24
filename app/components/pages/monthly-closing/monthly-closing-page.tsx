@@ -103,7 +103,6 @@ export default function MonthlyClosingPage() {
       <PageContainer>
         <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="grid gap-1">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Revisão mensal</p>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className={`text-balance ${pageTitleClassName}`}>Fechamento de {monthName(month)}</h1>
               {data && (

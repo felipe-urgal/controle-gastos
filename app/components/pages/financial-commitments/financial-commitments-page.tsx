@@ -57,7 +57,6 @@ export default function FinancialCommitmentsPage() {
     <ProtectedRoute>
     <PageContainer as="section">
       <PageTitle
-        eyebrow="Planejamento"
         title="Compromissos financeiros"
         description="Acompanhe separadamente valores a pagar, a receber, vencidos e marcos de planejamento."
         actions={

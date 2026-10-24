@@ -371,7 +371,6 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
     <ProtectedRoute>
       <PageContainer as="section">
         <PageTitle
-          eyebrow="Planejamento"
           title="Metas"
           description="Acompanhe objetivos sem misturar planejamento com saldo financeiro."
           actions={

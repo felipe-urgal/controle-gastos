@@ -447,7 +447,6 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
     <ProtectedRoute>
       <PageContainer as="section">
         <PageTitle
-          eyebrow="Planejamento"
           title="Dívidas"
           description="Passivos manuais, separados das contas e sem alterar saldos financeiros."
           actions={

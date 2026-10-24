@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { FaCopy, FaPlus } from 'react-icons/fa';
 
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import PageTitle from '@/app/components/base-pages/page-title';
 import {
   budgetPace,
   buildAttentionRows,
@@ -161,11 +161,7 @@ export default function CategoriesBudgetView({
 
   return (
     <section aria-labelledby="categories-title" className={`grid gap-4 ${orbitActionTokens}`}>
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 id="categories-title" className={pageTitleClassName}>Categorias / Limites</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">Acompanhe o orçamento do mês e defina quanto cada categoria pode gastar.</p>
-        </div>
+      <PageTitle title="Categorias / Limites" description="Acompanhe o orçamento do mês e defina quanto cada categoria pode gastar." actions={
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[180px_150px_auto_auto]">
           <Input
             id="category-limit-period"
@@ -188,7 +184,7 @@ export default function CategoriesBudgetView({
           </Button>
           <Button as="a" href="/categorias/nova" icon={<FaPlus aria-hidden="true" />}>Nova categoria</Button>
         </div>
-      </header>
+      } />
 
       {error && (
         <p role="alert" className="rounded-[12px] border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">{error}</p>

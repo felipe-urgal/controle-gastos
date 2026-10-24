@@ -1,8 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { PageContainer } from '@/app/components/base-pages';
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaPlus, FaSyncAlt } from 'react-icons/fa';
 
@@ -520,15 +519,7 @@ export default function InvestmentsCenter() {
     <ProtectedRoute>
       <InvestmentFiscalYearProvider>
       <PageContainer as="section">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className={pageTitleClassName}>
-              Investimentos
-            </h1>
-            <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
-              Posições derivadas das operações, com cotação B3 sob demanda via brapi.
-            </p>
-          </div>
+        <PageTitle title="Investimentos" description="Posições derivadas das operações, com cotação B3 sob demanda via brapi." actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
@@ -566,7 +557,7 @@ export default function InvestmentsCenter() {
               ]}
             />
           </div>
-        </header>
+        } />
 
         {error && (
           <p

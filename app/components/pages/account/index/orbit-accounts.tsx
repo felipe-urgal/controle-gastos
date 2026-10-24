@@ -1,6 +1,6 @@
 'use client';
 
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { PageTitle } from '@/app/components/base-pages';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import Link from 'next/link';
 import { useMemo } from 'react';
@@ -143,15 +143,15 @@ export default function OrbitAccounts() {
 
       {(!error || accounts.length > 0) && (
         <div className="space-y-[18px] pb-3">
-          <header className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className={pageTitleClassName}>Contas</h1>
-              <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">Seu dinheiro em um só lugar.</p>
-            </div>
-            <Button as="a" href="/contas/nova" icon={<FaPlus />} className={orbitActionTokens}>
-              Nova conta
-            </Button>
-          </header>
+          <PageTitle
+            title="Contas"
+            description="Seu dinheiro em um só lugar."
+            actions={
+              <Button as="a" href="/contas/nova" pill icon={<FaPlus aria-hidden="true" />}>
+                Nova conta
+              </Button>
+            }
+          />
 
           <AccountsOverview summary={accountSummary} loading={loading} showValues={showValues} ariaLabel="Resumo das contas" />
 

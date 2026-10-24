@@ -194,7 +194,6 @@ export default function OrbitCalendar() {
   return (
     <ProtectedRoute>
       <PageTitle
-        eyebrow="Linha do tempo financeira"
         title="Calendário"
         description="Movimentos, vencimentos e marcos financeiros em uma única visão temporal."
         actions={

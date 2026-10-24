@@ -500,7 +500,6 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
     <ProtectedRoute>
       <PageContainer>
         <PageTitle
-          eyebrow="Organização"
           title="Estabelecimentos"
           description="Padronize onde suas transações aconteceram sem alterar a descrição original."
         />

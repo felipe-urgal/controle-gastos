@@ -220,7 +220,6 @@ export default function FinancialComparisonPage() {
     <ProtectedRoute>
       <PageContainer>
         <PageTitle
-          eyebrow="Análise"
           title="Comparar períodos"
           description="Compare o realizado entre dois intervalos de até 24 meses, na mesma moeda."
           actions={

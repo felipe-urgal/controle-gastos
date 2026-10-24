@@ -446,13 +446,11 @@ export default function TransactionTemplatesPage({
     <ProtectedRoute>
     <PageContainer>
       <PageTitle
-        eyebrow="Atalhos"
         title="Modelos de lançamento"
         description="Um modelo só preenche uma nova transação. Nada é lançado sem a sua confirmação."
         actions={
           <Button
-            variant="accent"
-            size="sm"
+            pill
             icon={<FaPlus aria-hidden="true" />}
             onClick={() => {
               resetForm();

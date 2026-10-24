@@ -1,7 +1,6 @@
 'use client';
 
-import { PageContainer } from '@/app/components/base-pages';
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { FaChevronDown, FaChevronRight } from 'react-icons/fa';
@@ -371,15 +370,7 @@ export default function NetWorthPage() {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className={pageTitleClassName}>
-              Patrimônio
-            </h1>
-            <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
-              Ativos, passivos e patrimônio líquido por moeda, sem conversão cambial automática.
-            </p>
-          </div>
+        <PageTitle title="Patrimônio" description="Ativos, passivos e patrimônio líquido por moeda, sem conversão cambial automática." actions={
 
           <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
             <Input
@@ -406,7 +397,7 @@ export default function NetWorthPage() {
               options={[6, 12, 24, 36, 60].map((count) => ({ value: count, label: `${count} meses` }))}
             />
           </div>
-        </header>
+        } />
 
         {error && (
           <p

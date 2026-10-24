@@ -107,7 +107,6 @@ export default function RecurrencesCenter() {
     <ProtectedRoute>
       <PageContainer as="section">
         <PageTitle
-          eyebrow="Planejamento"
           title="Recorrências e assinaturas"
           description="Acompanhe séries cadastradas e revise padrões detectados antes de transformá-los em recorrências."
           actions={
