@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
-import { FaDownload } from 'react-icons/fa';
+import { FaDownload, FaMoon, FaSearch, FaSignOutAlt, FaSun, FaUser } from 'react-icons/fa';
 
 import {
   getAppNavigation,
@@ -11,6 +11,7 @@ import {
   mobileMoreNavigationGroups,
   type AppNavigationItem,
 } from '@/app/components/layout/app-navigation';
+import { useAuth, useTheme } from '@/app/context';
 
 /** Distância do painel até a borda de baixo: respiro da pílula (0,75rem) + a pílula (4rem) + um vão. */
 const PANEL_BOTTOM = 'calc(env(safe-area-inset-bottom) + 0.75rem + 4rem + 0.5rem)';
@@ -22,11 +23,18 @@ const PANEL_BOTTOM = 'calc(env(safe-area-inset-bottom) + 0.75rem + 4rem + 0.5rem
 export default function MobileMoreMenu({
   onClose,
   onInstallApp,
+  onOpenGlobalSearch,
 }: {
   onClose: () => void;
   onInstallApp?: () => Promise<void>;
+  onOpenGlobalSearch?: () => void;
 }) {
   const pathname = usePathname();
+  const { logout, user } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
+  const profileActive = pathname.startsWith('/usuario');
+  const actionClassName =
+    'flex min-h-11 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
   const panelRef = useRef<HTMLDivElement>(null);
   const navigation = getAppNavigation();
 
@@ -123,6 +131,48 @@ export default function MobileMoreMenu({
               </section>
             ))}
           </nav>
+
+          <section className="mt-3 border-t border-[var(--border)] pt-3" aria-label="Conta e preferências">
+            <h3 className="mb-1.5 px-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Conta</h3>
+            <div className="grid grid-cols-2 gap-1">
+              <Link
+                href="/usuario"
+                onClick={onClose}
+                aria-current={profileActive ? 'page' : undefined}
+                className={actionClassName + (profileActive ? ' bg-[var(--primary-subtle)] !text-[var(--primary)]' : '')}
+              >
+                <FaUser className="shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
+                <span className="truncate">{user?.name?.split(' ')[0] || 'Perfil'}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenGlobalSearch?.();
+                }}
+                className={actionClassName}
+              >
+                <FaSearch className="shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
+                <span>Busca global</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                className={actionClassName}
+              >
+                {resolvedTheme === 'dark' ? (
+                  <FaSun className="shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
+                ) : (
+                  <FaMoon className="shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
+                )}
+                <span>{resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}</span>
+              </button>
+              <button type="button" onClick={() => void logout()} className={actionClassName + ' !text-[var(--expense)]'}>
+                <FaSignOutAlt className="shrink-0" aria-hidden="true" />
+                <span>Sair</span>
+              </button>
+            </div>
+          </section>
 
           {onInstallApp && (
             <button

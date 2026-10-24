@@ -141,6 +141,7 @@ export default function ClientLayout({
         <MobileMoreMenu
           onClose={() => setMobileMoreOpen(false)}
           onInstallApp={installPrompt ? installApp : undefined}
+          onOpenGlobalSearch={openGlobalSearch}
         />
       )}
 
