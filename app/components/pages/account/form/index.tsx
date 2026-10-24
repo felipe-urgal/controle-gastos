@@ -141,15 +141,13 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           </div>
         </details>
 
-        <div className="max-lg:sticky max-lg:bottom-[calc(var(--app-mobile-bottom-nav-height)+env(safe-area-inset-bottom))] max-lg:z-[var(--z-nav)] max-lg:-mx-1 max-lg:bg-[var(--background)] max-lg:px-1 max-lg:pb-2">
-          <FormActions
-            isEditing={isEditing}
-            loading={loading}
-            onCancel={handleRedirect}
-            createLabel="Criar conta"
-            submitLabel="Salvar alterações"
-          />
-        </div>
+        <FormActions
+          isEditing={isEditing}
+          loading={loading}
+          onCancel={handleRedirect}
+          createLabel="Criar conta"
+          submitLabel="Salvar alterações"
+        />
       </FormContainer>
     </div>
   );
