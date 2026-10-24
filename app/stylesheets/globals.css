@@ -119,6 +119,16 @@
   color-scheme: dark;
 }
 
+/* Tudo que é clicável mostra a mãozinha (o Tailwind v4 deixa botões com a seta padrão). */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="option"]:not(:disabled),
+summary,
+label[for],
+select:not(:disabled) {
+  cursor: pointer;
+}
+
 /* Lista nativa dos selects: sem isso o navegador pinta o fundo claro com o texto claro do tema escuro. */
 select option,
 select optgroup {
