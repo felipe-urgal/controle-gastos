@@ -44,7 +44,15 @@ export default function BottomNav({
         paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
       }}
     >
-      <div className="pointer-events-auto mx-auto grid max-w-sm grid-cols-4 gap-1 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] p-1.5 shadow-[var(--shadow-elevated)] backdrop-blur-xl">
+      <div
+        className={
+          'pointer-events-auto mx-auto grid max-w-sm grid-cols-4 gap-1 border border-[var(--border)] p-1.5 backdrop-blur-xl transition-[border-radius,background-color,box-shadow,border-color] duration-200 ease-out ' +
+          // Com o "Mais" aberto a pílula vira a base do painel: topo reto, mesma cor, sem sombra própria.
+          (moreOpen
+            ? 'rounded-t-none rounded-b-[2.0625rem] border-t-transparent bg-[var(--surface)] shadow-none'
+            : 'rounded-[2.0625rem] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] shadow-[var(--shadow-elevated)]')
+        }
+      >
         {navigation.map((item) => {
           const active = item.isActive(pathname);
           const Icon = item.icon;

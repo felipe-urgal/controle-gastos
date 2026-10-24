@@ -119,244 +119,44 @@
   color-scheme: dark;
 }
 
-/* Painel que sobe da barra inferior (menu "Mais"); sem movimento para quem prefere menos animação. */
-@keyframes sheetRise {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+/* Menu "Mais" do mobile: o painel cresce da barra inferior (mesma largura, sem vão) e some do mesmo jeito. */
+@keyframes moreMenuIn {
+  from { opacity: 0; transform: translateY(18px) scaleY(0.9); }
+  to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+@keyframes moreMenuOut {
+  from { opacity: 1; transform: translateY(0) scaleY(1); }
+  to { opacity: 0; transform: translateY(18px) scaleY(0.9); }
+}
+
+@keyframes moreBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes moreBackdropOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .animate-sheet-rise {
+  .more-menu-panel {
     transform-origin: bottom center;
-    animation: sheetRise var(--motion-slow) var(--ease-standard);
+    animation: moreMenuIn var(--motion-slow) cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
-}
 
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.animate-shimmer {
-  animation: shimmer 1.5s infinite linear;
-}
-
-@keyframes buttonShine {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.animate-button-shine {
-  animation: buttonShine 3s infinite linear;
-}
-
-@keyframes gradientMove {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradientMove 12s ease infinite;
-}
-
-html {
-  background: var(--background);
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  transition:
-    background-color var(--motion-normal) var(--ease-standard),
-    color var(--motion-normal) var(--ease-standard);
-  opacity: 1;
-  visibility: visible;
-  min-height: 100vh;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
-  text-rendering: optimizeLegibility;
-}
-
-::selection {
-  background: var(--primary-subtle);
-  color: var(--foreground);
-}
-
-:where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-/* iOS Safari dá zoom automático ao focar campos com fonte < 16px. */
-@media (max-width: 767px) {
-  input:not([type='checkbox']):not([type='radio']):not([type='range']),
-  select,
-  textarea {
-    font-size: 16px;
+  .more-menu-panel[data-state="closed"] {
+    animation: moreMenuOut var(--motion-normal) var(--ease-standard) both;
   }
-}
 
-.ds-panel {
-  background: var(--surface);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-surface);
-}
-
-.ds-control {
-  width: 100%;
-  min-height: 44px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  color: var(--foreground);
-  font-size: 16px;
-  line-height: 1.45;
-  transition:
-    border-color var(--motion-fast) var(--ease-standard),
-    background-color var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard);
-}
-
-.ds-control::placeholder {
-  color: var(--text-subtle);
-  opacity: 1;
-}
-
-.ds-control:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  background: var(--surface-hover);
-}
-
-.ds-control:focus-visible {
-  border-color: var(--focus);
-  outline: 2px solid color-mix(in srgb, var(--focus) 35%, transparent);
-  outline-offset: 1px;
-}
-
-.ds-control:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.ds-label {
-  color: var(--text-muted);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.ds-helper {
-  color: var(--text-muted);
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.ds-divider {
-  border-color: var(--border);
-}
-
-.safe-area-container {
-  min-height: 100dvh;
-  padding-top: env(safe-area-inset-top);
-}
-
-.modal-fullscreen-mobile {
-  height: 100vh;
-  height: 100dvh;
-  padding-top: env(safe-area-inset-top);
-}
-
-.theme-transition *,
-.theme-transition *:not(.no-transition) {
-  transition:
-    background-color var(--motion-normal) var(--ease-standard),
-    color var(--motion-normal) var(--ease-standard),
-    border-color var(--motion-normal) var(--ease-standard),
-    box-shadow var(--motion-normal) var(--ease-standard);
-}
-
-.theme-card {
-  background: var(--surface);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-}
-
-.theme-button {
-  background: var(--primary);
-  color: var(--on-primary);
-  transition:
-    background-color var(--motion-fast) var(--ease-standard),
-    transform var(--motion-fast) var(--ease-standard);
-}
-
-@keyframes slide-up-mobile {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-@keyframes slide-up-desktop {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
+  .more-menu-backdrop {
+    animation: moreBackdropIn var(--motion-slow) var(--ease-standard) both;
   }
-  to {
-    opacity: 1;
-    transform: scale(1);
+
+  .more-menu-backdrop[data-state="closed"] {
+    animation: moreBackdropOut var(--motion-normal) var(--ease-standard) both;
   }
-}
-
-.animate-slide-up-mobile {
-  animation: slide-up-mobile var(--motion-slow) var(--ease-standard);
-}
-
-.animate-slide-up-desktop {
-  animation: slide-up-desktop var(--motion-normal) var(--ease-standard);
-}
-
-.status-bar-bg {
-  background: var(--background);
-  height: env(safe-area-inset-top);
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: var(--z-toast);
-}
-
-@keyframes slide-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-@keyframes slide-down {
-  from { transform: translateY(0); }
-  to { transform: translateY(100%); }
-}
-
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--text-subtle) 42%, transparent);
-  border-radius: 999px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--primary) 55%, transparent);
 }
 
 .pt-safe {

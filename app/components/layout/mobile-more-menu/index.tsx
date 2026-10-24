@@ -13,20 +13,23 @@ import {
 } from '@/app/components/layout/app-navigation';
 import { useAuth, useTheme } from '@/app/context';
 
-/** Distância do painel até a borda de baixo: respiro da pílula (0,75rem) + a pílula (66px) + um vão mínimo, para os dois lerem como um bloco só. */
-const PANEL_BOTTOM = 'calc(env(safe-area-inset-bottom) + 0.75rem + 4.125rem + 0.25rem)';
+/** Distância do painel até a borda de baixo: respiro da pílula (0,75rem) + a pílula (66px), sem vão: o painel é a barra crescendo. */
+const PANEL_BOTTOM = 'calc(env(safe-area-inset-bottom) + 0.75rem + 4.125rem)';
 
 /**
  * Menu "Mais" do mobile: um painel que sobe de cima da barra inferior flutuante, que continua
  * visível (o próprio "Mais" alterna). Fecha ao tocar fora, com Esc ou ao escolher um destino.
  */
 export default function MobileMoreMenu({
+  closing = false,
   bottomKeys,
   onPick,
   onClose,
   onInstallApp,
   onOpenGlobalSearch,
 }: {
+  /** Em saída: toca a animação de fechar antes de o chamador desmontar o menu. */
+  closing?: boolean;
   /** Itens que já estão na barra inferior (não aparecem aqui). */
   bottomKeys: AppNavigationItem['key'][];
   /** Chamado ao abrir um destino: ele passa a ocupar a barra inferior. */
@@ -82,7 +85,8 @@ export default function MobileMoreMenu({
       <div
         aria-hidden="true"
         onClick={onClose}
-        className="fixed inset-0 z-[var(--z-popover)] bg-[color-mix(in_srgb,var(--background)_55%,transparent)] backdrop-blur-sm"
+        data-state={closing ? 'closed' : 'open'}
+        className="more-menu-backdrop fixed inset-0 z-[var(--z-popover)] bg-[color-mix(in_srgb,var(--background)_55%,transparent)] backdrop-blur-sm"
       />
 
       <div
@@ -98,7 +102,11 @@ export default function MobileMoreMenu({
           role="dialog"
           aria-label="Mais opções"
           tabIndex={-1}
-          className="pointer-events-auto mx-auto max-w-sm animate-sheet-rise overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[var(--shadow-elevated)] outline-none"
+          data-state={closing ? 'closed' : 'open'}
+          className={
+            'more-menu-panel mx-auto max-w-sm overflow-y-auto overscroll-contain rounded-t-[1.25rem] rounded-b-none border border-b-0 border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_-16px_40px_-12px_rgba(0,0,0,0.35)] outline-none ' +
+            (closing ? 'pointer-events-none' : 'pointer-events-auto')
+          }
           style={{
             maxHeight: `calc(100dvh - var(--app-mobile-topbar-height) - env(safe-area-inset-top) - ${PANEL_BOTTOM} - 0.75rem)`,
           }}
