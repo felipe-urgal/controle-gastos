@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { FaCopy, FaPlus } from 'react-icons/fa';
+import { FaCopy } from 'react-icons/fa';
 
-import PageTitle from '@/app/components/base-pages/page-title';
+import { ListPageHeader } from '@/app/components/base-pages';
 import {
   budgetPace,
   buildAttentionRows,
@@ -160,30 +160,29 @@ export default function CategoriesBudgetView({
 
   return (
     <section aria-labelledby="categories-title" className="grid gap-4">
-      <PageTitle title="Categorias / Limites" description="Acompanhe o orçamento do mês e defina quanto cada categoria pode gastar." actions={
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[180px_150px_auto_auto]">
-          <Input
-            id="category-limit-period"
-            type="month"
-            aria-label="Mês de referência"
-            value={periodValue}
-            onChange={(event) => onPeriodChange(event.currentTarget.value)}
-            disabled={controlsDisabled}
-          />
-          <Select
-            id="category-limit-currency"
-            ariaLabel="Moeda"
-            value={currency}
-            options={currencyOptions}
-            onChange={(value) => onCurrencyChange(value as SupportedCurrency)}
-            disabled={controlsDisabled}
-          />
-          <Button variant="outline" onClick={onCopyPreviousMonth} disabled={controlsDisabled} icon={<FaCopy aria-hidden="true" />}>
-            {copying ? 'Copiando...' : 'Copiar mês anterior'}
-          </Button>
-          <Button as="a" href="/categorias/nova" icon={<FaPlus aria-hidden="true" />}>Nova categoria</Button>
-        </div>
-      } />
+      <ListPageHeader title="Categorias" createHref="/categorias/nova" createLabel="Nova categoria" />
+
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[180px_150px_max-content]">
+        <Input
+          id="category-limit-period"
+          type="month"
+          aria-label="Mês de referência"
+          value={periodValue}
+          onChange={(event) => onPeriodChange(event.currentTarget.value)}
+          disabled={controlsDisabled}
+        />
+        <Select
+          id="category-limit-currency"
+          ariaLabel="Moeda"
+          value={currency}
+          options={currencyOptions}
+          onChange={(value) => onCurrencyChange(value as SupportedCurrency)}
+          disabled={controlsDisabled}
+        />
+        <Button variant="outline" onClick={onCopyPreviousMonth} disabled={controlsDisabled} icon={<FaCopy aria-hidden="true" />}>
+          {copying ? 'Copiando...' : 'Copiar mês anterior'}
+        </Button>
+      </div>
 
       {error && (
         <p role="alert" className="rounded-[var(--radius-md)] border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">{error}</p>

@@ -1,6 +1,5 @@
 'use client';
 
-import { MobileAppBar } from '@/app/components/layout';
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { AccountFormCard } from '@/app/components/pages/account/form/account-form-card';
 import {
@@ -8,7 +7,7 @@ import {
   accountStructureLock,
   accountTypeCards,
 } from '@/app/components/pages/account/form/account-form-model';
-import { ActiveToggle, Chip, Input, ShowBelow } from '@/app/components/ui';
+import { ActiveToggle, Chip, Input } from '@/app/components/ui';
 import { useAccountForm } from '@/app/hooks/accounts/use-account-form';
 import { ACCOUNT_DESCRIPTION_MAX_LENGTH } from '@/app/lib/constants/account.constants';
 import { AccountFormProps } from '@/app/lib/interface/accounts.interface';
@@ -31,16 +30,6 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
 
   return (
     <div className="w-full">
-      <ShowBelow breakpoint="lg">
-        <div className="mb-4">
-          <MobileAppBar
-            title={isEditing ? 'Editar conta' : 'Nova conta'}
-            onBack={handleRedirect}
-            backDisabled={loading}
-          />
-        </div>
-
-      </ShowBelow>
 
       <FormContainer
         bare

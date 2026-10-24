@@ -1,7 +1,6 @@
 'use client';
 
-import { PageTitle } from '@/app/components/base-pages';
-import { pageBarButtonProps } from '@/app/components/base-pages/page-bar';
+import { ListPageHeader } from '@/app/components/base-pages';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import Link from 'next/link';
 import { useMemo } from 'react';
@@ -11,7 +10,7 @@ import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { AccountsOverview } from '@/app/components/pages/account/index/accounts-overview';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Pagination } from '@/app/components/navigation';
-import { Button, Chip, ChipRow, IconRenderer, Input, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Button, Chip, ChipRow, IconRenderer, Input } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
 import {
@@ -141,23 +140,7 @@ export default function OrbitAccounts() {
 
       {(!error || accounts.length > 0) && (
         <div className="space-y-6 pb-3">
-          <PageTitle
-            title="Contas"
-            sidebarAligned
-            actions={
-              <>
-                {/* Celular: só o ícone, na linha do título. */}
-                <ShowBelow breakpoint="sm">
-                  <Button as="a" href="/contas/nova" size="compact" aria-label="Nova conta" icon={<FaPlus aria-hidden="true" />} />
-                </ShowBelow>
-                <ShowFrom breakpoint="sm">
-                  <Button as="a" href="/contas/nova" {...pageBarButtonProps} icon={<FaPlus aria-hidden="true" />}>
-                    Nova conta
-                  </Button>
-                </ShowFrom>
-              </>
-            }
-          />
+          <ListPageHeader title="Contas" createHref="/contas/nova" createLabel="Nova conta" />
 
           <AccountsOverview summary={accountSummary} loading={loading} showValues={showValues} ariaLabel="Resumo das contas" />
 

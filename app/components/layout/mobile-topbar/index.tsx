@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FaFilter, FaMoon, FaPlus, FaSearch, FaSignOutAlt, FaSun, FaWallet } from 'react-icons/fa';
+import { FaMoon, FaSearch, FaSignOutAlt, FaSun, FaWallet } from 'react-icons/fa';
 import { IconButton } from '@/app/components/ui';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
@@ -22,9 +22,10 @@ export default function MobileTopbar({
     .find((item) => item.key === 'profile')
     ?.isActive(pathname);
   const initial = user?.name?.trim().charAt(0).toUpperCase() || 'U';
-  const transactionsListActive = pathname === '/transacoes';
   const transactionComposeActive =
-    pathname === '/transacoes/nova' || pathname.startsWith('/transacoes/alterar/');
+    pathname === '/transacoes/nova' ||
+    pathname.startsWith('/transacoes/alterar/') ||
+    pathname.startsWith('/transacoes/importar');
   const transactionShowActive = pathname.startsWith('/transacoes/show/');
   // Detalhe e formulário de conta têm a própria MobileAppBar (fixa no topo, com voltar).
   const accountDetailActive =
@@ -38,8 +39,8 @@ export default function MobileTopbar({
   // A MobileAppBar da tela já respeita a área segura do topo.
   if (accountDetailActive) return null;
 
-  // A lista de contas usa a faixa de breadcrumb (`PageBar`) como barra superior.
-  if (pathname === '/contas') return null;
+  // Listas migradas para o padrão de telas usam a faixa de breadcrumb (`PageBar`) como barra superior.
+  if (pathname === '/contas' || pathname === '/categorias' || pathname === '/transacoes') return null;
 
   if (
     transactionComposeActive ||
@@ -74,35 +75,12 @@ export default function MobileTopbar({
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] text-[var(--on-primary)]">
             <FaWallet aria-hidden="true" />
           </span>
-          <span
-            className={`truncate font-bold tracking-tight text-[var(--foreground)] ${
-              transactionsListActive ? 'text-sm min-[360px]:text-base' : 'text-base max-[359px]:sr-only'
-            }`}
-          >
+          <span className="truncate text-base font-bold tracking-tight text-[var(--foreground)] max-[359px]:sr-only">
             Controle de Gastos
           </span>
         </Link>
 
         <OfflinePendingBadge />
-
-        {transactionsListActive && (
-          <div className="flex items-center gap-1 sm:hidden">
-            <IconButton
-              label="Buscar e filtrar transações"
-              title="Buscar e filtrar"
-              icon={<FaFilter />}
-              onClick={() => window.dispatchEvent(new CustomEvent('transactions:open-filters'))}
-            />
-            <Link
-              href="/transacoes/nova"
-              aria-label="Nova transação"
-              title="Nova transação"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] text-[var(--on-primary)] transition-colors hover:bg-[var(--primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-            >
-              <FaPlus aria-hidden="true" />
-            </Link>
-          </div>
-        )}
 
         <IconButton
           label="Abrir busca global"
@@ -111,21 +89,19 @@ export default function MobileTopbar({
           onClick={onOpenGlobalSearch}
         />
 
-        <div className={transactionsListActive ? 'hidden sm:block' : undefined}>
-          <IconButton
-            label={resolvedTheme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
-            title={resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}
-            icon={resolvedTheme === 'dark' ? <FaSun /> : <FaMoon />}
-            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-          />
-        </div>
+        <IconButton
+          label={resolvedTheme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
+          title={resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+          icon={resolvedTheme === 'dark' ? <FaSun /> : <FaMoon />}
+          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+        />
 
         <Link
           href={profileHref}
           aria-label="Abrir perfil"
           aria-current={profileActive ? 'page' : undefined}
           title="Perfil"
-          className={`${transactionsListActive ? 'hidden sm:flex' : 'flex'} h-11 w-11 shrink-0 items-center justify-center rounded-full border text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
             profileActive
               ? 'border-[var(--primary)]/40 bg-[var(--primary-subtle)] text-[var(--primary)]'
               : 'border-[var(--border)] bg-[var(--orbit-navigation-raised)] text-[var(--text-muted)] hover:border-[var(--primary)]/30 hover:text-[var(--foreground)]'
@@ -134,15 +110,13 @@ export default function MobileTopbar({
           <span aria-hidden="true">{initial}</span>
         </Link>
 
-        <div className={transactionsListActive ? 'hidden sm:block' : undefined}>
-          <IconButton
-            label="Sair da conta"
-            title="Sair"
-            tone="danger"
-            icon={<FaSignOutAlt />}
-            onClick={() => void logout()}
-          />
-        </div>
+        <IconButton
+          label="Sair da conta"
+          title="Sair"
+          tone="danger"
+          icon={<FaSignOutAlt />}
+          onClick={() => void logout()}
+        />
       </div>
     </header>
   );

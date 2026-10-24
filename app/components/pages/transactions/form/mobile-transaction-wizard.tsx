@@ -5,7 +5,6 @@ import ReceiptOcrScanner from '@/app/components/pages/transactions/form/receipt-
 import { FaArrowDown, FaArrowRight, FaArrowUp, FaCalendarAlt, FaCalculator, FaCheck, FaChevronRight, FaCog, FaExchangeAlt, FaFileAlt, FaStore, FaTag, FaWallet } from 'react-icons/fa';
 import { FormContainer } from '@/app/components/forms';
 import { Button, IconRenderer, Input, RadioGroup } from '@/app/components/ui';
-import { useVisualViewportInset } from '@/app/hooks/use-visual-viewport-inset';
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { MAX_RECURRENCE_OCCURRENCES } from '@/app/lib/transactions/logical-recurrence';
 import { formatIsoLogicalDate, formatPtBrLogicalDate, MAX_MONTHLY_OCCURRENCES } from '@/app/lib/transactions/monthly-recurrence';
@@ -18,11 +17,6 @@ import type { TransactionFormState } from '@/app/components/pages/transactions/f
 
 export function MobileTransactionWizard({ form }: { form: TransactionFormState }) {
   const { isEditing, onSelectTransfer, reviewingQueueItem, formData, setFormData, creationMode, setCreationMode, recurrencePreset, setRecurrencePreset, recurrenceMode, setRecurrenceMode, occurrenceCount, setOccurrenceCount, recurrenceEndDate, setRecurrenceEndDate, installmentCount, setInstallmentCount, merchants, submitError, setSubmitError, isSubmitting, mobileStep, setMobileStep, merchantRecognition, selectedAccount, selectedCategory, selectedMerchant, displayValue, formatCentsToCurrency, recurrencePreview, installmentPreview, handleCancel, handleAmountChange, handleMerchantChange, handleDescriptionChange, receiptOcrFormState, handleReceiptOcrApplication, handleCategoryType, handleCategoryChange, persistTransaction, advanceMobilePrimaryStep, advanceMobileAdvancedStep, loading, renderTagEditor, renderAllocationEditor, accountOptions, categoryOptions, isFixedDate, firstRecurrenceDate, lastRecurrenceDate, firstInstallment, lastInstallment, installmentTotal, operationType, operationLabel, selectedStatusLabel, selectedDateLabel, recurrencePresetLabel, creationModeLabel, createLabel } = form;
-  // Com o teclado aberto a navegação inferior fica atrás dele: o rodapé cola no topo do teclado.
-  const keyboardInset = useVisualViewportInset();
-  const stickyFooterStyle = {
-    bottom: keyboardInset > 0 ? `${keyboardInset}px` : 'calc(var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom))',
-  };
 
   return (
     <FormContainer
@@ -308,7 +302,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 </button>
               </div>
 
-              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>
                   Cancelar
                 </Button>
@@ -460,7 +454,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 )}
               </div>
 
-              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(1)} disabled={loading} fullWidth>
                   Voltar
                 </Button>
@@ -506,7 +500,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 </dl>
               </div>
 
-              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(2)} disabled={loading} fullWidth>
                   Voltar
                 </Button>

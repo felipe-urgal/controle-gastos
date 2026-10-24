@@ -1,12 +1,11 @@
 'use client';
 
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { ListPageHeader } from '@/app/components/base-pages';
 
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 
-import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaFileImport, FaFilter, FaPlus, FaWallet } from 'react-icons/fa';
+import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaFileImport, FaFilter, FaWallet } from 'react-icons/fa';
 
 import { IconButton, Select } from '@/app/components/ui';
 import { ProtectedRoute } from '@/app/components/layout';
@@ -282,23 +281,28 @@ export default function OrbitTransactions() {
     applyPeriod(next.month, next.year);
   }
 
+  const summaryCurrencySelect =
+    availableSummaries.length > 1 ? (
+      <Select
+        label="Resumo em"
+        ariaLabel="Moeda do resumo financeiro"
+        value={currentSummary.currency}
+        onChange={(value) => setSummaryCurrency(value as SupportedCurrency)}
+        options={availableSummaries.map((item) => ({ value: item.currency, label: item.currency }))}
+      />
+    ) : null;
+
   return (
     <ProtectedRoute>
+      <ListPageHeader title="Transações" createHref="/transacoes/nova" createLabel="Nova transação"
+        secondary={{ href: '/transacoes/importar', label: 'Importar', icon: <FaFileImport aria-hidden="true" /> }} />
       {error && (
         <div role="alert" className="mb-4 rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm font-semibold text-[var(--expense)]">
           {error}. Tente novamente ou altere o período/filtros.
         </div>
       )}
-      {availableSummaries.length > 1 && (
-        <div className="mb-4 ml-auto w-full sm:w-48">
-          <Select
-            label="Resumo em"
-            ariaLabel="Moeda do resumo financeiro"
-            value={currentSummary.currency}
-            onChange={(value) => setSummaryCurrency(value as SupportedCurrency)}
-            options={availableSummaries.map((item) => ({ value: item.currency, label: item.currency }))}
-          />
-        </div>
+      {!isTabletUp && summaryCurrencySelect && (
+        <div className="mb-4 ml-auto w-full sm:w-48">{summaryCurrencySelect}</div>
       )}
       {!isTabletUp && (
       <div>
@@ -326,69 +330,44 @@ export default function OrbitTransactions() {
 
       {isTabletUp && (
       <div>
-              <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div className="min-w-0">
-                  <div className="flex items-center justify-between gap-3">
-                    <h1 className={pageTitleClassName}>Transações</h1>
-                    <Link
-                      href="/transacoes/importar"
-                      aria-label="Importar transações"
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] sm:hidden"
-                    >
-                      <FaFileImport aria-hidden="true" />
-                    </Link>
-                  </div>
-                  <p className="mt-1 hidden text-sm text-[var(--text-muted)] sm:block">Acompanhe toda a sua movimentação financeira de forma simples e organizada.</p>
+              <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="inline-flex shrink-0 items-center gap-1.5">
+                  <IconButton
+                    label="Mês anterior"
+                    icon={<FaChevronLeft />}
+                    onClick={() => movePeriod(-1)}
+                    disabled={loading}
+                    className="border border-[var(--border)] bg-[var(--surface)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPeriodOpen(true)}
+                    aria-haspopup="dialog"
+                    aria-expanded={periodOpen}
+                    className="inline-flex min-h-11 sm:min-h-9 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
+                  >
+                    <FaCalendarAlt aria-hidden="true" /> {formatPeriod(month, year)}
+                  </button>
+                  <IconButton
+                    label="Próximo mês"
+                    icon={<FaChevronRight />}
+                    onClick={() => movePeriod(1)}
+                    disabled={loading}
+                    className="border border-[var(--border)] bg-[var(--surface)]"
+                  />
                 </div>
         
-                <div className="flex flex-col items-stretch gap-3 sm:items-end">
-                  <div className="hidden flex-wrap justify-end gap-2 sm:flex">
-                    <Link href="/transacoes/importar" className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
-                      <FaFileImport aria-hidden="true" /> Importar CSV/OFX/QFX/QIF/XLSX
-                    </Link>
-                    <Link href="/transacoes/nova" className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--primary)]/45 bg-[var(--primary)] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[var(--primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
-                      <FaPlus aria-hidden="true" /> Nova transação
-                    </Link>
-                  </div>
-        
-                  <div className="flex items-center justify-end gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <div className="inline-flex shrink-0 items-center gap-1.5">
-                      <IconButton
-                        label="Mês anterior"
-                        icon={<FaChevronLeft />}
-                        onClick={() => movePeriod(-1)}
-                        disabled={loading}
-                        className="border border-[var(--border)] bg-[var(--surface)]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setPeriodOpen(true)}
-                        aria-haspopup="dialog"
-                        aria-expanded={periodOpen}
-                        className="inline-flex min-h-11 sm:min-h-9 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)]"
-                      >
-                        <FaCalendarAlt aria-hidden="true" /> {formatPeriod(month, year)}
-                      </button>
-                      <IconButton
-                        label="Próximo mês"
-                        icon={<FaChevronRight />}
-                        onClick={() => movePeriod(1)}
-                        disabled={loading}
-                        className="border border-[var(--border)] bg-[var(--surface)]"
-                      />
-                    </div>
-        
-                    <button
-                      type="button"
-                      onClick={() => setFiltersOpen(true)}
-                      aria-label={activeFiltersCount > 0 ? `Filtros, ${activeFiltersCount} ativos` : 'Filtros'}
-                      className="inline-flex min-h-11 sm:min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-                    >
-                      <FaFilter aria-hidden="true" /> Filtros
-                    </button>
-                  </div>
-                </div>
-              </header>
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen(true)}
+                  aria-label={activeFiltersCount > 0 ? `Filtros, ${activeFiltersCount} ativos` : 'Filtros'}
+                  className="inline-flex min-h-11 sm:min-h-9 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                >
+                  <FaFilter aria-hidden="true" /> Filtros
+                </button>
+                {summaryCurrencySelect && <div className="ml-auto w-44 shrink-0">{summaryCurrencySelect}</div>}
+              </div>
+
         
               <section className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Resumo financeiro do período">
                 <MonthSummaryCard

@@ -2,6 +2,7 @@
 
 import { useCategories } from "@/app/hooks/categories/category-show";
 import { ShowPage } from "@/app/components/base-pages";
+import CategoryShowSkeleton from '@/app/components/pages/category/show/category-show-skeleton';
 import CategoryShowView from '@/app/components/pages/category/show/category-show-view';
 
 export default function Show({ id }: { id: string }) {
@@ -31,6 +32,9 @@ export default function Show({ id }: { id: string }) {
       entity={category}
       entityName="categoria"
       titleFallback="Detalhes da categoria"
+      sidebarAligned
+      breadcrumb={[{ label: 'Categorias', href: '/categorias' }, { label: category?.name ?? 'Categoria' }]}
+      loadingSkeleton={<CategoryShowSkeleton backUrl={handleBack} />}
       loading={loading}
       editUrl={`/categorias/alterar/${id}`}
       backUrl={handleBack}
@@ -41,7 +45,6 @@ export default function Show({ id }: { id: string }) {
       deleteError={deleteError}
       deleteWarning="Categorias com transações, divisões, limites, regras de importação ou modelos vinculados não podem ser excluídas. Para preservar o histórico, você pode inativar a categoria."
       emptyRedirectTo="/categorias"
-      hideHeaderDelete
       mobileContent={view}
     >
       {view}

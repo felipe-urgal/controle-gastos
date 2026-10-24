@@ -8,7 +8,6 @@ export default function New() {
       title="Nova conta"
       sidebarAligned
       breadcrumb={[{ label: 'Contas', href: '/contas' }, { label: 'Nova conta' }]}
-      hideHeaderOnMobile
     >
       <AccountForm isEditing={false} />
     </NewPage>

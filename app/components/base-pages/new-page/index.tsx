@@ -4,7 +4,8 @@
 import { PageHeader } from "@/app/components/base-pages";
 import type { Crumb } from "@/app/components/base-pages/page-bar";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
-import { ProtectedRoute } from "@/app/components/layout";
+import { MobileAppBar, ProtectedRoute } from "@/app/components/layout";
+import { ShowBelow } from "@/app/components/ui";
 
 interface NewPageProps {
   title?: string;
@@ -30,7 +31,13 @@ export default function NewPage({
   return (
     <ProtectedRoute>
       <div className="w-full space-y-6">
-        {(!hideHeaderOnMobile || isDesktop) && (
+        {sidebarAligned && (
+          <ShowBelow breakpoint="lg">
+            <MobileAppBar title={title ?? ''} backHref={backUrl} />
+          </ShowBelow>
+        )}
+
+        {(!(hideHeaderOnMobile || sidebarAligned) || isDesktop) && (
           <PageHeader
             title={title}
             description={description}

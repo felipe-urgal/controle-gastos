@@ -14,11 +14,12 @@ export default function Edit({ id }: { id: string }) {
   return (
     <EditPage
       title={isTransfer ? 'Editar transferência' : 'Editar transação'}
-      description={
-        isTransfer
-          ? 'Atualize valor, data, descrição ou status da operação vinculada.'
-          : 'Atualize os dados deste lançamento mantendo o mesmo fluxo da criação.'
-      }
+      sidebarAligned
+      breadcrumb={[
+        { label: 'Transações', href: '/transacoes' },
+        { label: 'Transação', href: `/transacoes/show/${id}` },
+        { label: 'Editar' },
+      ]}
       loading={loading}
       error={error}
       backUrl={handleBack}

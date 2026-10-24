@@ -10,12 +10,16 @@ export default function Edit({ id }: { id: string }) {
   return (
     <EditPage
       title="Editar categoria"
-      description="Atualize nome, status e identidade visual. O tipo financeiro é definido na criação para preservar o histórico."
+      sidebarAligned
+      breadcrumb={[
+        { label: 'Categorias', href: '/categorias' },
+        { label: category?.name ?? 'Categoria', href: `/categorias/show/${id}` },
+        { label: 'Editar' },
+      ]}
       loading={loading}
       error={error}
       backUrl={handleBack}
       errorRedirectTo={handleBack}
-      hideHeaderOnMobile
     >
       <CategoryForm isEditing category={category || undefined} />
     </EditPage>
