@@ -8,7 +8,7 @@ import { FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import { PageEmpty, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { Button, Input, Select, CurrencySelect } from '@/app/components/ui';
+import { Button, CurrencySelect, PeriodSwitcher, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 
 import { exchangeRateService } from '@/app/services/exchange-rate-service';
@@ -16,7 +16,7 @@ import { netWorthService } from '@/app/services/net-worth-service';
 import type { ExchangeRateModel } from '@/app/types/exchange-rate';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { NetWorthData } from '@/app/types/net-worth';
-import { currencies, currentIsoDate, currentPeriod, decimalRateToRatio, logicalDateLabel, parsePeriodInput, periodInputValue, refreshFailureMessage } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
+import { currencies, currentIsoDate, currentPeriod, decimalRateToRatio, logicalDateLabel, periodInputValue, refreshFailureMessage } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
 import { ConsolidationCard, DistributionCard, HistoryCard, LiabilitiesCard, NetWorthHero, RealReturnCard } from '@/app/components/pages/net-worth/net-worth-page/net-worth-cards';
 import { summarizeVariation } from '@/app/components/pages/net-worth/net-worth-page/net-worth-model';
 import { ExchangeRatesCard } from '@/app/components/pages/net-worth/net-worth-page/exchange-rates-card';
@@ -367,39 +367,54 @@ export default function NetWorthPage() {
     [realEvolution, selectedCurrency],
   );
 
+  const availableCurrencies = currencies.filter((currency) => data?.byCurrency.some((item) => item.currency === currency));
+  const atCurrentPeriod = periodInputValue({ year, month }) >= periodInputValue(currentPeriod());
+  function movePeriod(offset: number) {
+    const next = new Date(year, month - 1 + offset, 1);
+    const period = { year: next.getFullYear(), month: next.getMonth() + 1 };
+    if (periodInputValue(period) > periodInputValue(currentPeriod())) return;
+    setLoading(true);
+    setEndPeriod(period);
+  }
+
   const headerControls = (
-          <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
-            <Input
-              label="Mês de referência"
-              aria-label="Mês final do patrimônio"
-              type="month"
-              value={periodInputValue({ year, month })}
-              max={periodInputValue(currentPeriod())}
-              onChange={(event) => {
-                const parsed = parsePeriodInput(event.target.value);
-                if (parsed) {
-                  setLoading(true);
-                  setEndPeriod(parsed);
-                }
-              }}
-            />
-            <Select
-              label="Histórico"
-              value={months}
-              onChange={(value) => {
-                setLoading(true);
-                setMonths(Number(value));
-              }}
-              options={[6, 12, 24, 36, 60].map((count) => ({ value: count, label: `${count} meses` }))}
-            />
-          </div>
+    <div className="flex flex-wrap items-center gap-2">
+      {availableCurrencies.length > 0 && (
+        <CurrencySelect
+          ariaLabel="Moeda do patrimônio"
+          value={selectedCurrency}
+          options={availableCurrencies}
+          onChange={setSelectedCurrency}
+        />
+      )}
+      <div className="w-[8.5rem] shrink-0">
+        <Select
+          ariaLabel="Histórico"
+          value={months}
+          onChange={(value) => {
+            setLoading(true);
+            setMonths(Number(value));
+          }}
+          options={[6, 12, 24, 36, 60].map((count) => ({ value: count, label: `${count} meses` }))}
+        />
+      </div>
+      <PeriodSwitcher
+        month={month}
+        year={year}
+        onPrevious={() => movePeriod(-1)}
+        onNext={() => movePeriod(1)}
+        nextDisabled={atCurrentPeriod}
+      />
+    </div>
   );
 
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <PageTitle title="Patrimônio" sidebarAligned />
-        <div className="mt-4">{headerControls}</div>
+        <PageTitle title="Patrimônio" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+        <ShowBelow breakpoint="lg">
+          <div className="mt-4">{headerControls}</div>
+        </ShowBelow>
 
         {error && (
           <p
@@ -431,14 +446,6 @@ export default function NetWorthPage() {
           </div>
         ) : (
           <>
-            <div className="mt-5">
-              <CurrencySelect
-                ariaLabel="Moeda do patrimônio"
-                value={selectedCurrency}
-                options={currencies.filter((currency) => data.byCurrency.some((item) => item.currency === currency))}
-                onChange={setSelectedCurrency}
-              />
-            </div>
 
             <div className="mt-5 space-y-4">
               {selected && (
