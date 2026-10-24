@@ -171,8 +171,20 @@ export const mobilePrimaryNavigationKeys = [
   'calendar',
 ] as const;
 
-/** Itens da barra inferior flutuante no mobile; o "Mais" abre o restante. */
-export const mobileBottomNavigationKeys = ['dashboard', 'transactions', 'accounts'] as const;
+/** Itens sempre presentes na barra inferior flutuante do mobile; o "Mais" abre o restante. */
+export const mobileFixedBottomKeys = ['dashboard', 'transactions'] as const;
+
+/** Terceiro item da barra inferior até o usuário escolher outro no "Mais". */
+export const defaultMobilePinnedKey = 'accounts' as const;
+
+/** Itens do "Mais" que podem ocupar o terceiro lugar da barra inferior (o perfil não). */
+export function isMobilePinnableKey(key: string): key is AppNavigationItem['key'] {
+  return (
+    key !== 'profile' &&
+    !(mobileFixedBottomKeys as readonly string[]).includes(key) &&
+    getAppNavigation().some((item) => item.key === key)
+  );
+}
 
 /** Vão para o "Mais" no mobile, mas continuam no grupo "Principal" da sidebar. */
 export const mobileMoreExtraKeys = ['calendar'] as const;

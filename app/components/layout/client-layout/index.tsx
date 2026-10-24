@@ -11,6 +11,7 @@ import {
   MobileMoreMenu,
   MobileTopbar,
 } from '@/app/components/layout';
+import { useMobileBottomPin } from '@/app/components/layout/use-mobile-bottom-pin';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -31,6 +32,7 @@ export default function ClientLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const { bottomKeys, pin: pinBottomItem } = useMobileBottomPin();
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const categoryComposeActive =
     pathname === '/categorias/nova' || pathname.startsWith('/categorias/alterar/');
@@ -132,6 +134,7 @@ export default function ClientLayout({
 
       {!immersiveMobile && (
         <BottomNav
+          keys={bottomKeys}
           onOpenMore={() => setMobileMoreOpen((open) => !open)}
           moreOpen={mobileMoreOpen}
         />
@@ -139,6 +142,8 @@ export default function ClientLayout({
 
       {mobileMoreOpen && !immersiveMobile && (
         <MobileMoreMenu
+          bottomKeys={bottomKeys}
+          onPick={pinBottomItem}
           onClose={() => setMobileMoreOpen(false)}
           onInstallApp={installPrompt ? installApp : undefined}
           onOpenGlobalSearch={openGlobalSearch}

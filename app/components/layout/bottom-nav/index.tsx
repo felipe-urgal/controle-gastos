@@ -4,10 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FaEllipsisH } from 'react-icons/fa';
 
-import {
-  getAppNavigation,
-  mobileBottomNavigationKeys,
-} from '@/app/components/layout/app-navigation';
+import { getAppNavigation, type AppNavigationItem } from '@/app/components/layout/app-navigation';
 
 const itemBase =
   'relative flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1.5 text-xs transition-colors duration-150 ' +
@@ -19,24 +16,23 @@ function itemTone(active: boolean) {
     : 'font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]';
 }
 
-/** Barra inferior flutuante (pílula): Início, Transações, Contas e Mais. */
+/** Barra inferior flutuante (pílula): Início, Transações, um terceiro item (Contas por padrão) e Mais. */
 export default function BottomNav({
+  keys,
   onOpenMore,
   moreOpen = false,
 }: {
+  /** Itens da barra, em ordem (o último é o que o usuário abriu pelo "Mais"). */
+  keys: AppNavigationItem['key'][];
   onOpenMore: () => void;
   moreOpen?: boolean;
 }) {
   const pathname = usePathname();
   const allNavigation = getAppNavigation();
-  const navigation = allNavigation.filter((item) =>
-    mobileBottomNavigationKeys.includes(item.key as (typeof mobileBottomNavigationKeys)[number]),
-  );
-  const moreActive = allNavigation.some(
-    (item) =>
-      !mobileBottomNavigationKeys.includes(item.key as (typeof mobileBottomNavigationKeys)[number]) &&
-      item.isActive(pathname),
-  );
+  const navigation = keys
+    .map((key) => allNavigation.find((item) => item.key === key))
+    .filter((item): item is AppNavigationItem => item !== undefined);
+  const moreActive = allNavigation.some((item) => !keys.includes(item.key) && item.isActive(pathname));
 
   return (
     <nav

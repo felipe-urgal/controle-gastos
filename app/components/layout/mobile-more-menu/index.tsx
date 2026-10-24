@@ -21,10 +21,16 @@ const PANEL_BOTTOM = 'calc(env(safe-area-inset-bottom) + 0.75rem + 4rem + 0.5rem
  * visível (o próprio "Mais" alterna). Fecha ao tocar fora, com Esc ou ao escolher um destino.
  */
 export default function MobileMoreMenu({
+  bottomKeys,
+  onPick,
   onClose,
   onInstallApp,
   onOpenGlobalSearch,
 }: {
+  /** Itens que já estão na barra inferior (não aparecem aqui). */
+  bottomKeys: AppNavigationItem['key'][];
+  /** Chamado ao abrir um destino: ele passa a ocupar a barra inferior. */
+  onPick: (key: string) => void;
   onClose: () => void;
   onInstallApp?: () => Promise<void>;
   onOpenGlobalSearch?: () => void;
@@ -41,8 +47,10 @@ export default function MobileMoreMenu({
   const groups = mobileMoreNavigationGroups
     .map((group, index) => ({
       ...group,
-      // O Calendário, fora da barra inferior, abre o primeiro grupo.
-      items: [...(index === 0 ? mobileMoreExtraKeys : []), ...group.keys]
+      // O Calendário e as Contas (quando saem da barra inferior) abrem o primeiro grupo.
+      items: [...(index === 0 ? [...mobileMoreExtraKeys, 'accounts' as const] : []), ...group.keys]
+        // O perfil fica na seção "Conta" abaixo, com tema, busca e sair.
+        .filter((key) => key !== 'profile' && !bottomKeys.includes(key))
         .map((key) => navigation.find((item) => item.key === key))
         .filter((item): item is AppNavigationItem => item !== undefined),
     }))
@@ -110,7 +118,10 @@ export default function MobileMoreMenu({
                       <Link
                         key={item.key}
                         href={item.href}
-                        onClick={onClose}
+                        onClick={() => {
+                          onPick(item.key);
+                          onClose();
+                        }}
                         aria-current={active ? 'page' : undefined}
                         className={
                           'flex min-h-11 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
