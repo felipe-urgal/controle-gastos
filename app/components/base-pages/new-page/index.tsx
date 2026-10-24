@@ -11,6 +11,7 @@ interface NewPageProps {
   backUrl?: string;
   children: React.ReactNode;
   hideHeaderOnMobile?: boolean;
+  sidebarAligned?: boolean;
 };
 
 export default function NewPage({
@@ -19,6 +20,7 @@ export default function NewPage({
   backUrl,
   children,
   hideHeaderOnMobile = false,
+  sidebarAligned = false,
 }: NewPageProps) {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
@@ -30,6 +32,7 @@ export default function NewPage({
             title={title}
             description={description}
             backUrl={backUrl}
+            sidebarAligned={sidebarAligned}
           />
         )}
 

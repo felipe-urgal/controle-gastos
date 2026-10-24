@@ -31,6 +31,7 @@ interface ShowPageProps<T> {
   headerActions?: React.ReactNode;
   deleteDisabled?: boolean;
   deleteHint?: string;
+  sidebarAligned?: boolean;
 
   emptyRedirectTo?: string;
   mobileContent?: React.ReactNode;
@@ -57,6 +58,7 @@ export default function ShowPage<T>({
   headerActions,
   deleteDisabled = false,
   deleteHint,
+  sidebarAligned = false,
   emptyRedirectTo,
   mobileContent,
   children,
@@ -82,6 +84,7 @@ export default function ShowPage<T>({
           onDelete={allowMutations && !hideHeaderDelete ? () => setIsDeleteModalOpen(true) : undefined}
           deleteDisabled={deleteDisabled}
           deleteHint={deleteHint}
+          sidebarAligned={sidebarAligned}
           actions={allowMutations ? headerActions : undefined}
           loading={loading}
           isDeleting={isDeleting}

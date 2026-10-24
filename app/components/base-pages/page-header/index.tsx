@@ -21,6 +21,8 @@ interface PageHeaderProps {
   createLabel?: string;
   loading?: boolean;
   isDeleting?: boolean;
+  /** Faixa do título encostada na sidebar, com a linha de baixo na altura da linha do logo (só telas com sidebar). */
+  sidebarAligned?: boolean;
 }
 
 export default function PageHeader({
@@ -36,9 +38,10 @@ export default function PageHeader({
   createLabel = 'Adicionar',
   loading,
   isDeleting,
+  sidebarAligned = false,
 }: PageHeaderProps) {
   return (
-    <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-center sm:justify-between">
+    <header className={`flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-center sm:justify-between ${sidebarAligned ? 'lg:-mx-[var(--orbit-page-padding-inline)] lg:-mt-[var(--orbit-page-padding-block)] lg:min-h-[var(--app-sidebar-header-height)] lg:px-[var(--orbit-page-padding-inline)] lg:py-2' : ''}`}>
       <div className="flex min-w-0 items-center gap-3 sm:min-h-[46px]">
         {backUrl && (
           <Button

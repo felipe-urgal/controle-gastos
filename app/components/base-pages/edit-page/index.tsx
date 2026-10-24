@@ -17,6 +17,7 @@ interface EditPageProps {
   children: React.ReactNode;
   errorRedirectTo?: string;
   hideHeaderOnMobile?: boolean;
+  sidebarAligned?: boolean;
 };
 
 export default function EditPage({
@@ -30,6 +31,7 @@ export default function EditPage({
   children,
   errorRedirectTo,
   hideHeaderOnMobile = false,
+  sidebarAligned = false,
 }: EditPageProps) {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
@@ -41,6 +43,7 @@ export default function EditPage({
             title={title}
             description={description}
             backUrl={backUrl}
+            sidebarAligned={sidebarAligned}
             loading={loading}
           />
         )}

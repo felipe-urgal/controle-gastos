@@ -136,7 +136,7 @@ export default function AppSidebar({
       aria-label="Navegação principal"
       className="orbit-navigation-surface fixed inset-y-0 left-0 z-[var(--z-header)] hidden w-[var(--app-sidebar-current-width)] flex-col border-r border-[var(--border)] lg:flex"
     >
-      <div className={`flex h-[68px] items-center border-b border-[var(--border)] ${collapsed ? 'px-2' : 'px-4'}`}>
+      <div className={`flex h-[var(--app-sidebar-header-height)] items-center border-b border-[var(--border)] ${collapsed ? 'px-2' : 'px-4'}`}>
         <button
           type="button"
           onClick={onToggleCollapsed}

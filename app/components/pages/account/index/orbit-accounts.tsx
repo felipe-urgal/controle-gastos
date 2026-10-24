@@ -142,6 +142,7 @@ export default function OrbitAccounts() {
         <div className="space-y-6 pb-3">
           <PageTitle
             title="Contas"
+            sidebarAligned
             actions={
               <Button as="a" href="/contas/nova" icon={<FaPlus aria-hidden="true" />}>
                 Nova conta

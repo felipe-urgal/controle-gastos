@@ -6,6 +6,7 @@ export default function New() {
     <NewPage
       backUrl="/contas"
       title="Nova conta"
+      sidebarAligned
       hideHeaderOnMobile
     >
       <AccountForm isEditing={false} />

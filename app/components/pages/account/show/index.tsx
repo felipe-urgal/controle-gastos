@@ -49,6 +49,7 @@ export default function Show({ id }: { id: string }) {
       entity={account}
       entityName="conta"
       titleFallback="Detalhes da conta"
+      sidebarAligned
       loading={loading}
       editUrl={editUrl}
       backUrl={handleBack}

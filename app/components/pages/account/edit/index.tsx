@@ -10,6 +10,7 @@ export default function Edit({ id }: { id: string }) {
   return (
     <EditPage
       title="Editar conta"
+      sidebarAligned
       loading={loading}
       error={error}
       backUrl={handleBack}
