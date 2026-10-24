@@ -2,10 +2,9 @@
 
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
-import { FaChevronLeft, FaChevronRight, FaPlus } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import { PageTitle } from '@/app/components/base-pages';
-import { pageBarButtonProps } from '@/app/components/base-pages/page-bar';
 import { ProtectedRoute } from '@/app/components/layout';
 
 import { Button, IconButton, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
@@ -99,20 +98,7 @@ export default function OrbitDashboardV2() {
       <PageTitle
         title="Dashboard"
         sidebarAligned
-        actions={
-          <>
-            <ShowFrom breakpoint="lg">{periodControls}</ShowFrom>
-            {/* Celular: só o ícone, na linha do título. */}
-            <ShowBelow breakpoint="sm">
-              <Button as="a" href="/transacoes/nova" size="compact" aria-label="Nova transação" icon={<FaPlus aria-hidden="true" />} />
-            </ShowBelow>
-            <ShowFrom breakpoint="sm">
-              <Button as="a" href="/transacoes/nova" {...pageBarButtonProps} icon={<FaPlus aria-hidden="true" />}>
-                Nova transação
-              </Button>
-            </ShowFrom>
-          </>
-        }
+        actions={<ShowFrom breakpoint="lg">{periodControls}</ShowFrom>}
       />
       <ShowBelow breakpoint="lg">
         <div className="mt-4">{periodControls}</div>
