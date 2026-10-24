@@ -1,6 +1,6 @@
 'use client';
 
-import { FaChevronDown, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import { IconButton } from '@/app/components/ui/icon-button';
 
@@ -43,8 +43,6 @@ export default function PeriodSwitcher({
   onCenterClick?: () => void;
   className?: string;
 }) {
-  const interactive = Boolean(onOpen || monthInput);
-
   return (
     <div className={`flex min-w-0 items-center gap-2 ${className}`} role="group" aria-label="Período">
       <IconButton
@@ -56,9 +54,8 @@ export default function PeriodSwitcher({
       />
 
       {monthInput ? (
-        <label className={`${center} relative cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]`}>
+        <label title="Escolher mês" className={`${center} relative cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)]`}>
           <span className="truncate capitalize">{label}</span>
-          <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
           <span className="sr-only">Escolher mês</span>
           <input
             type="month"
@@ -80,7 +77,6 @@ export default function PeriodSwitcher({
           className={`${center} transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50`}
         >
           <span className="truncate capitalize">{label}</span>
-          {interactive && <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />}
         </button>
       ) : (
         <output className={center}>
