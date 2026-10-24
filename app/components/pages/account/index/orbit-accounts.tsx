@@ -148,18 +148,9 @@ export default function OrbitAccounts() {
               <h1 className={pageTitleClassName}>Contas</h1>
               <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">Seu dinheiro em um só lugar.</p>
             </div>
-            <div className="hidden sm:block">
-              <Button as="a" href="/contas/nova" icon={<FaPlus />} className={orbitActionTokens}>
-                Nova conta
-              </Button>
-            </div>
-            <Link
-              href="/contas/nova"
-              aria-label="Nova conta"
-              className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-[var(--orbit-primary)] text-[22px] text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--orbit-primary)_28%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:hidden"
-            >
-              <FaPlus aria-hidden="true" />
-            </Link>
+            <Button as="a" href="/contas/nova" icon={<FaPlus />} className={orbitActionTokens}>
+              Nova conta
+            </Button>
           </header>
 
           <AccountsOverview summary={accountSummary} loading={loading} showValues={showValues} ariaLabel="Resumo das contas" />

@@ -26,7 +26,6 @@ export default function MobileTopbar({
   const transactionComposeActive =
     pathname === '/transacoes/nova' || pathname.startsWith('/transacoes/alterar/');
   const transactionShowActive = pathname.startsWith('/transacoes/show/');
-  const accountsListActive = pathname === '/contas';
   const accountComposeActive =
     pathname === '/contas/nova' || pathname.startsWith('/contas/alterar/');
   const accountShowActive = pathname.startsWith('/contas/show/');
@@ -38,7 +37,6 @@ export default function MobileTopbar({
   if (
     transactionComposeActive ||
     transactionShowActive ||
-    accountsListActive ||
     accountComposeActive ||
     accountShowActive ||
     categoriesListActive ||
