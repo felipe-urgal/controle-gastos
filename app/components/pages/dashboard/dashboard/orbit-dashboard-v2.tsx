@@ -5,9 +5,10 @@ import { useState } from 'react';
 import { FaChevronLeft, FaChevronRight, FaPlus } from 'react-icons/fa';
 
 import { PageTitle } from '@/app/components/base-pages';
+import { pageBarButtonProps } from '@/app/components/base-pages/page-bar';
 import { ProtectedRoute } from '@/app/components/layout';
 
-import { Button, IconButton, Select } from '@/app/components/ui';
+import { Button, IconButton, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useDashboardHome } from '@/app/hooks/dashboard/use-dashboard-home';
 import { usePeriodicSummary } from '@/app/hooks/dashboard/use-periodic-summary';
@@ -52,53 +53,70 @@ export default function OrbitDashboardV2() {
     retry,
   } = useDashboardHome();
 
+  const periodControls = (
+    <div className="flex min-w-0 flex-1 items-center gap-2 lg:flex-none">
+      <IconButton
+        label="Mês anterior"
+        icon={<FaChevronLeft />}
+        onClick={() => setPeriodValue(periodOffset(periodValue, -1))}
+        disabled={loading}
+        className="border border-[var(--border)] bg-[var(--surface)]"
+      />
+      <label className="relative flex min-h-11 min-w-0 flex-1 cursor-pointer items-center justify-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)] sm:min-w-[180px] sm:flex-none">
+        {monthLabel(periodValue)}
+        <span className="sr-only">Escolher mês do dashboard</span>
+        <input
+          type="month"
+          value={periodValue}
+          min="2000-01"
+          max="2100-12"
+          onChange={(event) => event.currentTarget.value && setPeriodValue(event.currentTarget.value)}
+          disabled={loading}
+          className="absolute -inset-px cursor-pointer opacity-0"
+        />
+      </label>
+      <IconButton
+        label="Próximo mês"
+        icon={<FaChevronRight />}
+        onClick={() => setPeriodValue(periodOffset(periodValue, 1))}
+        disabled={loading}
+        className="border border-[var(--border)] bg-[var(--surface)]"
+      />
+      <div className="w-[116px] shrink-0 sm:w-[145px]">
+        <Select
+          ariaLabel="Moeda"
+          value={currency}
+          options={currencyOptions}
+          onChange={(value) => setCurrency(value as SupportedCurrency)}
+          disabled={loading}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <ProtectedRoute>
-      <PageTitle title="Dashboard" sidebarAligned />
-
-      <header className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
-          <IconButton
-            label="Mês anterior"
-            icon={<FaChevronLeft />}
-            onClick={() => setPeriodValue(periodOffset(periodValue, -1))}
-            disabled={loading}
-            className="border border-[var(--border)] bg-[var(--surface)]"
-          />
-          <label className="relative flex min-h-11 min-w-0 flex-1 cursor-pointer items-center justify-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)] sm:min-w-[180px] sm:flex-none">
-            {monthLabel(periodValue)}
-            <span className="sr-only">Escolher mês do dashboard</span>
-            <input
-              type="month"
-              value={periodValue}
-              min="2000-01"
-              max="2100-12"
-              onChange={(event) => event.currentTarget.value && setPeriodValue(event.currentTarget.value)}
-              disabled={loading}
-              className="absolute -inset-px cursor-pointer opacity-0"
-            />
-          </label>
-          <IconButton
-            label="Próximo mês"
-            icon={<FaChevronRight />}
-            onClick={() => setPeriodValue(periodOffset(periodValue, 1))}
-            disabled={loading}
-            className="border border-[var(--border)] bg-[var(--surface)]"
-          />
-          <div className="w-[116px] shrink-0 sm:w-[145px]">
-            <Select
-              ariaLabel="Moeda"
-              value={currency}
-              options={currencyOptions}
-              onChange={(value) => setCurrency(value as SupportedCurrency)}
-              disabled={loading}
-            />
-          </div>
-        </div>
-        <Button as="a" href="/transacoes/nova" size="sm" icon={<FaPlus aria-hidden="true" />} className="w-full sm:w-auto">
-          Nova transação
-        </Button>
-      </header>
+      <PageTitle
+        title="Dashboard"
+        sidebarAligned
+        actions={
+          <>
+            <ShowFrom breakpoint="lg">{periodControls}</ShowFrom>
+            {/* Celular: só o ícone, na linha do título. */}
+            <ShowBelow breakpoint="sm">
+              <Button as="a" href="/transacoes/nova" size="compact" aria-label="Nova transação" icon={<FaPlus aria-hidden="true" />} />
+            </ShowBelow>
+            <ShowFrom breakpoint="sm">
+              <Button as="a" href="/transacoes/nova" {...pageBarButtonProps} icon={<FaPlus aria-hidden="true" />}>
+                Nova transação
+              </Button>
+            </ShowFrom>
+          </>
+        }
+      />
+      <ShowBelow breakpoint="lg">
+        <div className="mt-4">{periodControls}</div>
+      </ShowBelow>
 
       {error && (
         <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3">

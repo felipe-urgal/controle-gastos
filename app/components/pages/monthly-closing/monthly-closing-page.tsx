@@ -15,7 +15,7 @@ import {
   periodValue,
   shiftPeriod,
 } from '@/app/components/pages/monthly-closing/monthly-closing-model';
-import { Chip, IconButton } from '@/app/components/ui';
+import { Chip, IconButton, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { monthlyClosingService } from '@/app/services/monthly-closing-service';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
@@ -97,12 +97,36 @@ export default function MonthlyClosingPage() {
   const atCurrentMonth = year === currentYear && month === currentMonth;
   const pendingItems = retrospective ? countItemsToReview(retrospective.readiness) : 0;
 
+  const headerControls = (
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="inline-flex items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)]" role="group" aria-label="Período do fechamento">
+            <IconButton label="Mês anterior" icon={<FaChevronLeft />} onClick={() => goTo(-1)} />
+            <output className="min-w-[150px] text-center text-sm font-bold capitalize">{monthTitle(year, month)}</output>
+            <IconButton label="Próximo mês" icon={<FaChevronRight />} disabled={atCurrentMonth} onClick={() => goTo(1)} />
+          </div>
+          <div className="flex gap-2" role="group" aria-label="Moeda">
+            {CURRENCIES.map((item) => (
+              <Chip key={item} selected={item === currency} onClick={() => setCurrency(item)}>
+                {item}
+              </Chip>
+            ))}
+          </div>
+        </div>
+  );
+
   return (
     <ProtectedRoute>
       <PageContainer>
-        <PageTitle title={`Fechamento de ${monthName(month)}`} sidebarAligned />
+        <PageTitle
+          title={`Fechamento de ${monthName(month)}`}
+          sidebarAligned
+          actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>}
+        />
+        <ShowBelow breakpoint="lg">
+          <div className="mt-4">{headerControls}</div>
+        </ShowBelow>
 
-        <header className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <header className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3 empty:hidden">
           <div className="grid gap-1">
             <div className="flex flex-wrap items-center gap-3">
               {data && (
@@ -118,20 +142,6 @@ export default function MonthlyClosingPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="inline-flex items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)]" role="group" aria-label="Período do fechamento">
-              <IconButton label="Mês anterior" icon={<FaChevronLeft />} onClick={() => goTo(-1)} />
-              <output className="min-w-[150px] text-center text-sm font-bold capitalize">{monthTitle(year, month)}</output>
-              <IconButton label="Próximo mês" icon={<FaChevronRight />} disabled={atCurrentMonth} onClick={() => goTo(1)} />
-            </div>
-            <div className="flex gap-2" role="group" aria-label="Moeda">
-              {CURRENCIES.map((item) => (
-                <Chip key={item} selected={item === currency} onClick={() => setCurrency(item)}>
-                  {item}
-                </Chip>
-              ))}
-            </div>
-          </div>
         </header>
 
         <div className="mt-5">

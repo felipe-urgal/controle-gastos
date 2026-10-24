@@ -367,11 +367,7 @@ export default function NetWorthPage() {
     [realEvolution, selectedCurrency],
   );
 
-  return (
-    <ProtectedRoute>
-      <PageContainer as="section">
-        <PageTitle title="Patrimônio" sidebarAligned />
-        <div className="mt-4">
+  const headerControls = (
           <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
             <Input
               label="Mês de referência"
@@ -397,7 +393,13 @@ export default function NetWorthPage() {
               options={[6, 12, 24, 36, 60].map((count) => ({ value: count, label: `${count} meses` }))}
             />
           </div>
-        </div>
+  );
+
+  return (
+    <ProtectedRoute>
+      <PageContainer as="section">
+        <PageTitle title="Patrimônio" sidebarAligned />
+        <div className="mt-4">{headerControls}</div>
 
         {error && (
           <p

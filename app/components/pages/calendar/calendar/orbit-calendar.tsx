@@ -17,7 +17,7 @@ import {
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { CalendarGrid } from '@/app/components/pages/calendar';
-import { Button, IconButton, Select } from '@/app/components/ui';
+import { Button, IconButton, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useCalendar } from '@/app/hooks/calendar/use-calendar';
 import { useCalendarPersistence } from '@/app/hooks/calendar/use-calendar-persistence';
@@ -188,10 +188,7 @@ export default function OrbitCalendar() {
     })),
   ];
 
-  return (
-    <ProtectedRoute>
-      <PageTitle title="Calendário" sidebarAligned />
-      <div className="mt-4">
+  const headerControls = (
         <div className="grid w-full grid-cols-[auto_1fr_auto] gap-2 sm:flex sm:w-auto sm:flex-wrap">
           <Button
             variant="outline"
@@ -229,7 +226,14 @@ export default function OrbitCalendar() {
             Nova transação
           </Button>
         </div>
-      </div>
+  );
+
+  return (
+    <ProtectedRoute>
+      <PageTitle title="Calendário" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+      <ShowBelow breakpoint="lg">
+        <div className="mt-4">{headerControls}</div>
+      </ShowBelow>
 
       {error && (
         <div

@@ -53,11 +53,7 @@ export default function FinancialCommitmentsPage() {
     setData(null);
   }
 
-  return (
-    <ProtectedRoute>
-    <PageContainer as="section">
-      <PageTitle title="Compromissos financeiros" sidebarAligned />
-      <div className="mt-4">
+  const headerControls = (
         <div className="grid gap-2 sm:justify-items-end">
             <div className="flex flex-wrap gap-2" role="group" aria-label="Horizonte">
               {HORIZONS.map((option) => (
@@ -88,7 +84,13 @@ export default function FinancialCommitmentsPage() {
               ))}
             </div>
           </div>
-      </div>
+  );
+
+  return (
+    <ProtectedRoute>
+    <PageContainer as="section">
+      <PageTitle title="Compromissos financeiros" sidebarAligned />
+      <div className="mt-4">{headerControls}</div>
 
       {error && (
         <PageError

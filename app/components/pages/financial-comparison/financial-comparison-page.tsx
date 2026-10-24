@@ -17,7 +17,7 @@ import {
   type ComparisonFilters,
   type ComparisonPreset,
 } from '@/app/components/pages/financial-comparison/financial-comparison-model';
-import { Button, Chip, IconButton, Input } from '@/app/components/ui';
+import { Button, Chip, IconButton, Input, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import {
@@ -216,11 +216,7 @@ export default function FinancialComparisonPage() {
   const rangeA = rangeFromValues(filters.aFrom, filters.aTo);
   const rangeB = rangeFromValues(filters.bFrom, filters.bTo);
 
-  return (
-    <ProtectedRoute>
-      <PageContainer>
-        <PageTitle title="Comparar períodos" sidebarAligned />
-        <div className="mt-4">
+  const headerControls = (
           <div className="flex gap-2" role="group" aria-label="Moeda">
               {CURRENCIES.map((item) => (
                 <Chip key={item} selected={item === filters.currency} onClick={() => updateFilter('currency', item)}>
@@ -228,7 +224,15 @@ export default function FinancialComparisonPage() {
                 </Chip>
               ))}
             </div>
-        </div>
+  );
+
+  return (
+    <ProtectedRoute>
+      <PageContainer>
+        <PageTitle title="Comparar períodos" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+        <ShowBelow breakpoint="lg">
+          <div className="mt-4">{headerControls}</div>
+        </ShowBelow>
 
         <nav aria-label="Atalhos de comparação" className="mt-5 flex flex-wrap gap-2">
           {PRESETS.map((item) => (

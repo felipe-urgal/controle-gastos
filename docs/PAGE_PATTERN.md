@@ -32,7 +32,7 @@
 ## Adoção
 
 - Concluído: Contas, Categorias, Transações (lista, detalhe, nova, editar, transferência, Importar e Regras), Estabelecimentos, Tags, Modelos, Recorrências, Metas, Dívidas, Dashboard, Calendário, Investimentos, Patrimônio, Fechamento, Comparar, Compromissos, Rendimentos e Usuário.
-- Nas telas de painel o `PageBar` leva só o título; filtros, período e moeda ficam numa linha logo abaixo.
+- A `PageBar` é sempre uma linha só (nunca quebra). Controles compactos de uma linha (período, moeda, chips) vão na barra no desktop e abaixo dela no mobile; controles com rótulo em cima ou grupos empilhados ficam sempre num bloco abaixo da barra.
 - Exceção em Transações: o resumo de confirmação fixo da revisão do Importar (informa o que será criado antes de confirmar).
 - Pendente: nenhuma tela autenticada. Telas novas seguem este padrão.
 - Ao criar uma tela, ligue `sidebarAligned` e `breadcrumb`, remova a descrição e o eyebrow, mova ações para o cabeçalho e atualize esta lista.
