@@ -9,7 +9,7 @@ interface FormActionsProps {
   submitLabel?: string;
   createLabel?: string;
   disabled?: boolean;
-  /** No celular: só ícones na mesma linha, cancelar num canto e salvar no outro. A partir de `sm` não muda. */
+  /** No celular: botões compactos na mesma linha, cancelar num canto e salvar no outro. A partir de `sm` não muda. */
   iconsOnMobile?: boolean;
 }
 
@@ -60,19 +60,19 @@ export default function FormActions({
             variant="outline"
             size="compact"
             disabled={loading}
-            aria-label="Cancelar"
-            title="Cancelar"
             icon={<FaTimes />}
-          />
+          >
+            Cancelar
+          </Button>
           <Button
             type="submit"
             size="compact"
             disabled={loading || disabled}
             isLoading={loading}
-            aria-label={submitText}
-            title={submitText}
             icon={submitIcon}
-          />
+          >
+            {loading ? (isEditing ? 'Salvando...' : 'Criando...') : submitText}
+          </Button>
         </div>
       </ShowBelow>
       <ShowFrom breakpoint="sm">{regular}</ShowFrom>
