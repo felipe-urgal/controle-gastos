@@ -366,19 +366,14 @@ export default function New({
     router.replace('/transacoes');
   }
 
+  const pageTitle = isDuplicating ? 'Duplicar transação' : isUsingTemplate ? 'Usar modelo' : isTransfer ? 'Nova transferência' : 'Nova transação';
+
   return (
     <NewPage
       backUrl="/transacoes"
-      title={isDuplicating ? 'Duplicar transação' : isUsingTemplate ? 'Usar modelo' : isTransfer ? 'Nova transferência' : 'Nova transação'}
-      description={
-        isDuplicating
-          ? 'Revise os dados copiados e confirme somente quando o novo lançamento estiver correto.'
-          : isUsingTemplate
-            ? 'O modelo apenas preenche o formulário. Revise os dados antes de salvar.'
-          : isTransfer
-            ? 'Mova saldo entre contas próprias sem criar receita ou despesa operacional.'
-            : 'Crie sua transação em poucos segundos.'
-      }
+      title={pageTitle}
+      sidebarAligned
+      breadcrumb={[{ label: 'Transações', href: '/transacoes' }, { label: pageTitle }]}
     >
       {!isDuplicating && !isUsingTemplate && !isTransfer && (
         <section

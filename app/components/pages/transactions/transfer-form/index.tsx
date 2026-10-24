@@ -19,7 +19,6 @@ import {
 
 import { FormContainer } from '@/app/components/forms';
 import { Button, Input, RadioGroup } from '@/app/components/ui';
-import { useVisualViewportInset } from '@/app/hooks/use-visual-viewport-inset';
 import ReceiptSelect from '@/app/components/pages/transactions/shared/receipt-select';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import {
@@ -294,11 +293,6 @@ export default function TransferForm({
   const availableStatusOptions = transferId
     ? transferStatusOptions
     : transferStatusOptions.filter((option) => option.value !== 'CANCELLED');
-  // Com o teclado aberto a navegação inferior fica atrás dele: o rodapé cola no topo do teclado.
-  const keyboardInset = useVisualViewportInset();
-  const stickyFooterStyle = {
-    bottom: keyboardInset > 0 ? `${keyboardInset}px` : 'calc(var(--app-mobile-bottom-nav-height) + env(safe-area-inset-bottom))',
-  };
 
   const selectedStatusLabel =
     availableStatusOptions.find((option) => option.value === status)?.label ?? status;
@@ -517,7 +511,7 @@ export default function TransferForm({
                 </button>
               </div>
 
-              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>Cancelar</Button>
                 <Button size="cta" type="button" onClick={advanceMobileTransferStep} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
                   Continuar
@@ -551,7 +545,7 @@ export default function TransferForm({
                 disabled={loading}
               />
 
-              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(1)} disabled={loading} fullWidth>Voltar</Button>
                 <Button size="cta" type="button" onClick={() => setMobileStep(3)} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
                   Continuar
@@ -579,7 +573,7 @@ export default function TransferForm({
                 </dl>
               </div>
 
-              <div style={stickyFooterStyle} className="sticky z-10 -mx-1 grid grid-cols-[.92fr_1.08fr] gap-2.5 bg-[var(--background)] px-1 pb-2 pt-3">
+              <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(2)} disabled={loading} fullWidth>Voltar</Button>
                 <Button size="cta"
                   type="button"

@@ -5,7 +5,8 @@ import { PageLoading, PageError } from "@/app/components/feedback";
 import { PageHeader } from "@/app/components/base-pages";
 import type { Crumb } from "@/app/components/base-pages/page-bar";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
-import { ProtectedRoute } from "@/app/components/layout";
+import { MobileAppBar, ProtectedRoute } from "@/app/components/layout";
+import { ShowBelow } from "@/app/components/ui";
 
 interface EditPageProps {
   title?: string;
@@ -41,7 +42,13 @@ export default function EditPage({
   return (
     <ProtectedRoute>
       <div className="mx-auto space-y-6">
-        {(!hideHeaderOnMobile || isDesktop) && (
+        {sidebarAligned && (
+          <ShowBelow breakpoint="lg">
+            <MobileAppBar title={title ?? ''} backHref={backUrl} />
+          </ShowBelow>
+        )}
+
+        {(!(hideHeaderOnMobile || sidebarAligned) || isDesktop) && (
           <PageHeader
             title={title}
             description={description}

@@ -1,8 +1,5 @@
 'use client';
 
-import { FaArrowLeft } from 'react-icons/fa';
-
-import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { CategoryFormCard } from '@/app/components/pages/category/form/category-form-card';
 import {
@@ -10,7 +7,7 @@ import {
   categoryTypeCards,
   categoryTypeLocked,
 } from '@/app/components/pages/category/form/category-form-model';
-import { ActiveToggle, Chip, IconButton, Input, ShowBelow } from '@/app/components/ui';
+import { ActiveToggle, Chip, Input } from '@/app/components/ui';
 import { useCategoryForm } from '@/app/hooks/categories/use-category-form';
 import { CATEGORY_DESCRIPTION_MAX_LENGTH } from '@/app/lib/categories/category-limits';
 import { CategoryFormProps } from '@/app/lib/interface/category.interface';
@@ -40,19 +37,6 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
 
   return (
     <div className="w-full">
-      <ShowBelow breakpoint="lg">
-        <header className="mb-4 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
-          <IconButton
-            label="Voltar"
-            icon={<FaArrowLeft />}
-            onClick={handleRedirect}
-            disabled={loading}
-            className="rounded-full text-lg text-[var(--foreground)]"
-          />
-          <h1 className={`text-center ${appBarTitleClassName}`}>{isEditing ? 'Editar categoria' : 'Nova categoria'}</h1>
-          <span aria-hidden="true" />
-        </header>
-      </ShowBelow>
 
       <FormContainer
         bare
@@ -142,15 +126,14 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
           </div>
         </details>
 
-        <div className="max-lg:sticky max-lg:bottom-0 max-lg:-mx-1 max-lg:bg-[var(--background)] max-lg:px-1 max-lg:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          <FormActions
-            isEditing={isEditing}
-            loading={loading}
-            onCancel={handleRedirect}
-            createLabel="Criar categoria"
-            submitLabel="Salvar alterações"
-          />
-        </div>
+        <FormActions
+          isEditing={isEditing}
+          loading={loading}
+          onCancel={handleRedirect}
+          createLabel="Criar categoria"
+          submitLabel="Salvar alterações"
+          iconsOnMobile
+        />
       </FormContainer>
     </div>
   );

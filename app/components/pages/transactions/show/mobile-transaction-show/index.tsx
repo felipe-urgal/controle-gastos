@@ -1,12 +1,10 @@
 'use client';
 
-import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Link from 'next/link';
 import {
   FaArrowDown,
-  FaArrowLeft,
   FaArrowUp,
   FaCalendarAlt,
   FaCheck,
@@ -25,7 +23,8 @@ import {
   FaWallet,
 } from 'react-icons/fa';
 
-import { Button, IconRenderer } from '@/app/components/ui';
+import { MobileAppBar } from '@/app/components/layout';
+import { IconButton, IconLink, IconRenderer } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { statusConfig } from '@/app/lib/constants/transaction.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -131,27 +130,19 @@ export default function MobileTransactionShow({
         isDeleting ? 'pointer-events-none opacity-50' : ''
       }`}
     >
-      <header className="flex min-h-12 items-center gap-2">
-        <Link
-          href={backUrl}
-          aria-label="Voltar"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-        >
-          <FaArrowLeft aria-hidden="true" />
-        </Link>
-        <h1 className={`text-center ${appBarTitleClassName}`}>
-          {isTransfer ? 'Detalhes da transferência' : isCardPayment ? 'Pagamento de fatura' : 'Detalhes da transação'}
-        </h1>
-        {allowMutations && (
-          <Link
-            href={`/transacoes/alterar/${transaction.id}`}
-            aria-label="Editar transação"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-          >
-            <FaEdit aria-hidden="true" />
-          </Link>
-        )}
-      </header>
+      <MobileAppBar
+        title={isTransfer ? 'Transferência' : isCardPayment ? 'Pagamento de fatura' : 'Transação'}
+        backHref={backUrl}
+        backLabel="Voltar para transações"
+        action={
+          allowMutations ? (
+            <div className="flex">
+              <IconLink label="Editar transação" href={`/transacoes/alterar/${transaction.id}`} icon={<FaEdit />} tone="primary" />
+              <IconButton label="Excluir transação" title="Excluir transação" icon={<FaTrashAlt />} tone="danger" onClick={onRequestDelete} disabled={isDeleting} />
+            </div>
+          ) : undefined
+        }
+      />
 
       <section
         className="relative min-h-[220px] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--primary)]/55 p-4"
@@ -354,12 +345,6 @@ export default function MobileTransactionShow({
           </h2>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <Link
-              href={`/transacoes/alterar/${transaction.id}`}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--primary)] px-3 text-sm font-bold text-[var(--on-primary)]"
-            >
-              <FaEdit aria-hidden="true" /> Editar
-            </Link>
-            <Link
               href={`/transacoes/nova?duplicate=${encodeURIComponent(transaction.id)}`}
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-sm font-bold text-[var(--foreground)]"
             >
@@ -367,19 +352,10 @@ export default function MobileTransactionShow({
             </Link>
             <Link
               href={`/modelos?source=${encodeURIComponent(transaction.id)}`}
-              className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-sm font-bold text-[var(--foreground)]"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-sm font-bold text-[var(--foreground)]"
             >
               Salvar como modelo
             </Link>
-            <Button
-              variant="danger"
-              className="col-span-2"
-              onClick={onRequestDelete}
-              disabled={isDeleting}
-              icon={<FaTrashAlt aria-hidden="true" />}
-            >
-              Excluir transação
-            </Button>
           </div>
         </section>
       ) : (

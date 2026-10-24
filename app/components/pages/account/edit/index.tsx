@@ -20,7 +20,6 @@ export default function Edit({ id }: { id: string }) {
       error={error}
       backUrl={handleBack}
       errorRedirectTo={handleBack}
-      hideHeaderOnMobile
     >
       <AccountForm isEditing account={account || undefined} />
     </EditPage>

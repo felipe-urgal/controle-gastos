@@ -3,9 +3,8 @@
 import { MonthBarsChart } from '@/app/components/charts/month-bars-chart';
 import { format } from 'date-fns';
 import Link from 'next/link';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaPen, FaTrash } from 'react-icons/fa';
 
-import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
 import {
   buildHistoryBars,
   describeMonth,
@@ -13,7 +12,8 @@ import {
   limitState,
   longMonthLabel,
 } from '@/app/components/pages/category/show/category-show-model';
-import { Button, IconLink, IconRenderer, ShowBelow } from '@/app/components/ui';
+import { MobileAppBar } from '@/app/components/layout';
+import { Button, IconButton, IconLink, IconRenderer, ShowBelow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import { typeConfig } from '@/app/lib/constants/category.constants';
@@ -64,11 +64,17 @@ export default function CategoryShowView({
   return (
     <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
-        <header className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2">
-          <IconLink label="Voltar para categorias" href={backUrl} icon={<FaArrowLeft />} className="rounded-full text-lg text-[var(--foreground)]" />
-          <h1 className={`text-center ${appBarTitleClassName}`}>{category.name}</h1>
-          <Button as="a" href={editUrl} variant="outline" size="xs">Editar categoria</Button>
-        </header>
+        <MobileAppBar
+          title={category.name}
+          backHref={backUrl}
+          backLabel="Voltar para categorias"
+          action={
+            <div className="flex">
+              <IconLink label="Editar categoria" href={editUrl} icon={<FaPen />} tone="primary" />
+              <IconButton label="Excluir categoria" title="Excluir categoria" icon={<FaTrash />} tone="danger" onClick={onDeleteRequest} disabled={isDeleting} />
+            </div>
+          }
+        />
       </ShowBelow>
 
       <section
@@ -221,18 +227,6 @@ export default function CategoryShowView({
           <p className="px-4 pb-4 text-sm leading-relaxed text-[var(--text-muted)] sm:px-5">
             O tipo define se a categoria conta como receita ou despesa nas transações. Cor e ícone só ajudam a reconhecê-la.
           </p>
-          <details className="group border-t border-[var(--border)]">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center px-4 text-sm text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
-              Zona de risco
-            </summary>
-            <div className="grid gap-3 px-4 pb-4 text-sm text-[var(--text-muted)] sm:px-5">
-              <p>Categorias com transações, limites, regras de importação ou modelos não podem ser excluídas. Inativar guarda o histórico.</p>
-              <div className="flex flex-wrap gap-2">
-                <Button as="a" href={editUrl} variant="outline" size="sm">Inativar categoria</Button>
-                <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest}>Excluir categoria</Button>
-              </div>
-            </div>
-          </details>
         </section>
       </div>
     </div>

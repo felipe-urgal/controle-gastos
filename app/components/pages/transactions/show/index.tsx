@@ -1,6 +1,7 @@
 'use client';
 
 import { ShowPage } from '@/app/components/base-pages';
+import TransactionShowSkeleton from '@/app/components/pages/transactions/show/transaction-show-skeleton';
 import TransactionInfo from '@/app/components/pages/transactions/show/transaction-info';
 import MobileTransactionShow from '@/app/components/pages/transactions/show/mobile-transaction-show';
 import { useTransactions } from '@/app/hooks/transactions/transaction-show';
@@ -19,19 +20,16 @@ export default function Show({ id }: { id: string }) {
   const isCardPayment = transaction?.kind === 'CARD_PAYMENT';
   const isOpeningBalance = transaction?.kind === 'OPENING_BALANCE';
   const allowMutations = transaction?.kind === 'NORMAL';
+  const kindLabel = isTransfer ? 'Transferência' : isCardPayment ? 'Pagamento de fatura' : isOpeningBalance ? 'Saldo inicial' : 'Transação';
 
   return (
     <ShowPage
       entity={transaction}
       entityName="transação"
       titleFallback={isTransfer ? 'Detalhes da transferência' : isCardPayment ? 'Detalhes do pagamento da fatura' : isOpeningBalance ? 'Detalhes do saldo inicial' : 'Detalhes da transação'}
-      description={isTransfer
-        ? 'Consulte esta perna da transferência ligada. Alterações são feitas somente pelo fluxo dedicado da operação.'
-        : isCardPayment
-          ? 'Consulte o pagamento da fatura. Esta movimentação é mantida pelo fluxo dedicado do cartão.'
-          : isOpeningBalance
-            ? 'Lançamento criado junto com a conta. Não conta como receita ou despesa; para ajustar o saldo, registre um novo lançamento.'
-            : 'Consulte os dados do lançamento, edite esta ocorrência ou remova a transação.'}
+      sidebarAligned
+      breadcrumb={[{ label: 'Transações', href: '/transacoes' }, { label: kindLabel }]}
+      loadingSkeleton={<TransactionShowSkeleton backUrl={handleBack} />}
       loading={loading}
       editUrl={`/transacoes/alterar/${id}`}
       backUrl={handleBack}

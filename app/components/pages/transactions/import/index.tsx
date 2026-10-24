@@ -3,9 +3,9 @@
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
-import { PageHeader } from '@/app/components/base-pages';
+import ImportActions from '@/app/components/pages/transactions/import/import-actions';
+import { NewPage } from '@/app/components/base-pages';
 import { Alert } from '@/app/components/feedback';
-import { ProtectedRoute } from '@/app/components/layout';
 
 import { Button, Chip, ChipRow, Input, Select } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
@@ -438,13 +438,13 @@ export default function TransactionImportPage() {
   }
 
   return (
-    <ProtectedRoute>
-      <PageHeader
-        title="Importar transações"
-        description="Envie o arquivo, resolva o que precisa de atenção e confirme somente o que estiver pronto."
-        backUrl="/transacoes"
-        loading={loadingRelations || submitting}
-      />
+    <NewPage
+      title="Importar transações"
+      backUrl="/transacoes"
+      sidebarAligned
+      breadcrumb={[{ label: 'Transações', href: '/transacoes' }, { label: 'Importar' }]}
+    >
+      <ImportActions />
 
       <div className="mb-5 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]" aria-label="Etapa atual da importação">
         <span className={step >= 1 ? 'font-semibold text-[var(--foreground)]' : ''}>Arquivo</span>
@@ -879,6 +879,6 @@ export default function TransactionImportPage() {
           </div>
         </section>
       )}
-    </ProtectedRoute>
+    </NewPage>
   );
 }

@@ -6,8 +6,8 @@ export default function NewCategoryPage() {
     <NewPage
       backUrl="/categorias"
       title="Nova categoria"
-      description="Crie uma categoria para classificar movimentações. O tipo escolhido define se ela representa receita ou despesa."
-      hideHeaderOnMobile
+      sidebarAligned
+      breadcrumb={[{ label: 'Categorias', href: '/categorias' }, { label: 'Nova categoria' }]}
     >
       <CategoryForm isEditing={false} />
     </NewPage>

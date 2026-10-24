@@ -4,10 +4,16 @@
 
 ## Estrutura
 
-- **Mobile:** barra superior, conteúdo no meio, barra inferior flutuante (Início, Transações, Contas, Mais). Lista/central usa a barra global (`MobileTopbar`); detalhe e formulário usam `MobileAppBar` (fixa, com voltar, título e ações). O conteúdo reserva o espaço da barra inferior por `--app-mobile-bottom-nav-height`.
+- **Mobile:** barra superior, conteúdo no meio, barra inferior flutuante (Início, Transações, Contas, Mais). Lista/central migrada usa a `PageBar` como barra superior fixa (a `MobileTopbar` não renderiza em `/contas`, `/categorias` e `/transacoes`); as ainda não migradas usam a barra global (`MobileTopbar`); detalhe e formulário usam `MobileAppBar` (fixa, com voltar, título e ações). O conteúdo reserva o espaço da barra inferior por `--app-mobile-bottom-nav-height`.
 - **Desktop (`lg`+):** a faixa do título é o `PageBar`: encostada na sidebar, na cor dela, com a altura do bloco do logo (`--app-sidebar-header-height`, a linha de baixo é uma só) e fixa ao rolar.
 - Telas com sidebar ligam `sidebarAligned` em `PageTitle`, `ShowPage`, `NewPage` e `EditPage` e informam `breadcrumb`: níveis acima são links e o último é o `h1`. No modo faixa a descrição é ignorada; não use eyebrow.
 - Detalhe, criação e edição escondem o cabeçalho no mobile (`hideHeaderOnMobile` / `ShowBelow`) e usam `MobileAppBar`.
+
+## Componentes
+
+- Lista: `ListPageHeader` (`PageBar` com a ação de criar; ícones no celular, texto a partir de `sm`; `secondary` opcional).
+- Nova/edição/telas auxiliares: `NewPage`/`EditPage` com `sidebarAligned` e `breadcrumb` já renderizam a `MobileAppBar` no mobile; não repita a barra no formulário.
+- Detalhe: `ShowPage` com `sidebarAligned`, `breadcrumb` e `loadingSkeleton`; no mobile a view usa `MobileAppBar` com editar e excluir.
 
 ## Ações
 
@@ -25,6 +31,7 @@
 
 ## Adoção
 
-- Concluído: Contas.
-- Pendente (usam cabeçalho próprio ou o padrão anterior): Transações, Categorias, Dashboard, Calendário, Metas, Dívidas, Investimentos, Patrimônio, Fechamento, Comparar, Compromissos, Modelos, Recorrências, Rendimentos, Estabelecimentos, Tags, Usuário.
+- Concluído: Contas, Categorias, Transações (lista, detalhe, nova, editar, transferência, Importar e Regras).
+- Exceção em Transações: o resumo de confirmação fixo da revisão do Importar (informa o que será criado antes de confirmar).
+- Pendente (usam cabeçalho próprio ou o padrão anterior): Dashboard, Calendário, Metas, Dívidas, Investimentos, Patrimônio, Fechamento, Comparar, Compromissos, Modelos, Recorrências, Rendimentos, Estabelecimentos, Tags, Usuário.
 - Ao migrar uma tela, ligue `sidebarAligned` e `breadcrumb`, remova a descrição e o eyebrow, mova ações para o cabeçalho e atualize esta lista.

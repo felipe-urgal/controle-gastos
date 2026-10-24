@@ -2,9 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
-import { PageHeader } from '@/app/components/base-pages';
+import { NewPage } from '@/app/components/base-pages';
 import { Alert } from '@/app/components/feedback';
-import { ProtectedRoute } from '@/app/components/layout';
 import { Button, Input, MoneyInput, MoneyText, Select } from '@/app/components/ui';
 import { centsToMoneyValue, moneyValueToCents } from '@/app/lib/currency/money-mask';
 import { useAuth } from '@/app/context';
@@ -489,13 +488,16 @@ export default function ImportRuleManagementPage({ focusRuleId }: { focusRuleId?
   const loading = loadingRelations || loadingRules;
 
   return (
-    <ProtectedRoute>
-      <PageHeader
-        title="Regras de importação"
-        description="Defina sugestões locais e determinísticas para classificar seu extrato antes da confirmação."
-        backUrl="/transacoes/importar"
-        loading={loading || submitting}
-      />
+    <NewPage
+      title="Regras de importação"
+      backUrl="/transacoes/importar"
+      sidebarAligned
+      breadcrumb={[
+        { label: 'Transações', href: '/transacoes' },
+        { label: 'Importar', href: '/transacoes/importar' },
+        { label: 'Regras' },
+      ]}
+    >
 
       <div className="space-y-4">
         <Alert
@@ -955,6 +957,6 @@ export default function ImportRuleManagementPage({ focusRuleId }: { focusRuleId?
           </section>
         </div>
       </div>
-    </ProtectedRoute>
+    </NewPage>
   );
 }
