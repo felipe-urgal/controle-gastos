@@ -6,7 +6,8 @@ export default function New() {
     <NewPage
       backUrl="/contas"
       title="Nova conta"
-      description="Cadastre uma conta para organizar movimentações. O saldo será sempre derivado das transações concluídas."
+      sidebarAligned
+      breadcrumb={[{ label: 'Contas', href: '/contas' }, { label: 'Nova conta' }]}
       hideHeaderOnMobile
     >
       <AccountForm isEditing={false} />

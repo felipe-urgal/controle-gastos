@@ -21,11 +21,11 @@ export function Pagination({
 }) {
   return (
     <div className="mt-4 flex items-center justify-between gap-3">
-      <Button variant="outline" pill disabled={page <= 1} onClick={onPrevious}>
+      <Button variant="outline" disabled={page <= 1} onClick={onPrevious}>
         Anterior
       </Button>
       <span className="text-xs text-[var(--text-muted)]">Página {page}</span>
-      <Button variant="outline" pill disabled={!hasMore} onClick={onNext}>
+      <Button variant="outline" disabled={!hasMore} onClick={onNext}>
         Próxima
       </Button>
     </div>
@@ -34,7 +34,7 @@ export function Pagination({
 
 export function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-[12px] bg-[var(--surface-raised)] p-3">
+    <div className="min-w-0 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="mt-1 block break-words text-sm text-[var(--foreground)]">
         {value}

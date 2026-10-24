@@ -45,7 +45,7 @@ export function CustodyStatementCard({ showValues }: { showValues: boolean }) {
   const differences = result?.comparison.filter((row) => row.status !== 'MATCH').length ?? 0;
 
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <h2 className="text-lg font-bold text-[var(--foreground)]">Conferir extrato de custódia</h2>
       <p className="mt-1 text-xs text-[var(--text-muted)]">
         Compare o Extrato de Custódia do Nubank com a sua carteira. Nada é importado nem gravado: o documento só aponta diferenças de posição.
@@ -63,13 +63,13 @@ export function CustodyStatementCard({ showValues }: { showValues: boolean }) {
             setError('');
           }}
         />
-        <Button pill onClick={() => void compare()} disabled={!file || working} isLoading={working} loadingText="Analisando">
+        <Button onClick={() => void compare()} disabled={!file || working} isLoading={working} loadingText="Analisando">
           Conferir
         </Button>
       </div>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
+        <p role="alert" className="mt-4 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
           {error}
         </p>
       )}
@@ -95,8 +95,8 @@ export function CustodyStatementCard({ showValues }: { showValues: boolean }) {
           {result.summary.length > 0 && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {result.summary.map((row) => (
-                <div key={row.label} className="rounded-[12px] bg-[var(--surface-raised)] px-3.5 py-3">
-                  <span className="block text-[13px] font-semibold text-[var(--text-muted)]">{row.label}</span>
+                <div key={row.label} className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3">
+                  <span className="block text-sm font-semibold text-[var(--text-muted)]">{row.label}</span>
                   <strong className="money text-base font-semibold">{money(row.grossCents)}</strong>
                   <span className="block text-xs text-[var(--text-muted)]">saldo bruto</span>
                 </div>
@@ -105,7 +105,7 @@ export function CustodyStatementCard({ showValues }: { showValues: boolean }) {
           )}
 
           {result.comparison.length > 0 && (
-            <div className="overflow-x-auto rounded-[14px] border border-[var(--border)]">
+            <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)]">
               <table className="w-full min-w-[34rem] text-left text-sm">
                 <thead className="bg-[var(--surface-raised)] text-xs text-[var(--text-muted)]">
                   <tr>
@@ -143,7 +143,7 @@ export function CustodyStatementCard({ showValues }: { showValues: boolean }) {
           )}
 
           {result.fixedIncome.length > 0 && (
-            <details className="rounded-[14px] border border-[var(--border)]">
+            <details className="rounded-[var(--radius-lg)] border border-[var(--border)]">
               <summary className="flex min-h-11 cursor-pointer items-center px-4 text-sm font-bold">Caixinhas de renda fixa ({result.fixedIncome.length})</summary>
               <ul className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
                 {result.fixedIncome.map((row) => (
@@ -168,7 +168,7 @@ export function CustodyStatementCard({ showValues }: { showValues: boolean }) {
           )}
 
           {result.warnings.length > 0 && (
-            <ul className="grid gap-1 rounded-[12px] bg-[var(--warning-subtle)] px-4 py-3 text-[13px]">
+            <ul className="grid gap-1 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-4 py-3 text-sm">
               {result.warnings.map((warning) => (
                 <li key={warning}>{warning}</li>
               ))}

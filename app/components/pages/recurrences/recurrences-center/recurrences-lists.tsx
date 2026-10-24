@@ -13,7 +13,7 @@ import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { RecurrenceLogicalDate, RecurrenceSummaryItem } from '@/app/types/recurrence';
 import type { SubscriptionItem } from '@/app/types/subscription';
 
-const cardClassName = 'rounded-[16px] border border-[var(--border)] bg-[var(--surface)]';
+const cardClassName = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]';
 
 export function FormalList({
   items,
@@ -61,11 +61,11 @@ export function FormalList({
                 </span>
               </div>
               <div className="text-right">
-                <span className="money block text-[15px] font-semibold">{money(item.amount, item.currency)}</span>
+                <span className="money block text-sm font-semibold">{money(item.amount, item.currency)}</span>
                 <span className="money text-xs text-[var(--text-muted)]">≈ {money(item.monthlyEquivalent, item.currency)}/mês</span>
               </div>
               <div className="col-span-2 flex items-center justify-between gap-2">
-                <Button variant="accent" size="sm" onClick={() => onEdit(item)}>
+                <Button size="sm" onClick={() => onEdit(item)}>
                   Editar série
                 </Button>
                 <span className="flex">
@@ -122,7 +122,7 @@ export function ConfirmedSubscriptions({
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="money block text-[15px] font-semibold">{money(item.currentAmount, item.currency)}</span>
+                  <span className="money block text-sm font-semibold">{money(item.currentAmount, item.currency)}</span>
                   <span className="money text-xs text-[var(--text-muted)]">{money(item.annualEquivalent, item.currency)}/ano</span>
                 </div>
               </div>

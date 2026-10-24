@@ -22,7 +22,7 @@ export function CategoriesCard({
   period: MonthlyDashboard['period'];
 }) {
   return (
-    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Para onde foi o dinheiro</h2>
         <span className="text-xs font-semibold text-[var(--text-muted)]">{monthLabel(`${period.year}-${String(period.month).padStart(2, '0')}`)}</span>
@@ -38,7 +38,7 @@ export function CategoriesCard({
             <Link
               key={category.id}
               href={`/categorias/show/${encodeURIComponent(category.id)}`}
-              className="block rounded-[9px] py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+              className="block rounded-[var(--radius-md)] py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
             >
               <span className="flex min-h-8 items-center justify-between gap-3">
                 <span className="flex min-w-0 items-center gap-2.5">
@@ -53,7 +53,7 @@ export function CategoriesCard({
                 ) : (
                   <span className="flex items-center gap-3">
                     <span className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
-                      <span className="block h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${Math.min(100, category.sharePercentage)}%` }} />
+                      <span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${Math.min(100, category.sharePercentage)}%` }} />
                     </span>
                     <span className="w-12 text-right text-xs font-semibold text-[var(--text-muted)]">{category.sharePercentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
                   </span>
@@ -64,7 +64,7 @@ export function CategoriesCard({
           })
         )}
       </div>
-      <Link href="/categorias" className="mt-2 flex min-h-11 items-center justify-between rounded-[10px] border border-[var(--border-strong)] px-3 text-sm font-semibold">
+      <Link href="/categorias" className="mt-2 flex min-h-11 items-center justify-between rounded-[var(--radius-md)] border border-[var(--border-strong)] px-3 text-sm font-semibold">
         Ver todas as categorias <FaChevronRight aria-hidden="true" />
       </Link>
     </article>

@@ -17,18 +17,21 @@ export default function Show({ id }: { id: string }) {
   } = useTransactions({ id });
   const isTransfer = transaction?.kind === 'TRANSFER';
   const isCardPayment = transaction?.kind === 'CARD_PAYMENT';
+  const isOpeningBalance = transaction?.kind === 'OPENING_BALANCE';
   const allowMutations = transaction?.kind === 'NORMAL';
 
   return (
     <ShowPage
       entity={transaction}
       entityName="transação"
-      titleFallback={isTransfer ? 'Detalhes da transferência' : isCardPayment ? 'Detalhes do pagamento da fatura' : 'Detalhes da transação'}
+      titleFallback={isTransfer ? 'Detalhes da transferência' : isCardPayment ? 'Detalhes do pagamento da fatura' : isOpeningBalance ? 'Detalhes do saldo inicial' : 'Detalhes da transação'}
       description={isTransfer
         ? 'Consulte esta perna da transferência ligada. Alterações são feitas somente pelo fluxo dedicado da operação.'
         : isCardPayment
           ? 'Consulte o pagamento da fatura. Esta movimentação é mantida pelo fluxo dedicado do cartão.'
-          : 'Consulte os dados do lançamento, edite esta ocorrência ou remova a transação.'}
+          : isOpeningBalance
+            ? 'Lançamento criado junto com a conta. Não conta como receita ou despesa; para ajustar o saldo, registre um novo lançamento.'
+            : 'Consulte os dados do lançamento, edite esta ocorrência ou remova a transação.'}
       loading={loading}
       editUrl={`/transacoes/alterar/${id}`}
       backUrl={handleBack}

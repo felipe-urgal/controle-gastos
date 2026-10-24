@@ -49,7 +49,7 @@ export function CategoryFormCard({
   return (
     <section
       aria-label="Categoria"
-      className="relative grid gap-5 rounded-[20px] border border-[color-mix(in_srgb,var(--category-color)_40%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--category-color)_16%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+      className="relative grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--category-color)_40%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--category-color)_16%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
       style={{ ['--category-color' as string]: values.color }}
     >
       <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
@@ -91,7 +91,7 @@ export function CategoryFormCard({
       </div>
 
       {lookOpen && (
-        <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3.5">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3.5">
           <ColorIconSelector
             color={values.color}
             icon={values.icon}
@@ -106,7 +106,7 @@ export function CategoryFormCard({
       )}
 
       {showLimit && (
-        <div className="grid gap-2 rounded-[14px] border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-3.5">
+        <div className="grid gap-2 rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-3.5">
           <label htmlFor="category-monthly-limit" className="text-sm text-[var(--text-muted)]">
             Limite mensal (opcional)
           </label>

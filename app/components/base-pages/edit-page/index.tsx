@@ -3,6 +3,7 @@
 // importing components
 import { PageLoading, PageError } from "@/app/components/feedback";
 import { PageHeader } from "@/app/components/base-pages";
+import type { Crumb } from "@/app/components/base-pages/page-bar";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { ProtectedRoute } from "@/app/components/layout";
 
@@ -17,6 +18,8 @@ interface EditPageProps {
   children: React.ReactNode;
   errorRedirectTo?: string;
   hideHeaderOnMobile?: boolean;
+  sidebarAligned?: boolean;
+  breadcrumb?: Crumb[];
 };
 
 export default function EditPage({
@@ -30,17 +33,21 @@ export default function EditPage({
   children,
   errorRedirectTo,
   hideHeaderOnMobile = false,
+  sidebarAligned = false,
+  breadcrumb,
 }: EditPageProps) {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   return (
     <ProtectedRoute>
-      <div className="mx-auto">
+      <div className="mx-auto space-y-6">
         {(!hideHeaderOnMobile || isDesktop) && (
           <PageHeader
             title={title}
             description={description}
             backUrl={backUrl}
+            sidebarAligned={sidebarAligned}
+            breadcrumb={breadcrumb}
             loading={loading}
           />
         )}

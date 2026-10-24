@@ -37,22 +37,22 @@ export function MonthSummaryCard({
       : tone === 'expense'
         ? 'border-[var(--expense)]/25 bg-[var(--danger-subtle)]/55'
         : tone === 'primary'
-          ? 'border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)]'
-          : 'border-[var(--orbit-primary)]/20 bg-[var(--surface-raised)]';
+          ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)]'
+          : 'border-[var(--primary)]/20 bg-[var(--surface-raised)]';
   const iconTone =
     tone === 'income'
       ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
       : tone === 'expense'
         ? 'bg-[var(--danger-subtle)] text-[var(--expense)]'
-        : 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]';
+        : 'bg-[var(--primary-subtle)] text-[var(--primary)]';
   const amountTone =
     tone === 'income'
       ? 'text-[var(--income)]'
       : tone === 'expense'
         ? 'text-[var(--expense)]'
         : tone === 'primary'
-          ? 'text-[var(--orbit-primary)]'
-          : 'text-[var(--orbit-focus)]';
+          ? 'text-[var(--primary)]'
+          : 'text-[var(--focus)]';
   const detailClass =
     detailTone === 'positive'
       ? 'text-[var(--income)]'
@@ -61,7 +61,7 @@ export function MonthSummaryCard({
         : 'text-[var(--text-muted)]';
 
   return (
-    <article className={`min-h-[138px] rounded-[14px] border p-4 ${cardTone}`}>
+    <article className={`min-h-[138px] rounded-[var(--radius-lg)] border p-4 ${cardTone}`}>
       <div className="flex items-start gap-3">
         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg ${iconTone}`}>{icon}</span>
         <div className="min-w-0">
@@ -69,7 +69,7 @@ export function MonthSummaryCard({
           <p className="mt-0.5 min-h-4 text-xs text-[var(--text-muted)]">
             {count !== undefined ? `${count} ${countLabel}` : '\u00A0'}
           </p>
-          <strong className={`money mt-2 block text-[24px] font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
+          <strong className={`money mt-2 block text-2xl font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
           <p className={`mt-1 flex items-center gap-1.5 text-xs ${detailClass}`}>
             {detailDirection === 'up' ? (
               <FaArrowUp aria-hidden="true" />
@@ -112,7 +112,7 @@ export function MovementTimeline({
   onOpen: (transaction: TransactionDTO) => void;
 }) {
   return (
-    <article className="min-h-[620px] rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <article className="min-h-[620px] rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold">Movimentação de {monthTitle(month, year).toLowerCase()}</h2>
         <div className="w-full sm:w-52">
@@ -131,11 +131,11 @@ export function MovementTimeline({
       {loading ? (
         <div className="mt-5 space-y-3" role="status" aria-label="Carregando movimentações">
           {[1, 2, 3, 4, 5].map((item) => (
-            <div key={item} className="h-[66px] animate-pulse rounded-[12px] bg-[var(--skeleton)]" />
+            <div key={item} className="h-[66px] animate-pulse rounded-[var(--radius-md)] bg-[var(--skeleton)]" />
           ))}
         </div>
       ) : groups.length === 0 ? (
-        <div className="mt-5 grid min-h-[420px] place-items-center rounded-[12px] border border-dashed border-[var(--border)]">
+        <div className="mt-5 grid min-h-[420px] place-items-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)]">
           <div className="text-center">
             <p className="text-base font-bold">Nenhuma movimentação neste período</p>
             <p className="mt-1 text-sm text-[var(--text-muted)]">Ajuste os filtros ou registre uma nova transação.</p>
@@ -143,12 +143,12 @@ export function MovementTimeline({
         </div>
       ) : (
         <div className="relative mt-5">
-          <span className="absolute bottom-8 left-[15px] top-5 hidden w-px border-l border-dashed border-[var(--orbit-primary)]/45 md:block" aria-hidden="true" />
+          <span className="absolute bottom-8 left-[15px] top-5 hidden w-px border-l border-dashed border-[var(--primary)]/45 md:block" aria-hidden="true" />
           <div className="space-y-3">
             {groups.map((group) => (
               <div key={group.key} className="grid gap-2 md:grid-cols-[145px_minmax(0,1fr)] md:gap-3">
                 <div className="relative flex items-start gap-3 md:pl-10">
-                  <span className="absolute left-[5px] top-1.5 hidden h-5 w-5 rounded-full border-[6px] border-[var(--orbit-primary)] bg-[var(--surface)] md:block" aria-hidden="true" />
+                  <span className="absolute left-[5px] top-1.5 hidden h-5 w-5 rounded-full border-[6px] border-[var(--primary)] bg-[var(--surface)] md:block" aria-hidden="true" />
                   <div>
                     <p className="text-sm font-bold text-[var(--foreground)]">{group.primaryLabel}</p>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">{group.secondaryLabel}</p>
@@ -173,7 +173,6 @@ export function MovementTimeline({
       {hasMore && !loading && (
         <Button
           variant="secondary"
-          pill
           onClick={onLoadMore}
           icon={<FaChevronDown aria-hidden="true" />}
           iconPosition="right"
@@ -199,23 +198,23 @@ export function TimelineTransactionRow({
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
   const isIncome = transaction.type === 'INCOME';
   const amountTone = isTransfer || isCardPayment
-    ? 'text-[var(--orbit-primary)]'
+    ? 'text-[var(--primary)]'
     : isIncome
       ? 'text-[var(--income)]'
       : 'text-[var(--expense)]';
   const iconBackground = isTransfer || isCardPayment
-    ? 'var(--orbit-primary-subtle)'
+    ? 'var(--primary-subtle)'
     : transaction.category?.color || 'var(--surface-subtle)';
-  const iconColor = isTransfer || isCardPayment ? 'var(--orbit-primary)' : '#ffffff';
+  const iconColor = isTransfer || isCardPayment ? 'var(--primary)' : '#ffffff';
 
   return (
     <button
       type="button"
       onClick={onOpen}
       aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
-      className="grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_110px_88px_24px] sm:gap-3"
+      className="grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_110px_88px_24px] sm:gap-3"
     >
-      <span className="grid h-10 w-10 place-items-center rounded-[11px]" style={{ backgroundColor: iconBackground, color: iconColor }}>
+      <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)]" style={{ backgroundColor: iconBackground, color: iconColor }}>
         {isTransfer ? <FaExchangeAlt aria-hidden="true" /> : isCardPayment ? <FaCreditCard aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={16} />}
       </span>
       <span className="min-w-0">
@@ -267,15 +266,15 @@ export function MonthOverview({
   }
 
   return (
-    <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <header className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Visão do mês</h2>
-        <Link href="/dashboard" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver relatório →</Link>
+        <Link href="/dashboard" className="text-xs font-semibold text-[var(--primary)]">Ver relatório →</Link>
       </header>
 
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)_135px] items-end gap-4">
         <div className="grid gap-1.5">
-          <p className="min-h-4 text-[13px] text-[var(--text-muted)]" aria-live="polite">
+          <p className="min-h-4 text-sm text-[var(--text-muted)]" aria-live="polite">
             {activeBar ? (
               <>
                 Dias {activeBar.fromDay}–{activeBar.toDay}:{' '}
@@ -347,8 +346,8 @@ export function MonthOverview({
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+      <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--primary-subtle)] text-[var(--primary)]">
           <FaChartLine aria-hidden="true" />
         </span>
         <div>
@@ -372,17 +371,17 @@ export function UpcomingTransactions({
   onViewAll: () => void;
 }) {
   return (
-    <article className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <header className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Próximos lançamentos</h2>
-        <Link href="/calendario" className="text-xs font-semibold text-[var(--orbit-primary)]">Ver calendário →</Link>
+        <Link href="/calendario" className="text-xs font-semibold text-[var(--primary)]">Ver calendário →</Link>
       </header>
 
       <div className="mt-3 divide-y divide-[var(--border)]">
         {items.length === 0 ? (
-          <div className="grid min-h-[210px] place-items-center rounded-[12px] border border-dashed border-[var(--border)] px-4 text-center">
+          <div className="grid min-h-[210px] place-items-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)] px-4 text-center">
             <div>
-              <FaCalendarAlt className="mx-auto text-xl text-[var(--orbit-primary)]" aria-hidden="true" />
+              <FaCalendarAlt className="mx-auto text-xl text-[var(--primary)]" aria-hidden="true" />
               <p className="mt-2 text-sm font-bold">Nenhum lançamento agendado</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">Seus próximos compromissos aparecerão aqui.</p>
             </div>
@@ -396,20 +395,20 @@ export function UpcomingTransactions({
               aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
               className="grid min-h-[62px] w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-2 px-1 py-2 text-left transition-colors hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_36px_minmax(0,1fr)_auto] sm:px-0"
             >
-              <span className="grid h-11 w-11 place-content-center rounded-[9px] border border-[var(--border)] bg-[var(--surface-raised)] text-center">
+              <span className="grid h-11 w-11 place-content-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] text-center">
                 <strong className="text-sm leading-none">{String(transaction.day).padStart(2, '0')}</strong>
                 <span className="mt-1 text-xs font-semibold uppercase text-[var(--text-muted)]">{compactMonth(transaction.month, transaction.year)}</span>
               </span>
               <span
                 className="hidden h-9 w-9 place-items-center rounded-full text-white sm:grid"
-                style={{ backgroundColor: transaction.category?.color || 'var(--orbit-primary)' }}
+                style={{ backgroundColor: transaction.category?.color || 'var(--primary)' }}
               >
                 <IconRenderer iconName={transaction.category?.icon || 'calendar'} size={14} />
               </span>
               <span className="min-w-0">
                 <strong className="block truncate text-xs">{transaction.description || 'Sem descrição'}</strong>
                 <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-                  {transaction.category?.name ?? 'Sem categoria'} • {transaction.account?.name ?? 'Conta'}
+                  {transaction.kind === 'OPENING_BALANCE' ? 'Saldo inicial' : transaction.category?.name ?? 'Sem categoria'} • {transaction.account?.name ?? 'Conta'}
                 </span>
               </span>
               <span className="col-start-2 flex min-w-0 items-center justify-between gap-2 sm:col-start-auto sm:grid sm:shrink-0 sm:justify-items-end sm:gap-1">
@@ -418,7 +417,7 @@ export function UpcomingTransactions({
                 </strong>
                 <span className="flex items-center gap-2">
                   <span className="text-xs text-[var(--text-muted)]">{scheduledDistanceLabel(transaction)}</span>
-                  <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-1 text-xs font-bold text-[var(--orbit-primary)]">Agendada</span>
+                  <span className="rounded-full bg-[var(--primary-subtle)] px-2 py-1 text-xs font-bold text-[var(--primary)]">Agendada</span>
                 </span>
               </span>
             </button>
@@ -430,7 +429,7 @@ export function UpcomingTransactions({
         <button
           type="button"
           onClick={onViewAll}
-          className="mt-3 flex min-h-11 sm:min-h-9 w-full items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold hover:bg-[var(--surface-hover)]"
+          className="mt-3 flex min-h-11 sm:min-h-9 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold hover:bg-[var(--surface-hover)]"
         >
           Ver todos os agendados ({items.length}) <FaArrowRight aria-hidden="true" />
         </button>

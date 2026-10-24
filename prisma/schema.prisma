@@ -957,6 +957,7 @@ enum TransactionKind {
   NORMAL
   TRANSFER
   CARD_PAYMENT
+  OPENING_BALANCE
 }
 
 enum TransferRole {

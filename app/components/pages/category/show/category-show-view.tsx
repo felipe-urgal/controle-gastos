@@ -20,7 +20,7 @@ import { typeConfig } from '@/app/lib/constants/category.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { CategoryModel } from '@/app/types/category';
 
-const meterTone = { NO_LIMIT: 'bg-[var(--orbit-primary)]', OK: 'bg-[var(--orbit-primary)]', NEAR: 'bg-[var(--warning)]', OVER: 'bg-[var(--expense)]' } as const;
+const meterTone = { NO_LIMIT: 'bg-[var(--primary)]', OK: 'bg-[var(--primary)]', NEAR: 'bg-[var(--warning)]', OVER: 'bg-[var(--expense)]' } as const;
 const statePill = {
   NO_LIMIT: null,
   OK: { label: 'Dentro do limite', className: 'bg-[var(--surface-subtle)] text-[var(--income)]' },
@@ -73,11 +73,11 @@ export default function CategoryShowView({
 
       <section
         aria-label="Resumo da categoria"
-        className="grid gap-5 rounded-[20px] border border-[color-mix(in_srgb,var(--category-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--category-color)_14%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+        className="grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--category-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--category-color)_14%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
         style={{ ['--category-color' as string]: color }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[14px] text-white" style={{ backgroundColor: color }} aria-hidden="true">
+          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white" style={{ backgroundColor: color }} aria-hidden="true">
             <IconRenderer iconName={category.icon || 'tag'} size={22} />
           </span>
           <div className="min-w-0">
@@ -99,7 +99,7 @@ export default function CategoryShowView({
               <p className="text-sm font-semibold text-[var(--text-muted)]">
                 {isExpense ? 'Gasto' : 'Recebido'} em {longMonthLabel(activity.month.month)}
               </p>
-              <strong className="money mt-1 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+              <strong className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
                 {money(activity.month.realized)}
                 {isExpense && activity.month.limit !== null && (
                   <span className="ml-2 text-base font-medium tracking-normal text-[var(--text-muted)] sm:text-xl">de {money(activity.month.limit)}</span>
@@ -134,7 +134,7 @@ export default function CategoryShowView({
         )}
 
         <nav aria-label="Ações da categoria" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <Button as="a" href="/transacoes/nova" variant="accent" size="xs" className="w-full">Nova transação</Button>
+          <Button as="a" href="/transacoes/nova" size="xs" className="w-full">Nova transação</Button>
           {isExpense && (
             <Button as="a" href="/categorias" variant="outline" size="xs" className="w-full">Ajustar limite</Button>
           )}
@@ -145,7 +145,7 @@ export default function CategoryShowView({
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
         <div className="space-y-4">
           {history && activity && (
-            <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="category-history-heading">
+            <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="category-history-heading">
               <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
                 <h2 id="category-history-heading" className="text-base font-bold">Últimos 6 meses</h2>
                 <p className="text-xs text-[var(--text-muted)]">{isExpense ? 'gasto por mês' : 'recebido por mês'}{history.limitPercentOfScale !== null ? ', com o limite de hoje' : ''}</p>
@@ -171,12 +171,12 @@ export default function CategoryShowView({
             </section>
           )}
 
-          <section className="overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="category-movements-heading">
+          <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="category-movements-heading">
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
               <h2 id="category-movements-heading" className="text-base font-bold">
                 Movimentações de {activity ? longMonthLabel(activity.month.month) : 'este mês'}
               </h2>
-              <Link href={filterHref} className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
+              <Link href={filterHref} className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]">Ver todas</Link>
             </div>
             {!activity || activity.recent.length === 0 ? (
               <p className="border-t border-[var(--border)] px-4 py-6 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma movimentação nesta categoria neste mês.</p>
@@ -210,7 +210,7 @@ export default function CategoryShowView({
           </section>
         </div>
 
-        <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="category-about-heading">
+        <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="category-about-heading">
           <h2 id="category-about-heading" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Sobre a categoria</h2>
           <dl className="grid gap-2 px-4 pb-4 text-sm sm:px-5">
             <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Tipo</dt><dd>{type.label}</dd></div>

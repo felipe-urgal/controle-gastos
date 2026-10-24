@@ -26,7 +26,7 @@ import { UpcomingCard } from '@/app/components/pages/dashboard/dashboard/cards/u
 // de cima ficam no bundle inicial para não atrasar o LCP.
 function cardFallback(height: number) {
   return function CardFallback() {
-    return <div aria-hidden="true" style={{ minHeight: height }} className="animate-pulse rounded-[14px] bg-[var(--skeleton)]" />;
+    return <div aria-hidden="true" style={{ minHeight: height }} className="animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />;
   };
 }
 const MonthPaceCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/month-pace-card').then((m) => m.MonthPaceCard), { ssr: false, loading: cardFallback(420) });
@@ -63,7 +63,7 @@ export default function OrbitDashboardV2() {
             disabled={loading}
             className="border border-[var(--border)] bg-[var(--surface)]"
           />
-          <label className="relative flex min-h-11 min-w-0 flex-1 cursor-pointer items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)] sm:min-w-[180px] sm:flex-none">
+          <label className="relative flex min-h-11 min-w-0 flex-1 cursor-pointer items-center justify-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-center text-sm font-semibold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--focus)] sm:min-w-[180px] sm:flex-none">
             {monthLabel(periodValue)}
             <span className="sr-only">Escolher mês do dashboard</span>
             <input
@@ -178,7 +178,7 @@ function DashboardHome({
   return (
     <>
       {hasPartialError && (
-        <div role="alert" className="mb-[14px] flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] px-3 py-2">
+        <div role="alert" className="mb-[14px] flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] px-3 py-2">
           <p className="text-xs text-[var(--foreground)]">
             Parte do Dashboard está indisponível. Os valores conhecidos continuam visíveis sem transformar falha em zero.
           </p>
@@ -188,7 +188,7 @@ function DashboardHome({
         </div>
       )}
       {home.scope.selectedPeriodRelation !== 'CURRENT' && (
-        <div role="status" className="mb-[14px] rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-xs text-[var(--text-muted)]">
+        <div role="status" className="mb-[14px] rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-xs text-[var(--text-muted)]">
           <strong className="text-[var(--foreground)]">Mês selecionado: {monthLabel(`${data.period.year}-${String(data.period.month).padStart(2, '0')}`)}.</strong>{' '}
           Resumo, planejamento, categorias, transações recentes e patrimônio usam esse período; saldo de caixa, cartões, metas, compromissos e projeção usam a referência atual ({dashboardLogicalDateLabel(home.scope.currentAsOf)}).
         </div>
@@ -299,25 +299,25 @@ function DashboardLoading() {
   return (
     <div role="status" aria-label="Carregando dashboard">
       <div className="space-y-3 lg:hidden">
-        <div className="h-[330px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-        <div className="h-[250px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-        <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-        <div className="h-[220px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+        <div className="h-[330px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
+        <div className="h-[250px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
+        <div className="h-[420px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
+        <div className="h-[220px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
       </div>
 
       <div className="hidden space-y-[14px] lg:block">
         <div className="grid gap-[14px] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="h-[330px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[330px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[330px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
+          <div className="h-[330px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
         </div>
         <div className="grid gap-[14px] lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-          <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[420px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
+          <div className="h-[420px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
+          <div className="h-[420px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
         </div>
         <div className="grid gap-[14px] md:grid-cols-2 xl:grid-cols-3">
-          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)]" />
-          <div className="h-[278px] animate-pulse rounded-[14px] bg-[var(--skeleton)] md:col-span-2 xl:col-span-1" />
+          <div className="h-[278px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
+          <div className="h-[278px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" />
+          <div className="h-[278px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)] md:col-span-2 xl:col-span-1" />
         </div>
       </div>
     </div>

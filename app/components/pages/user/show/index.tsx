@@ -156,9 +156,9 @@ export default function Show() {
             <div className="min-w-0 space-y-5">
               {activeSection === 'profile' && (
                 <SettingsPanel id="profile-identity-title" title="Perfil" description="Dados básicos usados para identificar sua conta." busy={isDeleting}>
-                  <SettingsRow icon={<FaUser />} title="Nome" description={user.name} control={<Button as="a" href="/usuario/editar" variant="outline" size="sm" pill>Editar</Button>} />
-                  <SettingsRow icon={<FaEnvelope />} title="E-mail" description={user.email} control={<Button as="a" href="/usuario/editar" variant="outline" size="sm" pill>Editar</Button>} />
-                  <SettingsRow icon={<FaKey />} title="Senha" description="Altere usando sua senha atual." control={<Button as="a" href="/usuario/editar" variant="outline" size="sm" pill>Alterar senha</Button>} />
+                  <SettingsRow icon={<FaUser />} title="Nome" description={user.name} control={<Button as="a" href="/usuario/editar" variant="outline" size="sm">Editar</Button>} />
+                  <SettingsRow icon={<FaEnvelope />} title="E-mail" description={user.email} control={<Button as="a" href="/usuario/editar" variant="outline" size="sm">Editar</Button>} />
+                  <SettingsRow icon={<FaKey />} title="Senha" description="Altere usando sua senha atual." control={<Button as="a" href="/usuario/editar" variant="outline" size="sm">Alterar senha</Button>} />
                   <SettingsRow icon={<FaCalendarAlt />} title="Conta criada em" description={`${formatDate(user.createdAt)} · última atualização em ${formatDate(user.updatedAt)}`} />
                 </SettingsPanel>
               )}
@@ -184,7 +184,7 @@ export default function Show() {
                       icon={<FaSignOutAlt />}
                       title="Sair da conta"
                       description="Você precisará entrar de novo neste dispositivo."
-                      control={<Button type="button" variant="outline" pill icon={<FaSignOutAlt />} onClick={() => void logout()}>Sair da conta</Button>}
+                      control={<Button type="button" variant="outline" icon={<FaSignOutAlt />} onClick={() => void logout()}>Sair da conta</Button>}
                     />
                   </SettingsPanel>
                 </>
@@ -192,7 +192,7 @@ export default function Show() {
 
               {activeSection === 'risk' && (
                 <section
-                  className="overflow-hidden rounded-[20px] border border-[var(--danger)]/45 bg-[var(--danger-subtle)]/35"
+                  className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--danger)]/45 bg-[var(--danger-subtle)]/35"
                   aria-labelledby="danger-zone-title"
                 >
                   <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">

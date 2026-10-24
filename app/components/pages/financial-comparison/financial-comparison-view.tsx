@@ -16,7 +16,7 @@ import { Button, Chip, IconRenderer } from '@/app/components/ui';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { ComparisonLogicalDate, FinancialComparisonData } from '@/app/types/financial-comparison';
 
-const cardClassName = 'rounded-[16px] border border-[var(--border)] bg-[var(--surface)]';
+const cardClassName = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]';
 const VISIBLE_MOVERS = 5;
 
 const TONE_TEXT: Record<DeltaTone, string> = {
@@ -58,7 +58,7 @@ export default function FinancialComparisonView({
 
   return (
     <div className="space-y-4">
-      <section className="grid gap-3.5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6" aria-labelledby="comparison-verdict-label">
+      <section className="grid gap-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6" aria-labelledby="comparison-verdict-label">
         <p id="comparison-verdict-label" className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Em resumo</p>
         <p className="max-w-[34ch] text-balance text-xl font-bold leading-snug tracking-tight sm:text-2xl">
           {buildVerdict(data, basis, money).map((segment, index) => (
@@ -68,7 +68,7 @@ export default function FinancialComparisonView({
           ))}
         </p>
         {!sameLength && (
-          <div role="note" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-[12px] bg-[var(--warning-subtle)] px-3.5 py-3 text-[13px] font-semibold text-[var(--warning)]">
+          <div role="note" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3.5 py-3 text-sm font-semibold text-[var(--warning)]">
             <span>
               Os períodos têm tamanhos diferentes ({data.a.months} e {data.b.months} meses). Totais não são equivalentes; use a média mensal para comparar ritmo.
             </span>
@@ -79,7 +79,7 @@ export default function FinancialComparisonView({
           </div>
         )}
         {data.coverage.overlaps && (
-          <p className="text-[13px] text-[var(--text-muted)]">Os períodos se sobrepõem; meses compartilhados entram nos dois lados da comparação.</p>
+          <p className="text-sm text-[var(--text-muted)]">Os períodos se sobrepõem; meses compartilhados entram nos dois lados da comparação.</p>
         )}
       </section>
 
@@ -123,15 +123,15 @@ export default function FinancialComparisonView({
                 </p>
                 <ul className="grid gap-0.5 px-2 pb-3 pt-1 sm:px-3">
                   {visibleMovers.map((category) => (
-                    <li key={category.id} className="grid min-h-16 grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-2 py-2.5">
-                      <span className="grid h-9 w-9 place-items-center rounded-[10px]" style={{ backgroundColor: category.color }} aria-hidden="true">
+                    <li key={category.id} className="grid min-h-16 grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 rounded-[var(--radius-md)] px-2 py-2.5">
+                      <span className="grid h-9 w-9 place-items-center rounded-[var(--radius-md)]" style={{ backgroundColor: category.color }} aria-hidden="true">
                         <IconRenderer iconName={category.icon || 'tag'} size={16} className="text-white" />
                       </span>
                       <span className="min-w-0">
                         <span className="block break-words text-sm font-semibold">{category.name}</span>
                         <span className="mt-1.5 grid gap-[3px]" aria-hidden="true">
                           <span className="block h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]"><span className="block h-full rounded-full bg-[var(--border-strong)]" style={{ width: category.widths[0] + '%' }} /></span>
-                          <span className="block h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]"><span className="block h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: category.widths[1] + '%' }} /></span>
+                          <span className="block h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]"><span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: category.widths[1] + '%' }} /></span>
                         </span>
                       </span>
                       <span className="grid justify-items-end gap-1 text-right">
@@ -165,13 +165,13 @@ export default function FinancialComparisonView({
               <div className="grid gap-3 px-4 pb-5 sm:px-5">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5">
                   <div>
-                    <p className="text-[13px] text-[var(--text-muted)]">A · {formatLogicalDate(data.a.netWorthAsOf)}</p>
-                    <p className="money break-words text-[17px] font-semibold">{money(data.a.netWorthEnd!)}</p>
+                    <p className="text-sm text-[var(--text-muted)]">A · {formatLogicalDate(data.a.netWorthAsOf)}</p>
+                    <p className="money break-words text-lg font-semibold">{money(data.a.netWorthEnd!)}</p>
                   </div>
                   <span className="text-[var(--text-muted)]" aria-hidden="true">→</span>
                   <div>
-                    <p className="text-[13px] text-[var(--text-muted)]">B · {formatLogicalDate(data.b.netWorthAsOf)}</p>
-                    <p className="money break-words text-[17px] font-semibold">{money(data.b.netWorthEnd!)}</p>
+                    <p className="text-sm text-[var(--text-muted)]">B · {formatLogicalDate(data.b.netWorthAsOf)}</p>
+                    <p className="money break-words text-lg font-semibold">{money(data.b.netWorthEnd!)}</p>
                   </div>
                 </div>
                 <p className={`text-sm font-bold ${TONE_TEXT[deltaTone(netWorth)]}`}>{deltaLabel(netWorth, money)}</p>
@@ -193,7 +193,7 @@ export default function FinancialComparisonView({
           <span className="text-lg text-[var(--text-muted)] group-open:hidden" aria-hidden="true">+</span>
           <span className="hidden text-lg text-[var(--text-muted)] group-open:inline" aria-hidden="true">−</span>
         </summary>
-        <div className="grid max-w-[78ch] gap-2.5 px-4 pb-5 text-[13px] text-[var(--text-muted)] sm:px-5">
+        <div className="grid max-w-[78ch] gap-2.5 px-4 pb-5 text-sm text-[var(--text-muted)] sm:px-5">
           <p><strong className="text-[var(--foreground)]">A é a base.</strong> Cada diferença é B − A, e não mostramos percentual quando A é zero.</p>
           <p><strong className="text-[var(--foreground)]">Só o realizado conta.</strong> Despesas incluem divisões e tratam créditos de cartão como redução da despesa correspondente.</p>
           <p><strong className="text-[var(--foreground)]">Períodos de tamanhos diferentes</strong> são comparados pela média mensal, que divide cada total pela quantidade exata de meses do período.</p>
@@ -210,7 +210,7 @@ function BarRow({ who, width, amount, tone }: { who: string; width: number; amou
     <div className="grid grid-cols-[22px_minmax(0,1fr)_auto] items-center gap-2.5">
       <span className="text-xs font-extrabold text-[var(--text-muted)]">{who}</span>
       <span className="block h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]" aria-hidden="true">
-        <span className={`block h-full rounded-full ${tone === 'a' ? 'bg-[var(--border-strong)]' : 'bg-[var(--orbit-primary)]'}`} style={{ width: width + '%' }} />
+        <span className={`block h-full rounded-full ${tone === 'a' ? 'bg-[var(--border-strong)]' : 'bg-[var(--primary)]'}`} style={{ width: width + '%' }} />
       </span>
       <span className="money min-w-24 text-right text-sm font-semibold sm:min-w-28">{amount}</span>
     </div>

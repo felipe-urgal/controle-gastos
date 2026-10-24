@@ -69,7 +69,7 @@ export default function AuthShell({
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
               Um fluxo, uma visão
             </p>
-            <h2 className="mt-4 text-4xl font-bold leading-tight tracking-[-0.03em] text-[var(--foreground)] xl:text-[2.75rem]">
+            <h2 className="mt-4 text-4xl font-bold leading-tight tracking-[-0.03em] text-[var(--foreground)] xl:text-4xl">
               Organize suas finanças com uma experiência clara e consistente.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-[var(--text-muted)]">

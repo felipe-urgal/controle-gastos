@@ -44,18 +44,18 @@ export function NetWorthHero({
   const up = variation ? variation.amount >= 0 : true;
 
   return (
-    <section aria-labelledby="net-worth-hero-label" className="grid gap-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="net-worth-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div>
         <p id="net-worth-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">
           Patrimônio líquido em {currency}
         </p>
-        <strong className="money mt-2 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+        <strong className="money mt-2 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
           {displayMoney(total, showValues, currency)}
         </strong>
         {variation && (
           <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             {variation.percent !== null && (
-              <span className={`rounded-full px-2.5 py-0.5 text-[13px] font-bold ${up ? 'bg-[var(--surface-raised)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}>
+              <span className={`rounded-full px-2.5 py-0.5 text-sm font-bold ${up ? 'bg-[var(--surface-raised)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}>
                 {up ? '▲' : '▼'} {displayPercent(Math.abs(variation.percent), showValues).replace('+', '')}
               </span>
             )}
@@ -75,13 +75,13 @@ export function NetWorthHero({
         >
           {share !== null && (
             <>
-              <span className="h-full bg-[var(--orbit-primary)]" style={{ width: `${100 - debtWidth}%` }} />
+              <span className="h-full bg-[var(--primary)]" style={{ width: `${100 - debtWidth}%` }} />
               <span className="h-full bg-[var(--expense)] opacity-85" style={{ width: `${debtWidth}%` }} />
             </>
           )}
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Stat dot="var(--orbit-primary)" label="Ativos" value={displayMoney(assetsTotal, showValues, currency)} detail={`${accountCount} ${accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}`} />
+          <Stat dot="var(--primary)" label="Ativos" value={displayMoney(assetsTotal, showValues, currency)} detail={`${accountCount} ${accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}`} />
           <Stat dot="var(--expense)" label="Passivos" value={displayMoney(liabilitiesTotal, showValues, currency)} detail={`${debtCount} ${debtCount === 1 ? 'dívida com saldo' : 'dívidas com saldo'}`} />
           <Stat
             label="Dívidas pesam"
@@ -91,7 +91,7 @@ export function NetWorthHero({
         </div>
       </div>
 
-      <details className="group rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)]">
+      <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)]">
         <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm [&::-webkit-details-marker]:hidden">
           <span className={`h-2.5 w-2.5 rounded-full ${quality.tone === 'warning' ? 'bg-[var(--warning)]' : 'bg-[var(--income)]'}`} aria-hidden="true" />
           <strong>{quality.headline}</strong>
@@ -100,7 +100,7 @@ export function NetWorthHero({
           </span>
           <FaChevronDown className="ml-auto text-xs text-[var(--text-muted)] transition-transform group-open:rotate-180" aria-hidden="true" />
         </summary>
-        <div className="grid gap-2 px-4 pb-4 text-[13px] leading-relaxed text-[var(--text-muted)]">
+        <div className="grid gap-2 px-4 pb-4 text-sm leading-relaxed text-[var(--text-muted)]">
           <p>
             {valuation.positionCount > 0
               ? `${valuation.marketPositionCount} de ${valuation.positionCount} posições usam cotação de mercado.`
@@ -118,16 +118,16 @@ export function NetWorthHero({
             </>
           )}
           {valuation.compositionStatus === 'UNRECONCILED_TRANSACTION_BALANCE' && (
-            <p className="rounded-[10px] bg-[var(--warning-subtle)] px-3 py-2 text-[var(--foreground)]">
+            <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2 text-[var(--foreground)]">
               Composição não conciliada: existe saldo transacional junto com posições. O total usa as posições e preserva{' '}
               {showValues ? formatCurrency(valuation.unreconciledTransactionBalance, currency) : '••••'} como referência transacional, sem somá-lo automaticamente.
             </p>
           )}
           {valuation.staleMarketPositionCount > 0 && (
-            <p className="rounded-[10px] bg-[var(--warning-subtle)] px-3 py-2 text-[var(--foreground)]">
+            <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2 text-[var(--foreground)]">
               {valuation.staleMarketPositionCount}{' '}
               {valuation.staleMarketPositionCount === 1 ? 'posição usa cotação com mais de 7 dias.' : 'posições usam cotações com mais de 7 dias.'}{' '}
-              <Link href="/investimentos" className="font-semibold text-[var(--orbit-primary)] underline underline-offset-2">
+              <Link href="/investimentos" className="font-semibold text-[var(--primary)] underline underline-offset-2">
                 Revisar investimentos
               </Link>
             </p>
@@ -140,8 +140,8 @@ export function NetWorthHero({
 
 function Stat({ label, value, detail, dot }: { label: string; value: string; detail: string; dot?: string }) {
   return (
-    <div className="grid gap-0.5 rounded-[12px] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-muted)]">
+    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
+      <span className="flex items-center gap-2 text-sm font-semibold text-[var(--text-muted)]">
         {dot && <span className="h-2.5 w-2.5 rounded-full" style={{ background: dot }} aria-hidden="true" />}
         {label}
       </span>

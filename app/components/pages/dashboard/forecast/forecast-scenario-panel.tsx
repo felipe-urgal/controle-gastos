@@ -98,7 +98,7 @@ export default function ForecastScenarioPanel({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
           <div className="flex items-center gap-2">
-            <FaFlask className="text-[var(--orbit-primary)]" aria-hidden="true" />
+            <FaFlask className="text-[var(--primary)]" aria-hidden="true" />
             <h3 id="forecast-scenario-title" className="font-semibold text-[var(--foreground)]">
               Simular cenário
             </h3>

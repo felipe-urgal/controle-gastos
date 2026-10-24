@@ -146,10 +146,10 @@ export function GoalFormModal({
         {error && <Alert variant="error" message={error} />}
 
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <Button variant="outline" pill size="lg" onClick={onClose} disabled={saving}>
+          <Button variant="outline" size="lg" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
-          <Button type="submit" pill size="lg" disabled={saving}>
+          <Button type="submit" size="lg" disabled={saving}>
             {saving ? 'Salvando...' : editing ? 'Salvar' : 'Criar meta'}
           </Button>
         </div>
@@ -192,7 +192,7 @@ export function GoalEntryModal({
       closeDisabled={saving}
     >
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="rounded-[14px] bg-[var(--surface-raised)] p-4">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-4">
           <strong className="block text-[var(--foreground)]">{goal.name}</strong>
           <span className="mt-1 block text-sm text-[var(--text-muted)]">
             Progresso atual:{' '}
@@ -231,10 +231,10 @@ export function GoalEntryModal({
         {error && <Alert variant="error" message={error} />}
 
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <Button variant="outline" pill size="lg" onClick={onClose} disabled={saving}>
+          <Button variant="outline" size="lg" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
-          <Button type="submit" pill size="lg" disabled={saving}>
+          <Button type="submit" size="lg" disabled={saving}>
             {saving
               ? 'Salvando...'
               : contribution
@@ -294,11 +294,11 @@ export function GoalDetailModal({
               Histórico
             </h3>
             {!goal.entries?.length ? (
-              <p className="mt-3 rounded-[12px] bg-[var(--surface-raised)] p-4 text-sm text-[var(--text-muted)]">
+              <p className="mt-3 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-4 text-sm text-[var(--text-muted)]">
                 Nenhuma contribuição ou retirada registrada.
               </p>
             ) : (
-              <div className="mt-3 divide-y divide-[var(--border)] rounded-[14px] border border-[var(--border)]">
+              <div className="mt-3 divide-y divide-[var(--border)] rounded-[var(--radius-lg)] border border-[var(--border)]">
                 {goal.entries.map((entry) => (
                   <div
                     key={entry.id}
@@ -328,7 +328,7 @@ export function GoalDetailModal({
             )}
 
             {goal.entryHistory?.hasMore && (
-              <Button variant="outline" pill fullWidth className="mt-4" onClick={onLoadMore} disabled={loadingMore}>
+              <Button variant="outline" fullWidth className="mt-4" onClick={onLoadMore} disabled={loadingMore}>
                 {loadingMore ? 'Carregando...' : 'Carregar mais'}
               </Button>
             )}
@@ -358,10 +358,10 @@ export function SimpleConfirmModal({
     <ModalShell title={title} onClose={onClose} closeDisabled={loading}>
       <p className="text-sm leading-relaxed text-[var(--text-muted)]">{message}</p>
       <div className="mt-6 grid grid-cols-2 gap-3">
-        <Button variant="outline" pill size="lg" onClick={onClose} disabled={loading}>
+        <Button variant="outline" size="lg" onClick={onClose} disabled={loading}>
           Cancelar
         </Button>
-        <Button pill size="lg" onClick={onConfirm} disabled={loading}>
+        <Button size="lg" onClick={onConfirm} disabled={loading}>
           {loading ? 'Salvando...' : confirmLabel}
         </Button>
       </div>
@@ -371,7 +371,7 @@ export function SimpleConfirmModal({
 
 export function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
+    <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
       <span className="text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="money mt-1 block text-base text-[var(--foreground)]">{value}</strong>
     </div>
@@ -380,6 +380,6 @@ export function MiniMetric({ label, value }: { label: string; value: string }) {
 
 export function GoalSkeleton() {
   return (
-    <div className="h-72 animate-pulse rounded-[20px] border border-[var(--border)] bg-[var(--surface)]" />
+    <div className="h-72 animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" />
   );
 }

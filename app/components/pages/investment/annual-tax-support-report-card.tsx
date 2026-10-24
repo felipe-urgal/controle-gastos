@@ -75,7 +75,7 @@ export function AnnualTaxSupportReportCard({
   );
 
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -110,13 +110,13 @@ export function AnnualTaxSupportReportCard({
         </div>
       </div>
 
-      <div className="mt-3 rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
+      <div className="mt-3 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
         Documento de apoio. Não substitui nem transmite a declaração oficial à
         Receita Federal.
       </div>
 
       {error && (
-        <p className="mt-4 rounded-[12px] border border-[var(--expense)]/30 p-3 text-sm text-[var(--expense)]">
+        <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--expense)]/30 p-3 text-sm text-[var(--expense)]">
           {error}
         </p>
       )}
@@ -485,7 +485,7 @@ function statusLabel(
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[14px] bg-[var(--surface-raised)] p-4">
+    <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-4">
       <span className="text-xs font-semibold text-[var(--text-muted)]">
         {label}
       </span>
@@ -509,7 +509,7 @@ function Section({
     <section
       className={
         className +
-        ' rounded-[14px] border border-[var(--border)] p-4'
+        ' rounded-[var(--radius-lg)] border border-[var(--border)] p-4'
       }
     >
       <h3 className="text-sm font-bold text-[var(--foreground)]">{title}</h3>

@@ -1,8 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { PageContainer } from '@/app/components/base-pages';
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaPlus, FaSyncAlt } from 'react-icons/fa';
 
@@ -30,7 +29,7 @@ import { portfolioCurrencies, summarizeCurrency } from '@/app/components/pages/i
 // Áreas Fiscal/Informes e o modal de importação só carregam quando usados (dados já são sob demanda).
 function cardFallback() {
   return function CardFallback() {
-    return <div className="h-40 animate-pulse rounded-[18px] bg-[var(--skeleton)]" aria-hidden="true" />;
+    return <div className="h-40 animate-pulse rounded-[var(--radius-lg)] bg-[var(--skeleton)]" aria-hidden="true" />;
   };
 }
 const AnnualIncomeReportCard = dynamic(() => import('@/app/components/pages/investment/annual-income-report-card').then((m) => m.AnnualIncomeReportCard), { ssr: false, loading: cardFallback() });
@@ -520,19 +519,10 @@ export default function InvestmentsCenter() {
     <ProtectedRoute>
       <InvestmentFiscalYearProvider>
       <PageContainer as="section">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className={pageTitleClassName}>
-              Investimentos
-            </h1>
-            <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
-              Posições derivadas das operações, com cotação B3 sob demanda via brapi.
-            </p>
-          </div>
+        <PageTitle title="Investimentos" description="Posições derivadas das operações, com cotação B3 sob demanda via brapi." actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              pill
               icon={<FaSyncAlt className={refreshingQuotes ? 'animate-spin' : undefined} aria-hidden="true" />}
               onClick={refreshQuotes}
               disabled={!hasQuoteablePositions || refreshingQuotes}
@@ -540,7 +530,6 @@ export default function InvestmentsCenter() {
               {refreshingQuotes ? 'Atualizando...' : 'Atualizar cotações'}
             </Button>
             <Button
-              pill
               icon={<FaPlus aria-hidden="true" />}
               onClick={openOperationModal}
               disabled={
@@ -566,12 +555,12 @@ export default function InvestmentsCenter() {
               ]}
             />
           </div>
-        </header>
+        } />
 
         {error && (
           <p
             role="alert"
-            className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+            className="mt-4 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
           >
             {error}
           </p>
@@ -580,7 +569,7 @@ export default function InvestmentsCenter() {
         {quoteNotice && (
           <p
             role="status"
-            className="mt-4 rounded-[14px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]"
+            className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]"
           >
             {quoteNotice}
           </p>

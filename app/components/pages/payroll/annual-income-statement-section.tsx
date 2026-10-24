@@ -199,7 +199,7 @@ export function AnnualIncomeStatementSection({
           {feedback && (
             <div
               role="status"
-              className="mt-4 rounded-[14px] bg-[var(--success-subtle)] p-3 text-sm font-semibold text-[var(--success)]"
+              className="mt-4 rounded-[var(--radius-lg)] bg-[var(--success-subtle)] p-3 text-sm font-semibold text-[var(--success)]"
             >
               {feedback}
             </div>
@@ -208,7 +208,7 @@ export function AnnualIncomeStatementSection({
           {actionError && (
             <div
               role="alert"
-              className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+              className="mt-4 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
             >
               {actionError}
             </div>
@@ -225,7 +225,6 @@ export function AnnualIncomeStatementSection({
               />
               <Button
                 size="lg"
-                pill
                 fullWidth
                 disabled={!file || working}
                 onClick={() => void analyze()}
@@ -236,7 +235,7 @@ export function AnnualIncomeStatementSection({
             </div>
           ) : preview.requiresOcr ? (
             <div className="mt-5 space-y-4">
-              <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 text-sm">
+              <div className="rounded-[var(--radius-lg)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 text-sm">
                 <strong>OCR/revisão necessária</strong>
                 <p className="mt-1 text-[var(--text-muted)]">
                   {preview.warnings[0]}
@@ -244,7 +243,6 @@ export function AnnualIncomeStatementSection({
               </div>
               <Button
                 variant="outline"
-                pill
                 fullWidth
                 onClick={() => setPreview(null)}
                 icon={<FaRedo aria-hidden="true" />}
@@ -254,7 +252,7 @@ export function AnnualIncomeStatementSection({
             </div>
           ) : preview.statement ? (
             <div className="mt-5 space-y-4">
-              <div className="rounded-[14px] border border-[var(--border)] p-4">
+              <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4">
                 <strong className="block text-sm text-[var(--foreground)]">
                   {preview.statement.payerName}
                 </strong>
@@ -320,7 +318,7 @@ export function AnnualIncomeStatementSection({
               />
 
               {preview.statement.notes.length > 0 && (
-                <div className="rounded-[14px] bg-[var(--surface-raised)] p-3 text-xs text-[var(--text-muted)]">
+                <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-3 text-xs text-[var(--text-muted)]">
                   <strong className="text-[var(--foreground)]">
                     Informações complementares
                   </strong>
@@ -339,7 +337,7 @@ export function AnnualIncomeStatementSection({
               )}
 
               {preview.statement.errors.length > 0 && (
-                <div className="rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
+                <div className="rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
                   {preview.statement.errors.map((item) => (
                     <p key={item}>{item}</p>
                   ))}
@@ -348,7 +346,7 @@ export function AnnualIncomeStatementSection({
 
               {preview.replacementCandidates.length > 0 &&
                 !preview.statement.duplicate && (
-                  <div className="rounded-[14px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
+                  <div className="rounded-[var(--radius-lg)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
                     <strong>Retificação / substituição</strong>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">
                       Escolha o informe vigente que esta versão substitui. O
@@ -377,7 +375,7 @@ export function AnnualIncomeStatementSection({
                 )}
 
               {preview.statement.duplicate && (
-                <div className="rounded-[14px] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
+                <div className="rounded-[var(--radius-lg)] bg-[var(--surface-subtle)] p-3 text-sm text-[var(--text-muted)]">
                   Este informe já foi importado.
                 </div>
               )}
@@ -386,7 +384,6 @@ export function AnnualIncomeStatementSection({
                 <Button
                   variant="outline"
                   size="lg"
-                  pill
                   disabled={working}
                   onClick={() => setPreview(null)}
                 >
@@ -394,7 +391,6 @@ export function AnnualIncomeStatementSection({
                 </Button>
                 <Button
                   size="lg"
-                  pill
                   disabled={
                     working ||
                     preview.statement.duplicate ||
@@ -439,10 +435,10 @@ export function AnnualIncomeStatementSection({
           {loadError && (
             <div
               role="alert"
-              className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
+              className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
             >
               <span>{loadError}</span>
-              <Button variant="outline" size="sm" pill onClick={() => void retryList()}>
+              <Button variant="outline" size="sm" onClick={() => void retryList()}>
                 Atualizar lista
               </Button>
             </div>
@@ -457,7 +453,7 @@ export function AnnualIncomeStatementSection({
               Nenhum informe anual importado para {year}.
             </p>
           ) : (
-            <div className="mt-3 divide-y divide-[var(--border)] rounded-[14px] border border-[var(--border)]">
+            <div className="mt-3 divide-y divide-[var(--border)] rounded-[var(--radius-lg)] border border-[var(--border)]">
               {result.items.map((statement) => (
                 <article key={statement.id} className="p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -496,7 +492,6 @@ export function AnnualIncomeStatementSection({
                         <Button
                           variant="outline"
                           size="sm"
-                          pill
                           disabled={working}
                           onClick={() => archiveStatement(statement.id)}
                         >
@@ -528,7 +523,6 @@ export function AnnualIncomeStatementSection({
               <div className="mt-3 flex items-center justify-between gap-3">
                 <Button
                   variant="outline"
-                  pill
                   disabled={page <= 1}
                   onClick={() => {
                     setListLoading(true);
@@ -542,7 +536,6 @@ export function AnnualIncomeStatementSection({
                 </span>
                 <Button
                   variant="outline"
-                  pill
                   disabled={!result.pageInfo.hasMore}
                   onClick={() => {
                     setListLoading(true);
@@ -562,7 +555,7 @@ export function AnnualIncomeStatementSection({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[12px] bg-[var(--surface-raised)] p-3">
+    <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
       <strong className="mt-1 block break-words text-sm text-[var(--foreground)]">
         {value}
@@ -582,7 +575,7 @@ function StatementItems({
 }) {
   if (items.length === 0) return null;
   return (
-    <div className="rounded-[14px] border border-[var(--border)]">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--border)]">
       <div className="border-b border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--foreground)]">
         {title}
       </div>

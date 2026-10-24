@@ -20,7 +20,7 @@ export type MonthBarDatum = {
 export function MonthBarsChart({
   bars,
   ariaLabel,
-  accentColor = 'var(--orbit-primary)',
+  accentColor = 'var(--primary)',
   heightClass = 'h-28',
   overlay,
 }: {
@@ -63,7 +63,7 @@ export function MonthBarsChart({
         tabIndex={0}
         onKeyDown={onKeyDown}
         onPointerLeave={(event) => event.pointerType === 'mouse' && setActive(null)}
-        className={`relative grid ${heightClass} items-end gap-2 rounded-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]`}
+        className={`relative grid ${heightClass} items-end gap-2 rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]`}
         style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }}
       >
         {overlay}

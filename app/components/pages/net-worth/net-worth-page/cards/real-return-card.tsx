@@ -23,7 +23,7 @@ export function RealReturnCard({
           : null;
 
   return (
-    <article className="min-w-0 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -45,19 +45,19 @@ export function RealReturnCard({
       <dl
         className={`mt-4 grid gap-3 sm:grid-cols-2 ${data.currency === 'BRL' ? 'xl:grid-cols-5' : 'xl:grid-cols-3'}`}
       >
-        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Patrimônio inicial</dt>
           <dd className="mt-1 font-bold text-[var(--foreground)]">
             <span className="money font-semibold">{displayMoney(data.initial, showValues, data.currency)}</span>
           </dd>
         </div>
-        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Patrimônio final</dt>
           <dd className="mt-1 font-bold text-[var(--foreground)]">
             <span className="money">{displayMoney(data.current, showValues, data.currency)}</span>
           </dd>
         </div>
-        <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+        <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Variação nominal</dt>
           <dd className="mt-1 font-bold text-[var(--foreground)]">
             {displayPercent(data.nominalPercentage, showValues)}
@@ -65,15 +65,15 @@ export function RealReturnCard({
         </div>
         {data.currency === 'BRL' && (
           <>
-            <div className="rounded-[14px] bg-[var(--surface-raised)] p-3">
+            <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-3">
               <dt className="text-xs text-[var(--text-muted)]">IPCA do período</dt>
               <dd className="mt-1 font-bold text-[var(--foreground)]">
                 {displayPercent(summary.inflation.percentage, showValues)}
               </dd>
             </div>
-            <div className="rounded-[14px] bg-[var(--orbit-primary-subtle)] p-3">
-              <dt className="text-xs font-semibold text-[var(--orbit-primary)]">Evolução real</dt>
-              <dd className="money mt-1 text-lg font-semibold text-[var(--orbit-primary)]">
+            <div className="rounded-[var(--radius-lg)] bg-[var(--primary-subtle)] p-3">
+              <dt className="text-xs font-semibold text-[var(--primary)]">Evolução real</dt>
+              <dd className="money mt-1 text-lg font-semibold text-[var(--primary)]">
                 {displayPercent(data.realPercentage, showValues)}
               </dd>
             </div>
@@ -82,7 +82,7 @@ export function RealReturnCard({
       </dl>
 
       {statusMessage && (
-        <p className="mt-3 rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs text-[var(--text-muted)]">
+        <p className="mt-3 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3 text-xs text-[var(--text-muted)]">
           {statusMessage}
         </p>
       )}

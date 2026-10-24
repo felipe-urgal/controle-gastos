@@ -1,33 +1,28 @@
 import type { ReactNode } from 'react';
 
-/** Título (`h1`) de página: única escala permitida (guardrail em scripts/__tests__). */
-export const pageTitleClassName =
-  'text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl';
+import PageBar from '@/app/components/base-pages/page-bar';
+import { pageTitleClassName } from '@/app/components/base-pages/page-title-classes';
 
-/** Título (`h1`) de barra de app mobile (voltar + título); o chamador define o alinhamento. */
-export const appBarTitleClassName =
-  'min-w-0 flex-1 truncate text-xl font-bold tracking-tight text-[var(--foreground)]';
+export { pageTitleClassName, appBarTitleClassName } from '@/app/components/base-pages/page-title-classes';
 
 export default function PageTitle({
-  eyebrow,
   title,
   description,
   actions,
+  sidebarAligned = false,
 }: {
-  eyebrow?: string;
   title: string;
   description?: string;
   actions?: ReactNode;
+  /** Faixa fixa encostada na sidebar (`PageBar`); ignora a descrição. */
+  sidebarAligned?: boolean;
 }) {
+  if (sidebarAligned) return <PageBar crumbs={[{ label: title }]} actions={actions} />;
+
   return (
-    <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+    <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        {eyebrow && (
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--orbit-primary)]">
-            {eyebrow}
-          </p>
-        )}
-        <h1 className={`mt-1 ${pageTitleClassName}`}>
+        <h1 className={pageTitleClassName}>
           {title}
         </h1>
         {description && (

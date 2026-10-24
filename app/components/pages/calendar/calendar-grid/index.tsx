@@ -43,7 +43,7 @@ export default function CalendarGrid({
         {Array.from({ length: 35 }).map((_, index) => (
           <div
             key={index}
-            className="min-h-11 animate-pulse rounded-[9px] bg-[var(--surface-subtle)]"
+            className="min-h-11 animate-pulse rounded-[var(--radius-md)] bg-[var(--surface-subtle)]"
           />
         ))}
       </div>
@@ -68,7 +68,7 @@ export default function CalendarGrid({
           aria-hidden="true"
           className={
             compact
-              ? 'min-h-11 rounded-[9px]'
+              ? 'min-h-11 rounded-[var(--radius-md)]'
               : 'border-b border-r border-[var(--border)] bg-[var(--surface-raised)]'
           }
         />
@@ -150,11 +150,11 @@ export default function CalendarGrid({
               aria-label={`${visibleDateLabel}. ${dateLabel}. ${summaryParts.join('. ')}.`}
               aria-pressed={selected}
               aria-current={day.isToday ? 'date' : undefined}
-              className={`relative min-h-11 min-w-0 rounded-[9px] border px-1 py-1 text-center transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+              className={`relative min-h-11 min-w-0 rounded-[var(--radius-md)] border px-1 py-1 text-center transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
                 selected
-                  ? 'border-[var(--orbit-primary)] bg-[var(--primary-subtle)] text-[var(--foreground)]'
+                  ? 'border-[var(--primary)] bg-[var(--primary-subtle)] text-[var(--foreground)]'
                   : day.isToday
-                    ? 'border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--orbit-primary)]'
+                    ? 'border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--primary)]'
                     : 'border-transparent text-[var(--foreground)] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]'
               }`}
             >
@@ -172,7 +172,7 @@ export default function CalendarGrid({
                   <span className="h-1 w-1 rounded-full bg-[var(--expense)]" />
                 )}
                 {hasTransfer && (
-                  <span className="h-1 w-1 rotate-45 bg-[var(--orbit-primary)]" />
+                  <span className="h-1 w-1 rotate-45 bg-[var(--primary)]" />
                 )}
                 {pendingCount > 0 && (
                   <span className="h-1 w-1 rounded-full bg-[var(--warning)]" />
@@ -241,7 +241,7 @@ export default function CalendarGrid({
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--expense)]" />
                   )}
                   {hasTransfer && (
-                    <span className="h-1.5 w-1.5 rotate-45 bg-[var(--orbit-primary)]" />
+                    <span className="h-1.5 w-1.5 rotate-45 bg-[var(--primary)]" />
                   )}
                   {pendingCount > 0 && (
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--warning)]" />
@@ -263,7 +263,7 @@ export default function CalendarGrid({
                     </span>
                   ))}
                   {transferCount > 0 && (
-                    <span className="rounded bg-[var(--orbit-primary-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--orbit-primary)]">
+                    <span className="rounded bg-[var(--primary-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--primary)]">
                       T{transferCount}
                     </span>
                   )}

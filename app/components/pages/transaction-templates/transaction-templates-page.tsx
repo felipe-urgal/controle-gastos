@@ -446,13 +446,10 @@ export default function TransactionTemplatesPage({
     <ProtectedRoute>
     <PageContainer>
       <PageTitle
-        eyebrow="Atalhos"
         title="Modelos de lançamento"
         description="Um modelo só preenche uma nova transação. Nada é lançado sem a sua confirmação."
         actions={
           <Button
-            variant="accent"
-            size="sm"
             icon={<FaPlus aria-hidden="true" />}
             onClick={() => {
               resetForm();
@@ -497,7 +494,7 @@ export default function TransactionTemplatesPage({
             />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[13px] text-[var(--text-muted)]">
+            <span className="text-sm text-[var(--text-muted)]">
               {templateTotal} {templateTotal === 1 ? 'modelo' : 'modelos'}
             </span>
             {templateError && (
@@ -513,7 +510,7 @@ export default function TransactionTemplatesPage({
         ) : templatesLoading ? (
           <p className="text-sm text-[var(--text-muted)]">Carregando…</p>
         ) : items.length === 0 ? (
-          <div className="grid justify-items-center gap-2.5 rounded-[16px] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center">
+          <div className="grid justify-items-center gap-2.5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center">
             <h3 className="text-lg font-bold">
               {debouncedTemplateSearch ? 'Nenhum modelo encontrado' : 'Nenhum modelo criado'}
             </h3>
@@ -524,7 +521,6 @@ export default function TransactionTemplatesPage({
             </p>
             {!debouncedTemplateSearch && (
               <Button
-                variant="accent"
                 icon={<FaPlus aria-hidden="true" />}
                 onClick={() => {
                   resetForm();
@@ -582,7 +578,7 @@ export default function TransactionTemplatesPage({
           closeDisabled={saving}
           footer={
             <div className="grid gap-2">
-              <Button type="submit" form="transaction-template-form" variant="accent" fullWidth disabled={submitDisabled}>
+              <Button type="submit" form="transaction-template-form" fullWidth disabled={submitDisabled}>
                 {submitLabel}
               </Button>
               <Button variant="outline" fullWidth disabled={saving} onClick={resetForm}>

@@ -88,7 +88,7 @@ async function getRecentDashboardTransactionsForUser(
         },
       },
       OR: [
-        { kind: { not: 'TRANSFER' } },
+        { kind: { notIn: ['TRANSFER', 'OPENING_BALANCE'] } },
         { kind: 'TRANSFER', transferRole: 'SOURCE' },
       ],
     },

@@ -75,7 +75,7 @@ export function SafeToSpendHero({
     ? [
         { label: 'Saldo realizado', value: money(safeToSpend.realizedBalance), sign: '', color: 'var(--text-subtle)' },
         { label: 'Pendências conhecidas', value: money(safeToSpend.pendingExpenses), sign: safeToSpend.pendingExpenses > 0 ? '− ' : '', color: 'var(--warning)' },
-        { label: 'Faturas em aberto', value: money(safeToSpend.cardCommitments), sign: safeToSpend.cardCommitments > 0 ? '− ' : '', color: 'var(--orbit-primary)' },
+        { label: 'Faturas em aberto', value: money(safeToSpend.cardCommitments), sign: safeToSpend.cardCommitments > 0 ? '− ' : '', color: 'var(--primary)' },
         ...(safeToSpend.transferNet !== 0
           ? [{ label: 'Transferências', value: money(Math.abs(safeToSpend.transferNet)), sign: safeToSpend.transferNet > 0 ? '+ ' : '− ', color: 'var(--info)' }]
           : []),
@@ -86,7 +86,7 @@ export function SafeToSpendHero({
     ? [
         { key: 'free', value: Math.max(safeToSpend.safeToSpend, 0), color: 'var(--income)' },
         { key: 'pending', value: safeToSpend.pendingExpenses, color: 'var(--warning)' },
-        { key: 'cards', value: safeToSpend.cardCommitments, color: 'var(--orbit-primary)' },
+        { key: 'cards', value: safeToSpend.cardCommitments, color: 'var(--primary)' },
       ].filter((part) => part.value > 0)
     : [];
 
@@ -98,7 +98,7 @@ export function SafeToSpendHero({
 
   return (
     <section
-      className="flex flex-col rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
+      className="flex flex-col rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
       aria-labelledby="dashboard-hero-title"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -116,7 +116,7 @@ export function SafeToSpendHero({
         <div className="mt-2 space-y-4">
           <div className="flex flex-wrap items-end gap-x-7 gap-y-3">
             <strong
-              className={`block money text-[2.25rem] font-semibold leading-none tracking-[-0.035em] tabular-nums sm:text-5xl ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}
+              className={`block money text-4xl font-semibold leading-none tracking-[-0.035em] tabular-nums sm:text-5xl ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}
             >
               <span className="money">{money(safeToSpend.safeToSpend)}</span>
             </strong>
@@ -144,7 +144,7 @@ export function SafeToSpendHero({
           )}
 
           <details className="group">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
               Como chegamos nesse valor
               <FaChevronDown className="text-xs transition-transform group-open:rotate-180" aria-hidden="true" />
             </summary>
@@ -155,7 +155,7 @@ export function SafeToSpendHero({
                     <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: row.color }} aria-hidden="true" />
                     {row.label}
                   </dt>
-                  <dd className="money text-[0.8125rem] font-medium tabular-nums text-[var(--foreground)]">{row.sign}{row.value}</dd>
+                  <dd className="money text-sm font-medium tabular-nums text-[var(--foreground)]">{row.sign}{row.value}</dd>
                 </div>
               ))}
             </dl>
@@ -163,7 +163,7 @@ export function SafeToSpendHero({
               Receitas futuras não entram na conta; metas e dívidas só contam quando já viraram compromisso. Saldo de {cashAccounts.length} {cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}.
             </p>
             <div className="flex flex-wrap gap-x-5">
-              <Link href="/contas" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]">Ver contas</Link>
+              <Link href="/contas" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]">Ver contas</Link>
               <Button type="button" size="sm" variant="ghost" onClick={onOpenForecast} disabled={!forecastEnabled}>
                 Ver projeção dos próximos 30 dias
               </Button>

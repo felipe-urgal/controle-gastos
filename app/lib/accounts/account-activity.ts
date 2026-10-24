@@ -62,7 +62,7 @@ export async function getAccountActivity(args: {
 
   const [dailyRows, pendingRows] = await Promise.all([
     prisma.transaction.groupBy({
-      by: ["year", "month", "day", "type"],
+      by: ["year", "month", "day", "type", "kind"],
       where: { userId, accountId, status: "COMPLETED", OR: months },
       _sum: { amount: true },
     }),
@@ -82,7 +82,8 @@ export async function getAccountActivity(args: {
     const amount = row._sum.amount ?? 0;
     const date = { year: row.year, month: row.month, day: row.day };
 
-    if (row.year === asOf.year && row.month === asOf.month) {
+    // O saldo inicial entra na evolução do saldo, mas não é "entrou" nem "saiu" do mês.
+    if (row.year === asOf.year && row.month === asOf.month && row.kind !== "OPENING_BALANCE") {
       if (row.type === "INCOME") monthIncome += amount;
       else monthExpense += amount;
     }

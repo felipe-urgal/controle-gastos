@@ -458,14 +458,14 @@ export default function New({
           <p className="font-bold">Revisar lançamento pendente</p>
           <p className="mt-1">Motivo: {reviewingQueueItem.lastError || reviewingQueueItem.errorCode || 'Rejeição pelo servidor'}</p>
           <p className="mt-1">Confira conta, categoria, tags e estabelecimento. Alterar os dados cria uma nova tentativa com outra chave; o lançamento não será enviado automaticamente.</p>
-          <Button variant="outline" size="xs" pill className="mt-3" onClick={() => { setReviewingQueueItem(null); setInitialValues(undefined); setFormRevision((current) => current + 1); }}>Cancelar revisão</Button>
+          <Button variant="outline" size="xs" className="mt-3" onClick={() => { setReviewingQueueItem(null); setInitialValues(undefined); setFormRevision((current) => current + 1); }}>Cancelar revisão</Button>
         </section>
       )}
 
       {offlineDraft && canUseOfflineDraft && !isTransfer && (
         <section
           role="status"
-          className="mt-4 rounded-[var(--radius-lg)] border border-[var(--orbit-primary)]/35 bg-[var(--orbit-primary-subtle)] p-4"
+          className="mt-4 rounded-[var(--radius-lg)] border border-[var(--primary)]/35 bg-[var(--primary-subtle)] p-4"
           aria-label="Rascunho offline"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -501,14 +501,14 @@ export default function New({
 
             <div className="flex shrink-0 flex-wrap gap-2">
               {loadedOfflineDraftId !== offlineDraft.id && (
-                <Button variant="accent" pill size="sm"
+                <Button size="sm"
                   type="button"
                   onClick={continueOfflineDraft}
                 >
                   Continuar rascunho
                 </Button>
               )}
-              <Button variant="outline" size="sm" pill onClick={discardOfflineDraft}>
+              <Button variant="outline" size="sm" onClick={discardOfflineDraft}>
                 Descartar
               </Button>
             </div>

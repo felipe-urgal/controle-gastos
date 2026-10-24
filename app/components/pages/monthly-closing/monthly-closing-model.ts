@@ -13,7 +13,7 @@ const MONTH_NAMES = [
 export type ClosingTone = 'good' | 'bad' | 'flat';
 
 export type ClosingTodoItem = {
-  key: 'pending' | 'reconciliation' | 'statements';
+  key: 'pending' | 'statements';
   ok: boolean;
   title: string;
   detail: string;
@@ -120,9 +120,7 @@ export function buildTodoItems({
   pendingHref: string;
 }): ClosingTodoItem[] {
   const pending = readiness.pendingTransactions;
-  const reconciliation = readiness.reconciliation;
   const statements = readiness.cardStatements;
-  const unreconciled = reconciliation.accounts.filter((account) => account.status !== 'RECONCILED');
   const toReview = statements.items.filter((statement) => statement.state !== 'PAID');
 
   return [
@@ -136,22 +134,6 @@ export function buildTodoItems({
           : 'Só entram no saldo quando forem concluídos: + ' + money(pending.income.amount) + ' e − ' + money(pending.expense.amount) + '.',
       actionLabel: 'Revisar pendências',
       href: pendingHref,
-    },
-    {
-      key: 'reconciliation',
-      ok: unreconciled.length === 0,
-      title:
-        reconciliation.accountCount === 0
-          ? 'Nenhuma conta exige conciliação'
-          : 'Conciliação: ' + reconciliation.reconciledCount + ' de ' + reconciliation.accountCount + ' conta(s) em dia',
-      detail:
-        unreconciled.length === 0
-          ? 'As contas cobrem o fim do período.'
-          : unreconciled
-              .map((account) => account.accountName + (account.unreconciledCount > 0 ? ' tem ' + account.unreconciledCount + ' sem conciliar' : ' nunca foi conciliada'))
-              .join(' · '),
-      actionLabel: 'Conciliar',
-      href: unreconciled[0]?.href ?? '/contas',
     },
     {
       key: 'statements',

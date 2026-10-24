@@ -115,39 +115,39 @@ export default function OfflineQueuePanel({
 
               <div className="flex shrink-0 flex-wrap gap-2">
                 {item.status === 'synced' ? (
-                  <Button size="xs" pill variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
+                  <Button size="xs" variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
                     Limpar
                   </Button>
                 ) : item.failureKind === 'auth' ? (
                   <>
-                    <Button size="xs" pill variant="accent" onClick={reauthenticateForQueue} disabled={Boolean(queueSyncingId)}>
+                    <Button size="xs" onClick={reauthenticateForQueue} disabled={Boolean(queueSyncingId)}>
                       Entrar novamente
                     </Button>
-                    <Button size="xs" pill variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
+                    <Button size="xs" variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
                       Descartar
                     </Button>
                   </>
                 ) : item.failureKind === 'idempotency_conflict' && item.errorCode === 'IDEMPOTENCY_PAYLOAD_CONFLICT' ? (
                   <>
-                    <Button size="xs" pill variant="accent" onClick={() => resolveConflictAsNew(item)} disabled={!isOnline || Boolean(queueSyncingId)}>
+                    <Button size="xs" onClick={() => resolveConflictAsNew(item)} disabled={!isOnline || Boolean(queueSyncingId)}>
                       Criar como novo
                     </Button>
-                    <Button size="xs" pill variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
+                    <Button size="xs" variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
                       Descartar
                     </Button>
                   </>
                 ) : (
                   <>
                     {(item.failureKind === 'validation' || item.failureKind === 'business_conflict') ? (
-                      <Button size="xs" pill variant="accent" onClick={() => reviewQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
+                      <Button size="xs" onClick={() => reviewQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
                         Revisar
                       </Button>
                     ) : (
-                    <Button size="xs" pill variant="accent" onClick={() => syncQueuedTransaction(item)} disabled={!isOnline || Boolean(queueSyncingId) || Boolean(item.retryAfterAt && now < Date.parse(item.retryAfterAt))}>
+                    <Button size="xs" onClick={() => syncQueuedTransaction(item)} disabled={!isOnline || Boolean(queueSyncingId) || Boolean(item.retryAfterAt && now < Date.parse(item.retryAfterAt))}>
                       {queueSyncingId === item.id ? 'Sincronizando...' : 'Sincronizar'}
                     </Button>
                     )}
-                    <Button size="xs" pill variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
+                    <Button size="xs" variant="outline" onClick={() => discardQueuedTransaction(item)} disabled={Boolean(queueSyncingId)}>
                       Descartar
                     </Button>
                   </>

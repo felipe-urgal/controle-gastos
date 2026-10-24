@@ -107,11 +107,10 @@ export default function RecurrencesCenter() {
     <ProtectedRoute>
       <PageContainer as="section">
         <PageTitle
-          eyebrow="Planejamento"
           title="Recorrências e assinaturas"
           description="Acompanhe séries cadastradas e revise padrões detectados antes de transformá-los em recorrências."
           actions={
-            <Button as="a" href="/transacoes/nova" variant="outline" pill size="sm" icon={<FaArrowRight aria-hidden="true" />} iconPosition="right">
+            <Button as="a" href="/transacoes/nova" variant="outline" size="sm" icon={<FaArrowRight aria-hidden="true" />} iconPosition="right">
               Nova transação
             </Button>
           }
@@ -176,13 +175,13 @@ export default function RecurrencesCenter() {
               />
             </div>
 
-            <details className="group rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
+            <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
               <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between px-4 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
                 Qual a diferença entre recorrência e assinatura?
                 <span className="text-lg text-[var(--text-muted)] group-open:hidden" aria-hidden="true">+</span>
                 <span className="hidden text-lg text-[var(--text-muted)] group-open:inline" aria-hidden="true">−</span>
               </summary>
-              <div className="grid max-w-[78ch] gap-2.5 px-4 pb-5 text-[13px] text-[var(--text-muted)] sm:px-5">
+              <div className="grid max-w-[78ch] gap-2.5 px-4 pb-5 text-sm text-[var(--text-muted)] sm:px-5">
                 <p><strong className="text-[var(--foreground)]">Recorrência</strong> é o mecanismo que cria lançamentos futuros. Só nasce de uma ação explícita sua e é a única que entra no custo fixo.</p>
                 <p><strong className="text-[var(--foreground)]">Assinatura</strong> é uma classificação detectada do histórico. Serve para acompanhar preços e cobranças; não cria lançamentos sozinha.</p>
                 <p><strong className="text-[var(--foreground)]">Cada moeda é calculada separada.</strong> Candidatos não entram nos totais até serem confirmados.</p>

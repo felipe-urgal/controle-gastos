@@ -55,7 +55,7 @@ function SidebarLink({
       title={collapsed ? item.label : undefined}
       className={`
         group relative flex min-h-10 items-center rounded-[var(--radius-md)] py-2
-        text-[0.9375rem] font-medium transition-[background-color,color] duration-150
+        text-sm font-medium transition-[background-color,color] duration-150
         focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]
         ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}
         ${
@@ -136,7 +136,7 @@ export default function AppSidebar({
       aria-label="Navegação principal"
       className="orbit-navigation-surface fixed inset-y-0 left-0 z-[var(--z-header)] hidden w-[var(--app-sidebar-current-width)] flex-col border-r border-[var(--border)] lg:flex"
     >
-      <div className={`flex h-[68px] items-center border-b border-[var(--border)] ${collapsed ? 'px-2' : 'px-4'}`}>
+      <div className={`flex h-[var(--app-sidebar-header-height)] items-center border-b border-[var(--border)] ${collapsed ? 'px-2' : 'px-4'}`}>
         <button
           type="button"
           onClick={onToggleCollapsed}

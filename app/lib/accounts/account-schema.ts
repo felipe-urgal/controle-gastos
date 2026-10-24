@@ -73,8 +73,19 @@ export const createAccountSchema = accountBaseSchema
   .extend({
     currency: accountBaseSchema.shape.currency.default("BRL"),
     isActive: accountBaseSchema.shape.isActive.default(true),
+    /** Saldo inicial em centavos (negativo = saldo devedor); vira um lançamento de abertura. Não se aplica a cartão. */
+    openingBalance: z.number().int().min(-MAX_CENTS).max(MAX_CENTS).optional(),
   })
-  .superRefine(validateCreditCardFields);
+  .superRefine(validateCreditCardFields)
+  .superRefine((data, context) => {
+    if (data.type === "CREDIT_CARD" && data.openingBalance) {
+      context.addIssue({
+        code: "custom",
+        path: ["openingBalance"],
+        message: "Saldo inicial não se aplica a cartão de crédito",
+      });
+    }
+  });
 
 export const updateAccountSchema = accountBaseSchema.partial();
 

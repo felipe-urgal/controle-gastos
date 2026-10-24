@@ -93,10 +93,10 @@ export default function EditSeriesModal({
         )}
 
         <div className="flex flex-wrap justify-end gap-2 pt-1">
-          <Button variant="outline" pill size="sm" onClick={onClose} disabled={saving}>
+          <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
-          <Button variant="accent" pill size="sm" type="submit" disabled={saving || description.trim().length < 2}>
+          <Button size="sm" type="submit" disabled={saving || description.trim().length < 2}>
             {saving ? 'Salvando…' : 'Salvar série'}
           </Button>
         </div>

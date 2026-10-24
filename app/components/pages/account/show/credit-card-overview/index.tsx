@@ -1,6 +1,7 @@
 'use client';
 
 import { ShowBelow } from '@/app/components/ui';
+import AccountAppBarActions from '@/app/components/pages/account/show/account-app-bar-actions';
 import { Button, Chip, Input, Select } from '@/app/components/ui';
 import {
   closingDistanceLabel,
@@ -10,16 +11,14 @@ import {
   pickStatementToPay,
   usagePercent,
 } from '@/app/components/pages/account/show/credit-card-overview/card-show-model';
-import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
+import { MobileAppBar } from '@/app/components/layout';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  FaArrowLeft,
   FaCalendarAlt,
   FaCheckCircle,
   FaChevronRight,
   FaCreditCard,
-  FaPen,
 } from 'react-icons/fa';
 
 import { ModalShell } from '@/app/components/overlays/modal-shell';
@@ -62,6 +61,9 @@ interface CreditCardOverviewProps {
   editUrl: string;
   isDeleting: boolean;
   onDeleteRequest: () => void;
+  onToggleActive: () => void;
+  isUpdatingStatus: boolean;
+  statusError: string | null;
 }
 
 export default function CreditCardOverview({
@@ -70,6 +72,9 @@ export default function CreditCardOverview({
   editUrl,
   isDeleting,
   onDeleteRequest,
+  onToggleActive,
+  isUpdatingStatus,
+  statusError,
 }: CreditCardOverviewProps) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
@@ -219,7 +224,6 @@ export default function CreditCardOverview({
         <p className="font-semibold text-[var(--expense)]">{error || 'Não foi possível carregar o cartão.'}</p>
         <Button
           variant="outline"
-          pill
           className="mt-4"
           onClick={() => {
             setLoading(true);
@@ -238,7 +242,7 @@ export default function CreditCardOverview({
   const focus = toPay ?? data.current;
   const percent = usagePercent(data.card);
   const tone = limitTone(data.card);
-  const meterTone = { ok: 'bg-[var(--orbit-primary)]', near: 'bg-[var(--warning)]', over: 'bg-[var(--expense)]' } as const;
+  const meterTone = { ok: 'bg-[var(--primary)]', near: 'bg-[var(--warning)]', over: 'bg-[var(--expense)]' } as const;
   const tabs: Array<{ key: CardTab; label: string }> = [
     { key: 'current', label: 'Fatura atual' },
     ...(data.future.length > 0 ? [{ key: 'future' as const, label: 'Próximas faturas' }] : []),
@@ -248,34 +252,36 @@ export default function CreditCardOverview({
   return (
     <div className={`w-full space-y-4 pb-5 transition-opacity ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
-        <div className="flex items-center justify-between gap-3">
-          <Link
-            href={backUrl}
-            aria-label="Voltar para contas"
-            className="grid h-11 w-11 place-items-center rounded-full text-[var(--foreground)]"
-          >
-            <FaArrowLeft aria-hidden="true" />
-          </Link>
-          <h1 className={`text-center ${appBarTitleClassName}`}>
-            {account.name}
-          </h1>
-          <Link
-            href={editUrl}
-            aria-label="Editar cartão"
-            className="grid h-11 w-11 place-items-center rounded-full text-[var(--orbit-primary)]"
-          >
-            <FaPen aria-hidden="true" />
-          </Link>
-        </div>
+        <MobileAppBar
+          title={account.name}
+          backHref={backUrl}
+          backLabel="Voltar para contas"
+          action={
+            <AccountAppBarActions
+              editUrl={editUrl}
+              isActive={account.isActive}
+              isDeletable={account.isDeletable !== false}
+              busy={isUpdatingStatus || isDeleting}
+              onToggleActive={onToggleActive}
+              onDeleteRequest={onDeleteRequest}
+            />
+          }
+        />
       </ShowBelow>
+
+      {statusError && (
+        <p role="alert" className="rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm text-[var(--expense)]">
+          {statusError}
+        </p>
+      )}
 
       <section
         aria-label="Resumo do cartão"
-        className="grid gap-5 rounded-[20px] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
-        style={{ ['--account-color' as string]: account.color || 'var(--orbit-primary)' }}
+        className="grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+        style={{ ['--account-color' as string]: account.color || 'var(--primary)' }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[14px] text-white" style={{ backgroundColor: account.color || 'var(--orbit-primary)' }} aria-hidden="true">
+          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white" style={{ backgroundColor: account.color || 'var(--primary)' }} aria-hidden="true">
             <FaCreditCard />
           </span>
           <div className="min-w-0">
@@ -291,7 +297,7 @@ export default function CreditCardOverview({
             <p className="text-sm font-semibold text-[var(--text-muted)]">
               {toPay ? `Fatura para pagar · ${dueDistanceLabel(toPay.dueDate, today)}` : `Fatura atual · ${closingDistanceLabel(data.current.closingDate, today)}`}
             </p>
-            <strong className="money mt-1 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl">
+            <strong className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl">
               {money(focus.total)}
             </strong>
             <p className="mt-2 text-sm text-[var(--text-muted)]">
@@ -314,31 +320,14 @@ export default function CreditCardOverview({
           </div>
         </div>
 
-        <nav aria-label="Ações do cartão" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {toPay ? (
-            <Button type="button" variant="accent" size="xs" className="w-full" onClick={() => openPayment(toPay)}>
-              Pagar fatura
-            </Button>
-          ) : (
-            <Button as="a" href="/transacoes/nova" variant="accent" size="xs" className="w-full">
-              Lançar compra
-            </Button>
-          )}
-          {toPay && (
-            <Button as="a" href="/transacoes/nova" variant="outline" size="xs" className="w-full">
-              Lançar compra
-            </Button>
-          )}
-          <Button as="a" href={`/transacoes?accountId=${encodeURIComponent(account.id)}`} variant="outline" size="xs" className="w-full">
-            Compras
+        {toPay && (
+          <Button type="button" size="xs" className="w-full" onClick={() => openPayment(toPay)}>
+            Pagar fatura
           </Button>
-          <Button as="a" href={editUrl} variant="outline" size="xs" className="w-full">
-            Editar
-          </Button>
-        </nav>
+        )}
       </section>
 
-      <section className="overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
+      <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
         <div className="flex flex-wrap gap-2 px-4 pb-3 pt-4 sm:px-5" role="group" aria-label="Faturas">
           {tabs.map((item) => (
             <Chip key={item.key} selected={tab === item.key} onClick={() => setTab(item.key)}>
@@ -413,18 +402,6 @@ export default function CreditCardOverview({
         )}
       </section>
 
-      <details className="group rounded-[16px] border border-[var(--border)] bg-[var(--surface)]">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center px-4 text-sm text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
-          Zona de risco
-        </summary>
-        <div className="grid gap-3 px-4 pb-4 text-sm text-[var(--text-muted)] sm:px-5">
-          <p>Inativar guarda o histórico e tira o cartão dos lançamentos novos. Excluir só é possível quando o cartão não tem movimentações.</p>
-          <div className="flex flex-wrap gap-2">
-            <Button as="a" href={editUrl} variant="outline" size="sm">Inativar cartão</Button>
-            <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest}>Excluir cartão</Button>
-          </div>
-        </div>
-      </details>
 
       {payingStatement && (
         <ModalShell
@@ -435,10 +412,10 @@ export default function CreditCardOverview({
           maxWidthClass="max-w-md"
           footer={
     <div className="grid grid-cols-2 gap-3">
-      <Button variant="outline" pill size="lg" onClick={closePayment} disabled={isPaying}>
+      <Button variant="outline" size="lg" onClick={closePayment} disabled={isPaying}>
         Cancelar
       </Button>
-      <Button pill size="lg" onClick={() => void payStatement()} disabled={isPaying || loadingPaymentAccounts || Boolean(paymentAccountsError) || !sourceAccountId}>
+      <Button size="lg" onClick={() => void payStatement()} disabled={isPaying || loadingPaymentAccounts || Boolean(paymentAccountsError) || !sourceAccountId}>
         {isPaying ? 'Pagando...' : 'Confirmar'}
       </Button>
     </div>
@@ -474,11 +451,10 @@ export default function CreditCardOverview({
           />
 
           {paymentAccountsError ? (
-            <div className="rounded-[12px] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] p-3 text-sm">
+            <div className="rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] p-3 text-sm">
               <p className="font-semibold text-[var(--expense)]">{paymentAccountsError}</p>
               <Button
                 variant="outline"
-                pill
                 size="sm"
                 className="mt-2"
                 onClick={() => void loadPaymentAccounts()}
@@ -488,7 +464,7 @@ export default function CreditCardOverview({
               </Button>
             </div>
           ) : paymentAccounts.length === 0 && !loadingPaymentAccounts ? (
-            <p className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
+            <p className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
               Cadastre uma conta ativa em {account.currency} para registrar o pagamento.
             </p>
           ) : null}
@@ -561,7 +537,7 @@ function CurrentStatementPanel({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3 sm:px-5">
-        <Link href={`/transacoes?accountId=${encodeURIComponent(accountId)}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]">
+        <Link href={`/transacoes?accountId=${encodeURIComponent(accountId)}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]">
           {statement.transactionCount > visible.length ? 'Ver todas as compras' : 'Ver no extrato'}
         </Link>
         {payable && (

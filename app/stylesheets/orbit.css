@@ -1,34 +1,16 @@
 .authenticated-shell {
-  --orbit-primary: #9f8bfb;
-  --orbit-primary-hover: #8b76f0;
-  --orbit-primary-subtle: #221b3a;
-  --orbit-on-primary: #180f2e;
-  --orbit-focus: #c4b5fd;
-
-  --orbit-navigation-surface: #0b1017;
-  --orbit-navigation-raised: #121a24;
+  --orbit-navigation-surface: #0a0d15;
+  --orbit-navigation-raised: #111626;
   --orbit-page-padding-inline: 1rem;
   --orbit-page-padding-block: 1.5rem;
 }
 
 [data-theme="light"] .authenticated-shell {
-  --orbit-primary: #6d28d9;
-  --orbit-primary-hover: #5b21b6;
-  --orbit-primary-subtle: #ede9fe;
-  --orbit-on-primary: #ffffff;
-  --orbit-focus: #6d28d9;
-
-  --orbit-navigation-surface: #fcfbff;
-  --orbit-navigation-raised: #f4f1fe;
+  --orbit-navigation-surface: #fbfbfe;
+  --orbit-navigation-raised: #eef0f8;
 }
 
 .authenticated-shell .orbit-navigation-surface {
-  --primary: var(--orbit-primary);
-  --primary-hover: var(--orbit-primary-hover);
-  --primary-subtle: var(--orbit-primary-subtle);
-  --on-primary: var(--orbit-on-primary);
-  --focus: var(--orbit-focus);
-
   background: var(--orbit-navigation-surface);
 }
 

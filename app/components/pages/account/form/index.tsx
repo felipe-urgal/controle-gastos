@@ -1,8 +1,6 @@
 'use client';
 
-import { FaArrowLeft } from 'react-icons/fa';
-
-import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
+import { MobileAppBar } from '@/app/components/layout';
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { AccountFormCard } from '@/app/components/pages/account/form/account-form-card';
 import {
@@ -10,14 +8,11 @@ import {
   accountStructureLock,
   accountTypeCards,
 } from '@/app/components/pages/account/form/account-form-model';
-import { ActiveToggle, Chip, IconButton, Input, ShowBelow } from '@/app/components/ui';
+import { ActiveToggle, Chip, Input, ShowBelow } from '@/app/components/ui';
 import { useAccountForm } from '@/app/hooks/accounts/use-account-form';
 import { ACCOUNT_DESCRIPTION_MAX_LENGTH } from '@/app/lib/constants/account.constants';
 import { AccountFormProps } from '@/app/lib/interface/accounts.interface';
 import type { AccountType } from '@/app/types/account';
-
-const orbitSelectionTokens =
-  '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
 
 export default function AccountForm({ account, isEditing }: AccountFormProps) {
   const { formData, setFormData, submitError, setSubmitError, isSubmitting, handleSubmit, handleRedirect } =
@@ -35,19 +30,15 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
   }
 
   return (
-    <div className={`w-full ${orbitSelectionTokens}`}>
+    <div className="w-full">
       <ShowBelow breakpoint="lg">
-        <header className="mb-4 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
-          <IconButton
-            label="Voltar"
-            icon={<FaArrowLeft />}
-            onClick={handleRedirect}
-            disabled={loading}
-            className="rounded-full text-lg text-[var(--foreground)]"
+        <div className="mb-4">
+          <MobileAppBar
+            title={isEditing ? 'Editar conta' : 'Nova conta'}
+            onBack={handleRedirect}
+            backDisabled={loading}
           />
-          <h1 className={`text-center ${appBarTitleClassName}`}>{isEditing ? 'Editar conta' : 'Nova conta'}</h1>
-          <span aria-hidden="true" />
-        </header>
+        </div>
 
       </ShowBelow>
 
@@ -58,6 +49,8 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         onClearError={() => setSubmitError(null)}
         className="gap-5"
       >
+        {!lock.typeAndCurrency && (
+        <>
         <div role="group" aria-label="Tipo de conta" className="grid grid-cols-3 gap-2">
           {accountTypeCards.map((option) => (
             <Chip
@@ -76,9 +69,11 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         <p className="-mt-2 px-1 text-sm text-[var(--text-muted)]">
           {accountTypeCards.find((option) => option.value === formData.type)?.description}
         </p>
+        </>
+        )}
 
         {lock.typeAndCurrency && (
-          <div role="note" className="flex items-start gap-2.5 rounded-[12px] bg-[var(--warning-subtle)] px-3.5 py-3 text-sm leading-relaxed text-[var(--warning)]">
+          <div role="note" className="flex items-start gap-2.5 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3.5 py-3 text-sm leading-relaxed text-[var(--warning)]">
             <span aria-hidden="true">🔒</span>
             <span>
               <strong className="text-[var(--foreground)]">Tipo, moeda{formData.type === 'CREDIT_CARD' ? ' e ciclo da fatura' : ''} estão travados</strong>{' '}
@@ -108,12 +103,16 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           </div>
         )}
 
-        <details className="group rounded-[14px] border border-[var(--border)] bg-[var(--surface)]">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-[14px] px-4 text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+        <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-[var(--radius-lg)] px-4 text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
             <span>Mais opções</span>
-            <span className="text-sm font-normal text-[var(--text-muted)]">
-              descrição{isEditing ? ' e status' : ''}
-            </span>
+            {isEditing && !formData.isActive ? (
+              <span className="text-sm font-semibold text-[var(--warning)]">Conta inativa</span>
+            ) : (
+              <span className="text-sm font-normal text-[var(--text-muted)]">
+                descrição{isEditing ? ' e status' : ''}
+              </span>
+            )}
           </summary>
           <div className="grid gap-4 px-4 pb-4">
             <Input
@@ -142,15 +141,14 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           </div>
         </details>
 
-        <div className="max-lg:sticky max-lg:bottom-0 max-lg:-mx-1 max-lg:bg-[var(--background)] max-lg:px-1 max-lg:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          <FormActions
-            isEditing={isEditing}
-            loading={loading}
-            onCancel={handleRedirect}
-            createLabel="Criar conta"
-            submitLabel="Salvar alterações"
-          />
-        </div>
+        <FormActions
+          isEditing={isEditing}
+          loading={loading}
+          onCancel={handleRedirect}
+          createLabel="Criar conta"
+          submitLabel="Salvar alterações"
+          iconsOnMobile
+        />
       </FormContainer>
     </div>
   );

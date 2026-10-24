@@ -500,7 +500,6 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
     <ProtectedRoute>
       <PageContainer>
         <PageTitle
-          eyebrow="Organização"
           title="Estabelecimentos"
           description="Padronize onde suas transações aconteceram sem alterar a descrição original."
         />
@@ -508,12 +507,12 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
         {heroCurrency || summaryLoaded ? (
           <section
             aria-label="Gasto do mês em estabelecimentos"
-            className="mt-4 grid gap-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+            className="mt-4 grid gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
           >
             {heroCurrency ? (
               <>
                 <p className="text-sm font-semibold text-[var(--text-muted)]">Gasto do mês em estabelecimentos reconhecidos</p>
-                <strong className="money block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+                <strong className="money block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
                   {formatMoney(heroCurrency.assigned, heroCurrency.currency)}
                 </strong>
                 <p className="text-sm text-[var(--text-muted)]">
@@ -551,7 +550,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
           <div className="grid gap-3 border-b border-[var(--border)] p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <FaStore className="text-[var(--orbit-primary)]" aria-hidden="true" />
+                <FaStore className="text-[var(--primary)]" aria-hidden="true" />
                 <h2 id="merchant-list-heading" className="font-semibold text-[var(--foreground)]">
                   {editing ? 'Editar estabelecimento' : 'Onde você gasta'}
                 </h2>
@@ -659,7 +658,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
 
                     {spend && spend.expense > 0 ? (
                       <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`Participação de ${item.name} no gasto da página`}>
-                        <div className="h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${shareWidth(spend.expense, maxSpend)}%` }} />
+                        <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${shareWidth(spend.expense, maxSpend)}%` }} />
                       </div>
                     ) : null}
 

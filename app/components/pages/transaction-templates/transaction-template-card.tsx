@@ -38,17 +38,17 @@ export default function TransactionTemplateCard({
       : '••••';
 
   return (
-    <article className="grid min-w-0 gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="grid min-w-0 gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3">
         <span
-          className={`grid h-10 w-10 place-items-center rounded-[12px] ${income ? 'bg-[var(--primary-subtle)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}
+          className={`grid h-10 w-10 place-items-center rounded-[var(--radius-md)] ${income ? 'bg-[var(--primary-subtle)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}
           aria-hidden="true"
         >
           {income ? <FaArrowDown /> : <FaArrowUp />}
         </span>
         <div className="min-w-0">
-          <h3 className="break-words text-[15px] font-bold">{item.name}</h3>
-          <p className="break-words text-[13px] text-[var(--text-muted)]">{item.description || 'Sem descrição fixa'}</p>
+          <h3 className="break-words text-sm font-bold">{item.name}</h3>
+          <p className="break-words text-sm text-[var(--text-muted)]">{item.description || 'Sem descrição fixa'}</p>
         </div>
         {amount === null ? (
           <span className="text-sm text-[var(--text-muted)]">valor ao usar</span>
@@ -69,7 +69,7 @@ export default function TransactionTemplateCard({
       </div>
 
       <div className="-mx-1 flex items-center justify-between gap-1 border-t border-[var(--border)] px-1 pt-2.5">
-        <Button as="a" href={`/transacoes/nova?template=${encodeURIComponent(item.id)}`} variant="accent" size="sm" className="min-w-28">
+        <Button as="a" href={`/transacoes/nova?template=${encodeURIComponent(item.id)}`} size="sm" className="min-w-28">
           Usar
         </Button>
         <span className="flex">

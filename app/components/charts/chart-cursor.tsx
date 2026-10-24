@@ -4,7 +4,7 @@ export function ChartCursor({
   y,
   top,
   bottom,
-  color = 'var(--orbit-primary)',
+  color = 'var(--primary)',
 }: {
   x: number;
   y: number;

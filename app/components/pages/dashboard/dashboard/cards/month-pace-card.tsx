@@ -110,15 +110,15 @@ function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues
       )}
       {hasToday && cumulative.length > 0 && (
         <>
-          <path d={`${line(cumulative)} L ${x(elapsedDays)} ${y(0)} L ${x(1)} ${y(0)} Z`} fill="var(--orbit-primary)" fillOpacity="0.13" />
-          <path d={line(cumulative)} fill="none" stroke="var(--orbit-primary)" strokeWidth="2.2" strokeLinejoin="round" />
+          <path d={`${line(cumulative)} L ${x(elapsedDays)} ${y(0)} L ${x(1)} ${y(0)} Z`} fill="var(--primary)" fillOpacity="0.13" />
+          <path d={line(cumulative)} fill="none" stroke="var(--primary)" strokeWidth="2.2" strokeLinejoin="round" />
         </>
       )}
       {hasToday && projected !== null && elapsedDays < daysInMonth && (
-        <path d={`M ${x(elapsedDays)} ${y(spent)} L ${x(daysInMonth)} ${y(projected)}`} fill="none" stroke="var(--orbit-primary)" strokeWidth="1.6" strokeDasharray="3 4" />
+        <path d={`M ${x(elapsedDays)} ${y(spent)} L ${x(daysInMonth)} ${y(projected)}`} fill="none" stroke="var(--primary)" strokeWidth="1.6" strokeDasharray="3 4" />
       )}
       {hasToday && (
-        <circle cx={x(elapsedDays)} cy={y(spent)} r="4.5" fill="var(--orbit-primary)" stroke="var(--surface)" strokeWidth="2" />
+        <circle cx={x(elapsedDays)} cy={y(spent)} r="4.5" fill="var(--primary)" stroke="var(--surface)" strokeWidth="2" />
       )}
       {activeDay !== null && (
         <ChartCursor x={x(activeDay)} y={y(activeSpent ?? activePrevious ?? 0)} top={PAD.top} bottom={HEIGHT - PAD.bottom} />
@@ -157,7 +157,7 @@ export function MonthPaceCard({
 
   return (
     <section
-      className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
+      className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
       aria-labelledby="dashboard-pace-title"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -171,7 +171,7 @@ export function MonthPaceCard({
       <div className="mt-4">
         <PaceChart pace={pace} showValues={showValues} currency={data.currency} />
         <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-[var(--text-muted)]">
-          <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-[var(--orbit-primary)]" aria-hidden="true" />Este mês</span>
+          <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-[var(--primary)]" aria-hidden="true" />Este mês</span>
           <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-[var(--text-subtle)]" aria-hidden="true" />{monthLabel(`${previous.year}-${String(previous.month).padStart(2, '0')}`)}</span>
           {pace.budget > 0 && <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded border-t border-dashed border-[var(--warning)]" aria-hidden="true" />Orçamento</span>}
           {pace.projected !== null && (
@@ -191,7 +191,7 @@ export function MonthPaceCard({
         </div>
       )}
       <div className="mt-3 flex justify-end">
-        <Link href="/categorias" className="inline-flex min-h-11 items-center text-xs font-semibold text-[var(--orbit-primary)]">
+        <Link href="/categorias" className="inline-flex min-h-11 items-center text-xs font-semibold text-[var(--primary)]">
           {hasBudget ? 'Ajustar orçamento' : 'Definir orçamento'}
         </Link>
       </div>

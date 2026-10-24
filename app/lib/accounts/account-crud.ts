@@ -19,6 +19,7 @@ import {
   getAccountFinancialUsage,
   assertAccountStructuralChangeAllowed,
   assertAccountDeletable,
+  isAccountDeletable,
   lockOwnedAccountForMutation,
 } from "@/app/lib/accounts/account-structure";
 import { getCreditCardStatuses, type CreditCardStatus } from "@/app/lib/cards/credit-card-status";
@@ -117,9 +118,30 @@ export const accountCrud = baseCrudHandler({
   limit: true,
   orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   beforeCreate: async (data, userId) => {
+    const { openingBalance, ...accountData } = data;
     try {
-      return await prisma.account.create({
-        data: { ...data, userId },
+      return await prisma.$transaction(async (tx) => {
+        const account = await tx.account.create({
+          data: { ...accountData, userId },
+        });
+        if (openingBalance) {
+          const today = logicalDateFromUtcInstant(new Date());
+          await tx.transaction.create({
+            data: {
+              amount: Math.abs(openingBalance),
+              type: openingBalance > 0 ? "INCOME" : "EXPENSE",
+              kind: "OPENING_BALANCE",
+              status: "COMPLETED",
+              description: "Saldo inicial",
+              year: today.year,
+              month: today.month,
+              day: today.day,
+              accountId: account.id,
+              userId,
+            },
+          });
+        }
+        return account;
       });
     } catch (error) {
       return accountNameConflict(error);
@@ -166,6 +188,10 @@ export const accountCrud = baseCrudHandler({
         await lockOwnedAccountForMutation(tx, userId, account.id);
         const usage = await getAccountFinancialUsage(tx, userId, account.id);
         assertAccountDeletable(usage);
+        // O saldo inicial sai junto com a conta; qualquer outra movimentação já bloqueou acima.
+        await tx.transaction.deleteMany({
+          where: { userId, accountId: account.id, kind: "OPENING_BALANCE" },
+        });
         await tx.account.delete({ where: { id: account.id } });
       });
     } catch (error) {
@@ -187,11 +213,18 @@ export const accountCrud = baseCrudHandler({
     // Tipo, moeda e ciclo do cartão travam com qualquer histórico financeiro; a tela de edição avisa antes de salvar.
     const usage = await getAccountFinancialUsage(prisma, userId, account.id);
     const hasFinancialHistory = Object.values(usage).some((count) => count > 0);
-    const transactions = await prisma.transaction.findMany({
-      where: { userId, accountId: account.id },
-      ...recentTransactionsQuery,
-      take: RECENT_TRANSACTIONS_IN_DETAIL,
-    });
+    const isDeletable = isAccountDeletable(usage);
+    // Pendentes futuras não podem ocupar a vaga das realizadas: cada grupo tem o seu limite.
+    const [completedTransactions, pendingTransactions] = await Promise.all(
+      (["COMPLETED", "PENDING"] as const).map((status) =>
+        prisma.transaction.findMany({
+          where: { userId, accountId: account.id, status },
+          ...recentTransactionsQuery,
+          take: RECENT_TRANSACTIONS_IN_DETAIL,
+        }),
+      ),
+    );
+    const transactions = [...completedTransactions, ...pendingTransactions];
     const activity =
       account.type === "CREDIT_DEBIT"
         ? await getAccountActivity({
@@ -207,6 +240,7 @@ export const accountCrud = baseCrudHandler({
         transactions,
         activity,
         hasFinancialHistory,
+        isDeletable,
         investmentValueCents: null,
         investmentValueSource: null,
         investmentPositionCount: 0,
@@ -219,6 +253,7 @@ export const accountCrud = baseCrudHandler({
       transactions,
       activity,
       hasFinancialHistory,
+      isDeletable,
       investmentValueCents: value?.valueCents ?? 0,
       investmentValueSource: value?.source ?? null,
       investmentPositionCount: value?.positionCount ?? 0,

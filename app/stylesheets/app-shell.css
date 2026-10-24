@@ -2,8 +2,11 @@
   --app-sidebar-width: 264px;
   --app-sidebar-collapsed-width: 76px;
   --app-sidebar-current-width: var(--app-sidebar-width);
+  /* Bloco do logo na sidebar e faixa do título nas páginas: a linha de baixo dos dois fica na mesma altura. */
+  --app-sidebar-header-height: 68px;
   --app-mobile-topbar-height: 64px;
-  --app-mobile-bottom-nav-height: 68px;
+  /* Espaço ocupado pela barra inferior flutuante (64px da pílula + respiro): padding do conteúdo e barras fixas usam isto. */
+  --app-mobile-bottom-nav-height: 88px;
   --app-shell-focus-gap: 16px;
 }
 

@@ -98,6 +98,8 @@ describe('contraste dos tokens do design system', () => {
       ['expense', 'danger-subtle'],
       ['warning', 'warning-subtle'],
       ['on-primary', 'primary'],
+      ['on-primary', 'primary-hover'],
+      ['primary', 'primary-subtle'],
     ] as const;
 
     for (const [themeName, theme] of Object.entries(themes)) {

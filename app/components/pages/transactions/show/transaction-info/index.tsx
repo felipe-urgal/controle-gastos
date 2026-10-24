@@ -16,17 +16,11 @@ import {
   getTransferDirectionLabel,
   isTransferTransaction,
 } from '@/app/lib/transactions/transaction-presentation';
-import type { ReconciliationStatus, TransactionAccountDTO } from '@/app/types/transaction';
+import type { TransactionAccountDTO } from '@/app/types/transaction';
 
-const RECONCILIATION_LABEL: Record<ReconciliationStatus, string> = {
-  UNCLEARED: 'Não compensada',
-  CLEARED: 'Compensada',
-  RECONCILED: 'Conciliada',
-};
-
-const cardClassName = 'rounded-[16px] border border-[var(--border)] bg-[var(--surface)]';
+const cardClassName = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]';
 const linkClassName =
-  'font-semibold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
+  'font-semibold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
 
 export default function TransactionInfo({
   transaction,
@@ -54,12 +48,12 @@ export default function TransactionInfo({
         ? 'Receita'
         : 'Despesa';
   const amountTone = !isNormal
-    ? 'text-[var(--orbit-primary)]'
+    ? 'text-[var(--primary)]'
     : isIncome
       ? 'text-[var(--income)]'
       : 'text-[var(--expense)]';
   const iconTone = !isNormal
-    ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+    ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
     : isIncome
       ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
       : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
@@ -68,10 +62,10 @@ export default function TransactionInfo({
     <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <section
         aria-labelledby="transaction-detail-heading"
-        className="grid gap-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+        className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className={`grid h-12 w-12 place-items-center rounded-[14px] text-lg ${iconTone}`} aria-hidden="true">
+          <span className={`grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-lg ${iconTone}`} aria-hidden="true">
             {isTransfer ? <FaExchangeAlt /> : isCardPayment ? <FaCreditCard /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
           </span>
           <div className="min-w-0">
@@ -90,7 +84,7 @@ export default function TransactionInfo({
 
         <div>
           <p className="text-sm font-semibold text-[var(--text-muted)]">{kindLabel}</p>
-          <strong className={`money mt-1 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${amountTone}`}>
+          <strong className={`money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${amountTone}`}>
             {isNormal ? (isIncome ? '+' : '−') : ''}
             {money(transaction.amount)}
           </strong>
@@ -125,7 +119,7 @@ export default function TransactionInfo({
           {transaction.series && (
             <section className={`${cardClassName} p-4 sm:p-5`} aria-labelledby="transaction-series-heading">
               <div className="flex items-start gap-3">
-                <FaLayerGroup className="mt-1 shrink-0 text-[var(--orbit-primary)]" aria-hidden="true" />
+                <FaLayerGroup className="mt-1 shrink-0 text-[var(--primary)]" aria-hidden="true" />
                 <div>
                   <h2 id="transaction-series-heading" className="text-base font-bold">
                     {isInstallment
@@ -198,7 +192,6 @@ export default function TransactionInfo({
               </Row>
             ) : null}
 
-            <Row label="Conciliação">{RECONCILIATION_LABEL[transaction.reconciliationStatus] ?? '—'}</Row>
             {transaction.importSource && <Row label="Origem">Importada de {transaction.importSource}</Row>}
             <Row label="Criada em">{format(new Date(transaction.createdAt), 'dd/MM/yyyy HH:mm')}</Row>
             <Row label="Atualizada em">{format(new Date(transaction.updatedAt), 'dd/MM/yyyy HH:mm')}</Row>

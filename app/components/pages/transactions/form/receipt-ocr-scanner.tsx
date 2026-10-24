@@ -47,7 +47,7 @@ const PHASE_LABEL: Record<ReceiptOcrPhase, string> = {
 const CONFIDENCE_LABEL = { high: 'Alta', medium: 'Média', low: 'Baixa — somente revisão' } as const;
 
 const BUTTON_FOCUS =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)]';
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]';
 
 function formatSuggestedAmount(amountCents: number) {
   return new Intl.NumberFormat('pt-BR', {
@@ -82,7 +82,7 @@ function SuggestionRow({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <li className="rounded-[9px] bg-[var(--surface-raised)]">
+    <li className="rounded-[var(--radius-md)] bg-[var(--surface-raised)]">
       <label
         className={`flex min-h-11 items-start gap-3 px-3 py-2 ${disabled ? 'opacity-70' : 'cursor-pointer'}`}
       >
@@ -283,7 +283,7 @@ export default function ReceiptOcrScanner({
       ) : null}
 
       {isProcessing ? (
-        <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-3">
+        <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-[var(--foreground)]">Lendo recibo localmente</p>
@@ -305,7 +305,7 @@ export default function ReceiptOcrScanner({
               aria-hidden="true"
             >
               <div
-                className="h-full rounded-full bg-[var(--orbit-primary)] transition-[width]"
+                className="h-full rounded-full bg-[var(--primary)] transition-[width]"
                 style={{ width: `${Math.max(4, Math.round(progress * 100))}%` }}
               />
             </div>
@@ -317,7 +317,7 @@ export default function ReceiptOcrScanner({
         <div
           ref={errorRef}
           tabIndex={-1}
-          className="rounded-[12px] border border-[var(--danger)] bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+          className="rounded-[var(--radius-md)] border border-[var(--danger)] bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
           role="alert"
         >
           <p>{error}</p>
@@ -332,7 +332,7 @@ export default function ReceiptOcrScanner({
           ref={resultRef}
           tabIndex={-1}
           aria-label="Sugestões do recibo"
-          className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-3 focus:outline-none"
+          className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-3 focus:outline-none"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -347,13 +347,13 @@ export default function ReceiptOcrScanner({
           </div>
 
           {result.suggestions.inconsistentAmountEvidence ? (
-            <p role="alert" className="mt-3 break-words rounded-[9px] border border-[var(--danger)] bg-[var(--danger-subtle)] p-2.5 text-sm text-[var(--expense)]">
+            <p role="alert" className="mt-3 break-words rounded-[var(--radius-md)] border border-[var(--danger)] bg-[var(--danger-subtle)] p-2.5 text-sm text-[var(--expense)]">
               Leitura de valor inconsistente com os limites da transação. O valor não será aplicado. Confira: {result.suggestions.inconsistentAmountEvidence}
             </p>
           ) : null}
 
           {currencyBlocked ? (
-            <p role="alert" className="mt-3 rounded-[9px] border border-[var(--danger)] bg-[var(--danger-subtle)] p-2.5 text-sm text-[var(--expense)]">
+            <p role="alert" className="mt-3 rounded-[var(--radius-md)] border border-[var(--danger)] bg-[var(--danger-subtle)] p-2.5 text-sm text-[var(--expense)]">
               O OCR lê valores em reais (BRL). O valor não será aplicado a uma conta em outra moeda e nenhuma conversão é feita.
             </p>
           ) : null}
@@ -419,7 +419,7 @@ export default function ReceiptOcrScanner({
             <summary className={`flex min-h-11 cursor-pointer items-center text-sm font-semibold text-[var(--text-muted)] ${BUTTON_FOCUS}`}>
               Ver texto reconhecido
             </summary>
-            <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-[9px] bg-[var(--surface-raised)] p-2.5 text-xs text-[var(--text-muted)]">
+            <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-2.5 text-xs text-[var(--text-muted)]">
               {result.text || 'Nenhum texto reconhecido.'}
             </pre>
           </details>

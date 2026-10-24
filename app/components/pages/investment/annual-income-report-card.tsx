@@ -69,7 +69,7 @@ export function AnnualIncomeReportCard({
   const years = Array.from({ length: 6 }, (_, index) => currentYear - index);
 
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -95,7 +95,7 @@ export function AnnualIncomeReportCard({
           Consolidando rendimentos...
         </p>
       ) : error ? (
-        <p className="mt-4 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
+        <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">
           {error}
         </p>
       ) : !report || report.eventCount === 0 ? (
@@ -113,7 +113,7 @@ export function AnnualIncomeReportCard({
               .map(([currency, amount]) => (
                 <div
                   key={currency}
-                  className="rounded-[14px] bg-[var(--surface-raised)] p-4"
+                  className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-4"
                 >
                   <span className="text-xs font-semibold text-[var(--text-muted)]">
                     Total anual · {currency}
@@ -129,7 +129,7 @@ export function AnnualIncomeReportCard({
           </div>
 
           {report.pending.length > 0 && (
-            <div className="mt-4 rounded-[14px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
+            <div className="mt-4 rounded-[var(--radius-lg)] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
               <strong className="block text-sm">
                 {report.pending.length} pendência(s) fiscal(is)
               </strong>
@@ -141,7 +141,7 @@ export function AnnualIncomeReportCard({
             {report.items.map((item) => (
               <details
                 key={[item.assetId, item.incomeType, item.institutionId].join(':')}
-                className="rounded-[14px] border border-[var(--border)]"
+                className="rounded-[var(--radius-lg)] border border-[var(--border)]"
               >
                 <summary className="cursor-pointer list-none p-4">
                   <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">

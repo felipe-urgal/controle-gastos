@@ -20,7 +20,7 @@ export function DistributionCard({
   const ranked = rankAccounts(accounts);
 
   return (
-    <article className="min-w-0 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div>
         <h2 className="text-lg font-bold text-[var(--foreground)]">
           Onde está o seu dinheiro
@@ -31,7 +31,7 @@ export function DistributionCard({
       </div>
 
       {accounts.length === 0 ? (
-        <p className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
+        <p className="mt-4 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
           Nenhum ativo registrado nesta moeda.
         </p>
       ) : (
@@ -49,8 +49,8 @@ export function DistributionCard({
                 className="grid min-h-[72px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-3"
               >
                 <span
-                  className="grid h-11 w-11 place-items-center rounded-[11px] text-white"
-                  style={{ backgroundColor: account.color || 'var(--orbit-primary)' }}
+                  className="grid h-11 w-11 place-items-center rounded-[var(--radius-md)] text-white"
+                  style={{ backgroundColor: account.color || 'var(--primary)' }}
                   aria-hidden="true"
                 >
                   <IconRenderer
@@ -67,7 +67,7 @@ export function DistributionCard({
                     {account.name}
                   </strong>
                   <span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${share.toLocaleString('pt-BR')}% dos ativos`}>
-                    <span className={`block h-full rounded-full ${account.balance < 0 ? 'bg-[var(--expense)]' : 'bg-[var(--orbit-primary)]'}`} style={{ width: `${barPercent}%` }} />
+                    <span className={`block h-full rounded-full ${account.balance < 0 ? 'bg-[var(--expense)]' : 'bg-[var(--primary)]'}`} style={{ width: `${barPercent}%` }} />
                   </span>
                   <span className="mt-1.5 block text-xs text-[var(--text-muted)]">
                     {investment
@@ -115,7 +115,7 @@ export function DistributionCard({
         </div>
       )}
 
-      <div className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-xs leading-relaxed text-[var(--text-muted)]">
+      <div className="mt-4 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3 text-xs leading-relaxed text-[var(--text-muted)]">
         Transferências entre suas contas não alteram o total consolidado.
         Em contas de investimento, posições substituem o saldo transacional
         quando existe uma posição calculável. Caixa e posições não são somados

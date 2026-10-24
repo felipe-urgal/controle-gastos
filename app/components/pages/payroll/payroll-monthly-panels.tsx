@@ -41,7 +41,7 @@ export function DocumentHistoryPanel({
   onNext: () => void;
 }) {
   return (
-    <section className="overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
+    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] p-4 sm:p-5">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -53,7 +53,6 @@ export function DocumentHistoryPanel({
         </div>
         <Button
           variant="outline"
-          pill
           onClick={onRetry}
           disabled={loading}
           icon={<FaRedo aria-hidden="true" />}
@@ -65,10 +64,10 @@ export function DocumentHistoryPanel({
       {error && (
         <div
           role="alert"
-          className="m-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
+          className="m-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-xs text-[var(--expense)]"
         >
           <span>{error}</span>
-          <Button variant="outline" size="sm" pill onClick={onRetry}>
+          <Button variant="outline" size="sm" onClick={onRetry}>
             Tentar novamente
           </Button>
         </div>
@@ -134,7 +133,6 @@ export function DocumentHistoryPanel({
                   <Button
                     variant="outline"
                     size="sm"
-                    pill
                     disabled={working}
                     onClick={() => onArchive(document.id)}
                   >

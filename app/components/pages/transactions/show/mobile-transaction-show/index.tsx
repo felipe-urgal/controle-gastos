@@ -110,7 +110,7 @@ export default function MobileTransactionShow({
       : '-';
 
   const amountTone = isTransfer || isCardPayment
-    ? 'text-[var(--orbit-primary)]'
+    ? 'text-[var(--primary)]'
     : isIncome
       ? 'text-[var(--income)]'
       : 'text-[var(--expense)]';
@@ -135,7 +135,7 @@ export default function MobileTransactionShow({
         <Link
           href={backUrl}
           aria-label="Voltar"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-[11px] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
         >
           <FaArrowLeft aria-hidden="true" />
         </Link>
@@ -154,15 +154,15 @@ export default function MobileTransactionShow({
       </header>
 
       <section
-        className="relative min-h-[220px] overflow-hidden rounded-[20px] border border-[var(--orbit-primary)]/55 p-4"
+        className="relative min-h-[220px] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--primary)]/55 p-4"
         style={{
           background:
-            'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 58%, var(--surface)) 0%, color-mix(in srgb, #2563eb 30%, var(--surface)) 56%, color-mix(in srgb, var(--orbit-primary) 26%, var(--surface)) 100%)',
+            'linear-gradient(135deg, color-mix(in srgb, var(--primary) 58%, var(--surface)) 0%, color-mix(in srgb, #2563eb 30%, var(--surface)) 56%, color-mix(in srgb, var(--primary) 26%, var(--surface)) 100%)',
         }}
         aria-labelledby="mobile-transaction-title"
       >
-        <div className="pointer-events-none absolute bottom-4 right-5 hidden items-end gap-2 text-[var(--orbit-primary)] opacity-25 min-[360px]:flex" aria-hidden="true">
-          <span className="text-[58px] leading-none">{heroIcon}</span>
+        <div className="pointer-events-none absolute bottom-4 right-5 hidden items-end gap-2 text-[var(--primary)] opacity-25 min-[360px]:flex" aria-hidden="true">
+          <span className="text-6xl leading-none">{heroIcon}</span>
           <span className="mb-1 max-w-[72px] text-xs font-semibold uppercase leading-[1.45] tracking-[0.2em] text-white/55">
             Gastar bem também é planejar
           </span>
@@ -193,7 +193,7 @@ export default function MobileTransactionShow({
         </div>
 
         <div className="relative z-[1] mt-5">
-          <strong className="money block break-words text-[40px] font-black leading-none tracking-tight text-white">
+          <strong className="money block break-words text-4xl font-black leading-none tracking-tight text-white">
             {sign}{amount}
           </strong>
           {!showValues ? (
@@ -251,8 +251,8 @@ export default function MobileTransactionShow({
           icon={<FaWallet />}
           iconValue={
             <span
-              className="grid h-6 w-6 place-items-center rounded-[7px] text-white"
-              style={{ backgroundColor: transaction.account.color || 'var(--orbit-primary)' }}
+              className="grid h-6 w-6 place-items-center rounded-[var(--radius-sm)] text-white"
+              style={{ backgroundColor: transaction.account.color || 'var(--primary)' }}
             >
               <IconRenderer iconName={transaction.account.icon || 'wallet'} size={12} />
             </span>
@@ -307,9 +307,9 @@ export default function MobileTransactionShow({
       </MobileInfoCard>
 
       {transaction.series && (
-        <section className="rounded-[16px] border border-[var(--orbit-primary)]/30 bg-[var(--primary-subtle)] p-4">
+        <section className="rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary-subtle)] p-4">
           <div className="flex items-start gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--orbit-primary)] text-white">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--primary)] text-white">
               <FaLayerGroup aria-hidden="true" />
             </span>
             <div className="min-w-0">
@@ -328,7 +328,7 @@ export default function MobileTransactionShow({
       )}
 
       <section
-        className={`rounded-[16px] border p-4 ${callout.tone}`}
+        className={`rounded-[var(--radius-lg)] border p-4 ${callout.tone}`}
         style={{
           background:
             'linear-gradient(110deg, color-mix(in srgb, #06b6d4 16%, var(--surface)) 0%, color-mix(in srgb, #2563eb 16%, var(--surface)) 100%)',
@@ -347,27 +347,27 @@ export default function MobileTransactionShow({
       </section>
 
       {allowMutations ? (
-        <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-3.5" aria-labelledby="mobile-transaction-actions">
+        <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3.5" aria-labelledby="mobile-transaction-actions">
           <h2 id="mobile-transaction-actions" className="flex items-center gap-2 text-sm font-bold text-[var(--foreground)]">
-            <FaBolt className="text-[var(--orbit-primary)]" aria-hidden="true" />
+            <FaBolt className="text-[var(--primary)]" aria-hidden="true" />
             Próximas ações
           </h2>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <Link
               href={`/transacoes/alterar/${transaction.id}`}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[11px] bg-[var(--orbit-primary)] px-3 text-sm font-bold text-[var(--orbit-on-primary)]"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--primary)] px-3 text-sm font-bold text-[var(--on-primary)]"
             >
               <FaEdit aria-hidden="true" /> Editar
             </Link>
             <Link
               href={`/transacoes/nova?duplicate=${encodeURIComponent(transaction.id)}`}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[11px] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-sm font-bold text-[var(--foreground)]"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-sm font-bold text-[var(--foreground)]"
             >
               <FaCopy aria-hidden="true" /> Duplicar
             </Link>
             <Link
               href={`/modelos?source=${encodeURIComponent(transaction.id)}`}
-              className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-[11px] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-sm font-bold text-[var(--foreground)]"
+              className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-sm font-bold text-[var(--foreground)]"
             >
               Salvar como modelo
             </Link>
@@ -383,9 +383,9 @@ export default function MobileTransactionShow({
           </div>
         </section>
       ) : (
-        <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+        <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
           <div className="flex items-start gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--primary-subtle)] text-[var(--primary)]">
               {isCardPayment ? <FaCreditCard aria-hidden="true" /> : <FaExchangeAlt aria-hidden="true" />}
             </span>
             <div>
@@ -400,7 +400,7 @@ export default function MobileTransactionShow({
               {isTransfer && transaction.transferId && (
                 <Link
                   href={`/transacoes/alterar/${transaction.id}`}
-                  className="mt-3 inline-flex min-h-10 items-center justify-center rounded-[10px] border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)]"
+                  className="mt-3 inline-flex min-h-10 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)]"
                 >
                   Editar transferência
                 </Link>
@@ -423,9 +423,9 @@ function MobileInfoCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <h2 className="flex items-center gap-2 text-base font-bold text-[var(--foreground)]">
-        <span className="text-[var(--orbit-primary)]" aria-hidden="true">{icon}</span>
+        <span className="text-[var(--primary)]" aria-hidden="true">{icon}</span>
         {title}
       </h2>
       <dl className="mt-3 divide-y divide-[var(--border)]">{children}</dl>

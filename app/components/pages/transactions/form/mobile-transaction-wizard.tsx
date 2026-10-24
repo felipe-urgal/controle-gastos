@@ -30,7 +30,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
         onSubmit={(event) => event.preventDefault()}
         error={submitError}
         onClearError={() => setSubmitError(null)}
-        className="mt-4 pb-4 [--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]"
+        className="mt-4 pb-4 "
       >
         <section aria-label={isEditing ? 'Editar transação mobile' : 'Nova transação mobile'}>
           <div className="mb-5 grid grid-cols-[auto_minmax(44px,1fr)_auto_minmax(44px,1fr)_auto] items-start gap-2 px-4" aria-label="Etapas da transação">
@@ -43,7 +43,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 {index > 0 && (
                   <span
                     className={`mt-5 h-px self-start ${
-                      mobileStep >= step ? 'bg-[var(--orbit-primary)]' : 'bg-[var(--border-strong)]'
+                      mobileStep >= step ? 'bg-[var(--primary)]' : 'bg-[var(--border-strong)]'
                     }`}
                     aria-hidden="true"
                   />
@@ -52,15 +52,15 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                   <span
                     className={`grid h-11 w-11 place-items-center rounded-full border text-sm font-bold ${
                       mobileStep === step
-                        ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary)] text-[var(--orbit-on-primary)] shadow-[0_0_18px_color-mix(in_srgb,var(--orbit-primary)_45%,transparent)]'
+                        ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_0_18px_color-mix(in_srgb,var(--primary)_45%,transparent)]'
                         : mobileStep > step
-                          ? 'border-[var(--orbit-primary)] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+                          ? 'border-[var(--primary)] bg-[var(--primary-subtle)] text-[var(--primary)]'
                           : 'border-[var(--border-strong)] bg-[var(--surface)] text-[var(--text-muted)]'
                     }`}
                   >
                     {step}
                   </span>
-                  <span className={`text-xs font-medium ${mobileStep === step ? 'text-[var(--orbit-primary)]' : 'text-[var(--text-muted)]'}`}>
+                  <span className={`text-xs font-medium ${mobileStep === step ? 'text-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>
                     {label}
                   </span>
                 </div>
@@ -71,7 +71,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
           {mobileStep === 1 && (
             <div className="space-y-4">
               <div
-                className="grid grid-cols-3 overflow-hidden rounded-[14px] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
+                className="grid grid-cols-3 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
                 aria-label="Tipo da transação"
               >
                 <Button
@@ -116,12 +116,12 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
               ) : null}
 
               <div
-                className="min-h-[142px] rounded-[16px] border border-[var(--orbit-primary)] bg-[var(--surface)] p-4"
+                className="min-h-[142px] rounded-[var(--radius-lg)] border border-[var(--primary)] bg-[var(--surface)] p-4"
                 style={{
                   background:
-                    'linear-gradient(135deg, color-mix(in srgb, var(--orbit-primary) 9%, var(--surface)) 0%, var(--surface) 72%)',
+                    'linear-gradient(135deg, color-mix(in srgb, var(--primary) 9%, var(--surface)) 0%, var(--surface) 72%)',
                   boxShadow:
-                    'inset 0 0 34px color-mix(in srgb, var(--orbit-primary) 7%, transparent)',
+                    'inset 0 0 34px color-mix(in srgb, var(--primary) 7%, transparent)',
                 }}
               >
                 <label htmlFor="mobile-transaction-amount" className="text-sm text-[var(--text-muted)]">
@@ -136,9 +136,9 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                     onChange={handleAmountChange}
                     disabled={loading}
                     inputMode="numeric"
-                    className="min-h-[76px] min-w-0 flex-1 border-0 p-0 text-[44px] font-black tracking-tight min-[360px]:text-[50px]"
+                    className="min-h-[76px] min-w-0 flex-1 border-0 p-0 text-4xl font-black tracking-tight min-[360px]:text-5xl"
                   />
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
                     <FaCalculator />
                   </span>
                 </div>
@@ -156,9 +156,9 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                   disabled={loading}
                   onChange={(value) => setFormData((previous) => ({ ...previous, accountId: value }))}
                   options={accountOptions}
-                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
                 >
-                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
                     <FaWallet aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -174,10 +174,10 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                   disabled={loading}
                   onChange={handleCategoryChange}
                   groups={categoryOptions}
-                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
                 >
                   <span
-                    className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]"
+                    className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]"
                     style={selectedCategory?.color ? { color: selectedCategory.color } : undefined}
                   >
                     {selectedCategory ? <IconRenderer iconName={selectedCategory.icon || 'tag'} size={17} /> : <FaTag aria-hidden="true" />}
@@ -203,9 +203,9 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                         label: merchant.isActive ? merchant.name : `${merchant.name} (inativo)`,
                       })),
                   ]}
-                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--orbit-focus)] disabled:opacity-50"
+                  triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3 text-left transition-colors hover:border-[var(--border-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
                 >
-                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
                     <FaStore aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -214,7 +214,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                       {selectedMerchant?.name ?? 'Opcional'}
                     </span>
                     {merchantRecognition?.kind === 'auto' ? (
-                      <span className="mt-0.5 block text-xs font-semibold text-[var(--orbit-primary)]">
+                      <span className="mt-0.5 block text-xs font-semibold text-[var(--primary)]">
                         Reconhecido automaticamente por alias
                       </span>
                     ) : merchantRecognition?.kind === 'conflict' ? (
@@ -228,11 +228,11 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
 
                 {renderAllocationEditor()}
               <details className="group" open={(formData.tagIds?.length ?? 0) > 0 || undefined}>
-                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
                   <span className="inline-flex items-center gap-2">
                     <FaTag aria-hidden="true" /> Adicionar tags
                     {(formData.tagIds?.length ?? 0) > 0 && (
-                      <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2 py-0.5 text-xs font-bold text-[var(--orbit-primary)]">
+                      <span className="rounded-full bg-[var(--primary-subtle)] px-2 py-0.5 text-xs font-bold text-[var(--primary)]">
                         {formData.tagIds?.length}
                       </span>
                     )}
@@ -242,8 +242,8 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 <div className="mt-2">{renderTagEditor('mobile')}</div>
               </details>
 
-                <label className={`relative grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 ${isFixedDate ? '' : 'cursor-pointer'}`}>
-                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                <label className={`relative grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3 ${isFixedDate ? '' : 'cursor-pointer'}`}>
+                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
                     <FaCalendarAlt aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -267,8 +267,8 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                   )}
                 </label>
 
-                <div className="grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3">
-                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]">
+                <div className="grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3">
+                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
                     <FaFileAlt aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -295,9 +295,9 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                   type="button"
                   onClick={advanceMobilePrimaryStep}
                   disabled={loading}
-                  className="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
+                  className="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
                 >
-                  <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-[var(--surface-raised)] text-[var(--orbit-primary)]">
+                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--primary)]">
                     <FaCog aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
@@ -326,7 +326,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 <p className="mt-1 text-sm text-[var(--text-muted)]">Passo 2 de 3 · ajuste apenas o que precisar.</p>
               </div>
 
-              <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3">
+              <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3">
                 <p className="text-xs text-[var(--text-muted)]">Transação</p>
                 <div className="mt-1 flex items-center justify-between gap-3">
                   <strong className="truncate text-sm text-[var(--foreground)]">{operationLabel}</strong>
@@ -360,7 +360,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                         { value: 'recurring', label: 'Recorrente' },
                         { value: 'installment', label: 'Parcelada' },
                       ]}
-                      triggerClassName="flex min-h-12 w-full items-center justify-between gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left text-sm font-semibold text-[var(--foreground)]"
+                      triggerClassName="flex min-h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-left text-sm font-semibold text-[var(--foreground)]"
                     >
                       <span>{creationModeLabel}</span>
                       <FaChevronRight className="rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
@@ -369,7 +369,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 )}
 
                 {!isEditing && creationMode === 'recurring' && (
-                  <div className="space-y-4 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
+                  <div className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
                     <div>
                       <strong className="text-sm text-[var(--foreground)]">Recorrência</strong>
                       <p className="mt-1 text-xs text-[var(--text-muted)]">Configure quando este lançamento deve se repetir.</p>
@@ -380,7 +380,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                       disabled={loading}
                       onChange={(value) => setRecurrencePreset(value as RecurrencePreset)}
                       options={recurrencePresetOptions.map((option) => ({ value: String(option.value), label: option.label }))}
-                      triggerClassName="flex min-h-12 w-full items-center justify-between gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-left text-sm"
+                      triggerClassName="flex min-h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-left text-sm"
                     >
                       <span>{recurrencePresetLabel}</span>
                       <FaChevronRight className="rotate-90 text-xs text-[var(--text-muted)]" aria-hidden="true" />
@@ -416,7 +416,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                         disabled={loading}
                       />
                     )}
-                    <p role="status" className={`rounded-[10px] border p-3 text-xs ${
+                    <p role="status" className={`rounded-[var(--radius-md)] border p-3 text-xs ${
                       recurrencePreview.error
                         ? 'border-[var(--danger)] bg-[var(--danger-subtle)] text-[var(--expense)]'
                         : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)]'
@@ -431,7 +431,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 )}
 
                 {!isEditing && creationMode === 'installment' && (
-                  <div className="space-y-4 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4">
+                  <div className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
                     <div>
                       <strong className="text-sm text-[var(--foreground)]">Parcelamento</strong>
                       <p className="mt-1 text-xs text-[var(--text-muted)]">O valor informado é o total da compra.</p>
@@ -445,7 +445,7 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                       onChange={(event) => setInstallmentCount(Number(event.target.value))}
                       disabled={loading}
                     />
-                    <p className={`rounded-[10px] border p-3 text-xs ${
+                    <p className={`rounded-[var(--radius-md)] border p-3 text-xs ${
                       installmentPreview.error
                         ? 'border-[var(--danger)] bg-[var(--danger-subtle)] text-[var(--expense)]'
                         : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)]'
@@ -478,9 +478,9 @@ export function MobileTransactionWizard({ form }: { form: TransactionFormState }
                 <p className="mt-1 text-sm text-[var(--text-muted)]">Passo 3 de 3 · confira antes de confirmar.</p>
               </div>
 
-              <div className="rounded-[16px] border border-[var(--orbit-primary)]/45 bg-[var(--surface)] p-4">
+              <div className="rounded-[var(--radius-lg)] border border-[var(--primary)]/45 bg-[var(--surface)] p-4">
                 <p className="text-xs text-[var(--text-muted)]">{operationLabel}</p>
-                <strong className="mt-1 block text-[34px] font-black tracking-tight text-[var(--foreground)]">
+                <strong className="mt-1 block text-4xl font-black tracking-tight text-[var(--foreground)]">
                   {formatCentsToCurrency(formData.amount)}
                 </strong>
                 <dl className="mt-4 grid gap-2">

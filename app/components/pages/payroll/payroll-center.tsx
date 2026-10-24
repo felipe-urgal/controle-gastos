@@ -1,7 +1,6 @@
 'use client';
 
-import { PageContainer } from '@/app/components/base-pages';
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useEffect, useMemo, useState } from 'react';
 import { FaFileImport } from 'react-icons/fa';
 
@@ -320,13 +319,7 @@ export default function PayrollCenter() {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className={pageTitleClassName}>Rendimentos do trabalho</h1>
-            <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
-              Folha é fonte documental: importar ou conciliar nunca cria receita bancária automaticamente.
-            </p>
-          </div>
+        <PageTitle title="Rendimentos do trabalho" description="Folha é fonte documental: importar ou conciliar nunca cria receita bancária automaticamente." actions={
           <div className="flex w-full flex-wrap items-end gap-3 sm:w-auto">
             <div className="min-w-28">
               <span className="ds-label mb-2 block">Ano exibido</span>
@@ -338,7 +331,6 @@ export default function PayrollCenter() {
               />
             </div>
             <Button
-              pill
               icon={<FaFileImport aria-hidden="true" />}
               onClick={() => {
                 setActiveTab('MONTHLY');
@@ -348,7 +340,7 @@ export default function PayrollCenter() {
               Importar holerite
             </Button>
           </div>
-        </header>
+        } />
 
         <div className="mt-5 space-y-5">
           <ChipRow label="Áreas de rendimentos do trabalho">
@@ -360,7 +352,7 @@ export default function PayrollCenter() {
           {activeTab === 'MONTHLY' && (
             <div className="space-y-5">
               {feedback && !showImporter && (
-                <div role="status" className="rounded-[14px] bg-[var(--success-subtle)] p-3 text-sm font-semibold text-[var(--success)]">
+                <div role="status" className="rounded-[var(--radius-lg)] bg-[var(--success-subtle)] p-3 text-sm font-semibold text-[var(--success)]">
                   {feedback}
                 </div>
               )}

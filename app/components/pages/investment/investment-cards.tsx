@@ -24,7 +24,7 @@ export function CollapsibleCard({ header, children }: { header: ReactNode; child
     <details
       open={open}
       onToggle={(event) => setOverride(event.currentTarget.open)}
-      className="group rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]"
+      className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]"
     >
       <summary className="flex min-h-11 cursor-pointer list-none items-start justify-between gap-3 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:p-5 [&::-webkit-details-marker]:hidden">
         <div className="min-w-0 flex-1">{header}</div>
@@ -48,7 +48,7 @@ export function FiscalCostCard({
   onAdjust: (assetId: string) => void;
 }) {
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -70,7 +70,7 @@ export function FiscalCostCard({
           {portfolio.fiscalPositions.map((item) => (
             <div
               key={item.assetId}
-              className="rounded-[14px] border border-[var(--border)] p-4"
+              className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <span>
@@ -171,7 +171,6 @@ export function FiscalCostCard({
               <Button
                 variant="outline"
                 size="sm"
-                pill
                 className="mt-3"
                 onClick={() => onAdjust(item.assetId)}
               >
@@ -236,7 +235,7 @@ export function IncomesCard({
                 key={item.assetId}
                 type="button"
                 onClick={() => onHistory(item.assetId)}
-                className="rounded-[14px] border border-[var(--border)] p-4 text-left hover:border-[var(--orbit-primary)]/40"
+                className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4 text-left hover:border-[var(--primary)]/40"
               >
                 <strong className="block text-sm text-[var(--foreground)]">
                   {item.symbol}
@@ -328,7 +327,7 @@ export function OperationsCard({
     <CollapsibleCard
       header={
         <div className="flex items-center gap-2">
-          <FaHistory className="text-[var(--orbit-primary)]" aria-hidden="true" />
+          <FaHistory className="text-[var(--primary)]" aria-hidden="true" />
           <h2 className="text-lg font-bold text-[var(--foreground)]">Operações</h2>
         </div>
       }
@@ -396,7 +395,7 @@ export function OperationRow({
         <span className="text-xs text-[var(--text-muted)]">por unidade</span>
       </span>
       <span className="flex items-center gap-1">
-        <Button variant="outline" size="sm" pill onClick={onClassify}>
+        <Button variant="outline" size="sm" onClick={onClassify}>
           Fiscal
         </Button>
         <IconButton
@@ -490,10 +489,10 @@ export function ModalActions({
 }) {
   return (
     <div className="grid grid-cols-2 gap-3 pt-2">
-      <Button type="button" variant="outline" size="cta" pill onClick={onClose} disabled={saving} fullWidth>
+      <Button type="button" variant="outline" size="cta" onClick={onClose} disabled={saving} fullWidth>
         Cancelar
       </Button>
-      <Button type="submit" size="cta" pill disabled={saving} isLoading={saving} loadingText="Salvando..." fullWidth>
+      <Button type="submit" size="cta" disabled={saving} isLoading={saving} loadingText="Salvando..." fullWidth>
         {submitLabel}
       </Button>
     </div>

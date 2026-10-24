@@ -43,12 +43,12 @@ export default function GoalCard({
   const money = (amount: number) => (showValues ? formatCurrency(amount, goal.currency) : '••••');
   const completed = goal.status === 'COMPLETED';
   const archived = goal.status === 'ARCHIVED';
-  const barTone = completed ? 'bg-[var(--income)]' : pace === 'OVERDUE' || pace === 'BEHIND' ? 'bg-[var(--warning)]' : 'bg-[var(--orbit-primary)]';
+  const barTone = completed ? 'bg-[var(--income)]' : pace === 'OVERDUE' || pace === 'BEHIND' ? 'bg-[var(--warning)]' : 'bg-[var(--primary)]';
 
   return (
     <article
       id={`goal-${goal.id}`}
-      className={`grid min-w-0 scroll-mt-24 content-start gap-3.5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-[18px] ${archived ? 'opacity-80' : ''}`}
+      className={`grid min-w-0 scroll-mt-24 content-start gap-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-[18px] ${archived ? 'opacity-80' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -59,13 +59,13 @@ export default function GoalCard({
               <span className="rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--text-muted)]">Arquivada</span>
             ) : (
               <>
-                <span className="rounded-full bg-[var(--orbit-primary-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--orbit-primary)]">Ativa</span>
+                <span className="rounded-full bg-[var(--primary-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--primary)]">Ativa</span>
                 {pace && <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${PACE_PILL[pace].tone}`}>{PACE_PILL[pace].label}</span>}
               </>
             )}
           </div>
           <h2 className="break-words text-lg font-extrabold tracking-tight">{goal.name}</h2>
-          <p className="text-[13px] text-[var(--text-muted)]">
+          <p className="text-sm text-[var(--text-muted)]">
             {goal.targetDate ? `Prazo ${dateLabel(goal.targetDate)} · ${deadlineLabel(goal.targetDate, now)}` : 'Sem prazo definido'}
           </p>
         </div>
@@ -74,15 +74,15 @@ export default function GoalCard({
 
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="money break-words text-2xl font-semibold">{money(goal.currentAmount)}</span>
-        <span className="text-[13px] text-[var(--text-muted)]">de <span className="money">{money(goal.targetAmount)}</span></span>
+        <span className="text-sm text-[var(--text-muted)]">de <span className="money">{money(goal.targetAmount)}</span></span>
       </div>
 
       <div className="grid gap-1.5">
         <div className="h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${goal.percentage.toLocaleString('pt-BR')}% da meta ${goal.name}`}>
           <div className={`h-full rounded-full ${barTone}`} style={{ width: `${percentage}%` }} />
         </div>
-        <div className="flex justify-between text-[13px]">
-          <strong className={completed ? 'text-[var(--income)]' : pace === 'OVERDUE' || pace === 'BEHIND' ? 'text-[var(--warning)]' : 'text-[var(--orbit-primary)]'}>
+        <div className="flex justify-between text-sm">
+          <strong className={completed ? 'text-[var(--income)]' : pace === 'OVERDUE' || pace === 'BEHIND' ? 'text-[var(--warning)]' : 'text-[var(--primary)]'}>
             {goal.percentage.toLocaleString('pt-BR')}%
           </strong>
           <span className="text-[var(--text-muted)]">
@@ -92,12 +92,12 @@ export default function GoalCard({
       </div>
 
       {goal.status === 'ACTIVE' && goal.monthlyContributionSuggestion !== null && (
-        <p className="rounded-[12px] bg-[var(--surface-raised)] px-3 py-2.5 text-[13px] text-[var(--text-muted)]">
+        <p className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2.5 text-sm text-[var(--text-muted)]">
           <MoneyText>{`Para distribuir o restante até o prazo: ${money(goal.monthlyContributionSuggestion)} por mês.`}</MoneyText>
         </p>
       )}
       {pace === 'OVERDUE' && (
-        <p className="rounded-[12px] bg-[var(--warning-subtle)] px-3 py-2.5 text-[13px] font-semibold text-[var(--warning)]">
+        <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2.5 text-sm font-semibold text-[var(--warning)]">
           O prazo passou. Edite a meta para ajustar a data.
         </p>
       )}
@@ -112,7 +112,7 @@ export default function GoalCard({
       <div className="-mx-1 flex flex-wrap items-center gap-1 border-t border-[var(--border)] px-1 pt-2.5">
         {goal.status === 'ACTIVE' && (
           <>
-            <Button size="sm" variant="accent" onClick={onContribution}>
+            <Button size="sm" onClick={onContribution}>
               Contribuir
             </Button>
             <Button size="sm" variant="outline" onClick={onWithdrawal} disabled={goal.currentAmount <= 0}>

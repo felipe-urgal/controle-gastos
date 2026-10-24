@@ -24,10 +24,10 @@ export function RecentTransactionsCard({
   onRetry?: () => void;
 }) {
   return (
-    <article className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Últimas transações</h2>
-        <Link href="/transacoes" className="inline-flex min-h-11 items-center px-2 -mx-2 text-sm font-semibold text-[var(--orbit-primary)]">Ver todas</Link>
+        <Link href="/transacoes" className="inline-flex min-h-11 items-center px-2 -mx-2 text-sm font-semibold text-[var(--primary)]">Ver todas</Link>
       </div>
 
       <div className="mt-2 divide-y divide-[var(--border)]">
@@ -44,13 +44,13 @@ export function RecentTransactionsCard({
             const isIncome = transaction.type === 'INCOME';
             const isTransfer = transaction.kind === 'TRANSFER';
             const isCardPayment = transaction.kind === 'CARD_PAYMENT';
-            const tone = isTransfer || isCardPayment ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
+            const tone = isTransfer || isCardPayment ? 'text-[var(--primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
 
             return (
               <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5">
                 <div className="flex min-w-0 items-center gap-3">
                   <span
-                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--orbit-primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
+                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
                     style={!isTransfer && !isIncome && transaction.category ? { backgroundColor: transaction.category.color } : undefined}
                   >
                     {isTransfer || isCardPayment ? <FaExchangeAlt size={12} aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={12} />}

@@ -32,7 +32,6 @@ export function InvestmentActionsMenu({ items }: { items: ActionMenuItem[] }) {
     <div ref={containerRef} className="relative">
       <Button
         variant="outline"
-        pill
         aria-haspopup="menu"
         aria-expanded={open}
         icon={<FaChevronDown aria-hidden="true" className="text-xs" />}
@@ -41,7 +40,7 @@ export function InvestmentActionsMenu({ items }: { items: ActionMenuItem[] }) {
         Mais
       </Button>
       {open && (
-        <div role="menu" className="absolute right-0 top-[calc(100%+6px)] z-20 grid min-w-[13rem] rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-surface)]">
+        <div role="menu" className="absolute right-0 top-[calc(100%+6px)] z-20 grid min-w-[13rem] rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-surface)]">
           {items.map((item) => (
             <Button
               key={item.label}

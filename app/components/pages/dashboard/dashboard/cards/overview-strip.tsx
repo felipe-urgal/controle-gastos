@@ -29,7 +29,7 @@ function Tile({ href, label, children }: { href: string; label: string; children
   return (
     <Link
       href={href}
-      className="flex min-h-11 items-center justify-between gap-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+      className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
     >
       <span className="min-w-0">
         <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</span>

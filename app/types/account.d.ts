@@ -93,6 +93,8 @@ export interface AccountModel {
   cardStatus?: AccountCardStatus | null;
   /** Só vem na leitura de uma conta. Com histórico, tipo, moeda e ciclo do cartão ficam travados. */
   hasFinancialHistory?: boolean | null;
+  /** Sem movimentações (o saldo inicial não conta): a conta pode ser excluída. */
+  isDeletable?: boolean | null;
   /** Só vem na leitura de uma conta corrente. */
   activity?: AccountActivity | null;
   currency: string;

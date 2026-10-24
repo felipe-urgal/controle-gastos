@@ -1,21 +1,24 @@
 'use client';
 
-import { ModalShell } from '@/app/components/overlays/modal-shell';
 import Link from 'next/link';
-import { Input } from '@/app/components/ui';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
-import {
-  FaDownload,
-  FaSearch,
-} from 'react-icons/fa';
+import { useEffect, useRef } from 'react';
+import { FaDownload } from 'react-icons/fa';
 
 import {
   getAppNavigation,
+  mobileMoreExtraKeys,
   mobileMoreNavigationGroups,
   type AppNavigationItem,
 } from '@/app/components/layout/app-navigation';
 
+/** Distância do painel até a borda de baixo: respiro da pílula (0,75rem) + a pílula (4rem) + um vão. */
+const PANEL_BOTTOM = 'calc(env(safe-area-inset-bottom) + 0.75rem + 4rem + 0.5rem)';
+
+/**
+ * Menu "Mais" do mobile: um painel que sobe de cima da barra inferior flutuante, que continua
+ * visível (o próprio "Mais" alterna). Fecha ao tocar fora, com Esc ou ao escolher um destino.
+ */
 export default function MobileMoreMenu({
   onClose,
   onInstallApp,
@@ -24,124 +27,115 @@ export default function MobileMoreMenu({
   onInstallApp?: () => Promise<void>;
 }) {
   const pathname = usePathname();
-  const [query, setQuery] = useState('');
+  const panelRef = useRef<HTMLDivElement>(null);
   const navigation = getAppNavigation();
-  const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
 
   const groups = mobileMoreNavigationGroups
-    .map((group) => ({
+    .map((group, index) => ({
       ...group,
-      items: group.keys
+      // O Calendário, fora da barra inferior, abre o primeiro grupo.
+      items: [...(index === 0 ? mobileMoreExtraKeys : []), ...group.keys]
         .map((key) => navigation.find((item) => item.key === key))
-        .filter((item): item is AppNavigationItem => item !== undefined)
-        .filter(
-          (item) =>
-            normalizedQuery.length === 0 ||
-            item.label.toLocaleLowerCase('pt-BR').includes(normalizedQuery),
-        ),
+        .filter((item): item is AppNavigationItem => item !== undefined),
     }))
     .filter((group) => group.items.length > 0);
 
+  // O chamador passa uma função nova a cada render; a ref mantém o efeito (foco e Esc) montado uma vez só.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onCloseRef.current();
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+    };
+  }, []);
+
   return (
-    <ModalShell
-      title="Mais opções"
-      description="Acesse todas as áreas do aplicativo."
-      closeLabel="Fechar menu"
-      maxWidthClass="max-w-2xl"
-      variant="fullscreen-sheet"
-      onClose={onClose}
-    >
-    <div>
-      <Input
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        aria-label="Filtrar funcionalidades"
-        placeholder="Buscar uma funcionalidade"
-        icon={<FaSearch />}
-        autoComplete="off"
-        type="search"
-        enterKeyHint="search"
+    <div className="lg:hidden">
+      <div
+        aria-hidden="true"
+        onClick={onClose}
+        className="fixed inset-0 z-[var(--z-popover)] bg-[color-mix(in_srgb,var(--background)_55%,transparent)] backdrop-blur-sm"
       />
-    </div>
 
-    <nav className="mt-5 space-y-4" aria-label="Todas as funcionalidades">
-      {groups.map((group) => {
-        const groupActive = group.items.some((item) => item.isActive(pathname));
-
-        return (
-          <section key={group.label}>
-            <h3
-              className={
-                'mb-2 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-[0.12em] ' +
-                (groupActive ? 'text-[var(--primary)]' : 'text-[var(--text-subtle)]')
-              }
-            >
-              <span
-                aria-hidden="true"
-                className={'h-1.5 w-1.5 rounded-full ' + (groupActive ? 'bg-[var(--primary)]' : 'bg-[var(--border)]')}
-              />
-              {group.label}
-            </h3>
-            <div
-              className={
-                'ml-[7px] grid grid-cols-1 gap-1.5 border-l pl-3 sm:grid-cols-2 ' +
-                (groupActive ? 'border-[var(--primary)]/40' : 'border-[var(--border)]')
-              }
-            >
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const active = item.isActive(pathname);
-
-                return (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    onClick={onClose}
-                    aria-current={active ? 'page' : undefined}
-                    className={
-                      'flex min-h-12 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
-                      (active
-                        ? 'bg-[var(--primary-subtle)] text-[var(--foreground)]'
-                        : 'bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]')
-                    }
-                  >
-                    <Icon
-                      className={'shrink-0 ' + (active ? 'text-[var(--primary)]' : 'text-[var(--text-subtle)]')}
-                      aria-hidden="true"
-                    />
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
-    </nav>
-
-    {groups.length === 0 && (
-      <p className="py-8 text-center text-sm text-[var(--text-muted)]">
-        Nenhuma funcionalidade encontrada.
-      </p>
-    )}
-
-    {onInstallApp && (
-      <section className="mt-5 border-t border-[var(--border)] pt-4">
-        <button
-          type="button"
-          onClick={() => void onInstallApp()}
-          className="flex min-h-12 w-full items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-left text-sm font-semibold text-[var(--text-muted)] transition-colors hover:border-[var(--primary)]/30 hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+      <div
+        className="pointer-events-none fixed inset-x-0 z-[var(--z-popover)]"
+        style={{
+          bottom: PANEL_BOTTOM,
+          paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
+          paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
+        }}
+      >
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-label="Mais opções"
+          tabIndex={-1}
+          className="pointer-events-auto mx-auto max-w-sm animate-sheet-rise overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[var(--shadow-elevated)] outline-none"
+          style={{
+            maxHeight: `calc(100dvh - var(--app-mobile-topbar-height) - env(safe-area-inset-top) - ${PANEL_BOTTOM} - 0.75rem)`,
+          }}
         >
-          <FaDownload className="text-[var(--primary)]" aria-hidden="true" />
-          <span>
-            <strong className="block text-[var(--foreground)]">Instalar aplicativo</strong>
-            <span className="mt-0.5 block text-xs font-normal text-[var(--text-muted)]">
-              Adicionar o Controle de Gastos à tela inicial.
-            </span>
-          </span>
-        </button>
-      </section>
-    )}
-    </ModalShell>
+          <nav aria-label="Todas as funcionalidades" className="space-y-3">
+            {groups.map((group) => (
+              <section key={group.label}>
+                <h3 className="mb-1.5 px-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+                  {group.label}
+                </h3>
+                <div className="grid grid-cols-2 gap-1">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = item.isActive(pathname);
+
+                    return (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        onClick={onClose}
+                        aria-current={active ? 'page' : undefined}
+                        className={
+                          'flex min-h-11 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                          (active
+                            ? 'bg-[var(--primary-subtle)] font-semibold text-[var(--primary)]'
+                            : 'font-medium text-[var(--foreground)] hover:bg-[var(--surface-hover)]')
+                        }
+                      >
+                        <Icon
+                          className={'shrink-0 ' + (active ? 'text-[var(--primary)]' : 'text-[var(--text-subtle)]')}
+                          aria-hidden="true"
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </nav>
+
+          {onInstallApp && (
+            <button
+              type="button"
+              onClick={() => void onInstallApp()}
+              className="mt-3 flex min-h-11 w-full items-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--border)] px-2.5 py-2 text-left text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+            >
+              <FaDownload className="shrink-0 text-[var(--primary)]" aria-hidden="true" />
+              <span>Instalar aplicativo</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

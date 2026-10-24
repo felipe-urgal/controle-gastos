@@ -21,7 +21,7 @@ export default function HeroSection() {
 
           <h1
             id="landing-title"
-            className="max-w-3xl text-4xl font-bold leading-[1.08] tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl lg:text-[3.6rem]"
+            className="max-w-3xl text-4xl font-bold leading-[1.08] tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl lg:text-6xl"
           >
             Organize seu dinheiro com uma visão clara do que acontece.
           </h1>

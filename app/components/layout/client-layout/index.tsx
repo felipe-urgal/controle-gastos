@@ -32,17 +32,10 @@ export default function ClientLayout({
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const accountComposeActive =
-    pathname === '/contas/nova' || pathname.startsWith('/contas/alterar/');
-  const accountShowActive = pathname.startsWith('/contas/show/');
   const categoryComposeActive =
     pathname === '/categorias/nova' || pathname.startsWith('/categorias/alterar/');
   const categoryShowActive = pathname.startsWith('/categorias/show/');
-  const immersiveMobile =
-    accountComposeActive ||
-    accountShowActive ||
-    categoryComposeActive ||
-    categoryShowActive;
+  const immersiveMobile = categoryComposeActive || categoryShowActive;
   const mounted = useSyncExternalStore(
     subscribeHydration,
     () => true,
@@ -110,7 +103,7 @@ export default function ClientLayout({
     >
       <a
         href="#main-content"
-        className="sr-only z-[var(--z-toast)] rounded-[var(--radius-md)] bg-[var(--orbit-primary)] px-4 py-3 text-base font-semibold text-[var(--orbit-on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus-visible:outline-[var(--orbit-focus)]"
+        className="sr-only z-[var(--z-toast)] rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-3 text-base font-semibold text-[var(--on-primary)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus-visible:outline-[var(--focus)]"
       >
         Pular para o conteúdo
       </a>
@@ -139,7 +132,7 @@ export default function ClientLayout({
 
       {!immersiveMobile && (
         <BottomNav
-          onOpenMore={() => setMobileMoreOpen(true)}
+          onOpenMore={() => setMobileMoreOpen((open) => !open)}
           moreOpen={mobileMoreOpen}
         />
       )}

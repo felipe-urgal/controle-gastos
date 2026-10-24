@@ -2,6 +2,8 @@
 
 import { accountService } from "@/app/services/account-service";
 import { AccountModel } from "@/app/types/account";
+import { useState } from "react";
+
 import { useShow } from "@/app/hooks/crud/show";
 import { useDelete } from "@/app/hooks/crud/delete";
 
@@ -27,16 +29,34 @@ export function useAccounts({ id }: { id: string }) {
     deleteService: accountService.delete,
   });
 
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  /** Inativar guarda o histórico e tira a conta dos lançamentos novos; reativar desfaz. */
+  async function setActive(isActive: boolean) {
+    setIsUpdatingStatus(true);
+    setStatusError(null);
+    try {
+      await accountService.update(String(id), { isActive });
+      const response = await accountService.getById(String(id));
+      setAccount(response.data);
+    } catch (error: any) {
+      setStatusError(
+        error?.response?.data?.error?.message ||
+          error?.data?.error?.message ||
+          error?.message ||
+          "Não foi possível alterar o status da conta",
+      );
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  }
+
   const typeLabels = {
     CREDIT_DEBIT: "Conta Corrente",
     INVESTMENT: "Investimento",
     CREDIT_CARD: "Cartão de crédito",
   };
-
-  async function refreshAccount() {
-    const response = await accountService.getById(String(id));
-    setAccount(response.data);
-  }
 
   return {
     account,
@@ -48,6 +68,8 @@ export function useAccounts({ id }: { id: string }) {
       account && handleDelete(account.id),
     handleBack,
     typeLabels,
-    refreshAccount,
+    setActive,
+    isUpdatingStatus,
+    statusError,
   };
 };

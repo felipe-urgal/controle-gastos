@@ -57,7 +57,7 @@ export function HistoryCard({
       : 'Sem histórico no período.';
 
   return (
-    <article className="min-w-0 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[56ch]">
           <h2 className="text-lg font-bold text-[var(--foreground)]">Evolução mês a mês</h2>
@@ -79,7 +79,7 @@ export function HistoryCard({
       </div>
 
       {!valuation.comparableToHistory && (
-        <div className="mt-4 rounded-[12px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
+        <div className="mt-4 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
           O resumo acima usa {valuationBasisLabel(valuation.basis)}, enquanto esta série usa saldo transacional. O último ponto do gráfico não representa o mesmo método e pode ter valor diferente.
         </div>
       )}
@@ -95,8 +95,8 @@ export function HistoryCard({
       >
         <defs>
           <linearGradient id="net-worth-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="var(--orbit-primary)" stopOpacity="0.28" />
-            <stop offset="1" stopColor="var(--orbit-primary)" stopOpacity="0" />
+            <stop offset="0" stopColor="var(--primary)" stopOpacity="0.28" />
+            <stop offset="1" stopColor="var(--primary)" stopOpacity="0" />
           </linearGradient>
         </defs>
         {ticks.map((tick) => (
@@ -110,7 +110,7 @@ export function HistoryCard({
           </g>
         ))}
         {area && <path d={area} fill="url(#net-worth-area)" />}
-        {line && <path d={line} fill="none" stroke="var(--orbit-primary)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
+        {line && <path d={line} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
         {points.map((point, index) =>
           index % labelStep === 0 || index === points.length - 1 ? (
             <text key={`${point.year}-${point.month}`} x={point.x} y={HEIGHT - 8} textAnchor="middle" fontSize="11" fill="var(--text-muted)">
@@ -122,7 +122,7 @@ export function HistoryCard({
       </svg>
       </div>
 
-      <details className="mt-3 rounded-[12px] border border-[var(--border)]">
+      <details className="mt-3 rounded-[var(--radius-md)] border border-[var(--border)]">
         <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-bold text-[var(--foreground)]">Ver valores em tabela</summary>
         <div className="overflow-x-auto border-t border-[var(--border)]">
           <table className="w-full text-left text-sm">

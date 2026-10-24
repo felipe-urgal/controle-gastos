@@ -38,6 +38,8 @@ const OVERLAY_ALLOWED: Record<string, number> = {
   "app/components/overlays/delete-overlay/index.tsx": 1,
   "app/components/layout/background-particles/index.tsx": 1,
   "app/components/layout/global-search-dialog/index.tsx": 1,
+  // Painel "Mais" não modal: o fundo fecha o menu e a barra inferior continua interativa (o ModalShell a esconderia).
+  "app/components/layout/mobile-more-menu/index.tsx": 1,
   "app/components/feedback/splash-screen/index.tsx": 2,
   // Dívida de migração (#882):
 };

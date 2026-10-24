@@ -76,18 +76,17 @@ describe('monthly-closing-model', () => {
       pendingHref: '/p',
       readiness: readiness({
         pendingTransactions: { checked: true, totalCount: 2, income: { count: 1, amount: 1500 }, expense: { count: 1, amount: 800 } },
+        // Contas sem conciliação em dia não geram item: a conferência com o extrato saiu da tela.
         reconciliation: {
           checked: true, accountCount: 2, reconciledCount: 1, issueCount: 1,
           accounts: [
             { accountId: 'a', accountName: 'Nubank', accountType: 'CREDIT_DEBIT', status: 'UNRECONCILED_ITEMS', completedCount: 3, unreconciledCount: 7, latestCutoff: null, href: '/contas/a' },
-            { accountId: 'b', accountName: 'Itaú', accountType: 'CREDIT_DEBIT', status: 'RECONCILED', completedCount: 3, unreconciledCount: 0, latestCutoff: null, href: '/contas/b' },
           ],
         },
       }),
     });
     expect(pending[0]).toMatchObject({ ok: false, href: '/p' });
-    expect(pending[1]).toMatchObject({ ok: false, href: '/contas/a', title: 'Conciliação: 1 de 2 conta(s) em dia' });
-    expect(pending[1].detail).toBe('Nubank tem 7 sem conciliar');
-    expect(pending[2].ok).toBe(true);
+    expect(pending.map((item) => item.key)).toEqual(['pending', 'statements']);
+    expect(pending[1].ok).toBe(true);
   });
 });

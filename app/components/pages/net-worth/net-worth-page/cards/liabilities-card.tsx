@@ -15,7 +15,7 @@ export function LiabilitiesCard({
   showValues: boolean;
 }) {
   return (
-    <article className="min-w-0 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">Dívidas</h2>
@@ -23,13 +23,13 @@ export function LiabilitiesCard({
             Dívidas com saldo devedor nesta moeda.
           </p>
         </div>
-        <Link href="/dividas" className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-[var(--orbit-primary)]">
+        <Link href="/dividas" className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-[var(--primary)]">
           Gerenciar
         </Link>
       </div>
 
       {debts.length === 0 ? (
-        <p className="mt-4 rounded-[12px] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
+        <p className="mt-4 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--text-muted)]">
           Nenhum passivo com saldo devedor.
         </p>
       ) : (

@@ -930,7 +930,7 @@ export function useTransactionForm({
     const selected = tags.filter((tag) => formData.tagIds?.includes(tag.id));
 
     return (
-      <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+      <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
           <FaTag aria-hidden="true" />
           Tags
@@ -943,7 +943,6 @@ export function useTransactionForm({
                 key={tag.id}
                 variant="outline"
                 size="xs"
-                pill
                 onClick={() => setFormData((previous) => ({
                   ...previous,
                   tagIds: (previous.tagIds ?? []).filter((id) => id !== tag.id),
@@ -996,7 +995,7 @@ export function useTransactionForm({
     );
 
     return (
-      <div className="rounded-[12px] border border-dashed border-[var(--border-strong)] bg-[var(--surface-subtle)] p-3">
+      <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border-strong)] bg-[var(--surface-subtle)] p-3">
         <div className="flex items-center justify-between gap-3">
           <div>
             <strong className="text-sm text-[var(--foreground)]">Dividir em categorias</strong>

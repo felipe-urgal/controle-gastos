@@ -1,23 +1,21 @@
 'use client';
 
-import { format } from 'date-fns';
 import Link from 'next/link';
 import { useState } from 'react';
-import { FaArrowDown, FaArrowLeft, FaArrowUp, FaExchangeAlt } from 'react-icons/fa';
+import { FaArrowDown, FaArrowUp, FaExchangeAlt } from 'react-icons/fa';
 
-import { appBarTitleClassName } from '@/app/components/base-pages/page-title';
+import { MobileAppBar } from '@/app/components/layout';
+import AccountAppBarActions from '@/app/components/pages/account/show/account-app-bar-actions';
 import {
-  accountShowActions,
   buildSparkline,
   filterMovements,
   groupMovementsByDay,
   investmentValueSourceLabel,
   type MovementFilter,
 } from '@/app/components/pages/account/show/account-show-model';
-import ReconciliationPanel from '@/app/components/pages/account/show/reconciliation-panel';
 import { ChartCursor } from '@/app/components/charts/chart-cursor';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
-import { Button, Chip, IconLink, IconRenderer, ShowBelow } from '@/app/components/ui';
+import { Chip, IconRenderer, ShowBelow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { getAccountPrimaryValue } from '@/app/lib/accounts/account-presentation';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -49,7 +47,13 @@ function Sparkline({ series, label, currency, showValues }: { series: number[]; 
             {dayLabel}: <strong className="money text-[var(--foreground)]">{showValues ? formatCurrency(series[activeIndex], currency) : '••••'}</strong>
           </>
         ) : (
-          'Passe o cursor ou toque para ver o saldo de cada dia.'
+          <>
+            Saldo dos últimos {series.length} dias
+            <span className="money">
+              {' · '}
+              {showValues ? `${formatCurrency(Math.min(...series), currency)} a ${formatCurrency(Math.max(...series), currency)}` : '••••'}
+            </span>
+          </>
         )}
       </p>
       <svg viewBox="0 0 300 64" className="h-16 w-full touch-pan-y" role="img" aria-label={label} {...handlers}>
@@ -64,16 +68,11 @@ function Sparkline({ series, label, currency, showValues }: { series: number[]; 
 
 function MovementRow({ transaction, account, showValues }: { transaction: AccountRecentTransaction; account: AccountModel; showValues: boolean }) {
   const isTransfer = isTransferTransaction(transaction);
+  const isOpening = transaction.kind === 'OPENING_BALANCE';
   const isIncome = transaction.type === 'INCOME';
   const pending = transaction.status === 'PENDING';
-  const reconciliation =
-    transaction.status === 'COMPLETED' && transaction.reconciliationStatus === 'RECONCILED'
-      ? 'Reconciliada'
-      : transaction.status === 'COMPLETED' && transaction.reconciliationStatus === 'CLEARED'
-        ? 'Conferida'
-        : null;
   const tone = isTransfer
-    ? 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]'
+    ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
     : isIncome
       ? 'bg-[var(--surface-subtle)] text-[var(--income)]'
       : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
@@ -86,20 +85,19 @@ function MovementRow({ transaction, account, showValues }: { transaction: Accoun
         aria-label={`Abrir transação ${transaction.description || 'sem descrição'}`}
         className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5"
       >
-        <span className={`grid h-9 w-9 place-items-center rounded-[10px] text-sm ${tone}`} aria-hidden="true">
+        <span className={`grid h-9 w-9 place-items-center rounded-[var(--radius-md)] text-sm ${tone}`} aria-hidden="true">
           {isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
         </span>
         <span className="min-w-0">
           <span className="block break-words text-sm font-semibold text-[var(--foreground)]">
             {transaction.description || 'Sem descrição'}
             {pending && <span className="ml-2 align-middle text-xs font-semibold text-[var(--pending)]">pendente</span>}
-            {reconciliation && <span className="ml-2 align-middle text-xs font-semibold text-[var(--orbit-primary)]">{reconciliation}</span>}
           </span>
           <span className="block truncate text-xs text-[var(--text-muted)]">
-            {isTransfer ? getTransferCounterpartLabel(transaction) : transaction.category?.name ?? 'Sem categoria'}
+            {isTransfer ? getTransferCounterpartLabel(transaction) : isOpening ? 'Abertura da conta' : transaction.category?.name ?? 'Sem categoria'}
           </span>
         </span>
-        <span className={`money text-sm font-semibold ${isTransfer ? 'text-[var(--orbit-primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--foreground)]'}`}>
+        <span className={`money text-sm font-semibold ${isTransfer ? 'text-[var(--primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--foreground)]'}`}>
           {isIncome ? '+ ' : '− '}
           {amount}
         </span>
@@ -121,12 +119,12 @@ function Movements({ account, showValues }: { account: AccountModel; showValues:
   ];
 
   return (
-    <section className="overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="account-movements-heading">
+    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="account-movements-heading">
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
         <h2 id="account-movements-heading" className="text-base font-bold">Movimentações</h2>
         <Link
           href={`/transacoes?accountId=${encodeURIComponent(account.id)}`}
-          className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--orbit-primary)]"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]"
         >
           Ver extrato completo
         </Link>
@@ -166,7 +164,9 @@ export default function AccountShowView({
   editUrl,
   isDeleting,
   onDeleteRequest,
-  onReconciliationChange,
+  onToggleActive,
+  isUpdatingStatus,
+  statusError,
 }: {
   account: AccountModel;
   typeLabels: Record<string, string>;
@@ -174,7 +174,9 @@ export default function AccountShowView({
   editUrl: string;
   isDeleting: boolean;
   onDeleteRequest: () => void;
-  onReconciliationChange?: () => Promise<void> | void;
+  onToggleActive: () => void;
+  isUpdatingStatus: boolean;
+  statusError: string | null;
 }) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
@@ -184,7 +186,6 @@ export default function AccountShowView({
   const value = getAccountPrimaryValue(account);
   const activity = account.activity ?? null;
   const monthName = monthNames[new Date().getMonth()];
-  const actions = accountShowActions(account);
   const series = activity?.balanceSeries ?? [];
   const sparkLabel = showValues && series.length > 1
     ? `Saldo dos últimos 30 dias: de ${formatCurrency(series[0], account.currency)} a ${formatCurrency(series[series.length - 1], account.currency)}`
@@ -201,24 +202,42 @@ export default function AccountShowView({
         { label: `Saiu em ${monthName}`, value: activity ? `− ${money(activity.monthExpense)}` : '—', tone: 'text-[var(--expense)]' },
         { label: 'A vir (pendentes)', value: activity ? (activity.pendingCount === 0 ? money(0) : signed(activity.pendingNet)) : '—', tone: '' },
       ];
-
+  // Com pendentes, mostra onde o saldo chega se todas forem concluídas (não altera o saldo realizado).
+  const projected = !isInvestment && activity && activity.pendingCount > 0 ? account.balance + activity.pendingNet : null;
+  
   return (
     <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
-        <header className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2">
-          <IconLink label="Voltar para contas" href={backUrl} icon={<FaArrowLeft />} className="rounded-full text-lg text-[var(--foreground)]" />
-          <h1 className={`text-center ${appBarTitleClassName}`}>{account.name}</h1>
-          <Button as="a" href={editUrl} variant="outline" size="xs">Editar conta</Button>
-        </header>
+        <MobileAppBar
+          title={account.name}
+          backHref={backUrl}
+          backLabel="Voltar para contas"
+          action={
+            <AccountAppBarActions
+              editUrl={editUrl}
+              isActive={account.isActive}
+              isDeletable={account.isDeletable !== false}
+              busy={isUpdatingStatus || isDeleting}
+              onToggleActive={onToggleActive}
+              onDeleteRequest={onDeleteRequest}
+            />
+          }
+        />
       </ShowBelow>
+
+      {statusError && (
+        <p role="alert" className="rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm text-[var(--expense)]">
+          {statusError}
+        </p>
+      )}
 
       <section
         aria-label="Resumo da conta"
-        className="grid gap-5 rounded-[20px] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
-        style={{ ['--account-color' as string]: account.color || 'var(--orbit-primary)' }}
+        className="grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+        style={{ ['--account-color' as string]: account.color || 'var(--primary)' }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[14px] text-white" style={{ backgroundColor: account.color || 'var(--text-muted)' }} aria-hidden="true">
+          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white" style={{ backgroundColor: account.color || 'var(--text-muted)' }} aria-hidden="true">
             <IconRenderer iconName={account.icon || 'wallet'} size={22} />
           </span>
           <div className="min-w-0">
@@ -234,7 +253,7 @@ export default function AccountShowView({
 
         <div className="grid items-end gap-4 md:grid-cols-2">
           <div className="min-w-0">
-            <strong className={`money block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${value < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+            <strong className={`money block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${value < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
               {money(value)}
             </strong>
             <p className="mt-2 text-sm text-[var(--text-muted)]">
@@ -244,6 +263,12 @@ export default function AccountShowView({
                   : 'Valor das posições; sem cotação, usa o custo investido.'
                 : 'Saldo hoje, só com o que já foi concluído.'}
             </p>
+            {projected !== null && (
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                Com os pendentes concluídos: <strong className={`money ${projected < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>{money(projected)}</strong>
+              </p>
+            )}
+            {account.description && <p className="mt-2 text-sm text-[var(--text-muted)]">{account.description}</p>}
             {!showValues && <p className="mt-1 text-sm text-[var(--text-subtle)]">Valores ocultos pelas suas preferências.</p>}
           </div>
           {series.length > 1 && <Sparkline series={series} label={sparkLabel} currency={account.currency} showValues={showValues} />}
@@ -251,59 +276,22 @@ export default function AccountShowView({
 
         <dl className="grid grid-cols-3 gap-2">
           {stats.map((stat) => (
-            <div key={stat.label} className="min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 sm:px-3">
+            <div key={stat.label} className="min-w-0 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 sm:px-3">
               <dt className="text-xs text-[var(--text-muted)] sm:text-sm">{stat.label}</dt>
               <dd className={`money break-words text-xs font-semibold sm:text-base ${stat.tone}`}>{stat.value}</dd>
             </div>
           ))}
         </dl>
 
-        <nav aria-label="Ações da conta" className="grid grid-cols-4 gap-2">
-          {actions.map((action) => (
-            <Button
-              key={action.key}
-              as="a"
-              href={action.href}
-              variant={action.primary ? 'accent' : 'outline'}
-              size="xs"
-              className="w-full px-1 text-center leading-tight"
-            >
-              {action.label}
-            </Button>
-          ))}
-        </nav>
+        {!account.isActive && (
+          <p className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-muted)]">
+            Conta inativa: não recebe novos lançamentos e o histórico continua guardado.
+          </p>
+        )}
       </section>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <Movements account={account} showValues={showValues} />
+      <Movements account={account} showValues={showValues} />
 
-        <div className="space-y-4">
-          <div id="account-reconciliation">
-            <ReconciliationPanel account={account} onChanged={onReconciliationChange} />
-          </div>
-
-          <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="account-about-heading">
-            <h2 id="account-about-heading" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Sobre a conta</h2>
-            <dl className="grid gap-2 px-4 pb-4 text-sm sm:px-5">
-              <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Criada em</dt><dd>{format(new Date(account.createdAt), 'dd/MM/yyyy')}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Última atualização</dt><dd>{format(new Date(account.updatedAt), 'dd/MM/yyyy')}</dd></div>
-              {account.description && <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Descrição</dt><dd className="text-right">{account.description}</dd></div>}
-            </dl>
-            <details className="group border-t border-[var(--border)]">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center px-4 text-sm text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
-                Zona de risco
-              </summary>
-              <div className="grid gap-3 px-4 pb-4 text-sm text-[var(--text-muted)] sm:px-5">
-                <p>Inativar guarda o histórico e tira a conta dos lançamentos novos. Excluir só é possível quando a conta não tem movimentações.</p>
-                <div className="flex flex-wrap gap-2">
-                  <Button as="a" href={editUrl} variant="outline" size="sm">Inativar conta</Button>
-                  <Button type="button" variant="danger" size="sm" onClick={onDeleteRequest}>Excluir conta</Button>
-                </div>
-              </div>
-            </details>
-          </section>
-        </div>
-      </div>
     </div>
   );
 }

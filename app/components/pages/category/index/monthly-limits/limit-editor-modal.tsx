@@ -56,7 +56,7 @@ export function LimitEditorModal({
         />
 
         {item.limit && (
-          <div className="mt-4 rounded-[12px] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
+          <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
             {confirmingRemove ? (
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-[var(--text-muted)]">Remover o limite deste mês? O gasto continua registrado.</p>

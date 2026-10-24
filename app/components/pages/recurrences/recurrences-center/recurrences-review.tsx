@@ -25,7 +25,7 @@ type Actions = {
 const REASON_BADGE = {
   PRICE: { label: 'Preço subiu', tone: 'bg-[var(--danger-subtle)] text-[var(--expense)]' },
   STALE: { label: 'Sem cobrança recente', tone: 'bg-[var(--warning-subtle)] text-[var(--warning)]' },
-  POSSIBLE: { label: 'Possível assinatura', tone: 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]' },
+  POSSIBLE: { label: 'Possível assinatura', tone: 'bg-[var(--primary-subtle)] text-[var(--primary)]' },
 } as const;
 
 export default function RecurrencesReview({
@@ -43,7 +43,7 @@ export default function RecurrencesReview({
   const money = (cents: number, currency: string) => (showValues ? formatCurrency(cents, currency) : '••••');
 
   return (
-    <section className="rounded-[16px] border border-[var(--orbit-primary)] bg-[var(--surface)]" aria-labelledby="recurrences-review-heading">
+    <section className="rounded-[var(--radius-lg)] border border-[var(--primary)] bg-[var(--surface)]" aria-labelledby="recurrences-review-heading">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 pb-2 pt-4 sm:px-5">
         <h2 id="recurrences-review-heading" className="text-base font-bold">Para revisar</h2>
         <p className="text-xs text-[var(--text-muted)]">
@@ -62,7 +62,7 @@ export default function RecurrencesReview({
           </span>
           <span>
             <strong className="block text-sm">Nada para revisar</strong>
-            <span className="text-[13px] text-[var(--text-muted)]">Sem sugestões novas, preços alterados ou assinaturas paradas.</span>
+            <span className="text-sm text-[var(--text-muted)]">Sem sugestões novas, preços alterados ou assinaturas paradas.</span>
           </span>
         </div>
       ) : (
@@ -105,7 +105,7 @@ function RowShell({
 }) {
   return (
     <div className="grid grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-3 sm:grid-cols-[40px_minmax(0,1fr)_auto] sm:px-5">
-      <span className="grid h-10 w-10 place-items-center rounded-[12px] bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]" aria-hidden="true">
+      <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]" aria-hidden="true">
         {icon}
       </span>
       <div className="min-w-0">
@@ -116,7 +116,7 @@ function RowShell({
         {children}
       </div>
       <div className="col-start-2 sm:col-start-3 sm:text-right">
-        <span className="money block text-[15px] font-semibold">{amount}</span>
+        <span className="money block text-sm font-semibold">{amount}</span>
         <span className="text-xs text-[var(--text-muted)]">{amountHint}</span>
       </div>
       <div className="col-start-2 flex flex-wrap gap-2 sm:col-span-2">{actions}</div>
@@ -149,12 +149,12 @@ function SubscriptionRow({
       actions={
         <>
           {reason === 'STALE' && (
-            <Button variant="accent" size="sm" disabled={busy} onClick={() => onReview(item.id, 'CONFIRMED')}>
+            <Button size="sm" disabled={busy} onClick={() => onReview(item.id, 'CONFIRMED')}>
               {busy ? 'Confirmando…' : 'Continua ativa'}
             </Button>
           )}
           {reason === 'POSSIBLE' && (
-            <Button variant="accent" size="sm" disabled={busy} onClick={() => onReview(item.id, 'CONFIRMED')}>
+            <Button size="sm" disabled={busy} onClick={() => onReview(item.id, 'CONFIRMED')}>
               {busy ? 'Salvando…' : 'É assinatura'}
             </Button>
           )}
@@ -217,13 +217,13 @@ function CandidateRow({
       icon={<FaSyncAlt />}
       title={candidate.description}
       badge="Padrão detectado"
-      badgeTone="bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]"
+      badgeTone="bg-[var(--primary-subtle)] text-[var(--primary)]"
       subtitle={`${candidate.type === 'INCOME' ? 'Receita' : 'Despesa'} · ${candidate.account.name} · ${candidate.category.name}`}
       amount={money(candidate.amount, candidate.currency)}
       amountHint={candidate.variableAmount ? 'média' : frequencyLabel(candidate.frequency, candidate.interval).toLowerCase()}
       actions={
         <>
-          <Button variant="accent" size="sm" disabled={busy} onClick={() => onConfirmCandidate(candidate)}>
+          <Button size="sm" disabled={busy} onClick={() => onConfirmCandidate(candidate)}>
             {busy ? 'Salvando…' : 'Confirmar recorrência'}
           </Button>
           <Button variant="outline" size="sm" disabled={busy} onClick={() => onIgnore(candidate.id)}>
@@ -259,7 +259,7 @@ function Evidence({ label, items }: { label: string; items: Array<{ id: string; 
   if (items.length === 0) return null;
   return (
     <details className="mt-1">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center text-xs font-bold text-[var(--orbit-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center text-xs font-bold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
         {label}
       </summary>
       <ul className="grid gap-1 pb-2 text-xs text-[var(--text-muted)]">

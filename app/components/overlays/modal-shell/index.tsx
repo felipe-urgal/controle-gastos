@@ -116,13 +116,13 @@ export function ModalShell({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         aria-busy={closeDisabled || undefined}
-        className={`flex w-full ${maxWidthClass} ${sectionSize} flex-col overflow-hidden rounded-t-[22px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-elevated)] outline-none ${sidePanel ? '' : 'sm:rounded-[22px]'} ${sectionClassName}`}
+        className={`flex w-full ${maxWidthClass} ${sectionSize} flex-col overflow-hidden rounded-t-[22px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-elevated)] outline-none ${sidePanel ? '' : 'sm:rounded-[var(--radius-lg)]'} ${sectionClassName}`}
       >
         <header className="flex shrink-0 items-start justify-between gap-4 px-5 pb-5 pt-5">
           {icon && <span className="mr-3 shrink-0" aria-hidden="true">{icon}</span>}
           <div className="min-w-0 flex-1">
             {eyebrow && (
-              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--orbit-primary)]">
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--primary)]">
                 {eyebrow}
               </p>
             )}

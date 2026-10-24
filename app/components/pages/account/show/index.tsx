@@ -1,8 +1,14 @@
 'use client';
 
+import { FaPowerOff } from 'react-icons/fa';
+
 import { ShowPage } from '@/app/components/base-pages';
 import AccountShowView from '@/app/components/pages/account/show/account-show-view';
+import { DELETE_BLOCKED_HINT } from '@/app/components/pages/account/show/account-app-bar-actions';
+import AccountShowSkeleton from '@/app/components/pages/account/show/account-show-skeleton';
 import CreditCardOverview from '@/app/components/pages/account/show/credit-card-overview';
+import { pageBarButtonProps } from '@/app/components/base-pages/page-bar';
+import { Button } from '@/app/components/ui';
 import { useAccounts } from '@/app/hooks/accounts/account-show';
 
 export default function Show({ id }: { id: string }) {
@@ -15,19 +21,29 @@ export default function Show({ id }: { id: string }) {
     handleDelete,
     handleBack,
     typeLabels,
-    refreshAccount,
+    setActive,
+    isUpdatingStatus,
+    statusError,
   } = useAccounts({ id });
 
-  const accountView = account ? (
-    <AccountShowView
-      account={account}
-      typeLabels={typeLabels}
-      backUrl={handleBack}
-      editUrl={`/contas/alterar/${id}`}
-      isDeleting={isDeleting}
-      onDeleteRequest={() => setIsDeleteModalOpen(true)}
-      onReconciliationChange={refreshAccount}
-    />
+  const editUrl = `/contas/alterar/${id}`;
+  const toggleActive = () => void setActive(!account?.isActive);
+  const sharedProps = {
+    backUrl: handleBack,
+    editUrl,
+    isDeleting,
+    onDeleteRequest: () => setIsDeleteModalOpen(true),
+    onToggleActive: toggleActive,
+    isUpdatingStatus,
+    statusError,
+  };
+
+  const content = account ? (
+    account.type === 'CREDIT_CARD' ? (
+      <CreditCardOverview account={account} {...sharedProps} />
+    ) : (
+      <AccountShowView account={account} typeLabels={typeLabels} {...sharedProps} />
+    )
   ) : null;
 
   return (
@@ -35,43 +51,33 @@ export default function Show({ id }: { id: string }) {
       entity={account}
       entityName="conta"
       titleFallback="Detalhes da conta"
-      description="Consulte saldo, identificação, reconciliação e as movimentações recentes vinculadas a esta conta."
+      sidebarAligned
+      loadingSkeleton={<AccountShowSkeleton backUrl={handleBack} />}
+      breadcrumb={[{ label: 'Contas', href: '/contas' }, { label: account?.name ?? 'Conta' }]}
       loading={loading}
-      editUrl={`/contas/alterar/${id}`}
+      editUrl={editUrl}
       backUrl={handleBack}
       isDeleting={isDeleting}
       isDeleteModalOpen={isDeleteModalOpen}
       setIsDeleteModalOpen={setIsDeleteModalOpen}
       onDelete={handleDelete}
       emptyRedirectTo="/contas"
-      hideHeaderDelete
-      mobileContent={
-        account ? (
-          account.type === 'CREDIT_CARD' ? (
-            <CreditCardOverview
-              account={account}
-              backUrl={handleBack}
-              editUrl={`/contas/alterar/${id}`}
-              isDeleting={isDeleting}
-              onDeleteRequest={() => setIsDeleteModalOpen(true)}
-            />
-          ) : (
-            accountView
-          )
-        ) : null
+      deleteDisabled={account?.isDeletable === false}
+      deleteHint={DELETE_BLOCKED_HINT}
+      headerActions={
+        <Button
+          variant="outline"
+          {...pageBarButtonProps}
+          icon={<FaPowerOff />}
+          onClick={toggleActive}
+          disabled={isUpdatingStatus || isDeleting}
+        >
+          {account?.isActive === false ? 'Reativar conta' : 'Inativar conta'}
+        </Button>
       }
+      mobileContent={content}
     >
-      {account?.type === 'CREDIT_CARD' ? (
-        <CreditCardOverview
-          account={account}
-          backUrl={handleBack}
-          editUrl={`/contas/alterar/${id}`}
-          isDeleting={isDeleting}
-          onDeleteRequest={() => setIsDeleteModalOpen(true)}
-        />
-      ) : (
-        accountView
-      )}
+      {content}
     </ShowPage>
   );
 }

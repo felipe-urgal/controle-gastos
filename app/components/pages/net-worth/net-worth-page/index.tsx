@@ -1,7 +1,6 @@
 'use client';
 
-import { PageContainer } from '@/app/components/base-pages';
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { FaChevronDown, FaChevronRight } from 'react-icons/fa';
@@ -371,15 +370,7 @@ export default function NetWorthPage() {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className={pageTitleClassName}>
-              Patrimônio
-            </h1>
-            <p className="mt-1 text-sm text-[var(--text-muted)] sm:text-base">
-              Ativos, passivos e patrimônio líquido por moeda, sem conversão cambial automática.
-            </p>
-          </div>
+        <PageTitle title="Patrimônio" description="Ativos, passivos e patrimônio líquido por moeda, sem conversão cambial automática." actions={
 
           <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
             <Input
@@ -406,12 +397,12 @@ export default function NetWorthPage() {
               options={[6, 12, 24, 36, 60].map((count) => ({ value: count, label: `${count} meses` }))}
             />
           </div>
-        </header>
+        } />
 
         {error && (
           <p
             role="alert"
-            className="mt-4 rounded-[14px] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
+            className="mt-4 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
           >
             {error}
           </p>
@@ -430,7 +421,7 @@ export default function NetWorthPage() {
             </p>
             <Link
               href="/contas"
-              className="mx-auto mt-4 flex min-h-11 w-fit items-center gap-2 rounded-full bg-[var(--orbit-primary)] px-5 font-bold text-white"
+              className="mx-auto mt-4 flex min-h-11 w-fit items-center gap-2 rounded-full bg-[var(--primary)] px-5 font-bold text-white"
             >
               Ver contas
               <FaChevronRight aria-hidden="true" />
@@ -472,7 +463,7 @@ export default function NetWorthPage() {
                 />
 
                 {data.realEvolution?.error && (
-                  <article className="rounded-[18px] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 sm:p-5">
+                  <article className="rounded-[var(--radius-lg)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-4 sm:p-5">
                     <h2 className="font-bold text-[var(--foreground)]">
                       Evolução real indisponível
                     </h2>
@@ -524,7 +515,7 @@ export default function NetWorthPage() {
                 </>
               )}
 
-              <details className="group rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
+              <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
                 <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 sm:px-5 [&::-webkit-details-marker]:hidden">
                   <span>
                     <span className="block text-lg font-bold">Câmbio e consolidação</span>

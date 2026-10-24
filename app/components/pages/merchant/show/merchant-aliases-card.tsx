@@ -126,7 +126,7 @@ export default function MerchantAliasesCard({ merchantId, merchantName }: { merc
   }
 
   return (
-    <section className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="merchant-recognition-heading">
+    <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="merchant-recognition-heading">
       <div className="px-4 pb-2 pt-4 sm:px-5">
         <h2 id="merchant-recognition-heading" className="text-base font-bold">Como reconhecemos</h2>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -145,7 +145,7 @@ export default function MerchantAliasesCard({ merchantId, merchantName }: { merc
           {aliases.map((alias) => (
             <li key={alias.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-2 sm:px-5">
               <span className="min-w-0 break-words text-sm">
-                <code className="rounded-md bg-[var(--surface-subtle)] px-1.5 py-0.5 font-mono text-[0.8125rem]">{alias.pattern}</code>
+                <code className="rounded-md bg-[var(--surface-subtle)] px-1.5 py-0.5 font-mono text-sm">{alias.pattern}</code>
                 <span className="ml-2 text-xs text-[var(--text-muted)]">{aliasOperatorLabel(alias.operator)} · prioridade {alias.priority}</span>
               </span>
               <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => void remove(alias.id)} aria-label={`Remover alias ${alias.pattern}`}>

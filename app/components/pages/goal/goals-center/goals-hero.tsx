@@ -26,7 +26,7 @@ export default function GoalsHero({
   const summary = summarizeActive(goals, currency, now);
 
   return (
-    <section aria-labelledby="goals-hero-label" className="grid gap-4 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="goals-hero-label" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p id="goals-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">Você já juntou nas metas ativas</p>
         {currencies.length > 1 && (
@@ -40,22 +40,22 @@ export default function GoalsHero({
         )}
       </div>
 
-      <strong className="money break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+      <strong className="money break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
         {money(summary.current)}
         <span className="ml-2 text-base font-semibold tracking-normal text-[var(--text-muted)]">de {money(summary.target)}</span>
       </strong>
 
       <div>
         <div className="h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${summary.percent}% do total das metas ativas`}>
-          <div className="h-full rounded-full bg-[var(--orbit-primary)]" style={{ width: `${summary.percent}%` }} />
+          <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${summary.percent}%` }} />
         </div>
-        <div className="mt-1.5 flex justify-between gap-2 text-[13px] text-[var(--text-muted)]">
+        <div className="mt-1.5 flex justify-between gap-2 text-sm text-[var(--text-muted)]">
           <strong className="text-[var(--foreground)]">{summary.percent}%</strong>
           <span>Faltam <span className="money">{money(summary.remaining)}</span></span>
         </div>
       </div>
 
-      <p className="max-w-[64ch] text-[15px] text-[var(--text-muted)]">
+      <p className="max-w-[64ch] text-sm text-[var(--text-muted)]">
         <MoneyText>{buildLede(summary, money)}</MoneyText>
       </p>
 
@@ -70,8 +70,8 @@ export default function GoalsHero({
 
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="grid gap-0.5 rounded-[12px] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="text-[13px] font-semibold text-[var(--text-muted)]">{label}</span>
+    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
+      <span className="text-sm font-semibold text-[var(--text-muted)]">{label}</span>
       <span className="money break-words text-xl font-semibold">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
     </div>

@@ -25,7 +25,7 @@ import type {
   FinancialCommitmentType,
 } from '@/app/types/financial-commitment';
 
-const cardClassName = 'rounded-[16px] border border-[var(--border)] bg-[var(--surface)]';
+const cardClassName = 'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]';
 
 const TYPE_LABEL: Record<FinancialCommitmentType, string> = {
   PENDING: 'Pendente',
@@ -46,7 +46,7 @@ const FILTERS: Array<{ key: CommitmentFilter; label: string }> = [
 const ICON_TONE: Record<FinancialCommitmentDirection, string> = {
   PAYABLE: 'bg-[var(--danger-subtle)] text-[var(--expense)]',
   RECEIVABLE: 'bg-[var(--primary-subtle)] text-[var(--income)]',
-  MILESTONE: 'bg-[var(--orbit-primary-subtle)] text-[var(--orbit-primary)]',
+  MILESTONE: 'bg-[var(--primary-subtle)] text-[var(--primary)]',
 };
 
 export default function FinancialCommitmentsView({
@@ -67,13 +67,13 @@ export default function FinancialCommitmentsView({
 
   return (
     <div className="space-y-4">
-      <section aria-labelledby="commitments-hero-label" className="grid gap-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+      <section aria-labelledby="commitments-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
         <div className="grid gap-1.5">
           <p id="commitments-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">A pagar até {formatDate(data.through)}</p>
-          <strong className="money break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] text-[var(--expense)] sm:text-5xl">
+          <strong className="money break-words text-4xl font-semibold leading-none tracking-[-0.035em] text-[var(--expense)] sm:text-5xl">
             {money(payable.amount)}
           </strong>
-          <p className="mt-2 max-w-[62ch] text-[15px] text-[var(--text-muted)]">
+          <p className="mt-2 max-w-[62ch] text-sm text-[var(--text-muted)]">
             <MoneyText>{buildLede(data, money)}</MoneyText>
           </p>
         </div>
@@ -87,14 +87,14 @@ export default function FinancialCommitmentsView({
             <div className="grid gap-3 sm:grid-cols-3">
               <Legend dot="var(--expense)" label="A pagar" value={money(payable.amount)} detail={`${payable.count} compromisso${payable.count === 1 ? '' : 's'}`} />
               <Legend dot="var(--income)" label="A receber" value={money(receivable.amount)} detail={`${receivable.count} entrada${receivable.count === 1 ? '' : 's'}`} />
-              <Legend dot="var(--orbit-primary)" label="Marcos" value={String(milestoneCount)} detail="sem valor monetário" />
+              <Legend dot="var(--primary)" label="Marcos" value={String(milestoneCount)} detail="sem valor monetário" />
             </div>
           </div>
         )}
       </section>
 
       {overdue.length > 0 && (
-        <section className="rounded-[16px] border border-[var(--expense)] bg-[var(--danger-subtle)]" aria-labelledby="commitments-overdue-heading">
+        <section className="rounded-[var(--radius-lg)] border border-[var(--expense)] bg-[var(--danger-subtle)]" aria-labelledby="commitments-overdue-heading">
           <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1.5 pt-3.5 text-[var(--expense)] sm:px-5">
             <h2 id="commitments-overdue-heading" className="text-base font-bold">Vencidos · resolva primeiro</h2>
             <p className="text-xs font-semibold">{overdueCount} {overdueCount === 1 ? 'item ainda pendente' : 'itens ainda pendentes'}</p>
@@ -128,7 +128,7 @@ export default function FinancialCommitmentsView({
               days.map((day) => (
                 <div key={day.key} className="border-t border-[var(--border)]">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 bg-[var(--surface-raised)] px-4 pb-1 pt-3 sm:px-5">
-                    <h3 className="text-[13px] font-bold">{day.label}</h3>
+                    <h3 className="text-sm font-bold">{day.label}</h3>
                     {day.net !== null && (
                       <span className="money text-xs text-[var(--text-muted)]">{day.net > 0 ? '+ ' : day.net < 0 ? '− ' : ''}{money(Math.abs(day.net))}</span>
                     )}
@@ -156,7 +156,7 @@ export default function FinancialCommitmentsView({
               <ul className="grid gap-3.5 px-4 pb-5 sm:px-5">
                 {weeks.map((week) => (
                   <li key={week.key} className="grid gap-1.5">
-                    <div className="flex flex-wrap justify-between gap-x-2 text-[13px]">
+                    <div className="flex flex-wrap justify-between gap-x-2 text-sm">
                       <span className="font-semibold">{week.label}</span>
                       <span className="money text-[var(--text-muted)]">
                         {week.payable > 0 ? `− ${money(week.payable)}` : ''}
@@ -181,7 +181,7 @@ export default function FinancialCommitmentsView({
         <section className={`${cardClassName} grid justify-items-center gap-2.5 px-4 py-10 text-center`}>
           <h2 className="text-lg font-bold">Nenhum compromisso nos próximos {data.days} dias</h2>
           <p className="max-w-[48ch] text-sm text-[var(--text-muted)]">Que tal olhar mais adiante? Ou registre uma conta a pagar para ela aparecer aqui.</p>
-          <Link href="/transacoes/nova" className="inline-flex min-h-11 items-center rounded-[12px] border border-[var(--border-strong)] px-4 text-[13px] font-bold hover:bg-[var(--surface-hover)]">
+          <Link href="/transacoes/nova" className="inline-flex min-h-11 items-center rounded-[var(--radius-md)] border border-[var(--border-strong)] px-4 text-sm font-bold hover:bg-[var(--surface-hover)]">
             Nova transação
           </Link>
         </section>
@@ -198,7 +198,7 @@ function CommitmentRow({ item, money, lateLabel }: { item: FinancialCommitment; 
       href={item.href}
       className="grid min-h-16 grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5"
     >
-      <span className={`grid h-9 w-9 place-items-center rounded-[10px] text-sm ${ICON_TONE[item.direction]}`} aria-hidden="true">
+      <span className={`grid h-9 w-9 place-items-center rounded-[var(--radius-md)] text-sm ${ICON_TONE[item.direction]}`} aria-hidden="true">
         <Icon />
       </span>
       <span className="min-w-0">
@@ -219,8 +219,8 @@ function CommitmentRow({ item, money, lateLabel }: { item: FinancialCommitment; 
 
 function Legend({ dot, label, value, detail }: { dot: string; label: string; value: string; detail: string }) {
   return (
-    <div className="grid gap-0.5 rounded-[12px] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="text-[13px] font-semibold text-[var(--text-muted)]">
+    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
+      <span className="text-sm font-semibold text-[var(--text-muted)]">
         <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: dot }} aria-hidden="true" />
         {label}
       </span>

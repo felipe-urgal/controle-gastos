@@ -26,12 +26,12 @@ export function PayrollYearOverview({
   const money = (cents: number | null) => payrollMoney(cents, showValues);
 
   return (
-    <section aria-labelledby="payroll-hero-label" className="grid gap-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="payroll-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div>
         <p id="payroll-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">
           Líquido recebido em {year}
         </p>
-        <strong className="money mt-2 block break-words text-[2.125rem] font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+        <strong className="money mt-2 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
           {money(totals.netPaidCents)}
         </strong>
         <p className="mt-3 text-sm text-[var(--text-muted)]">
@@ -49,7 +49,7 @@ export function PayrollYearOverview({
       </div>
 
       {hasMore && (
-        <p className="rounded-[12px] bg-[var(--warning-subtle)] px-4 py-3 text-[13px]">
+        <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-4 py-3 text-sm">
           Este ano tem mais competências do que a tela carrega de uma vez. Totais e gráfico cobrem só as mais recentes.
         </p>
       )}
@@ -61,8 +61,8 @@ export function PayrollYearOverview({
 
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="grid min-w-0 gap-0.5 rounded-[12px] bg-[var(--surface-raised)] px-3.5 py-3">
-      <span className="text-[13px] font-semibold text-[var(--text-muted)]">{label}</span>
+    <div className="grid min-w-0 gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3">
+      <span className="text-sm font-semibold text-[var(--text-muted)]">{label}</span>
       <span className="money break-words text-lg font-semibold sm:text-xl">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
     </div>
@@ -105,7 +105,7 @@ function MonthlyChart({
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[52ch]">
-          <h2 className="text-[15px] font-bold">Líquido por mês</h2>
+          <h2 className="text-sm font-bold">Líquido por mês</h2>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
             Passe o cursor ou toque numa barra. Meses sem documento ficam vazios; meses incompletos aparecem tracejados.
           </p>
@@ -155,7 +155,7 @@ function MonthlyChart({
               width={barWidth}
               height={Math.max(2, height - pad.bottom - y(point.barCents))}
               rx="5"
-              fill={point.status === 'COMPLETE' ? 'var(--orbit-primary)' : 'url(#payroll-incomplete)'}
+              fill={point.status === 'COMPLETE' ? 'var(--primary)' : 'url(#payroll-incomplete)'}
               stroke={point.status === 'COMPLETE' ? undefined : 'var(--warning)'}
               strokeDasharray={point.status === 'COMPLETE' ? undefined : '3 3'}
               opacity={dim ? 0.45 : 1}

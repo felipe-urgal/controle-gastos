@@ -154,7 +154,7 @@ export function InvestmentTaxControlCard({
   const years = Array.from({ length: 6 }, (_, index) => currentYear - index);
 
   return (
-    <article className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -172,10 +172,10 @@ export function InvestmentTaxControlCard({
             options={years.map((item) => ({ value: item, label: String(item) }))}
             disabled={loading}
           />
-          <Button variant="outline" size="sm" pill onClick={() => setMode(mode === 'IRRF' ? null : 'IRRF')}>
+          <Button variant="outline" size="sm" onClick={() => setMode(mode === 'IRRF' ? null : 'IRRF')}>
             Registrar IRRF
           </Button>
-          <Button variant="outline" size="sm" pill onClick={() => setMode(mode === 'DARF' ? null : 'DARF')}>
+          <Button variant="outline" size="sm" onClick={() => setMode(mode === 'DARF' ? null : 'DARF')}>
             Registrar DARF
           </Button>
         </div>
@@ -184,7 +184,7 @@ export function InvestmentTaxControlCard({
       {mode && (
         <form
           onSubmit={save}
-          className="mt-4 grid gap-3 rounded-[14px] bg-[var(--surface-raised)] p-4 sm:grid-cols-2 lg:grid-cols-3"
+          className="mt-4 grid gap-3 rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           <Select
             label="Classe"
@@ -259,20 +259,20 @@ export function InvestmentTaxControlCard({
               maxLength={500}
             />
           </div>
-          <Button type="submit" variant="secondary" size="sm" pill disabled={saving}>
+          <Button type="submit" variant="secondary" size="sm" disabled={saving}>
             {saving ? 'Salvando...' : 'Salvar ' + mode}
           </Button>
         </form>
       )}
 
       {error && (
-        <p className="mt-4 rounded-[12px] border border-[var(--expense)]/30 p-3 text-sm text-[var(--expense)]">
+        <p className="mt-4 rounded-[var(--radius-md)] border border-[var(--expense)]/30 p-3 text-sm text-[var(--expense)]">
           {error}
         </p>
       )}
 
       {report && report.unsupportedCurrencies.length > 0 && (
-        <div className="mt-4 rounded-[14px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
+        <div className="mt-4 rounded-[var(--radius-lg)] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
           <strong className="block text-sm">
             Investimentos no exterior pendentes
           </strong>
@@ -284,7 +284,7 @@ export function InvestmentTaxControlCard({
       )}
 
       {report && report.unsupportedTaxLocations.length > 0 && (
-        <div className="mt-4 rounded-[14px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
+        <div className="mt-4 rounded-[var(--radius-lg)] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
           <strong className="block text-sm">
             Ativos classificados no exterior
           </strong>
@@ -298,7 +298,7 @@ export function InvestmentTaxControlCard({
       {loading ? (
         <p className="mt-4 text-sm text-[var(--text-muted)]">Carregando...</p>
       ) : report && !report.ruleSupported ? (
-        <div className="mt-4 rounded-[14px] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
+        <div className="mt-4 rounded-[var(--radius-lg)] bg-[var(--warning-subtle)] p-3 text-xs leading-relaxed text-[var(--foreground)]">
           <strong className="block text-sm">
             Regras fiscais de {year} ainda não suportadas
           </strong>
@@ -319,7 +319,7 @@ export function InvestmentTaxControlCard({
               ([currencyKey, totals]) => (
                 <div
                   key={currencyKey}
-                  className="rounded-[14px] bg-[var(--surface-raised)] p-4"
+                  className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-4"
                 >
                   <span className="text-xs font-semibold text-[var(--text-muted)]">
                     {currencyKey}
@@ -359,7 +359,7 @@ export function InvestmentTaxControlCard({
             {report.rows.map((row) => (
               <div
                 key={[row.month, row.taxGroup, row.currency].join(':')}
-                className="grid gap-2 rounded-[14px] border border-[var(--border)] p-3 text-xs sm:grid-cols-[minmax(0,1fr)_repeat(3,auto)] sm:items-center"
+                className="grid gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] p-3 text-xs sm:grid-cols-[minmax(0,1fr)_repeat(3,auto)] sm:items-center"
               >
                 <div>
                   <strong className="text-[var(--foreground)]">

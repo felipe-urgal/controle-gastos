@@ -47,7 +47,7 @@ export function TransactionReviewModal({
       onClose={onClose}
       closeDisabled={isLoading}
       maxWidthClass="max-w-[520px]"
-      sectionClassName="[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary:var(--orbit-primary)]"
+      sectionClassName=" "
       footer={
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="secondary" onClick={onClose} disabled={isLoading}>
@@ -79,7 +79,7 @@ export function TransactionReviewModal({
 
 export function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[10px] bg-[var(--surface-raised)] px-3.5 py-3">
+    <div className="flex items-center justify-between gap-4 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3">
       <dt className="text-[var(--text-muted)]">{label}</dt>
       <dd className="max-w-[65%] break-words text-right font-semibold text-[var(--foreground)]">
         {value}
@@ -104,7 +104,7 @@ export function LearningOption({
   onOperatorChange: (operator: MerchantAliasOperator) => void;
 }) {
   return (
-    <div className="mt-3 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] p-3">
+    <div className="mt-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-3">
       <label className="flex items-start gap-2 text-sm font-medium text-[var(--foreground)]">
         <input
           type="checkbox"
@@ -126,7 +126,7 @@ export function LearningOption({
               { value: 'CONTAINS', label: 'Contém' },
             ]}
           />
-          <div className="min-w-0 rounded-[8px] bg-[var(--surface-raised)] px-2.5 py-2 text-xs text-[var(--text-muted)]">
+          <div className="min-w-0 rounded-[var(--radius-sm)] bg-[var(--surface-raised)] px-2.5 py-2 text-xs text-[var(--text-muted)]">
             <span className="block text-xs font-semibold uppercase tracking-wide">Padrão</span>
             <span className="mt-0.5 block break-all font-mono text-[var(--foreground)]">{pattern}</span>
           </div>

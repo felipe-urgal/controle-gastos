@@ -68,7 +68,7 @@ export default function TransactionTemplateFormFields({
         onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))}
       />
 
-      <div className="grid gap-3 rounded-[12px] border border-dashed border-[var(--border-strong)] p-3.5">
+      <div className="grid gap-3 rounded-[var(--radius-md)] border border-dashed border-[var(--border-strong)] p-3.5">
         <p className="text-xs text-[var(--text-muted)]">Opcional. O que ficar vazio você escolhe na hora de usar.</p>
 
         <MoneyInput
@@ -115,10 +115,10 @@ export default function TransactionTemplateFormFields({
         </Chip>
       </div>
 
-      <div className="grid gap-1 rounded-[12px] bg-[var(--orbit-primary-subtle)] px-3.5 py-3">
-        <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--orbit-primary)]">Ao usar, preenche</p>
-        <p className="break-words text-[13px]">{preview.summary}</p>
-        {preview.missing && <p className="text-[13px] text-[var(--text-muted)]">{preview.missing}</p>}
+      <div className="grid gap-1 rounded-[var(--radius-md)] bg-[var(--primary-subtle)] px-3.5 py-3">
+        <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--primary)]">Ao usar, preenche</p>
+        <p className="break-words text-sm">{preview.summary}</p>
+        {preview.missing && <p className="text-sm text-[var(--text-muted)]">{preview.missing}</p>}
       </div>
     </div>
   );

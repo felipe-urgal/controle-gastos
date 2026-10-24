@@ -71,7 +71,7 @@ export function EconomicIndicatorsCard() {
   const updatedAt = updatedAtLabel(snapshot?.updatedAt ?? null);
 
   return (
-    <section aria-label="Contexto econômico" className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+    <section aria-label="Contexto econômico" className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
       {loading ? (
         <p className="text-sm text-[var(--text-muted)]">Carregando indicadores...</p>
       ) : failed || !snapshot ? (

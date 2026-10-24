@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  accountShowActions,
   buildSparkline,
   filterMovements,
   groupMovementsByDay,
@@ -103,20 +102,6 @@ describe('buildSparkline', () => {
   it('não desenha com menos de dois pontos', () => {
     expect(buildSparkline([], 100, 40)).toBeNull();
     expect(buildSparkline([1], 100, 40)).toBeNull();
-  });
-});
-
-describe('accountShowActions', () => {
-  it('conta corrente: lançar em destaque, transferir, conciliar e extrato', () => {
-    const actions = accountShowActions({ id: 'a1', type: 'CREDIT_DEBIT' });
-
-    expect(actions.map((action) => action.label)).toEqual(['Lançar', 'Transferir', 'Conciliar', 'Extrato']);
-    expect(actions.filter((action) => action.primary)).toHaveLength(1);
-    expect(actions[3].href).toBe('/transacoes?accountId=a1');
-  });
-
-  it('investimento: nova operação em destaque', () => {
-    expect(accountShowActions({ id: 'a1', type: 'INVESTMENT' })[0]).toMatchObject({ label: 'Nova operação', primary: true });
   });
 });
 

@@ -31,6 +31,9 @@ export const initialFormData = {
   creditLimit: '',
   statementClosingDay: '',
   statementDueDay: '',
+  /** Só na criação: quanto há na conta hoje (valor digitado, sem sinal) e se é saldo devedor. */
+  openingBalance: '',
+  openingNegative: false,
 };
 
 export const typeConfig = {

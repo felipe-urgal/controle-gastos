@@ -5,9 +5,6 @@ import { SupportedCurrency } from '@/app/types/financial-summary';
 
 export type CategoryState = 'danger' | 'warn' | 'ok' | 'info';
 
-export const orbitActionTokens =
-  '[--focus:var(--orbit-focus)] [--on-primary:var(--orbit-on-primary)] [--primary-hover:var(--orbit-primary-hover)] [--primary-subtle:var(--orbit-primary-subtle)] [--primary:var(--orbit-primary)]';
-
 export function amountToInput(amount: number) {
   const whole = Math.floor(amount / 100);
   const cents = String(amount % 100).padStart(2, '0');

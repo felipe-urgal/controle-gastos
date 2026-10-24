@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FaPen } from 'react-icons/fa';
 
 import { describeCardCycle } from '@/app/components/pages/account/form/account-form-model';
-import { Button, ColorIconSelector, IconButton, IconRenderer, InlineInput, MoneyInlineInput, Select } from '@/app/components/ui';
+import { Button, Chip, ColorIconSelector, IconButton, IconRenderer, InlineInput, MoneyInlineInput, Select } from '@/app/components/ui';
 import { ACCOUNT_NAME_MAX_LENGTH, accountTypeOptions, currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { AccountType } from '@/app/types/account';
@@ -18,6 +18,8 @@ export type AccountCardValues = {
   creditLimit: string;
   statementClosingDay: string;
   statementDueDay: string;
+  openingBalance: string;
+  openingNegative: boolean;
 };
 
 const currencySymbols: Record<string, string> = { BRL: 'R$', USD: 'US$', EUR: '€' };
@@ -52,7 +54,7 @@ export function AccountFormCard({
   return (
     <section
       aria-label="Conta"
-      className="relative grid gap-5 rounded-[20px] border border-[color-mix(in_srgb,var(--account-color)_40%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_16%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+      className="relative grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--account-color)_40%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_16%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
       style={{ ['--account-color' as string]: values.color }}
     >
       <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
@@ -103,7 +105,7 @@ export function AccountFormCard({
       </div>
 
       {lookOpen && (
-        <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3.5">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3.5">
           <ColorIconSelector
             color={values.color}
             icon={values.icon}
@@ -138,7 +140,7 @@ export function AccountFormCard({
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
               <label htmlFor="account-closing-day" className="block text-sm text-[var(--text-muted)]">
                 Dia de fechamento
               </label>
@@ -155,7 +157,7 @@ export function AccountFormCard({
                 required
               />
             </div>
-            <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
               <label htmlFor="account-due-day" className="block text-sm text-[var(--text-muted)]">
                 Dia de vencimento
               </label>
@@ -176,22 +178,53 @@ export function AccountFormCard({
 
           <p
             aria-live="polite"
-            className="rounded-[10px] bg-[color-mix(in_srgb,var(--account-color)_10%,var(--surface-raised))] px-3 py-2.5 text-sm leading-relaxed text-[var(--text-muted)]"
+            className="rounded-[var(--radius-md)] bg-[color-mix(in_srgb,var(--account-color)_10%,var(--surface-raised))] px-3 py-2.5 text-sm leading-relaxed text-[var(--text-muted)]"
           >
             {describeCardCycle(values.statementClosingDay, values.statementDueDay)}
           </p>
         </div>
       ) : (
         <div className="grid gap-1">
-          <span className="text-sm text-[var(--text-muted)]">{values.type === 'INVESTMENT' ? 'Patrimônio' : 'Saldo'}</span>
-          <strong className="money text-3xl font-semibold tracking-tight text-[var(--foreground)]">
-            {isEditing && currentBalance != null ? formatCurrency(currentBalance, values.currency) : `${symbol} 0,00`}
-          </strong>
-          <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-            {isEditing
-              ? 'O saldo continua calculado pelas transações concluídas.'
-              : 'O saldo começa em zero e passa a ser calculado pelas transações que você lançar.'}
-          </p>
+          {isEditing ? (
+            <>
+              <span className="text-sm text-[var(--text-muted)]">{values.type === 'INVESTMENT' ? 'Patrimônio' : 'Saldo'}</span>
+              <strong className="money text-3xl font-semibold tracking-tight text-[var(--foreground)]">
+                {currentBalance != null ? formatCurrency(currentBalance, values.currency) : `${symbol} 0,00`}
+              </strong>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+                O saldo continua calculado pelas transações concluídas.
+              </p>
+            </>
+          ) : (
+            <>
+              <label htmlFor="account-opening-balance" className="text-sm text-[var(--text-muted)]">
+                {values.type === 'INVESTMENT' ? 'Saldo em caixa hoje' : 'Quanto você tem nesta conta hoje?'}
+              </label>
+              <div className="flex items-baseline gap-2">
+                <span className="money text-xl text-[var(--text-muted)]">{values.openingNegative ? `− ${symbol}` : symbol}</span>
+                <MoneyInlineInput
+                  id="account-opening-balance"
+                  size="amount"
+                  value={values.openingBalance}
+                  onValueChange={(openingBalance) => onChange({ openingBalance })}
+                  disabled={loading}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <Chip
+                  selected={values.openingNegative}
+                  onClick={() => onChange({ openingNegative: !values.openingNegative })}
+                  disabled={loading}
+                >
+                  Saldo devedor
+                </Chip>
+              </div>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+                Vira um lançamento de saldo inicial, sem contar como receita ou despesa. Deixe em branco para começar do zero.
+              </p>
+            </>
+          )}
         </div>
       )}
     </section>

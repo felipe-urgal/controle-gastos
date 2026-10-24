@@ -4,6 +4,7 @@
 
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { PageHeader } from "@/app/components/base-pages";
+import type { Crumb } from "@/app/components/base-pages/page-bar";
 import { PageLoading, PageEmpty } from "@/app/components/feedback";
 import { ProtectedRoute } from "@/app/components/layout";
 import { DeleteOverlay, ConfirmationModal } from "@/app/components/overlays";
@@ -27,6 +28,14 @@ interface ShowPageProps<T> {
   allowMutations?: boolean;
   /** A página oferece a exclusão no próprio conteúdo; o cabeçalho mostra só Editar. */
   hideHeaderDelete?: boolean;
+  /** Ações próprias da página no cabeçalho (entre Editar e Excluir). */
+  headerActions?: React.ReactNode;
+  deleteDisabled?: boolean;
+  deleteHint?: string;
+  sidebarAligned?: boolean;
+  breadcrumb?: Crumb[];
+  /** Esqueleto próprio do carregamento (no lugar do genérico). */
+  loadingSkeleton?: React.ReactNode;
 
   emptyRedirectTo?: string;
   mobileContent?: React.ReactNode;
@@ -50,6 +59,12 @@ export default function ShowPage<T>({
   deleteWarning,
   allowMutations = true,
   hideHeaderDelete = false,
+  headerActions,
+  deleteDisabled = false,
+  deleteHint,
+  sidebarAligned = false,
+  breadcrumb,
+  loadingSkeleton,
   emptyRedirectTo,
   mobileContent,
   children,
@@ -73,13 +88,18 @@ export default function ShowPage<T>({
           backUrl={backUrl}
           editUrl={allowMutations ? editUrl : undefined}
           onDelete={allowMutations && !hideHeaderDelete ? () => setIsDeleteModalOpen(true) : undefined}
+          deleteDisabled={deleteDisabled}
+          deleteHint={deleteHint}
+          sidebarAligned={sidebarAligned}
+          breadcrumb={breadcrumb}
+          actions={allowMutations ? headerActions : undefined}
           loading={loading}
           isDeleting={isDeleting}
         />
       )}
 
       {loading ? (
-        <PageLoading type="details" />
+        loadingSkeleton ?? <PageLoading type="details" />
       ) : !entity ? (
         <PageEmpty
           title={`${entityName.charAt(0).toUpperCase() + entityName.slice(1)} não encontrada`}
