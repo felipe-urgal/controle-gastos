@@ -1,12 +1,9 @@
 import type { ReactNode } from 'react';
 
-/** Título (`h1`) de página: única escala permitida (guardrail em scripts/__tests__). */
-export const pageTitleClassName =
-  'text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl';
+import PageBar from '@/app/components/base-pages/page-bar';
+import { pageTitleClassName } from '@/app/components/base-pages/page-title-classes';
 
-/** Título (`h1`) de barra de app mobile (voltar + título); o chamador define o alinhamento. */
-export const appBarTitleClassName =
-  'min-w-0 flex-1 truncate text-xl font-bold tracking-tight text-[var(--foreground)]';
+export { pageTitleClassName, appBarTitleClassName } from '@/app/components/base-pages/page-title-classes';
 
 export default function PageTitle({
   title,
@@ -17,11 +14,13 @@ export default function PageTitle({
   title: string;
   description?: string;
   actions?: ReactNode;
-  /** Faixa do título encostada na sidebar, com a linha de baixo na altura da linha do logo (só telas com sidebar). */
+  /** Faixa fixa encostada na sidebar (`PageBar`); ignora a descrição. */
   sidebarAligned?: boolean;
 }) {
+  if (sidebarAligned) return <PageBar crumbs={[{ label: title }]} actions={actions} />;
+
   return (
-    <header className={`flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-center sm:justify-between ${sidebarAligned ? 'lg:-mx-[var(--orbit-page-padding-inline)] lg:-mt-[var(--orbit-page-padding-block)] lg:min-h-[var(--app-sidebar-header-height)] lg:px-[var(--orbit-page-padding-inline)] lg:py-2' : ''}`}>
+    <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <h1 className={pageTitleClassName}>
           {title}

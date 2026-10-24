@@ -4,6 +4,7 @@
 
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { PageHeader } from "@/app/components/base-pages";
+import type { Crumb } from "@/app/components/base-pages/page-bar";
 import { PageLoading, PageEmpty } from "@/app/components/feedback";
 import { ProtectedRoute } from "@/app/components/layout";
 import { DeleteOverlay, ConfirmationModal } from "@/app/components/overlays";
@@ -32,6 +33,7 @@ interface ShowPageProps<T> {
   deleteDisabled?: boolean;
   deleteHint?: string;
   sidebarAligned?: boolean;
+  breadcrumb?: Crumb[];
 
   emptyRedirectTo?: string;
   mobileContent?: React.ReactNode;
@@ -59,6 +61,7 @@ export default function ShowPage<T>({
   deleteDisabled = false,
   deleteHint,
   sidebarAligned = false,
+  breadcrumb,
   emptyRedirectTo,
   mobileContent,
   children,
@@ -85,6 +88,7 @@ export default function ShowPage<T>({
           deleteDisabled={deleteDisabled}
           deleteHint={deleteHint}
           sidebarAligned={sidebarAligned}
+          breadcrumb={breadcrumb}
           actions={allowMutations ? headerActions : undefined}
           loading={loading}
           isDeleting={isDeleting}

@@ -3,7 +3,8 @@
 import type { ReactNode } from 'react';
 import { FaArrowLeft, FaEdit, FaPlus, FaTrash } from 'react-icons/fa';
 
-import { pageTitleClassName } from '@/app/components/base-pages/page-title';
+import PageBar, { pageBarButtonProps, type Crumb } from '@/app/components/base-pages/page-bar';
+import { pageTitleClassName } from '@/app/components/base-pages/page-title-classes';
 import { Button } from '@/app/components/ui';
 
 interface PageHeaderProps {
@@ -21,8 +22,10 @@ interface PageHeaderProps {
   createLabel?: string;
   loading?: boolean;
   isDeleting?: boolean;
-  /** Faixa do título encostada na sidebar, com a linha de baixo na altura da linha do logo (só telas com sidebar). */
+  /** Faixa fixa encostada na sidebar (`PageBar`), com breadcrumb no lugar de voltar e título. */
   sidebarAligned?: boolean;
+  /** Níveis do breadcrumb (o último é a página atual); sem isso, só o título. */
+  breadcrumb?: Crumb[];
 }
 
 export default function PageHeader({
@@ -39,9 +42,62 @@ export default function PageHeader({
   loading,
   isDeleting,
   sidebarAligned = false,
+  breadcrumb,
 }: PageHeaderProps) {
+  const buttonProps = sidebarAligned ? pageBarButtonProps : {};
+  const actionButtons = (
+    <>
+      {createUrl && (
+        <Button
+          as="a"
+          href={createUrl}
+          variant="primary"
+          {...buttonProps}
+          icon={<FaPlus />}
+          isLoading={loading}
+        >
+          {createLabel}
+        </Button>
+      )}
+
+      {editUrl && (
+        <Button
+          as="a"
+          href={editUrl}
+          variant="outline"
+          {...buttonProps}
+          icon={<FaEdit />}
+          disabled={isDeleting}
+          isLoading={loading}
+        >
+          Editar
+        </Button>
+      )}
+
+      {actions}
+
+      {onDelete && (
+        <Button
+          variant="danger"
+          {...buttonProps}
+          icon={<FaTrash />}
+          onClick={onDelete}
+          disabled={isDeleting || deleteDisabled}
+          title={deleteDisabled ? deleteHint : undefined}
+          isLoading={loading}
+        >
+          Excluir
+        </Button>
+      )}
+    </>
+  );
+
+  if (sidebarAligned) {
+    return <PageBar crumbs={breadcrumb ?? [{ label: title ?? '' }]} actions={actionButtons} />;
+  }
+
   return (
-    <header className={`flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-center sm:justify-between ${sidebarAligned ? 'lg:-mx-[var(--orbit-page-padding-inline)] lg:-mt-[var(--orbit-page-padding-block)] lg:min-h-[var(--app-sidebar-header-height)] lg:px-[var(--orbit-page-padding-inline)] lg:py-2' : ''}`}>
+    <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-center gap-3 sm:min-h-[46px]">
         {backUrl && (
           <Button
@@ -71,45 +127,7 @@ export default function PageHeader({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-        {createUrl && (
-          <Button
-            as="a"
-            href={createUrl}
-            variant="primary"
-            icon={<FaPlus />}
-            isLoading={loading}
-          >
-            {createLabel}
-          </Button>
-        )}
-
-        {editUrl && (
-          <Button
-            as="a"
-            href={editUrl}
-            variant="outline"
-            icon={<FaEdit />}
-            disabled={isDeleting}
-            isLoading={loading}
-          >
-            Editar
-          </Button>
-        )}
-
-        {actions}
-
-        {onDelete && (
-          <Button
-            variant="danger"
-            icon={<FaTrash />}
-            onClick={onDelete}
-            disabled={isDeleting || deleteDisabled}
-            title={deleteDisabled ? deleteHint : undefined}
-            isLoading={loading}
-          >
-            Excluir
-          </Button>
-        )}
+        {actionButtons}
       </div>
     </header>
   );

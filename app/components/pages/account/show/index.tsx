@@ -6,6 +6,7 @@ import { ShowPage } from '@/app/components/base-pages';
 import AccountShowView from '@/app/components/pages/account/show/account-show-view';
 import { DELETE_BLOCKED_HINT } from '@/app/components/pages/account/show/account-app-bar-actions';
 import CreditCardOverview from '@/app/components/pages/account/show/credit-card-overview';
+import { pageBarButtonProps } from '@/app/components/base-pages/page-bar';
 import { Button } from '@/app/components/ui';
 import { useAccounts } from '@/app/hooks/accounts/account-show';
 
@@ -50,6 +51,7 @@ export default function Show({ id }: { id: string }) {
       entityName="conta"
       titleFallback="Detalhes da conta"
       sidebarAligned
+      breadcrumb={[{ label: 'Contas', href: '/contas' }, { label: account?.name ?? 'Conta' }]}
       loading={loading}
       editUrl={editUrl}
       backUrl={handleBack}
@@ -63,6 +65,7 @@ export default function Show({ id }: { id: string }) {
       headerActions={
         <Button
           variant="outline"
+          {...pageBarButtonProps}
           icon={<FaPowerOff />}
           onClick={toggleActive}
           disabled={isUpdatingStatus || isDeleting}

@@ -11,6 +11,11 @@ export default function Edit({ id }: { id: string }) {
     <EditPage
       title="Editar conta"
       sidebarAligned
+      breadcrumb={[
+        { label: 'Contas', href: '/contas' },
+        { label: account?.name ?? 'Conta', href: `/contas/show/${id}` },
+        { label: 'Editar' },
+      ]}
       loading={loading}
       error={error}
       backUrl={handleBack}

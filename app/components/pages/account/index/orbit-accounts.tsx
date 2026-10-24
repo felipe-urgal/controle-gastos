@@ -1,6 +1,7 @@
 'use client';
 
 import { PageTitle } from '@/app/components/base-pages';
+import { pageBarButtonProps } from '@/app/components/base-pages/page-bar';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import Link from 'next/link';
 import { useMemo } from 'react';
@@ -144,7 +145,7 @@ export default function OrbitAccounts() {
             title="Contas"
             sidebarAligned
             actions={
-              <Button as="a" href="/contas/nova" icon={<FaPlus aria-hidden="true" />}>
+              <Button as="a" href="/contas/nova" {...pageBarButtonProps} icon={<FaPlus aria-hidden="true" />}>
                 Nova conta
               </Button>
             }

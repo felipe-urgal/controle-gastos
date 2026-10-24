@@ -2,6 +2,7 @@
 
 // importing components
 import { PageHeader } from "@/app/components/base-pages";
+import type { Crumb } from "@/app/components/base-pages/page-bar";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { ProtectedRoute } from "@/app/components/layout";
 
@@ -12,6 +13,7 @@ interface NewPageProps {
   children: React.ReactNode;
   hideHeaderOnMobile?: boolean;
   sidebarAligned?: boolean;
+  breadcrumb?: Crumb[];
 };
 
 export default function NewPage({
@@ -21,6 +23,7 @@ export default function NewPage({
   children,
   hideHeaderOnMobile = false,
   sidebarAligned = false,
+  breadcrumb,
 }: NewPageProps) {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
@@ -33,6 +36,7 @@ export default function NewPage({
             description={description}
             backUrl={backUrl}
             sidebarAligned={sidebarAligned}
+            breadcrumb={breadcrumb}
           />
         )}
 
