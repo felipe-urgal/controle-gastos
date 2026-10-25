@@ -112,7 +112,7 @@ export function formatTrend(
   const percentage = percentageChange(current, previous);
   if (percentage === null) {
     return {
-      text: 'Sem base no mês anterior',
+      text: '',
       tone: 'neutral' as const,
       direction: 'flat' as const,
     };

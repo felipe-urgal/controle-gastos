@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ReactNode, useState } from 'react';
-import { FaArrowDown, FaArrowRight, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaClock, FaCreditCard, FaExchangeAlt } from 'react-icons/fa';
+import { FaArrowDown, FaArrowRight, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronRight, FaClock, FaCreditCard, FaExchangeAlt } from 'react-icons/fa';
 import { Button, IconRenderer, MoneyText, Select } from '@/app/components/ui';
 import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
@@ -29,7 +29,7 @@ export function MonthSummaryCard({
   amount: string;
   tone: 'income' | 'expense' | 'primary' | 'scheduled';
   icon: ReactNode;
-  detail: string;
+  detail?: string;
   detailTone?: 'positive' | 'negative' | 'neutral';
   detailDirection?: 'up' | 'down' | 'flat';
   /** `loading`: primeira carga (esqueleto); `refreshing`: troca de período (valores antigos esmaecidos). */
@@ -91,7 +91,7 @@ export function MonthSummaryCard({
           ) : (
             <strong className={`money mt-2 block text-2xl font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
           )}
-          {loading || detailLoading ? (
+          {!detail && !loading && !detailLoading ? null : loading || detailLoading ? (
             <span className={`${skeleton} mt-2 h-3 w-32`} aria-hidden="true" />
           ) : (
           <p className={`mt-1 flex items-center gap-1.5 text-xs ${detailClass}`}>
@@ -123,7 +123,6 @@ export function MovementTimeline({
   loading,
   hasMore,
   onLoadMore,
-  onOpen,
 }: {
   month: number;
   year: number;
@@ -134,7 +133,6 @@ export function MovementTimeline({
   loading: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
-  onOpen: (transaction: TransactionDTO) => void;
 }) {
   return (
     <article className="min-h-[620px] rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
@@ -176,7 +174,9 @@ export function MovementTimeline({
                   <span className="absolute left-[5px] top-1.5 hidden h-5 w-5 rounded-full border-[6px] border-[var(--primary)] bg-[var(--surface)] md:block" aria-hidden="true" />
                   <div>
                     <p className="text-sm font-bold text-[var(--foreground)]">{group.primaryLabel}</p>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">{group.secondaryLabel}</p>
+                    {(group.primaryLabel === 'Hoje' || group.primaryLabel === 'Ontem') && (
+                      <p className="mt-1 text-xs text-[var(--text-muted)]">{group.secondaryLabel}</p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -185,7 +185,6 @@ export function MovementTimeline({
                       key={transaction.id}
                       transaction={transaction}
                       showValues={showValues}
-                      onOpen={() => onOpen(transaction)}
                     />
                   ))}
                 </div>
@@ -213,11 +212,9 @@ export function MovementTimeline({
 export function TimelineTransactionRow({
   transaction,
   showValues,
-  onOpen,
 }: {
   transaction: TransactionDTO;
   showValues: boolean;
-  onOpen: () => void;
 }) {
   const isTransfer = isTransferTransaction(transaction);
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
@@ -233,10 +230,9 @@ export function TimelineTransactionRow({
   const iconColor = isTransfer || isCardPayment ? 'var(--primary)' : '#ffffff';
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
+    <Link
+      href={`/transacoes/show/${transaction.id}`}
+      aria-label={`Abrir transação ${transaction.description || 'Sem descrição'}`}
       className="grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_110px_88px_24px] sm:gap-3"
     >
       <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)]" style={{ backgroundColor: iconBackground, color: iconColor }}>
@@ -245,7 +241,7 @@ export function TimelineTransactionRow({
       <span className="min-w-0">
         <strong className="block truncate text-sm text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</strong>
         <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-          {isTransfer ? `Transferências • ${transaction.account?.name ?? 'Conta'}` : isCardPayment ? `Pagamento de fatura • ${transaction.account?.name ?? 'Conta'}` : `${transaction.category?.name ?? 'Sem categoria'} • ${transaction.account?.name ?? 'Conta'}`}
+          {isTransfer ? `Transferências • ${transaction.account?.name ?? 'Conta'}` : isCardPayment ? `Pagamento de fatura • ${transaction.account?.name ?? 'Conta'}` : `${transaction.kind === 'OPENING_BALANCE' ? 'Saldo inicial' : transaction.category?.name ?? 'Sem categoria'} • ${transaction.account?.name ?? 'Conta'}`}
           {isTransfer && <span className="sr-only"> · {getTransferCounterpartLabel(transaction)}</span>}
         </span>
         <TransactionTags transaction={transaction} />
@@ -255,10 +251,10 @@ export function TimelineTransactionRow({
         <span className="text-xs text-[var(--text-muted)]">{formatTransactionTime(transaction)}</span>
       </span>
       <span className="col-start-2 row-start-3 justify-self-start sm:col-start-auto sm:row-start-auto sm:justify-self-center">
-        <StatusPill status={transaction.status} />
+        {transaction.status !== 'COMPLETED' && <StatusPill status={transaction.status} />}
       </span>
-      <span className="col-start-3 row-start-1 text-center text-lg leading-none text-[var(--text-muted)] sm:col-start-auto sm:row-start-auto" aria-hidden="true">⋮</span>
-    </button>
+      <FaChevronRight className="col-start-3 row-start-1 justify-self-center text-xs text-[var(--text-muted)] sm:col-start-auto sm:row-start-auto" aria-hidden="true" />
+    </Link>
   );
 }
 
@@ -387,12 +383,10 @@ export function MonthOverview({
 export function UpcomingTransactions({
   items,
   showValues,
-  onOpen,
   onViewAll,
 }: {
   items: TransactionDTO[];
   showValues: boolean;
-  onOpen: (transaction: TransactionDTO) => void;
   onViewAll: () => void;
 }) {
   return (
@@ -413,11 +407,10 @@ export function UpcomingTransactions({
           </div>
         ) : (
           items.slice(0, 4).map((transaction) => (
-            <button
+            <Link
               key={transaction.id}
-              type="button"
-              onClick={() => onOpen(transaction)}
-              aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
+              href={`/transacoes/show/${transaction.id}`}
+              aria-label={`Abrir transação ${transaction.description || 'Sem descrição'}`}
               className="grid min-h-[62px] w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-2 px-1 py-2 text-left transition-colors hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_36px_minmax(0,1fr)_auto] sm:px-0"
             >
               <span className="grid h-11 w-11 place-content-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] text-center">
@@ -445,7 +438,7 @@ export function UpcomingTransactions({
                   <span className="rounded-full bg-[var(--primary-subtle)] px-2 py-1 text-xs font-bold text-[var(--primary)]">Agendada</span>
                 </span>
               </span>
-            </button>
+            </Link>
           ))
         )}
       </div>

@@ -1,6 +1,10 @@
 'use client';
 
+import { FaCopy } from 'react-icons/fa';
+
 import { ShowPage } from '@/app/components/base-pages';
+import { pageBarButtonProps } from '@/app/components/base-pages/page-bar';
+import { Button } from '@/app/components/ui';
 import TransactionShowSkeleton from '@/app/components/pages/transactions/show/transaction-show-skeleton';
 import TransactionInfo from '@/app/components/pages/transactions/show/transaction-info';
 import MobileTransactionShow from '@/app/components/pages/transactions/show/mobile-transaction-show';
@@ -38,6 +42,16 @@ export default function Show({ id }: { id: string }) {
       setIsDeleteModalOpen={setIsDeleteModalOpen}
       onDelete={handleDelete}
       allowMutations={allowMutations}
+      headerActions={
+        <>
+          <Button as="a" href={`/transacoes/nova?duplicate=${encodeURIComponent(id)}`} variant="outline" {...pageBarButtonProps} icon={<FaCopy />}>
+            Duplicar
+          </Button>
+          <Button as="a" href={`/modelos?source=${encodeURIComponent(id)}`} variant="outline" {...pageBarButtonProps}>
+            Salvar modelo
+          </Button>
+        </>
+      }
       emptyRedirectTo="/transacoes"
       mobileContent={
         transaction ? (

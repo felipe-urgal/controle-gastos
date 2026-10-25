@@ -2,17 +2,15 @@
 
 import Link from 'next/link';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { useEffect, useRef, useState, ReactNode } from 'react';
-import { FaArrowDown, FaArrowUp, FaCopy, FaCreditCard, FaExchangeAlt, FaExternalLinkAlt, FaFileImport, FaSearch } from 'react-icons/fa';
+import { useEffect, useRef, useState } from 'react';
+import { FaFileImport, FaSearch } from 'react-icons/fa';
 import { FilterField } from '@/app/components/navigation/dynamic-filters';
 import { Button, Input, Select } from '@/app/components/ui';
 import { statusConfig } from '@/app/lib/constants/transaction.constants';
 import { normalizeTagDisplayName } from '@/app/lib/tags/tag-name';
-import { getTransferDirectionLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { tagService } from '@/app/services/tag-service';
 import { TransactionDTO } from '@/app/types/transaction';
 import { TagDTO } from '@/app/types/tag';
-import { formatTransactionAmount } from '@/app/components/pages/transactions/index/transactions-view-helpers';
 
 export function FilterDialog({ fields, values, loading, total, onApply, onClose }: { fields: FilterField[]; values: Record<string, any>; loading: boolean; total?: number; onApply: (values: Record<string, any>) => void; onClose: () => void }) {
   const [draftValues, setDraftValues] = useState<Record<string, any>>(() => ({ ...values }));
@@ -174,84 +172,6 @@ export function TransactionFilterFields({ fields, values, loading, onChange }: {
       </div>
     </div>
   );
-}
-
-export function TransactionDetailLayer({ transaction, showValues, onClose }: { transaction: TransactionDTO; showValues: boolean; onClose: () => void }) {
-  return (
-    <ModalShell
-      variant="side-panel"
-      eyebrow="Detalhe contextual"
-      title={transaction.description || 'Transação'}
-      closeLabel="Fechar detalhe"
-      maxWidthClass="sm:max-w-[440px]"
-      onClose={onClose}
-    >
-      <div className="-mx-5"><OrbitTransactionDetail transaction={transaction} showValues={showValues} /></div>
-    </ModalShell>
-  );
-}
-
-export function OrbitTransactionDetail({ transaction, showValues, compact = false }: { transaction: TransactionDTO; showValues: boolean; compact?: boolean }) {
-  const isIncome = transaction.type === 'INCOME';
-  const isTransfer = isTransferTransaction(transaction);
-  const isCardPayment = transaction.kind === 'CARD_PAYMENT';
-  const date = new Date(transaction.year, transaction.month - 1, transaction.day);
-  const iconTone = isTransfer || isCardPayment
-    ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
-    : isIncome
-      ? 'bg-[var(--primary-subtle)] text-[var(--income)]'
-      : 'bg-[var(--danger-subtle)] text-[var(--expense)]';
-  const amountTone = isTransfer || isCardPayment
-    ? 'text-[var(--primary)]'
-    : isIncome
-      ? 'text-[var(--income)]'
-      : 'text-[var(--expense)]';
-
-  return (
-    <div className={compact ? 'p-4' : 'p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]'}>
-      <div className="flex items-start gap-3">
-        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-md)] ${iconTone}`} aria-hidden="true">{isTransfer ? <FaExchangeAlt /> : isCardPayment ? <FaCreditCard /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}</span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-bold text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</p>
-          <p className="mt-0.5 text-sm text-[var(--text-muted)]">{isTransfer ? getTransferDirectionLabel(transaction) : isCardPayment ? 'Pagamento de fatura' : isIncome ? 'Receita' : 'Despesa'}</p>
-        </div>
-      </div>
-
-      <p className={`money mt-5 break-words text-3xl font-bold tracking-tight ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</p>
-      <div className="mt-2"><StatusPill status={transaction.status} /></div>
-
-      <dl className="mt-5 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)]">
-        <DetailRow label="Data">{new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(date)}</DetailRow>
-        <DetailRow label="Conta">{transaction.account?.name ?? '—'}{transaction.account?.currency ? ` · ${transaction.account.currency}` : ''}</DetailRow>
-        {isTransfer ? (
-          <DetailRow label="Contraparte">{transaction.counterpartAccount?.name ?? 'Contraparte indisponível'}{transaction.counterpartAccount?.currency ? ` · ${transaction.counterpartAccount.currency}` : ''}</DetailRow>
-        ) : isCardPayment ? (
-          <DetailRow label="Tipo">Pagamento de fatura</DetailRow>
-        ) : (
-          <DetailRow label="Categoria">{transaction.category?.name ?? '—'}</DetailRow>
-        )}
-        <DetailRow label="Status">{statusConfig[transaction.status as keyof typeof statusConfig]?.label ?? transaction.status}</DetailRow>
-      </dl>
-
-      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1">
-        {isTransfer && transaction.transferId && (
-          <Link href={`/transacoes/alterar/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar transferência</Link>
-        )}
-        {!isTransfer && !isCardPayment && (
-          <>
-            <Link href={`/transacoes/alterar/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Editar</Link>
-            <Link href={`/transacoes/nova?duplicate=${encodeURIComponent(transaction.id)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaCopy aria-hidden="true" /> Duplicar</Link>
-            <Link href={`/modelos?source=${encodeURIComponent(transaction.id)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">Salvar modelo</Link>
-          </>
-        )}
-        <Link href={`/transacoes/show/${transaction.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"><FaExternalLinkAlt aria-hidden="true" /> Detalhes</Link>
-      </div>
-    </div>
-  );
-}
-
-export function DetailRow({ label, children }: { label: string; children: ReactNode }) {
-  return <div className="flex min-h-12 items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 last:border-b-0"><dt className="text-sm text-[var(--text-muted)]">{label}</dt><dd className="min-w-0 text-right text-sm font-semibold text-[var(--foreground)]">{children}</dd></div>;
 }
 
 export function StatusPill({ status }: { status: TransactionDTO['status'] }) {

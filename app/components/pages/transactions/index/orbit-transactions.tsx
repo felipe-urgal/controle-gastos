@@ -7,7 +7,7 @@ import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { useEffect, useMemo, useState } from 'react';
 import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaFileImport, FaFilter, FaWallet } from 'react-icons/fa';
 
-import { Button, CurrencySelect, PeriodSwitcher } from '@/app/components/ui';
+import { Button, Chip, ChipRow, CurrencySelect, PeriodSwitcher } from '@/app/components/ui';
 import { ProtectedRoute } from '@/app/components/layout';
 import type { FilterField } from '@/app/components/navigation/dynamic-filters';
 
@@ -21,12 +21,18 @@ import { merchantService } from '@/app/services/merchant-service';
 
 import type { CurrencyFinancialSummary, SupportedCurrency } from '@/app/types/financial-summary';
 import type { MerchantDTO } from '@/app/types/merchant';
-import type { TransactionDTO } from '@/app/types/transaction';
 
 import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilter, REFINEMENT_FILTER_KEYS, TIMELINE_INCREMENT, TimelineOrder, buildMonthBars, buildTimelineGroups, displayMoney, formatTrend, percentageChange, selectSummary, shiftPeriod, todayDateKey, transactionDateKey, usePreviousSummary } from '@/app/components/pages/transactions/index/transactions-view-helpers';
-import { FilterDialog, TagFilterField, TransactionDetailLayer } from '@/app/components/pages/transactions/index/transaction-dialogs';
+import { FilterDialog, TagFilterField } from '@/app/components/pages/transactions/index/transaction-dialogs';
 import { MobileTransactionsPrototype2 } from '@/app/components/pages/transactions/index/mobile-transactions';
 import { MonthOverview, MonthSummaryCard, MovementTimeline, UpcomingTransactions } from '@/app/components/pages/transactions/index/desktop-transactions';
+
+const QUICK_FILTERS: Array<[MobileQuickFilter, string]> = [
+  ['all', 'Todas'],
+  ['income', 'Receitas'],
+  ['expense', 'Despesas'],
+  ['pending', 'Pendentes'],
+];
 
 export default function OrbitTransactions() {
   const {
@@ -52,7 +58,6 @@ export default function OrbitTransactions() {
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
   const isTabletUp = useMediaQuery('(min-width: 640px)');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState<TransactionDTO | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<TimelineOrder>('newest');
   const [mobileQuickFilter, setMobileQuickFilter] = useState<MobileQuickFilter>('all');
   const [summaryCurrency, setSummaryCurrency] = useState<SupportedCurrency | null>(null);
@@ -197,17 +202,24 @@ export default function OrbitTransactions() {
     0,
   );
 
-  const sortedTransactions = useMemo(() => {
-    const timelineSource = filters.status
+  const quickScoped = useMemo(() => {
+    const source = filters.status
       ? transactions
       : transactions.filter((transaction) => transaction.status === 'COMPLETED');
-    const result = [...timelineSource].sort((left, right) => {
+    if (mobileQuickFilter === 'pending') return transactions.filter((transaction) => transaction.status === 'PENDING');
+    if (mobileQuickFilter === 'income') return source.filter((transaction) => transaction.kind === 'NORMAL' && transaction.type === 'INCOME');
+    if (mobileQuickFilter === 'expense') return source.filter((transaction) => transaction.kind === 'NORMAL' && transaction.type === 'EXPENSE');
+    return source;
+  }, [filters.status, mobileQuickFilter, transactions]);
+
+  const sortedTransactions = useMemo(() => {
+    const result = [...quickScoped].sort((left, right) => {
       const dateDifference = transactionDateKey(right) - transactionDateKey(left);
       if (dateDifference !== 0) return dateDifference;
       return right.createdAt.localeCompare(left.createdAt);
     });
     return timelineOrder === 'newest' ? result : result.reverse();
-  }, [filters.status, timelineOrder, transactions]);
+  }, [quickScoped, timelineOrder]);
 
   const timelineContextKey = [
     month,
@@ -218,6 +230,7 @@ export default function OrbitTransactions() {
     filters.categoryId ?? '',
     filters.merchantId ?? '',
     filters.tagId ?? '',
+    mobileQuickFilter,
   ].join('|');
   const visibleCount =
     timelineWindow.key === timelineContextKey
@@ -225,21 +238,7 @@ export default function OrbitTransactions() {
       : INITIAL_TIMELINE_ITEMS;
   const timelineItems = sortedTransactions.slice(0, visibleCount);
   const timelineGroups = buildTimelineGroups(timelineItems);
-  const mobileTransactions = useMemo(() => {
-    const scoped = transactions.filter((transaction) => {
-      if (mobileQuickFilter === 'pending') return transaction.status === 'PENDING';
-      if (transaction.status !== 'COMPLETED') return false;
-      if (mobileQuickFilter === 'income') return transaction.kind === 'NORMAL' && transaction.type === 'INCOME';
-      if (mobileQuickFilter === 'expense') return transaction.kind === 'NORMAL' && transaction.type === 'EXPENSE';
-      return true;
-    });
-
-    return [...scoped].sort((left, right) => {
-      const dateDifference = transactionDateKey(right) - transactionDateKey(left);
-      if (dateDifference !== 0) return dateDifference;
-      return right.createdAt.localeCompare(left.createdAt);
-    });
-  }, [mobileQuickFilter, transactions]);
+  const mobileTransactions = sortedTransactions;
   const mobileGroups = buildTimelineGroups(mobileTransactions);
   const monthBars = buildMonthBars(transactions, currentSummary.currency, month, year);
   const maxBar = Math.max(1, ...monthBars.map((item) => item.value));
@@ -321,7 +320,6 @@ export default function OrbitTransactions() {
           onMovePeriod={movePeriod}
           onOpenFilters={() => setFiltersOpen(true)}
           onQuickFilterChange={setMobileQuickFilter}
-          onOpenTransaction={setSelectedTransaction}
           onShowPending={() => setMobileQuickFilter('pending')}
           hasMore={hasMore}
           onLoadMore={loadMore}
@@ -351,6 +349,13 @@ export default function OrbitTransactions() {
                 >
                   Filtros
                 </Button>
+                <ChipRow label="Filtros rápidos">
+                  {QUICK_FILTERS.map(([value, label]) => (
+                    <Chip key={value} selected={mobileQuickFilter === value} onClick={() => setMobileQuickFilter(value)}>
+                      {label}
+                    </Chip>
+                  ))}
+                </ChipRow>
                 {summaryCurrencySelect && <div className="ml-auto">{summaryCurrencySelect}</div>}
               </div>
 
@@ -426,7 +431,6 @@ export default function OrbitTransactions() {
                       count: visibleCount + TIMELINE_INCREMENT,
                     });
                   }}
-                  onOpen={setSelectedTransaction}
                 />
         
                 <aside className="grid content-start gap-[18px]">
@@ -441,7 +445,6 @@ export default function OrbitTransactions() {
                   <UpcomingTransactions
                     items={scheduled}
                     showValues={showValues}
-                    onOpen={setSelectedTransaction}
                     onViewAll={() => setFilters((previous) => ({ ...previous, status: 'PENDING' }))}
                   />
                 </aside>
@@ -462,13 +465,6 @@ export default function OrbitTransactions() {
         />
       )}
 
-      {selectedTransaction && (
-        <TransactionDetailLayer
-          transaction={selectedTransaction}
-          showValues={showValues}
-          onClose={() => setSelectedTransaction(null)}
-        />
-      )}
     </ProtectedRoute>
   );
 }

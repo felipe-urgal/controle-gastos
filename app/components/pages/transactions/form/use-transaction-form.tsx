@@ -1,6 +1,5 @@
 'use client';
 
-import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { FaTag } from 'react-icons/fa';
@@ -79,15 +78,12 @@ export function useTransactionForm({
   const [storageUnavailable, setStorageUnavailable] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
-  const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const [merchantRecognition, setMerchantRecognition] = useState<
     | { kind: 'auto'; merchantId: string; merchantName: string }
     | { kind: 'conflict' }
     | null
   >(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
-  const desktopDateInputRef = useRef<HTMLInputElement>(null);
   const tagOptionsId = useId();
   const tagSearchSequenceRef = useRef(0);
   const submitInFlightRef = useRef(false);
@@ -800,42 +796,6 @@ export function useTransactionForm({
     return null;
   }
 
-  function validateAdvancedFields() {
-    if (creationMode === 'recurring' && !isEditing) {
-      if (recurrencePreview.error || recurrencePreview.dates.length < 2) {
-        return recurrencePreview.error || 'Recorrência inválida';
-      }
-    }
-
-    if (creationMode === 'installment' && !isEditing) {
-      if (installmentPreview.error || installmentPreview.occurrences.length < 2) {
-        return installmentPreview.error || 'Parcelamento inválido';
-      }
-    }
-
-    return null;
-  }
-
-  function advanceMobilePrimaryStep() {
-    setSubmitError(null);
-    const validationError = validatePrimaryFields();
-    if (validationError) {
-      setSubmitError(validationError);
-      return;
-    }
-    setMobileStep(2);
-  }
-
-  function advanceMobileAdvancedStep() {
-    setSubmitError(null);
-    const validationError = validateAdvancedFields();
-    if (validationError) {
-      setSubmitError(validationError);
-      return;
-    }
-    setMobileStep(3);
-  }
-
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setSubmitError(null);
@@ -846,7 +806,7 @@ export function useTransactionForm({
       return;
     }
 
-    if ((!isEditing && !onSuccess) || (isEditing && hasLearningSuggestions)) {
+    if (isEditing && hasLearningSuggestions) {
       setReviewOpen(true);
       return;
     }
@@ -925,16 +885,16 @@ export function useTransactionForm({
     }
   }
 
-  function renderTagEditor(idSuffix: 'mobile' | 'desktop') {
+  function renderTagEditor(idSuffix: string) {
     const datalistId = `${tagOptionsId}-${idSuffix}`;
     const selected = tags.filter((tag) => formData.tagIds?.includes(tag.id));
 
     return (
-      <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-subtle)] p-3">
-        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
-          <FaTag aria-hidden="true" />
+      <div className="px-2 py-3">
+        <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+          <FaTag className="w-7" aria-hidden="true" />
           Tags
-          <span className="font-normal text-[var(--text-muted)]">opcional · até 10</span>
+          <span className="text-xs text-[var(--text-subtle)]">opcional · até 10</span>
         </div>
         {selected.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-2">
@@ -995,13 +955,13 @@ export function useTransactionForm({
     );
 
     return (
-      <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border-strong)] bg-[var(--surface-subtle)] p-3">
+      <div className="px-2 py-3">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <strong className="text-sm text-[var(--foreground)]">Dividir em categorias</strong>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">O saldo continua sendo uma única transação.</p>
+          <div className="min-w-0">
+            <span className="text-sm text-[var(--text-muted)]">Dividir em categorias</span>
+            <p className="mt-0.5 text-xs text-[var(--text-subtle)]">O saldo continua sendo uma única transação.</p>
           </div>
-          <Button type="button" variant="secondary" disabled={loading} onClick={() =>
+          <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() =>
             setFormData((previous) => ({
               ...previous,
               allocations: splitEnabled ? [] : [
@@ -1125,7 +1085,7 @@ export function useTransactionForm({
       : creationMode === 'installment'
         ? 'Criar parcelamento'
         : 'Criar transação';
-  return { transaction, isEditing, onSuccess, onSelectTransfer, reviewingQueueItem, formData, setFormData, creationMode, setCreationMode, recurrencePreset, setRecurrencePreset, recurrenceMode, setRecurrenceMode, occurrenceCount, setOccurrenceCount, recurrenceEndDate, setRecurrenceEndDate, installmentCount, setInstallmentCount, merchants, reviewOpen, setReviewOpen, learnMerchantCorrection, setLearnMerchantCorrection, learnCategoryCorrection, setLearnCategoryCorrection, merchantLearningOperator, setMerchantLearningOperator, categoryLearningOperator, setCategoryLearningOperator, submitError, setSubmitError, storageUnavailable, isSubmitting, isDesktop, mobileStep, setMobileStep, merchantRecognition, amountInputRef, desktopDateInputRef, selectedAccount, selectedCategory, selectedMerchant, learningSuggestions, hasLearningSuggestions, displayValue, formatCentsToCurrency, recurrencePreview, installmentPreview, handleCancel, moveCursorToEnd, handleAmountChange, handleMerchantChange, handleDescriptionChange, receiptOcrFormState, handleReceiptOcrApplication, handleCategoryType, handleCategoryChange, persistTransaction, advanceMobilePrimaryStep, advanceMobileAdvancedStep, handleSubmit, loading, renderTagEditor, renderAllocationEditor, accountOptions, categoryOptions, isFixedDate, firstRecurrenceDate, lastRecurrenceDate, firstInstallment, lastInstallment, installmentTotal, installmentAmounts, operationType, operationLabel, selectedStatusLabel, selectedDateLabel, recurrencePresetLabel, creationModeLabel, createLabel };
+  return { transaction, isEditing, onSuccess, onSelectTransfer, reviewingQueueItem, formData, setFormData, creationMode, setCreationMode, recurrencePreset, setRecurrencePreset, recurrenceMode, setRecurrenceMode, occurrenceCount, setOccurrenceCount, recurrenceEndDate, setRecurrenceEndDate, installmentCount, setInstallmentCount, merchants, reviewOpen, setReviewOpen, learnMerchantCorrection, setLearnMerchantCorrection, learnCategoryCorrection, setLearnCategoryCorrection, merchantLearningOperator, setMerchantLearningOperator, categoryLearningOperator, setCategoryLearningOperator, submitError, setSubmitError, storageUnavailable, isSubmitting, merchantRecognition, amountInputRef, selectedAccount, selectedCategory, selectedMerchant, learningSuggestions, hasLearningSuggestions, displayValue, formatCentsToCurrency, recurrencePreview, installmentPreview, handleCancel, moveCursorToEnd, handleAmountChange, handleMerchantChange, handleDescriptionChange, receiptOcrFormState, handleReceiptOcrApplication, handleCategoryType, handleCategoryChange, persistTransaction, handleSubmit, loading, renderTagEditor, renderAllocationEditor, accountOptions, categoryOptions, isFixedDate, firstRecurrenceDate, lastRecurrenceDate, firstInstallment, lastInstallment, installmentTotal, installmentAmounts, operationType, operationLabel, selectedStatusLabel, selectedDateLabel, recurrencePresetLabel, creationModeLabel, createLabel };
 }
 
 export type TransactionFormState = ReturnType<typeof useTransactionForm>;

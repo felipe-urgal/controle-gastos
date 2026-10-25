@@ -67,8 +67,6 @@ export default function New({
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const [templateWarnings, setTemplateWarnings] = useState<string[]>([]);
   const [favoriteTemplates, setFavoriteTemplates] = useState<TransactionTemplateDTO[]>([]);
-  const [favoriteTemplatesLoading, setFavoriteTemplatesLoading] = useState(false);
-  const [favoriteTemplatesError, setFavoriteTemplatesError] = useState<string | null>(null);
   const [composeMode, setComposeMode] = useState<ComposeMode>(duplicateId || templateId ? 'transaction' : initialMode);
   const [preferredCategoryType, setPreferredCategoryType] = useState<CategoryType | null>(initialCategoryType);
   const [offlineDraft, setOfflineDraft] = useState<OfflineTransactionDraft | null>(null);
@@ -138,24 +136,14 @@ export default function New({
     let cancelled = false;
 
     async function loadFavoriteTemplates() {
-      setFavoriteTemplatesLoading(true);
-      setFavoriteTemplatesError(null);
       try {
         const response = await transactionTemplateService.getAll({
           isFavorite: true,
           limit: 3,
         });
         if (!cancelled) setFavoriteTemplates(response.data.items);
-      } catch (error) {
-        if (!cancelled) {
-          setFavoriteTemplatesError(
-            error instanceof Error
-              ? error.message
-              : 'Não foi possível carregar os Modelos favoritos',
-          );
-        }
-      } finally {
-        if (!cancelled) setFavoriteTemplatesLoading(false);
+      } catch {
+        // Favoritos são um atalho opcional; sem eles o formulário segue normal.
       }
     }
 
@@ -375,60 +363,22 @@ export default function New({
       sidebarAligned
       breadcrumb={[{ label: 'Transações', href: '/transacoes' }, { label: pageTitle }]}
     >
-      {!isDuplicating && !isUsingTemplate && !isTransfer && (
-        <section
-          className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4"
-          aria-labelledby="favorite-transaction-templates-heading"
+      {!isDuplicating && !isUsingTemplate && !isTransfer && favoriteTemplates.length > 0 && (
+        <nav
+          className="mt-4 flex w-full items-center gap-2 overflow-x-auto pb-1"
+          aria-label="Modelos favoritos"
         >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2
-                id="favorite-transaction-templates-heading"
-                className="text-sm font-extrabold text-[var(--foreground)]"
-              >
-                Modelos favoritos
-              </h2>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                Atalhos para preencher o formulário. Nada é lançado automaticamente.
-              </p>
-            </div>
+          <span className="shrink-0 text-sm font-semibold text-[var(--text-muted)]">Modelos</span>
+          {favoriteTemplates.map((template) => (
             <Link
-              href="/modelos"
-              className="inline-flex min-h-11 items-center rounded-full border border-[var(--border-strong)] px-3 text-xs font-bold text-[var(--foreground)]"
+              key={template.id}
+              href={`/transacoes/nova?template=${encodeURIComponent(template.id)}`}
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
             >
-              Gerenciar modelos
+              {template.name}
             </Link>
-          </div>
-
-          {favoriteTemplatesLoading ? (
-            <p className="mt-3 text-xs text-[var(--text-muted)]">
-              Carregando favoritos…
-            </p>
-          ) : favoriteTemplatesError ? (
-            <p className="mt-3 text-xs text-[var(--text-muted)]" role="status">
-              Favoritos indisponíveis no momento. Você pode continuar criando a transação normalmente.
-            </p>
-          ) : favoriteTemplates.length > 0 ? (
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              {favoriteTemplates.map((template) => (
-                <Link
-                  key={template.id}
-                  href={`/transacoes/nova?template=${encodeURIComponent(template.id)}`}
-                  className="flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
-                >
-                  <span className="truncate">{template.name}</span>
-                  <span className="shrink-0 text-xs text-[var(--text-muted)]">
-                    {template.type === 'EXPENSE' ? 'Despesa' : 'Receita'}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-3 text-xs text-[var(--text-muted)]">
-              Favorite um Modelo para acessar aqui com um toque.
-            </p>
-          )}
-        </section>
+          ))}
+        </nav>
       )}
 
       {offlineQueue.length > 0 && !isTransfer && (

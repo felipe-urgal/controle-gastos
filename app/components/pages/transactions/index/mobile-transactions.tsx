@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaFilter } from 'react-icons/fa';
 import { Button, Chip, ChipRow, IconRenderer, PeriodSwitcher } from '@/app/components/ui';
 import { isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
@@ -22,7 +23,6 @@ export function MobileTransactionsPrototype2({
   onMovePeriod,
   onOpenFilters,
   onQuickFilterChange,
-  onOpenTransaction,
   onShowPending,
   hasMore,
   onLoadMore,
@@ -41,7 +41,6 @@ export function MobileTransactionsPrototype2({
   onMovePeriod: (offset: number) => void;
   onOpenFilters: () => void;
   onQuickFilterChange: (filter: MobileQuickFilter) => void;
-  onOpenTransaction: (transaction: TransactionDTO) => void;
   onShowPending: () => void;
   hasMore: boolean;
   onLoadMore: () => void;
@@ -166,7 +165,6 @@ export function MobileTransactionsPrototype2({
       <MobileUpcomingPreview
         items={scheduled}
         showValues={showValues}
-        onOpen={onOpenTransaction}
         onViewAll={onShowPending}
       />
 
@@ -175,7 +173,6 @@ export function MobileTransactionsPrototype2({
         loading={loading}
         showValues={showValues}
         quickFilter={quickFilter}
-        onOpen={onOpenTransaction}
         hasMore={hasMore}
         onLoadMore={onLoadMore}
       />
@@ -186,15 +183,14 @@ export function MobileTransactionsPrototype2({
 export function MobileUpcomingPreview({
   items,
   showValues,
-  onOpen,
   onViewAll,
 }: {
   items: TransactionDTO[];
   showValues: boolean;
-  onOpen: (transaction: TransactionDTO) => void;
   onViewAll: () => void;
 }) {
   const first = items[0];
+  if (!first) return null;
 
   return (
     <section>
@@ -207,15 +203,9 @@ export function MobileUpcomingPreview({
         )}
       </div>
 
-      {!first ? (
-        <div className="mt-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-xs text-[var(--text-muted)]">
-          Nenhum lançamento agendado para este período.
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => onOpen(first)}
-          aria-label={`Abrir detalhe contextual da transação ${first.description || 'Sem descrição'}`}
+      <Link
+          href={`/transacoes/show/${first.id}`}
+          aria-label={`Abrir transação ${first.description || 'Sem descrição'}`}
           className="mt-2 grid min-h-[58px] w-full grid-cols-[38px_minmax(0,1fr)_auto_12px] items-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 text-left"
         >
           <span className="grid h-9 w-9 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]">
@@ -231,8 +221,7 @@ export function MobileUpcomingPreview({
             {formatTransactionAmount(first, showValues)}
           </strong>
           <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
-        </button>
-      )}
+      </Link>
     </section>
   );
 }
@@ -242,7 +231,6 @@ export function MobileActivityFeed({
   loading,
   showValues,
   quickFilter,
-  onOpen,
   hasMore,
   onLoadMore,
 }: {
@@ -250,7 +238,6 @@ export function MobileActivityFeed({
   loading: boolean;
   showValues: boolean;
   quickFilter: MobileQuickFilter;
-  onOpen: (transaction: TransactionDTO) => void;
   hasMore: boolean;
   onLoadMore: () => void;
 }) {
@@ -292,7 +279,6 @@ export function MobileActivityFeed({
                   key={transaction.id}
                   transaction={transaction}
                   showValues={showValues}
-                  onOpen={() => onOpen(transaction)}
                 />
               ))}
             </div>
@@ -311,11 +297,9 @@ export function MobileActivityFeed({
 export function MobileTransactionRow({
   transaction,
   showValues,
-  onOpen,
 }: {
   transaction: TransactionDTO;
   showValues: boolean;
-  onOpen: () => void;
 }) {
   const isTransfer = isTransferTransaction(transaction);
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
@@ -330,10 +314,9 @@ export function MobileTransactionRow({
     : transaction.category?.color || 'var(--surface-subtle)';
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      aria-label={`Abrir detalhe contextual da transação ${transaction.description || 'Sem descrição'}`}
+    <Link
+      href={`/transacoes/show/${transaction.id}`}
+      aria-label={`Abrir transação ${transaction.description || 'Sem descrição'}`}
       className="grid min-h-[56px] w-full grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2.5 py-1.5 text-left"
     >
       <span className="grid h-9 w-9 place-items-center rounded-full text-white" style={{ backgroundColor: iconBackground }}>
@@ -360,6 +343,6 @@ export function MobileTransactionRow({
           {transaction.status === 'PENDING' ? 'Pendente' : formatTransactionTime(transaction)}
         </span>
       </span>
-    </button>
+    </Link>
   );
 }

@@ -66,7 +66,8 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    // Barra de status sólida: com "black-translucent" o app desenha por baixo dela e o relógio fica branco sobre o tema claro.
+    statusBarStyle: "black",
     title: "Controle de Gastos",
   },
   applicationName: "Controle de Gastos",
