@@ -37,7 +37,7 @@ export default function TagReportPanel({
   const bars = history && hasHistory(history.points) ? buildTagHistoryBars(history.points) : null;
 
   return (
-    <aside id="tag-report" className="ds-panel h-fit scroll-mt-4 pb-4" aria-labelledby="tag-report-title">
+    <aside id="tag-report" className="h-fit scroll-mt-20 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4 shadow-[var(--shadow-surface)] lg:sticky lg:top-[calc(var(--app-sidebar-header-height)+1rem)]" aria-labelledby="tag-report-title">
       <div className="flex items-start justify-between gap-3 px-4 pt-4">
         <div className="min-w-0">
           <h2 id="tag-report-title" className="break-words font-bold [overflow-wrap:anywhere]">
@@ -54,10 +54,6 @@ export default function TagReportPanel({
           </Link>
         ) : null}
       </div>
-
-      <p className="mt-2 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
-        Tags podem se sobrepor na mesma transação. Por isso, totais de tags diferentes não devem ser somados entre si.
-      </p>
 
       {tag ? (
         <div className="mt-3 flex flex-wrap gap-2 px-4" role="group" aria-label="Período do relatório">
@@ -87,16 +83,29 @@ export default function TagReportPanel({
           </p>
         ) : (
           report.currencies.map((item) => (
-            <dl key={item.currency} className="rounded-xl border border-[var(--border)] p-3 text-sm">
-              <div className="flex justify-between gap-3"><dt>Moeda</dt><dd className="font-bold">{item.currency}</dd></div>
-              <div className="mt-2 flex justify-between gap-3"><dt>Transações</dt><dd>{item.transactionCount}</dd></div>
-              <div className="mt-2 flex justify-between gap-3"><dt>Receitas</dt><dd className="money">{money(item.income, item.currency)}</dd></div>
-              <div className="mt-2 flex justify-between gap-3"><dt>Despesas</dt><dd className="money">{money(item.expense, item.currency)}</dd></div>
-              <div className="mt-2 flex justify-between gap-3 border-t border-[var(--border)] pt-2">
-                <dt>Resultado</dt>
-                <dd className="money font-bold">{money(item.balance, item.currency)}</dd>
+            <div key={item.currency} className="grid gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs font-semibold text-[var(--text-muted)]">
+                  Resultado{report.currencies.length > 1 ? ` em ${item.currency}` : ''}
+                </span>
+                <span className="text-xs text-[var(--text-muted)]">
+                  {item.transactionCount} {item.transactionCount === 1 ? 'transação' : 'transações'}
+                </span>
               </div>
-            </dl>
+              <strong className={`money text-2xl font-semibold ${item.balance < 0 ? 'text-[var(--expense)]' : item.balance > 0 ? 'text-[var(--income)]' : ''}`}>
+                {item.balance > 0 ? '+ ' : item.balance < 0 ? '− ' : ''}{money(Math.abs(item.balance), item.currency)}
+              </strong>
+              <dl className="grid grid-cols-2 gap-2 text-sm">
+                <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2">
+                  <dt className="text-xs text-[var(--text-muted)]">Receitas</dt>
+                  <dd className="money font-semibold text-[var(--income)]">{money(item.income, item.currency)}</dd>
+                </div>
+                <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2">
+                  <dt className="text-xs text-[var(--text-muted)]">Despesas</dt>
+                  <dd className="money font-semibold text-[var(--expense)]">{money(item.expense, item.currency)}</dd>
+                </div>
+              </dl>
+            </div>
           ))
         )}
 
@@ -113,6 +122,10 @@ export default function TagReportPanel({
           </section>
         ) : null}
       </div>
+
+      <p className="mt-4 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
+        Tags podem se sobrepor na mesma transação: não some os totais de tags diferentes.
+      </p>
     </aside>
   );
 }

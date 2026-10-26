@@ -1,13 +1,12 @@
 'use client';
 
-import { PageContainer, PageTitle } from '@/app/components/base-pages';
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { ListPageHeader, PageContainer } from '@/app/components/base-pages';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FaArchive,
   FaEdit,
-  FaPlus,
   FaRedo,
-  FaTag,
+  FaSearch,
   FaTrash,
   FaUndo,
 } from 'react-icons/fa';
@@ -16,7 +15,8 @@ import { ProtectedRoute } from '@/app/components/layout';
 import { Alert } from '@/app/components/feedback';
 import TagReportPanel from '@/app/components/pages/tags/tag-report-panel';
 import { monthExpenseLabel, statusFilterParam, type TagStatusFilter } from '@/app/components/pages/tags/tags-model';
-import { Button, Chip, IconButton, Input } from '@/app/components/ui';
+import { Button, IconButton, Input, Select } from '@/app/components/ui';
+import { ModalShell } from '@/app/components/overlays/modal-shell';
 import ConfirmationModal from '@/app/components/overlays/confirmation-modal';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -48,6 +48,8 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
 
   const [tags, setTags] = useState<TagDTO[]>([]);
   const [name, setName] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchDraft, setSearchDraft] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -161,21 +163,21 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
     );
   }
 
-  function applySearch(event: FormEvent) {
-    event.preventDefault();
-    setLoadingTags(true);
-    setListError('');
-    setPage(1);
-    setSearch(normalizeTagDisplayName(searchDraft));
+  // A busca roda ao digitar, com uma pequena espera para não consultar a cada tecla.
+  function changeSearch(value: string) {
+    setSearchDraft(value);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setLoadingTags(true);
+      setListError('');
+      setPage(1);
+      setSearch(normalizeTagDisplayName(value));
+    }, 300);
   }
 
-  function clearSearch() {
-    setLoadingTags(true);
-    setListError('');
-    setSearchDraft('');
-    setSearch('');
-    setPage(1);
-  }
+  useEffect(() => () => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+  }, []);
 
   function changePage(nextPage: number) {
     setLoadingTags(true);
@@ -195,6 +197,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
     try {
       const response = await tagService.create({ name: normalized });
       setName('');
+      setCreateOpen(false);
       setNotice(`#${response.data.name} criada com sucesso.`);
       if (page !== 1) setPage(1);
       else void loadTags();
@@ -340,67 +343,49 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
   return (
     <ProtectedRoute>
       <PageContainer>
-        <PageTitle title="Tags" sidebarAligned />
+        <ListPageHeader
+          title="Tags"
+          createLabel="Nova tag"
+          onCreate={() => {
+            setName('');
+            setActionError('');
+            setActionFeedbackTagId(null);
+            setCreateOpen(true);
+          }}
+          controls={
+            <div className="w-[10.5rem]">
+              <Select
+                ariaLabel="Filtrar tags"
+                value={statusFilter}
+                onChange={(value) => changeStatusFilter(value as TagStatusFilter)}
+                options={statusOptions}
+              />
+            </div>
+          }
+        />
+
+        {notice && actionFeedbackTagId === null ? <div className="mt-4"><Alert variant="info" message={notice} /></div> : null}
+        {actionError && actionFeedbackTagId === null && !createOpen ? <div className="mt-4"><Alert variant="error" message={actionError} /></div> : null}
 
         <section className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-          <section className="ds-panel p-4" aria-labelledby="tag-list-title">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <FaTag className="text-[var(--primary)]" aria-hidden="true" />
-                <h2 id="tag-list-title" className="font-bold">Suas tags</h2>
-              </div>
-              <div className="flex flex-wrap gap-2" role="group" aria-label="Filtro de tags">
-                {statusOptions.map((option) => (
-                  <Chip key={option.value} selected={statusFilter === option.value} onClick={() => changeStatusFilter(option.value)}>
-                    {option.label}
-                  </Chip>
-                ))}
-              </div>
+          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)]" aria-labelledby="tag-list-title">
+            <h2 id="tag-list-title" className="sr-only">Suas tags</h2>
+            <div role="search">
+              <Input
+                value={searchDraft}
+                onChange={(event) => changeSearch(event.target.value)}
+                icon={<FaSearch aria-hidden="true" />}
+                placeholder="Buscar tag pelo nome"
+                aria-label="Buscar tags"
+                type="search"
+                enterKeyHint="search"
+              />
             </div>
-
-            <form onSubmit={createTag} className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
-              <div className="min-w-0 flex-1">
-                <Input
-                  label="Nova tag"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  maxLength={41}
-                  placeholder="Ex.: ferias-2026"
-                  enterKeyHint="done"
-                  disabled={creating}
-                />
-              </div>
-              <Button
-                type="submit"
-                icon={<FaPlus aria-hidden="true" />}
-                disabled={creating || !normalizeTagDisplayName(name)}
-              >
-                {creating ? 'Criando…' : 'Criar tag'}
-              </Button>
-            </form>
-
-            {notice && actionFeedbackTagId === null ? <div className="mt-3"><Alert variant="info" message={notice} /></div> : null}
-            {actionError && actionFeedbackTagId === null ? <div className="mt-3"><Alert variant="error" message={actionError} /></div> : null}
-
-            <form onSubmit={applySearch} className="mt-4 flex flex-col gap-2 sm:flex-row" role="search">
-              <div className="min-w-0 flex-1">
-                <Input
-                  value={searchDraft}
-                  onChange={(event) => setSearchDraft(event.target.value)}
-                  placeholder="Buscar tag pelo nome"
-                  aria-label="Buscar tags"
-                  type="search"
-                  enterKeyHint="search"
-                />
-              </div>
-              <Button type="submit" variant="outline" size="sm" disabled={loadingTags}>Buscar</Button>
-              {search ? <Button type="button" variant="ghost" size="sm" onClick={clearSearch} disabled={loadingTags}>Limpar</Button> : null}
-            </form>
 
             {!loadingTags && !listError ? (
               <p className="mt-3 text-xs text-[var(--text-muted)]">
-                {total === 1 ? '1 tag encontrada' : `${total} tags encontradas`}
-                {search ? ` para “${search}”` : ''}.
+                {total === 1 ? '1 tag' : `${total} tags`}
+                {search ? ` para “${search}”` : ''}. Toque numa tag para ver o relatório.
               </p>
             ) : null}
 
@@ -415,17 +400,17 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
               <p className="mt-4 text-sm text-[var(--text-muted)]">Carregando tags…</p>
             ) : tags.length === 0 ? (
               <p className="mt-4 text-sm text-[var(--text-muted)]">
-                {search || statusFilter !== 'all' ? 'Nenhuma tag encontrada para esta busca.' : 'Nenhuma tag cadastrada.'}
+                {search || statusFilter !== 'all' ? 'Nenhuma tag encontrada para esta busca.' : 'Nenhuma tag cadastrada. Use “Nova tag” para criar a primeira.'}
               </p>
             ) : (
-              <ul className="mt-4 divide-y divide-[var(--border)] border-t border-[var(--border)]">
+              <ul className="mt-3 divide-y divide-[var(--border)] border-t border-[var(--border)]">
                 {tags.map((tag) => {
                   const spent = monthExpenseLabel(tag.monthExpenses, (cents, currency) => (showValues ? formatCurrency(cents, currency) : '••••'));
                   const selected = selectedReportTagId === tag.id;
                   return (
-                    <li key={tag.id} className={`flex flex-col gap-2 py-3 ${selected ? 'bg-[var(--surface-subtle)]' : ''}`}>
+                    <li key={tag.id} className={`flex flex-col gap-2 py-2 ${selected ? 'bg-[var(--primary-subtle)]' : ''}`}>
                       {editing?.id === tag.id ? (
-                        <form onSubmit={saveRename} className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+                        <form onSubmit={saveRename} className="flex min-w-0 flex-1 flex-col gap-2 px-2 sm:flex-row">
                           <div className="min-w-0 flex-1">
                             <Input
                               autoFocus
@@ -443,28 +428,30 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                           <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(null)} disabled={renamingId === tag.id}>Cancelar</Button>
                         </form>
                       ) : (
-                        <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center justify-between gap-1">
                           <Button
                             type="button"
                             variant="ghost"
                             onClick={() => selectTag(tag)}
                             aria-label={`Relatório da tag ${tag.name}`}
                             aria-pressed={selected}
-                            className="min-w-0 flex-1 basis-48 flex-col items-start justify-center gap-0 text-left font-normal"
+                            className="min-w-0 flex-1 justify-start text-left font-normal [&>span]:w-full [&>span]:justify-start"
                           >
-                            <span className="flex w-full min-w-0 items-center gap-2">
-                              <strong className="min-w-0 truncate text-sm text-[var(--foreground)]" title={`#${tag.name}`}>#{tag.name}</strong>
-                              <span className="shrink-0 rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">
-                                {tag.isActive ? 'Ativa' : 'Arquivada'}
+                            <span className="grid min-w-0 gap-0.5 text-left">
+                              <span className="flex min-w-0 items-center gap-2">
+                                <strong className="min-w-0 truncate text-sm text-[var(--foreground)]" title={`#${tag.name}`}>#{tag.name}</strong>
+                                {!tag.isActive && (
+                                  <span className="shrink-0 rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">Arquivada</span>
+                                )}
                               </span>
-                            </span>
-                            <span className="text-xs text-[var(--text-muted)]">
-                              {tag.transactionCount === 1 ? '1 transação vinculada' : `${tag.transactionCount} transações vinculadas`}
-                              {spent ? <> · <span className="money">{spent}</span> no mês</> : null}
+                              <span className="break-words text-xs leading-snug text-[var(--text-muted)]">
+                                {tag.transactionCount === 1 ? '1 transação' : `${tag.transactionCount} transações`}
+                                {spent ? <> · <span className="money">{spent}</span> no mês</> : null}
+                              </span>
                             </span>
                           </Button>
 
-                          <div className="flex flex-wrap items-center gap-1">
+                          <div className="flex shrink-0 items-center">
                             <IconButton label={`Renomear tag ${tag.name}`} icon={<FaEdit />} onClick={() => setEditing({ id: tag.id, name: tag.name })} disabled={renamingId !== null} />
                             <IconButton
                               label={tag.isActive ? `Arquivar tag ${tag.name}` : `Reativar tag ${tag.name}`}
@@ -513,6 +500,31 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
             onRetry={() => selectedReportTag && void loadReport(selectedReportTag)}
           />
         </section>
+
+        {createOpen && (
+          <ModalShell title="Nova tag" onClose={() => setCreateOpen(false)} closeDisabled={creating} maxWidthClass="max-w-md">
+            <form onSubmit={createTag} className="grid gap-4">
+              <Input
+                label="Nome da tag"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={41}
+                placeholder="Ex.: ferias-2026"
+                enterKeyHint="done"
+                autoFocus
+                disabled={creating}
+              />
+              <p className="text-xs text-[var(--text-muted)]">Use tags para agrupar transações de um mesmo assunto, como uma viagem ou uma reforma.</p>
+              {actionError ? <Alert variant="error" message={actionError} /> : null}
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant="outline" disabled={creating} onClick={() => setCreateOpen(false)}>Cancelar</Button>
+                <Button type="submit" disabled={creating || !normalizeTagDisplayName(name)}>
+                  {creating ? 'Criando…' : 'Criar tag'}
+                </Button>
+              </div>
+            </form>
+          </ModalShell>
+        )}
 
         <ConfirmationModal
           isOpen={deleteCandidate !== null}
