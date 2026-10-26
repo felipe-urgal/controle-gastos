@@ -10,7 +10,6 @@ export default function GoalsHero({
   currency,
   currencies,
   onCurrency,
-  completedCount,
   now,
   showValues,
 }: {
@@ -18,7 +17,6 @@ export default function GoalsHero({
   currency: string;
   currencies: string[];
   onCurrency: (currency: string) => void;
-  completedCount: number;
   now: Date;
   showValues: boolean;
 }) {
@@ -40,7 +38,7 @@ export default function GoalsHero({
         )}
       </div>
 
-      <strong className="money break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+      <strong className="money break-words text-3xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
         {money(summary.current)}
         <span className="ml-2 text-base font-semibold tracking-normal text-[var(--text-muted)]">de {money(summary.target)}</span>
       </strong>
@@ -59,9 +57,8 @@ export default function GoalsHero({
         <MoneyText>{buildLede(summary, money)}</MoneyText>
       </p>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Ativas" value={String(summary.count)} detail={summary.behind === 0 ? 'todas no ritmo' : `${summary.behind} ${summary.behind === 1 ? 'abaixo do ritmo ou vencida' : 'abaixo do ritmo ou vencidas'}`} />
-        <Stat label="Concluídas" value={String(completedCount)} detail="já conquistadas" />
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <Stat label="Metas ativas" value={String(summary.count)} detail={summary.behind === 0 ? 'todas no ritmo' : `${summary.behind} ${summary.behind === 1 ? 'abaixo do ritmo ou vencida' : 'abaixo do ritmo ou vencidas'}`} />
         <Stat label="Sugestão mensal" value={money(summary.monthly)} detail="soma das metas com prazo" />
       </div>
     </section>
@@ -70,9 +67,9 @@ export default function GoalsHero({
 
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="text-sm font-semibold text-[var(--text-muted)]">{label}</span>
-      <span className="money break-words text-xl font-semibold">{value}</span>
+    <div className="grid min-w-0 content-start gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-3 sm:px-4 sm:py-3.5">
+      <span className="truncate text-xs font-semibold text-[var(--text-muted)] sm:text-sm">{label}</span>
+      <span className="money truncate text-base font-semibold sm:text-xl">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
     </div>
   );

@@ -393,7 +393,6 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
               currency={currency}
               currencies={currencies}
               onCurrency={setHeroCurrency}
-              completedCount={counts.COMPLETED}
               now={now}
               showValues={showValues}
             />
