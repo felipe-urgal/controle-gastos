@@ -207,7 +207,7 @@ export default function AppSidebar({
                   <span className="flex items-center gap-2">
                     <span
                       aria-hidden="true"
-                      className={`h-1.5 w-1.5 rounded-full transition-colors ${hasActive ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
+                      className={`h-[7px] w-[7px] rounded-full transition-colors ${hasActive ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
                     />
                     {group.label}
                   </span>
@@ -223,7 +223,7 @@ export default function AppSidebar({
                   className={
                     collapsed
                       ? 'space-y-0.5'
-                      : `ml-[17px] space-y-0.5 border-l pl-2 ${hasActive ? 'border-[var(--primary)]/40' : 'border-[var(--border)]'}`
+                      : `ml-[15px] space-y-0.5 border-l pl-2 ${hasActive ? 'border-[var(--primary)]/40' : 'border-[var(--border)]'}`
                   }
                 >
                   {group.items.map((item) => (
