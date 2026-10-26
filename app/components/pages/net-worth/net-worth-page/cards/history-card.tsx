@@ -33,7 +33,8 @@ export function HistoryCard({
   const min = Math.min(...values, 0);
   const max = Math.max(...values, 0);
   const span = Math.max(1, max - min);
-  const low = min - span * 0.08;
+  // Sem valores negativos o eixo começa em zero, sem rótulo abaixo dele.
+  const low = min >= 0 ? 0 : min - span * 0.08;
   const high = max + span * 0.08;
   const x = (index: number) =>
     history.length <= 1 ? WIDTH / 2 : PAD.left + (index / (history.length - 1)) * (WIDTH - PAD.left - PAD.right);
@@ -62,7 +63,7 @@ export function HistoryCard({
         <div className="max-w-[56ch]">
           <h2 className="text-lg font-bold text-[var(--foreground)]">Evolução mês a mês</h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Fechamento de cada mês com {valuationBasisLabel(historyValuation.basis)}: transações concluídas menos passivos registrados pela data efetiva.
+            Fechamento de cada mês, com {valuationBasisLabel(historyValuation.basis)}.
           </p>
         </div>
         <div className="text-right" aria-live="polite">

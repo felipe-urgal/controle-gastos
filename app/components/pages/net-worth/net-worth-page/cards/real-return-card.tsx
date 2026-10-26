@@ -43,7 +43,7 @@ export function RealReturnCard({
       </div>
 
       <dl
-        className={`mt-4 grid gap-3 sm:grid-cols-2 ${data.currency === 'BRL' ? 'xl:grid-cols-5' : 'xl:grid-cols-3'}`}
+        className={`mt-4 grid grid-cols-2 gap-2 sm:gap-3 ${data.currency === 'BRL' ? 'xl:grid-cols-5' : 'xl:grid-cols-3'}`}
       >
         <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Patrimônio inicial</dt>
@@ -87,22 +87,27 @@ export function RealReturnCard({
         </p>
       )}
 
-      <div className="mt-3 space-y-1 text-xs leading-relaxed text-[var(--text-muted)]">
-        <p>
-          Esta métrica mede evolução patrimonial e inclui aportes, retiradas e
-          reavaliações de passivos. Não representa rentabilidade isolada de investimentos.
-        </p>
-        <p>
-          A série usa a base contábil histórica: transações concluídas menos passivos
-          pela data efetiva. Não reconstrói mercado passado com cotação atual.
-        </p>
-        {data.currency === 'BRL' && (
+      <details className="mt-2">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center text-xs font-bold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+          Como calculamos
+        </summary>
+        <div className="space-y-1 text-xs leading-relaxed text-[var(--text-muted)]">
           <p>
-            Fonte de inflação: {summary.inflation.sourceLabel} · série{' '}
-            {summary.inflation.seriesCode}. Fórmula: {summary.formula}. {summary.rounding}.
+            Esta métrica mede evolução patrimonial e inclui aportes, retiradas e
+            reavaliações de passivos. Não representa rentabilidade isolada de investimentos.
           </p>
-        )}
-      </div>
+          <p>
+            A série usa a base contábil histórica: transações concluídas menos passivos
+            pela data efetiva. Não reconstrói mercado passado com cotação atual.
+          </p>
+          {data.currency === 'BRL' && (
+            <p>
+              Fonte de inflação: {summary.inflation.sourceLabel} · série{' '}
+              {summary.inflation.seriesCode}. Fórmula: {summary.formula}. {summary.rounding}.
+            </p>
+          )}
+        </div>
+      </details>
     </article>
   );
 }

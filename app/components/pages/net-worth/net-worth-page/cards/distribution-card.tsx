@@ -115,12 +115,17 @@ export function DistributionCard({
         </div>
       )}
 
-      <div className="mt-4 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3 text-xs leading-relaxed text-[var(--text-muted)]">
-        Transferências entre suas contas não alteram o total consolidado.
-        Em contas de investimento, posições substituem o saldo transacional
-        quando existe uma posição calculável. Caixa e posições não são somados
-        automaticamente para evitar dupla contagem.
-      </div>
+      <details className="mt-3">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center text-xs font-bold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+          Como as contas entram no total
+        </summary>
+        <p className="pb-1 text-xs leading-relaxed text-[var(--text-muted)]">
+          Transferências entre suas contas não alteram o total consolidado.
+          Em contas de investimento, posições substituem o saldo transacional
+          quando existe uma posição calculável. Caixa e posições não são somados
+          automaticamente para evitar dupla contagem.
+        </p>
+      </details>
     </article>
   );
 }

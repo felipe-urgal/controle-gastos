@@ -44,12 +44,12 @@ export function NetWorthHero({
   const up = variation ? variation.amount >= 0 : true;
 
   return (
-    <section aria-labelledby="net-worth-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="net-worth-hero-label" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div>
         <p id="net-worth-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">
           Patrimônio líquido em {currency}
         </p>
-        <strong className="money mt-2 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+        <strong className="money mt-2 block break-words text-3xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
           {displayMoney(total, showValues, currency)}
         </strong>
         {variation && (
@@ -68,26 +68,24 @@ export function NetWorthHero({
       </div>
 
       <div className="grid gap-3">
-        <div
-          className="flex h-3.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]"
-          role="img"
-          aria-label={share === null ? 'Sem ativos positivos para comparar com as dívidas' : `Dívidas equivalem a ${share.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% dos ativos`}
-        >
-          {share !== null && (
-            <>
+        {share !== null && liabilitiesTotal > 0 && (
+          <div className="grid gap-1.5">
+            <div
+              className="flex h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]"
+              role="img"
+              aria-label={`Dívidas equivalem a ${share.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% dos ativos`}
+            >
               <span className="h-full bg-[var(--primary)]" style={{ width: `${100 - debtWidth}%` }} />
               <span className="h-full bg-[var(--expense)] opacity-85" style={{ width: `${debtWidth}%` }} />
-            </>
-          )}
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+            </div>
+            <p className="text-xs text-[var(--text-muted)]">
+              As dívidas equivalem a <strong className="text-[var(--foreground)]">{share.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</strong> dos ativos.
+            </p>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           <Stat dot="var(--primary)" label="Ativos" value={displayMoney(assetsTotal, showValues, currency)} detail={`${accountCount} ${accountCount === 1 ? 'conta elegível' : 'contas elegíveis'}`} />
           <Stat dot="var(--expense)" label="Passivos" value={displayMoney(liabilitiesTotal, showValues, currency)} detail={`${debtCount} ${debtCount === 1 ? 'dívida com saldo' : 'dívidas com saldo'}`} />
-          <Stat
-            label="Dívidas pesam"
-            value={share === null ? '—' : `${share.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`}
-            detail="dos ativos"
-          />
         </div>
       </div>
 
@@ -140,12 +138,12 @@ export function NetWorthHero({
 
 function Stat({ label, value, detail, dot }: { label: string; value: string; detail: string; dot?: string }) {
   return (
-    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="flex items-center gap-2 text-sm font-semibold text-[var(--text-muted)]">
-        {dot && <span className="h-2.5 w-2.5 rounded-full" style={{ background: dot }} aria-hidden="true" />}
+    <div className="grid min-w-0 content-start gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-3 sm:px-4 sm:py-3.5">
+      <span className="flex items-center gap-2 truncate text-xs font-semibold text-[var(--text-muted)] sm:text-sm">
+        {dot && <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: dot }} aria-hidden="true" />}
         {label}
       </span>
-      <span className="money break-words text-xl font-semibold">{value}</span>
+      <span className="money truncate text-base font-semibold sm:text-xl">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
     </div>
   );
