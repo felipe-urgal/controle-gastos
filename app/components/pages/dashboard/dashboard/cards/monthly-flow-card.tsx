@@ -1,5 +1,7 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { CARD_VIEWPORT, reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
 import { useState, type KeyboardEvent } from 'react';
 
 import { compactMonthLabel, displayMoney, signedMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
@@ -45,6 +47,7 @@ export function MonthlyFlowCard({
   showValues: boolean;
   currency: string;
 }) {
+  const reduce = useReducedMotion();
   const bars = buildFlowBars(flow);
   const [active, setActive] = useState<number | null>(null);
   const lastIndex = bars.length - 1;
@@ -98,15 +101,21 @@ export function MonthlyFlowCard({
               onPointerDown={() => setActive(index)}
             >
               <div className={`flex h-full w-full max-w-12 items-end justify-center gap-1 transition-opacity ${dim ? 'opacity-45' : ''}`}>
-                <span
+                <motion.span
                   className="block w-1/2 rounded-t-md bg-[var(--income)]"
-                  style={{ height: `${bar.incomeHeight}%` }}
+                  initial={{ height: 0 }}
+                  whileInView={{ height: `${bar.incomeHeight}%` }}
+                  viewport={CARD_VIEWPORT}
+                  transition={reducedTransition(reduce, { type: 'spring', stiffness: 170, damping: 14, delay: index * 0.08 })}
                   role="img"
                   aria-label={`${bar.label}: entrou ${displayMoney(bar.income, showValues, currency)}`}
                 />
-                <span
+                <motion.span
                   className={`block w-1/2 rounded-t-md bg-[var(--expense)] ${bar.current && partial ? 'opacity-60' : ''}`}
-                  style={{ height: `${bar.expenseHeight}%` }}
+                  initial={{ height: 0 }}
+                  whileInView={{ height: `${bar.expenseHeight}%` }}
+                  viewport={CARD_VIEWPORT}
+                  transition={reducedTransition(reduce, { type: 'spring', stiffness: 170, damping: 14, delay: index * 0.08 + 0.06 })}
                   role="img"
                   aria-label={`${bar.label}: saiu ${displayMoney(bar.expense, showValues, currency)}`}
                 />

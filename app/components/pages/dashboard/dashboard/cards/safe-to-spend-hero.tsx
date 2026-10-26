@@ -1,5 +1,7 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { CountUp, reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
 import Link from 'next/link';
 import { FaChevronDown } from 'react-icons/fa';
 
@@ -64,6 +66,7 @@ export function SafeToSpendHero({
   forecastEnabled: boolean;
   onRetry?: () => void;
 }) {
+  const reduce = useReducedMotion();
   const through = safeToSpend?.through ?? horizonEnd;
   const horizonLabel = through
     ? `${String(through.day).padStart(2, '0')}/${String(through.month).padStart(2, '0')}`
@@ -118,13 +121,22 @@ export function SafeToSpendHero({
             <strong
               className={`block money text-4xl font-semibold leading-none tracking-[-0.035em] tabular-nums sm:text-5xl ${safeToSpend.safeToSpend < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}
             >
-              <span className="money">{money(safeToSpend.safeToSpend)}</span>
+              {showValues ? (
+                <CountUp amount={safeToSpend.safeToSpend} format={money} className="money" />
+              ) : (
+                <span className="money">{money(safeToSpend.safeToSpend)}</span>
+              )}
             </strong>
             <div className="flex flex-col items-start gap-1.5">
               {margin && (
-                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${margin.className}`}>
+                <motion.span
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={reducedTransition(reduce, { type: 'spring', stiffness: 420, damping: 16, delay: 0.55 })}
+                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${margin.className}`}
+                >
                   {margin.label}
-                </span>
+                </motion.span>
               )}
               {perDay && (
                 <span className="text-sm">

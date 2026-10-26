@@ -1,7 +1,8 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { CARD_EASE, reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
 import Link from 'next/link';
-import { FaCheckCircle, FaRegCircle } from 'react-icons/fa';
 
 export type GettingStartedStep = { id: 'account' | 'transaction' | 'budget'; label: string; href: string; done: boolean };
 
@@ -24,7 +25,38 @@ export function gettingStartedSteps({
   ];
 }
 
+/** Círculo do passo: concluído, o aro e o check se desenham em sequência. */
+function StepMark({ done }: { done: boolean }) {
+  const reduce = useReducedMotion();
+
+  return (
+    <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label={done ? 'Concluído' : 'Pendente'}>
+      <motion.circle
+        cx="10"
+        cy="10"
+        r="8"
+        strokeWidth="1.8"
+        stroke={done ? 'var(--income)' : 'var(--text-muted)'}
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={reducedTransition(reduce, { duration: 0.5, ease: CARD_EASE })}
+      />
+      {done && (
+        <motion.path
+          d="M6 10.5 L9 13.5 L14 7.5"
+          strokeWidth="2"
+          stroke="var(--income)"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={reducedTransition(reduce, { duration: 0.4, ease: CARD_EASE, delay: 0.35 })}
+        />
+      )}
+    </svg>
+  );
+}
+
 export function GettingStartedCard({ steps }: { steps: GettingStartedStep[] }) {
+  const reduce = useReducedMotion();
   if (steps.length === 0) return null;
 
   return (
@@ -38,12 +70,19 @@ export function GettingStartedCard({ steps }: { steps: GettingStartedStep[] }) {
               href={step.href}
               className="flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 text-sm font-semibold transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
             >
-              {step.done ? (
-                <FaCheckCircle className="shrink-0 text-[var(--income)]" aria-label="Concluído" />
-              ) : (
-                <FaRegCircle className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
-              )}
-              <span className={step.done ? 'text-[var(--text-muted)] line-through' : ''}>{step.label}</span>
+              <StepMark done={step.done} />
+              <span className={`relative ${step.done ? 'text-[var(--text-muted)]' : ''}`}>
+                {step.label}
+                {step.done && (
+                  <motion.span
+                    aria-hidden="true"
+                    className="absolute inset-x-0 top-1/2 h-px origin-left bg-[var(--text-muted)]"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={reducedTransition(reduce, { duration: 0.4, ease: CARD_EASE, delay: 0.6 })}
+                  />
+                )}
+              </span>
             </Link>
           </li>
         ))}

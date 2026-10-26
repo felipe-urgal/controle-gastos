@@ -10,14 +10,20 @@ export default function PageTitle({
   description,
   actions,
   sidebarAligned = false,
+  animated = false,
+  loading = false,
 }: {
   title: string;
   description?: string;
   actions?: ReactNode;
   /** Faixa fixa encostada na sidebar (`PageBar`); ignora a descrição. */
   sidebarAligned?: boolean;
+  /** Só com `sidebarAligned`: liga o movimento da faixa (ver `PageBar`). */
+  animated?: boolean;
+  /** Só com `sidebarAligned` e `animated`: linha de progresso na borda da faixa. */
+  loading?: boolean;
 }) {
-  if (sidebarAligned) return <PageBar crumbs={[{ label: title }]} actions={actions} />;
+  if (sidebarAligned) return <PageBar crumbs={[{ label: title }]} actions={actions} animated={animated} loading={loading} />;
 
   return (
     <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-center sm:justify-between">

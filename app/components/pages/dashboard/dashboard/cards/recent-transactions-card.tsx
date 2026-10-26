@@ -1,5 +1,7 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { CARD_EASE, CARD_VIEWPORT, reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
 import { SectionMessage } from '@/app/components/pages/dashboard/dashboard/cards/section-message';
 import Link from 'next/link';
 import { IconRenderer } from '@/app/components/ui';
@@ -7,6 +9,8 @@ import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { DashboardRecentTransaction } from '@/app/types/dashboard';
 import { FaExchangeAlt } from 'react-icons/fa';
 import { transactionDateLabel } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
+
+const MotionLink = motion.create(Link);
 
 export function RecentTransactionsCard({
   items,
@@ -23,6 +27,8 @@ export function RecentTransactionsCard({
   currency: string;
   onRetry?: () => void;
 }) {
+  const reduce = useReducedMotion();
+
   return (
     <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
@@ -40,14 +46,30 @@ export function RecentTransactionsCard({
         ) : items.length === 0 ? (
           <SectionMessage tone="empty" className="py-5">Nenhuma transação realizada neste mês.</SectionMessage>
         ) : (
-          items.map((transaction) => {
+          items.map((transaction, index) => {
             const isIncome = transaction.type === 'INCOME';
             const isTransfer = transaction.kind === 'TRANSFER';
             const isCardPayment = transaction.kind === 'CARD_PAYMENT';
             const tone = isTransfer || isCardPayment ? 'text-[var(--primary)]' : isIncome ? 'text-[var(--income)]' : 'text-[var(--expense)]';
 
             return (
-              <Link key={transaction.id} href={`/transacoes/show/${transaction.id}`} className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5">
+              <MotionLink
+                key={transaction.id}
+                href={`/transacoes/show/${transaction.id}`}
+                className="block"
+                initial="hidden"
+                whileInView="shown"
+                viewport={CARD_VIEWPORT}
+              >
+                {/* O recorte fica no filho: um elemento totalmente recortado nunca conta como visível para o whileInView. */}
+                <motion.div
+                  className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5"
+                  variants={{
+                    hidden: reduce ? {} : { clipPath: 'inset(0 100% 0 0)' },
+                    shown: { clipPath: 'inset(0 0% 0 0)', transitionEnd: { clipPath: 'none' } },
+                  }}
+                  transition={reducedTransition(reduce, { duration: 0.55, ease: CARD_EASE, delay: index * 0.08 })}
+                >
                 <div className="flex min-w-0 items-center gap-3">
                   <span
                     className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-white ${isTransfer ? 'bg-[var(--primary)]' : isIncome ? 'bg-[var(--income)]' : ''}`}
@@ -69,7 +91,8 @@ export function RecentTransactionsCard({
                 <strong className={`money shrink-0 text-sm ${tone}`}>
                   {showValues ? `${isIncome ? '+' : isTransfer || isCardPayment ? '' : '-'} ${formatCurrency(transaction.amount, currency)}` : '••••'}
                 </strong>
-              </Link>
+                </motion.div>
+              </MotionLink>
             );
           })
         )}

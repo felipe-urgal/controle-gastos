@@ -1,5 +1,7 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { CARD_EASE, CARD_VIEWPORT, reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
 import Link from 'next/link';
 
 import { PlanningMetric } from '@/app/components/pages/dashboard/dashboard/cards/planning-metric';
@@ -39,6 +41,7 @@ const toneClass = {
 } as const;
 
 function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues: boolean; currency: string }) {
+  const reduce = useReducedMotion();
   const { ref: chartRef, width: WIDTH } = useChartWidth(640);
   const narrow = WIDTH < 520;
   const HEIGHT = narrow ? 200 : 210;
@@ -106,19 +109,69 @@ function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues
         </g>
       )}
       {previousCumulative.length > 1 && (
-        <path d={line(previousCumulative)} fill="none" stroke="var(--text-subtle)" strokeWidth="1.4" strokeOpacity="0.8" />
+        <motion.path
+          d={line(previousCumulative)}
+          fill="none"
+          stroke="var(--text-subtle)"
+          strokeWidth="1.4"
+          strokeOpacity="0.8"
+          initial={{ pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={CARD_VIEWPORT}
+          transition={reducedTransition(reduce, { duration: 1, ease: CARD_EASE })}
+        />
       )}
       {hasToday && cumulative.length > 0 && (
         <>
-          <path d={`${line(cumulative)} L ${x(elapsedDays)} ${y(0)} L ${x(1)} ${y(0)} Z`} fill="var(--primary)" fillOpacity="0.13" />
-          <path d={line(cumulative)} fill="none" stroke="var(--primary)" strokeWidth="2.2" strokeLinejoin="round" />
+          <motion.path
+            d={`${line(cumulative)} L ${x(elapsedDays)} ${y(0)} L ${x(1)} ${y(0)} Z`}
+            fill="var(--primary)"
+            fillOpacity="0.13"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={CARD_VIEWPORT}
+            transition={reducedTransition(reduce, { duration: 0.6, delay: 1 })}
+          />
+          <motion.path
+            d={line(cumulative)}
+            fill="none"
+            stroke="var(--primary)"
+            strokeWidth="2.2"
+            strokeLinejoin="round"
+            initial={{ pathLength: 0 }}
+            whileInView={{ pathLength: 1 }}
+            viewport={CARD_VIEWPORT}
+            transition={reducedTransition(reduce, { duration: 1.2, ease: CARD_EASE, delay: 0.15 })}
+          />
         </>
       )}
       {hasToday && projected !== null && elapsedDays < daysInMonth && (
-        <path d={`M ${x(elapsedDays)} ${y(spent)} L ${x(daysInMonth)} ${y(projected)}`} fill="none" stroke="var(--primary)" strokeWidth="1.6" strokeDasharray="3 4" />
+        <motion.path
+          d={`M ${x(elapsedDays)} ${y(spent)} L ${x(daysInMonth)} ${y(projected)}`}
+          fill="none"
+          stroke="var(--primary)"
+          strokeWidth="1.6"
+          strokeDasharray="3 4"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={CARD_VIEWPORT}
+          transition={reducedTransition(reduce, { duration: 0.5, delay: 1.2 })}
+        />
       )}
       {hasToday && (
-        <circle cx={x(elapsedDays)} cy={y(spent)} r="4.5" fill="var(--primary)" stroke="var(--surface)" strokeWidth="2" />
+        <motion.circle
+          cx={x(elapsedDays)}
+          cy={y(spent)}
+          r="4.5"
+          fill="var(--primary)"
+          stroke="var(--surface)"
+          strokeWidth="2"
+          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          initial={{ scale: 0, opacity: 0 }}
+          whileInView={{ scale: 1, opacity: 1 }}
+          viewport={CARD_VIEWPORT}
+          transition={reducedTransition(reduce, { type: 'spring', stiffness: 500, damping: 14, delay: 1.3 })}
+        />
       )}
       {activeDay !== null && (
         <ChartCursor x={x(activeDay)} y={y(activeSpent ?? activePrevious ?? 0)} top={PAD.top} bottom={HEIGHT - PAD.bottom} />

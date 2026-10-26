@@ -1,5 +1,7 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { CARD_VIEWPORT, reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
 import { SectionMessage } from '@/app/components/pages/dashboard/dashboard/cards/section-message';
 import Link from 'next/link';
 import { DashboardHome } from '@/app/types/dashboard';
@@ -23,6 +25,8 @@ export function UpcomingCard({
   error: string;
   onRetry?: () => void;
 }) {
+  const reduce = useReducedMotion();
+
   return (
     <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
@@ -41,7 +45,7 @@ export function UpcomingCard({
           <SectionMessage tone="empty">Nenhum compromisso vencido ou próximo nos próximos 30 dias.</SectionMessage>
         ) : (
           <div className="space-y-3 py-1">
-            {groupCommitments(items, 2).map((group) => (
+            {groupCommitments(items, 2).map((group, groupIndex) => (
               <section key={group.direction} aria-label={group.label}>
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
@@ -52,12 +56,19 @@ export function UpcomingCard({
                   </span>
                 </div>
                 <div className="divide-y divide-[var(--border)]">
-                  {group.items.map((item) => (
+                  {group.items.map((item, itemIndex) => (
                     <Link key={item.id} href={item.href} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
-                      <span className="grid h-[43px] w-[43px] place-content-center rounded-[var(--radius-md)] border border-[var(--border-strong)] text-center">
+                      <motion.span
+                        className="grid h-[43px] w-[43px] place-content-center rounded-[var(--radius-md)] border border-[var(--border-strong)] text-center"
+                        style={{ transformPerspective: 400, transformOrigin: 'top center' }}
+                        initial={{ rotateX: -90, opacity: 0 }}
+                        whileInView={{ rotateX: 0, opacity: 1 }}
+                        viewport={CARD_VIEWPORT}
+                        transition={reducedTransition(reduce, { type: 'spring', stiffness: 220, damping: 16, delay: (groupIndex * 2 + itemIndex) * 0.1 })}
+                      >
                         <strong className="text-sm leading-none">{String(item.date.day).padStart(2, '0')}</strong>
                         <span className="mt-1 text-xs font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
-                      </span>
+                      </motion.span>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold">{item.title}</p>
                         <p className="mt-1 text-sm text-[var(--text-muted)]">

@@ -1,5 +1,7 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
 import Link from 'next/link';
 import { MoneyText } from '@/app/components/ui';
 import { FaCheckCircle, FaChevronRight, FaExclamationCircle, FaInfoCircle } from 'react-icons/fa';
@@ -22,6 +24,8 @@ export function AttentionCard({
   /** Os insights são uma seção independente: a falha dela não esconde os demais itens. */
   insightsError: string;
 }) {
+  const reduce = useReducedMotion();
+
   return (
     <section
       className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5"
@@ -51,12 +55,28 @@ export function AttentionCard({
         </p>
       ) : (
         <ul className="mt-3 space-y-2">
-          {items.map((item) => {
+          {items.map((item, index) => {
             const { box, Icon } = toneStyles[item.tone];
+            const urgent = item.tone === 'urgent';
             const content = (
               <>
-                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] ${box}`}>
-                  <Icon aria-hidden="true" />
+                <span className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] ${box}`}>
+                  {urgent && !reduce && (
+                    <motion.span
+                      aria-hidden="true"
+                      className="absolute inset-0 rounded-[var(--radius-md)] bg-[var(--expense)]"
+                      initial={{ scale: 1, opacity: 0.35 }}
+                      animate={{ scale: 1.55, opacity: 0 }}
+                      transition={reducedTransition(reduce, { duration: 1.6, ease: 'easeOut', repeat: Infinity, repeatDelay: 0.8 })}
+                    />
+                  )}
+                  <motion.span
+                    className="relative grid place-items-center"
+                    animate={urgent && !reduce ? { rotate: [0, -14, 12, -8, 0] } : undefined}
+                    transition={reducedTransition(reduce, { duration: 0.6, delay: 0.5 + index * 0.1 })}
+                  >
+                    <Icon aria-hidden="true" />
+                  </motion.span>
                 </span>
                 <span className="min-w-0 flex-1">
                   <strong className="block text-sm leading-snug text-[var(--foreground)]">{item.title}</strong>
@@ -76,7 +96,12 @@ export function AttentionCard({
               'flex min-h-[56px] items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2';
 
             return (
-              <li key={item.id}>
+              <motion.li
+                key={item.id}
+                initial={{ opacity: 0, x: 28 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={reducedTransition(reduce, { type: 'spring', stiffness: 360, damping: 30, delay: 0.1 + index * 0.09 })}
+              >
                 {item.href ? (
                   <Link
                     href={item.href}
@@ -87,7 +112,7 @@ export function AttentionCard({
                 ) : (
                   <div className={className}>{content}</div>
                 )}
-              </li>
+              </motion.li>
             );
           })}
         </ul>

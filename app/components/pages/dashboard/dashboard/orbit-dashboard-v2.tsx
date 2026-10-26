@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
 
@@ -51,15 +52,30 @@ export default function OrbitDashboardV2() {
 
   const periodControls = (
     <div className="flex min-w-0 flex-1 items-center gap-2 lg:flex-none">
-      <CurrencySelect value={currency} onChange={setCurrency} disabled={loading} />
-      <PeriodSwitcher
+      {/* Os controles entram da direita, um depois do outro. */}
+      <motion.div
+        initial={{ opacity: 0, x: 16 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 30, delay: 0.12 }}
+        className="shrink-0"
+      >
+        <CurrencySelect value={currency} onChange={setCurrency} disabled={loading} />
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, x: 16 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 30, delay: 0.2 }}
         className="min-w-0 flex-1 lg:flex-none"
-        month={Number(periodValue.slice(5, 7))}
-        year={Number(periodValue.slice(0, 4))}
-        onPrevious={() => setPeriodValue(periodOffset(periodValue, -1))}
-        onNext={() => setPeriodValue(periodOffset(periodValue, 1))}
-        disabled={loading}
-      />
+      >
+        <PeriodSwitcher
+          animated
+          month={Number(periodValue.slice(5, 7))}
+          year={Number(periodValue.slice(0, 4))}
+          onPrevious={() => setPeriodValue(periodOffset(periodValue, -1))}
+          onNext={() => setPeriodValue(periodOffset(periodValue, 1))}
+          disabled={loading}
+        />
+      </motion.div>
     </div>
   );
 
@@ -68,10 +84,19 @@ export default function OrbitDashboardV2() {
       <PageTitle
         title="Dashboard"
         sidebarAligned
+        animated
+        loading={loading}
         actions={<ShowFrom breakpoint="lg">{periodControls}</ShowFrom>}
       />
       <ShowBelow breakpoint="lg">
-        <div className="mt-4">{periodControls}</div>
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut', delay: 0.15 }}
+          className="mt-4"
+        >
+          {periodControls}
+        </motion.div>
       </ShowBelow>
 
       {error && (

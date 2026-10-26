@@ -3,7 +3,7 @@
 import { SectionMessage } from '@/app/components/pages/dashboard/dashboard/cards/section-message';
 import Link from 'next/link';
 import { IconRenderer } from '@/app/components/ui';
-import { CategoryBudgetBar } from '@/app/components/pages/dashboard/dashboard/cards/category-budget';
+import { CategoryBudgetBar, FillBar } from '@/app/components/pages/dashboard/dashboard/cards/category-budget';
 import { MonthlyDashboard } from '@/app/types/dashboard';
 import { FaChevronRight } from 'react-icons/fa';
 import { displayMoney, monthLabel } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
@@ -22,7 +22,7 @@ export function CategoriesCard({
   period: MonthlyDashboard['period'];
 }) {
   return (
-    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
+    <article className="h-full rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Para onde foi o dinheiro</h2>
         <span className="text-xs font-semibold text-[var(--text-muted)]">{monthLabel(`${period.year}-${String(period.month).padStart(2, '0')}`)}</span>
@@ -31,7 +31,7 @@ export function CategoriesCard({
         {categories.length === 0 ? (
           <SectionMessage tone="empty">Nenhuma despesa categorizada neste período.</SectionMessage>
         ) : (
-          categories.map((category) => {
+          categories.map((category, index) => {
             const limit = limits.find((item) => item.category.id === category.id);
 
             return (
@@ -49,11 +49,11 @@ export function CategoriesCard({
               </span>
               <span className="mt-1.5 block pl-[38px]">
                 {limit ? (
-                  <CategoryBudgetBar limit={limit} showValues={showValues} currency={currency} />
+                  <CategoryBudgetBar limit={limit} showValues={showValues} currency={currency} delay={index * 0.1} />
                 ) : (
                   <span className="flex items-center gap-3">
                     <span className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
-                      <span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${Math.min(100, category.sharePercentage)}%` }} />
+                      <FillBar percent={category.sharePercentage} className="bg-[var(--primary)]" delay={index * 0.1} />
                     </span>
                     <span className="w-12 text-right text-xs font-semibold text-[var(--text-muted)]">{category.sharePercentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
                   </span>
