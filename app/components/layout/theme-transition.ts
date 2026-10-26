@@ -5,14 +5,15 @@ type ViewTransitionDocument = Document & {
 };
 
 /**
- * Troca o tema com uma revelação circular a partir do ponto clicado (View Transitions API).
+ * Troca o tema com uma revelação circular (View Transitions API). Para o escuro, o círculo nasce no ponto
+ * clicado (o botão da sidebar, no canto inferior esquerdo); para o claro, ele "volta" do canto superior direito.
  * Sem suporte, ou com "reduzir movimento", troca direto. O `data-theme` é aplicado dentro da
  * transição porque o ThemeProvider só o escreve num efeito, depois do snapshot.
  */
 export function switchThemeWithReveal(
   next: ResolvedTheme,
   setTheme: (theme: ResolvedTheme) => void,
-  origin: { x: number; y: number },
+  clickOrigin: { x: number; y: number },
 ) {
   const doc = document as ViewTransitionDocument;
   const root = document.documentElement;
@@ -21,6 +22,7 @@ export function switchThemeWithReveal(
     return;
   }
 
+  const origin = next === 'dark' ? clickOrigin : { x: window.innerWidth, y: 0 };
   root.classList.add('theme-reveal');
   const transition = doc.startViewTransition(() => {
     root.dataset.theme = next;

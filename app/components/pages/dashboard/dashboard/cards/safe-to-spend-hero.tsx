@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { CountUp, reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
+import { CountUp, reducedTransition } from '@/app/components/ui/motion';
 import Link from 'next/link';
 import { FaChevronDown } from 'react-icons/fa';
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { CARD_EASE, reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
+import { CARD_EASE, reducedTransition } from '@/app/components/ui/motion';
 import Link from 'next/link';
 
 export type GettingStartedStep = { id: 'account' | 'transaction' | 'budget'; label: string; href: string; done: boolean };

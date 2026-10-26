@@ -18,8 +18,11 @@ export const pageBarButtonProps = { size: 'sm', className: 'sm:min-h-10' } as co
  * níveis acima são links e o último, o `h1`, é a página atual. A barra é sempre uma linha só: ações que
  * não cabem numa linha (rótulos em cima, grupos empilhados) ficam num bloco abaixo dela. Abaixo de `lg` também fica fixa no topo e faz o papel da barra superior.
  *
- * `animated` liga o conjunto de movimento da faixa (título que sobe de uma máscara, sombra e título que
- * reagem à rolagem) e `loading` mostra a linha de progresso na borda de baixo. Sem `animated` a faixa é estática.
+ * `animated` liga o movimento da faixa; cada página escolhe o seu preset. `true` (Dashboard): título que sobe de
+ * uma máscara, sombra e título que reagem à rolagem e linha de progresso na borda de baixo. `'letters'`
+ * (Transações): letras do título que caem em sequência, linha de acento que se expande do centro ao rolar e
+ * três pontos pulsando ao lado do título enquanto `loading`. `'trail'` (telas de criação): o breadcrumb se
+ * constrói: os níveis deslizam, os chevrons encaixam e o título é digitado com um cursor. Sem `animated` a faixa é estática.
  */
 export default function PageBar({
   crumbs,
@@ -29,7 +32,7 @@ export default function PageBar({
 }: {
   crumbs: Crumb[];
   actions?: ReactNode;
-  animated?: boolean;
+  animated?: boolean | 'letters' | 'trail';
   loading?: boolean;
 }) {
   const current = crumbs[crumbs.length - 1];
@@ -38,6 +41,9 @@ export default function PageBar({
   const { scrollY } = useScroll();
   const shadowOpacity = useTransform(scrollY, [0, 48], [0, 1]);
   const titleScale = useTransform(scrollY, [0, 80], [1, 0.96]);
+  const accentScale = useTransform(scrollY, [0, 60], [0, 1]);
+  const letters = animated === 'letters';
+  const trail = animated === 'trail';
 
   return (
     <header
@@ -45,8 +51,14 @@ export default function PageBar({
     >
       <nav aria-label="Você está em" className="min-w-0 flex-1">
         <ol className="flex min-w-0 items-center gap-2">
-          {parents.map((crumb) => (
-            <li key={crumb.label} className="flex shrink-0 items-center gap-2">
+          {parents.map((crumb, parentIndex) => (
+            <motion.li
+              key={crumb.label}
+              className="flex shrink-0 items-center gap-2"
+              initial={trail ? { x: -18, opacity: 0 } : false}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 360, damping: 28, delay: 0.05 + parentIndex * 0.1 }}
+            >
               {crumb.href ? (
                 <Link
                   href={crumb.href}
@@ -57,11 +69,54 @@ export default function PageBar({
               ) : (
                 <span className="text-xl font-semibold tracking-tight text-[var(--text-muted)]">{crumb.label}</span>
               )}
-              <FaChevronRight className="translate-y-px text-xs text-[var(--text-subtle)]" aria-hidden="true" />
-            </li>
+              <motion.span
+                className="flex"
+                initial={trail ? { rotate: -90, scale: 0.4, opacity: 0 } : false}
+                animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 14, delay: 0.2 + parentIndex * 0.1 }}
+              >
+                <FaChevronRight className="translate-y-px text-xs text-[var(--text-subtle)]" aria-hidden="true" />
+              </motion.span>
+            </motion.li>
           ))}
-          <li aria-current="page" className="min-w-0">
-            {animated ? (
+          <li aria-current="page" className={letters ? 'flex min-w-0 items-center gap-3' : 'min-w-0'}>
+            {trail ? (
+              // O título é revelado da esquerda para a direita, com o cursor acompanhando a borda da revelação.
+              <span className="relative inline-block max-w-full align-middle">
+                <motion.h1
+                  className={`truncate ${pageTitleClassName} lg:text-xl`}
+                  initial={{ clipPath: 'inset(0 100% 0 0)' }}
+                  animate={{ clipPath: 'inset(0 0% 0 0)' }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 0.7, ease: [0.65, 0, 0.35, 1], delay: 0.35 }}
+                >
+                  {current.label}
+                </motion.h1>
+                {!reduceMotion && (
+                  <motion.span
+                    aria-hidden="true"
+                    className="absolute inset-y-1 w-0.5 rounded-full bg-[var(--primary)]"
+                    initial={{ left: '0%', opacity: 1 }}
+                    animate={{ left: '100%', opacity: [1, 1, 0, 1, 0] }}
+                    transition={{ left: { duration: 0.7, ease: [0.65, 0, 0.35, 1], delay: 0.35 }, opacity: { duration: 1.5, delay: 0.35, times: [0, 0.45, 0.6, 0.8, 1] } }}
+                  />
+                )}
+              </span>
+            ) : letters ? (
+              <h1 aria-label={current.label} className={`truncate ${pageTitleClassName} lg:text-xl`}>
+                {[...current.label].map((char, index) => (
+                  <motion.span
+                    key={index}
+                    aria-hidden="true"
+                    className="inline-block whitespace-pre"
+                    initial={{ y: -18, opacity: 0, rotate: -8 }}
+                    animate={{ y: 0, opacity: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 18, delay: 0.05 + index * 0.03 }}
+                  >
+                    {char}
+                  </motion.span>
+                ))}
+              </h1>
+            ) : animated ? (
               <span className="block overflow-hidden pb-0.5">
                 <motion.h1
                   initial={{ y: '100%' }}
@@ -76,11 +131,41 @@ export default function PageBar({
             ) : (
               <h1 className={`truncate ${pageTitleClassName} lg:text-xl`}>{current.label}</h1>
             )}
+            {letters && (
+              <AnimatePresence>
+                {loading && (
+                  <motion.span
+                    key="dots"
+                    aria-hidden="true"
+                    className="flex shrink-0 items-center gap-1"
+                    initial={{ opacity: 0, scale: 0.6 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.6 }}
+                  >
+                    {[0, 1, 2].map((dot) => (
+                      <motion.span
+                        key={dot}
+                        className="h-1.5 w-1.5 rounded-full bg-[var(--primary)]"
+                        animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }}
+                        transition={{ duration: 0.8, repeat: Infinity, delay: dot * 0.15, ease: 'easeInOut' }}
+                      />
+                    ))}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            )}
           </li>
         </ol>
       </nav>
       {actions && <div className="flex shrink-0 flex-nowrap items-center gap-2 whitespace-nowrap">{actions}</div>}
-      {animated && (
+      {letters && (
+        <motion.span
+          aria-hidden="true"
+          style={{ scaleX: accentScale }}
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-px origin-center bg-gradient-to-r from-transparent via-[var(--primary)] to-transparent"
+        />
+      )}
+      {animated === true && (
         <>
           {/* Sombra que aparece só depois de rolar: separa a faixa fixa do conteúdo que passa por baixo. */}
           <motion.span

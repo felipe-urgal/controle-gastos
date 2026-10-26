@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { CARD_VIEWPORT, reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
+import { CARD_VIEWPORT, reducedTransition } from '@/app/components/ui/motion';
 import { SectionMessage } from '@/app/components/pages/dashboard/dashboard/cards/section-message';
 import Link from 'next/link';
 import { DashboardHome } from '@/app/types/dashboard';

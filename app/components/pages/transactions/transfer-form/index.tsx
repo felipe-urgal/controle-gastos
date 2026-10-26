@@ -17,7 +17,11 @@ import {
   FaWallet,
 } from 'react-icons/fa';
 
-import { FormContainer } from '@/app/components/forms';
+import { motion, useReducedMotion } from 'framer-motion';
+import { FormContainer, ReadyGlow } from '@/app/components/forms';
+import { AnimatePresence, type Variants } from 'framer-motion';
+import { AmountRoll, FilledIcon, FillRail, Pop, RowItem, SegmentPill, TYPE_TONE, rowStack, useFormIntro } from '@/app/components/pages/transactions/form/form-motion';
+import { CARD_EASE, CountUp, Odometer, reducedTransition } from '@/app/components/ui/motion';
 import { Button, Input, RadioGroup } from '@/app/components/ui';
 import ListboxSelect from '@/app/components/ui/listbox-select';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
@@ -44,12 +48,32 @@ const transferStatusOptions = [
   { value: 'CANCELLED', label: 'Cancelada' },
 ];
 
+/** Troca de passo: o novo entra do lado para onde se avança e o antigo sai para o lado oposto. */
+const stepVariants: Variants = {
+  enter: (direction: number) => ({ x: direction * 36, opacity: 0 }),
+  center: { x: 0, opacity: 1, transition: { duration: 0.3, ease: CARD_EASE } },
+  exit: (direction: number) => ({ x: direction * -36, opacity: 0, transition: { duration: 0.18 } }),
+};
+const fieldStack: Variants = { hidden: {}, shown: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } } };
+const fieldRise: Variants = { hidden: { opacity: 0, y: 14 }, shown: { opacity: 1, y: 0, transition: { duration: 0.35, ease: CARD_EASE } } };
+
+/** Caixa do ícone de um campo do passo a passo: pulsa quando o campo é preenchido. */
+function FilledBox({ filled, className, children }: { filled: boolean; className: string; children: React.ReactNode }) {
+  return (
+    <motion.span key={String(filled)} className={className} animate={filled ? { scale: [1, 1.22, 1] } : undefined} transition={{ duration: 0.4 }}>
+      {children}
+    </motion.span>
+  );
+}
+
 export default function TransferForm({
   onCancelOverride,
   onSelectTransactionType,
   transferId,
 }: TransferFormProps) {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const reduce = useReducedMotion();
+  const intro = useFormIntro();
   const router = useRouter();
   const now = new Date();
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
@@ -65,7 +89,13 @@ export default function TransferForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
+  const [mobileStep, setMobileStepState] = useState<1 | 2 | 3>(1);
+  // Direção da troca de passo: avançar entra pela direita, voltar pela esquerda.
+  const [stepDirection, setStepDirection] = useState(1);
+  function setMobileStep(next: 1 | 2 | 3) {
+    setStepDirection(next > mobileStep ? 1 : -1);
+    setMobileStepState(next);
+  }
   const amountInputRef = useRef<HTMLInputElement>(null);
   const idempotencyAttemptRef = useRef<TransferIdempotencyAttempt | null>(null);
 
@@ -297,6 +327,14 @@ export default function TransferForm({
   const selectedStatusLabel =
     availableStatusOptions.find((option) => option.value === status)?.label ?? status;
 
+  const requiredFilled = [
+    amountCents > 0,
+    Boolean(sourceAccountId),
+    Boolean(destinationAccountId),
+    description.trim().length >= 2,
+  ];
+  const fillProgress = requiredFilled.filter(Boolean).length / requiredFilled.length;
+
   return (
     <>
       {!isDesktop && (
@@ -316,15 +354,19 @@ export default function TransferForm({
             ] as const).map(([step, label], index) => (
               <div key={step} className="contents">
                 {index > 0 && (
-                  <span
-                    className={`mt-5 h-px self-start ${
-                      mobileStep >= step ? 'bg-[var(--primary)]' : 'bg-[var(--border-strong)]'
-                    }`}
-                    aria-hidden="true"
-                  />
+                  <span className="relative mt-5 h-px self-start bg-[var(--border-strong)]" aria-hidden="true">
+                    <motion.span
+                      className="absolute inset-0 origin-left bg-[var(--primary)]"
+                      initial={false}
+                      animate={{ scaleX: mobileStep >= step ? 1 : 0 }}
+                      transition={reducedTransition(reduce, { duration: 0.4, ease: CARD_EASE })}
+                    />
+                  </span>
                 )}
                 <div className="grid justify-items-center gap-1.5">
-                  <span
+                  <motion.span
+                    animate={mobileStep === step ? { scale: [1, 1.18, 1] } : { scale: 1 }}
+                    transition={{ duration: 0.4 }}
                     className={`grid h-11 w-11 place-items-center rounded-full border text-sm font-bold ${
                       mobileStep === step
                         ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_0_18px_color-mix(in_srgb,var(--primary)_45%,transparent)]'
@@ -334,7 +376,7 @@ export default function TransferForm({
                     }`}
                   >
                     {step}
-                  </span>
+                  </motion.span>
                   <span className={`text-xs font-medium ${mobileStep === step ? 'text-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>
                     {label}
                   </span>
@@ -343,11 +385,12 @@ export default function TransferForm({
             ))}
           </div>
 
+          <AnimatePresence mode="wait" initial={false} custom={stepDirection}>
           {mobileStep === 1 && (
-            <div className="space-y-4">
+            <motion.div key="step-1" custom={stepDirection} variants={stepVariants} initial="enter" animate="center" exit="exit" className="space-y-4">
               <div className="grid grid-cols-3 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface)] p-1" aria-label="Tipo da transação">
                 <Button
-                  variant="ghost"
+                  variant="segment"
                   onClick={() => onSelectTransactionType?.('EXPENSE')}
                   disabled={loading || Boolean(transferId) || !onSelectTransactionType}
                   icon={<FaArrowDown aria-hidden="true" />}
@@ -356,7 +399,7 @@ export default function TransferForm({
                   <span className="truncate">Despesa</span>
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant="segment"
                   onClick={() => onSelectTransactionType?.('INCOME')}
                   disabled={loading || Boolean(transferId) || !onSelectTransactionType}
                   icon={<FaArrowUp aria-hidden="true" />}
@@ -364,7 +407,8 @@ export default function TransferForm({
                 >
                   <span className="truncate">Receita</span>
                 </Button>
-                <Button variant="primary" aria-pressed="true" icon={<FaExchangeAlt aria-hidden="true" />} className="min-w-0 px-1.5">
+                <Button variant="segmentPrimary" aria-pressed="true" icon={<FaExchangeAlt aria-hidden="true" />} className="min-w-0 px-1.5">
+                  <SegmentPill layoutId="tx-type-pill" tone={TYPE_TONE.TRANSFER} />
                   <span className="truncate">Transferência</span>
                 </Button>
               </div>
@@ -380,8 +424,10 @@ export default function TransferForm({
               >
                 <label htmlFor="mobile-transfer-amount" className="text-sm text-[var(--text-muted)]">Valor da transferência</label>
                 <div className="mt-2 flex items-center gap-3">
+                  <div className="relative min-w-0 flex-1">
                   <Input
                     bare
+                    textHidden
                     id="mobile-transfer-amount"
                     aria-label="Valor"
                     value={displayValue}
@@ -390,6 +436,8 @@ export default function TransferForm({
                     inputMode="numeric"
                     className="min-h-[76px] min-w-0 flex-1 border-0 p-0 text-4xl font-black tracking-tight min-[360px]:text-5xl"
                   />
+                  <AmountRoll text={displayValue} type="TRANSFER" size="mobile" align="start" />
+                  </div>
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
                     <FaExchangeAlt />
                   </span>
@@ -401,7 +449,8 @@ export default function TransferForm({
                 <span className="shrink-0 text-sm text-[var(--text-muted)]">Passo 1 de 3</span>
               </div>
 
-              <div className="grid gap-2.5">
+              <motion.div className="grid gap-2.5" variants={fieldStack} initial="hidden" animate="shown">
+                <motion.div variants={fieldRise}>
                 <ListboxSelect
                   ariaLabel="Conta de origem"
                   value={sourceAccountId}
@@ -410,9 +459,9 @@ export default function TransferForm({
                   options={sourceOptions}
                   triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
                 >
-                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
+                  <FilledBox filled={Boolean(selectedSource)} className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
                     <FaWallet aria-hidden="true" />
-                  </span>
+                  </FilledBox>
                   <span className="min-w-0">
                     <strong className="block text-sm text-[var(--foreground)]">Conta de origem <span className="text-[var(--expense)]">*</span></strong>
                     <span className="mt-1 block truncate text-sm text-[var(--text-muted)]">
@@ -421,7 +470,9 @@ export default function TransferForm({
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
                 </ListboxSelect>
+                </motion.div>
 
+                <motion.div variants={fieldRise}>
                 <ListboxSelect
                   ariaLabel="Conta de destino"
                   value={destinationAccountId}
@@ -430,9 +481,9 @@ export default function TransferForm({
                   options={destinationOptions}
                   triggerClassName="grid min-h-[86px] w-full grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3 text-left disabled:opacity-50"
                 >
-                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
+                  <FilledBox filled={Boolean(selectedDestination)} className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
                     <FaWallet aria-hidden="true" />
-                  </span>
+                  </FilledBox>
                   <span className="min-w-0">
                     <strong className="block text-sm text-[var(--foreground)]">Conta de destino <span className="text-[var(--expense)]">*</span></strong>
                     <span className="mt-1 block truncate text-sm text-[var(--text-muted)]">
@@ -445,8 +496,9 @@ export default function TransferForm({
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
                 </ListboxSelect>
+                </motion.div>
 
-                <label className="relative grid min-h-[76px] cursor-pointer grid-cols-[48px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3">
+                <motion.label variants={fieldRise} className="relative grid min-h-[76px] cursor-pointer grid-cols-[48px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3">
                   <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
                     <FaCalendarAlt aria-hidden="true" />
                   </span>
@@ -469,12 +521,12 @@ export default function TransferForm({
                     disabled={loading}
                     className="absolute inset-0 cursor-pointer opacity-0"
                   />
-                </label>
+                </motion.label>
 
-                <div className="grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3">
-                  <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
+                <motion.div variants={fieldRise} className="grid min-h-[86px] grid-cols-[52px_minmax(0,1fr)_18px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-3">
+                  <FilledBox filled={description.trim().length >= 2} className="grid h-12 w-12 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]">
                     <FaFileAlt aria-hidden="true" />
-                  </span>
+                  </FilledBox>
                   <span className="min-w-0">
                     <label htmlFor="mobile-transfer-description" className="block text-sm font-bold text-[var(--foreground)]">Descrição</label>
                     <Input
@@ -492,9 +544,10 @@ export default function TransferForm({
                     />
                   </span>
                   <FaChevronRight className="text-sm text-[var(--text-muted)]" aria-hidden="true" />
-                </div>
+                </motion.div>
 
-                <button
+                <motion.button
+                  variants={fieldRise}
                   type="button"
                   onClick={advanceMobileTransferStep}
                   disabled={loading}
@@ -508,20 +561,22 @@ export default function TransferForm({
                     <span className="mt-1 block truncate text-sm text-[var(--text-muted)]">Status da transferência</span>
                   </span>
                   <FaChevronRight className="rotate-90 text-sm text-[var(--text-muted)]" aria-hidden="true" />
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
 
               <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={handleCancel} disabled={loading} fullWidth>Cancelar</Button>
-                <Button size="cta" type="button" onClick={advanceMobileTransferStep} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
-                  Continuar
-                </Button>
+                <ReadyGlow ready={fillProgress === 1 && !loading} fullWidth>
+                  <Button size="cta" type="button" onClick={advanceMobileTransferStep} disabled={loading} icon={<FaArrowRight />} iconPosition="right" fullWidth>
+                    Continuar
+                  </Button>
+                </ReadyGlow>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {mobileStep === 2 && (
-            <div className="space-y-4">
+            <motion.div key="step-2" custom={stepDirection} variants={stepVariants} initial="enter" animate="center" exit="exit" className="space-y-4">
               <div>
                 <h2 className="text-xl font-bold text-[var(--foreground)]">Detalhes avançados</h2>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">Passo 2 de 3 · ajuste o status da transferência.</p>
@@ -531,7 +586,7 @@ export default function TransferForm({
                 <p className="text-xs text-[var(--text-muted)]">Transferência</p>
                 <div className="mt-1 flex items-center justify-between gap-3">
                   <strong className="truncate text-sm">{selectedSource?.name ?? 'Origem'} → {selectedDestination?.name ?? 'Destino'}</strong>
-                  <strong className="shrink-0 text-lg">{formatCentsToCurrency(amountCents)}</strong>
+                  <strong className="shrink-0 text-lg"><CountUp amount={amountCents} format={formatCentsToCurrency} /></strong>
                 </div>
               </div>
 
@@ -551,49 +606,63 @@ export default function TransferForm({
                   Continuar
                 </Button>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {mobileStep === 3 && (
-            <div className="space-y-4">
+            <motion.div key="step-3" custom={stepDirection} variants={stepVariants} initial="enter" animate="center" exit="exit" className="space-y-4">
               <div>
                 <h2 className="text-xl font-bold text-[var(--foreground)]">Revisar transferência</h2>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">Passo 3 de 3 · confira antes de confirmar.</p>
               </div>
 
-              <div className="rounded-[var(--radius-lg)] border border-[var(--primary)]/45 bg-[var(--surface)] p-4">
+              <motion.div
+                className="rounded-[var(--radius-lg)] border border-[var(--primary)]/45 bg-[var(--surface)] p-4"
+                initial={{ clipPath: 'inset(0 0 100% 0)' }}
+                animate={{ clipPath: 'inset(0 0 0% 0)', transitionEnd: { clipPath: 'none' } }}
+                transition={reducedTransition(reduce, { duration: 0.8, ease: CARD_EASE, delay: 0.1 })}
+              >
                 <p className="text-xs text-[var(--text-muted)]">Transferência</p>
-                <strong className="mt-1 block text-4xl font-black tracking-tight text-[var(--foreground)]">{formatCentsToCurrency(amountCents)}</strong>
-                <dl className="mt-4 grid gap-2">
+                <strong className="mt-1 block text-4xl font-black tracking-tight text-[var(--foreground)]"><Odometer text={formatCentsToCurrency(amountCents)} /></strong>
+                <motion.dl className="mt-4 grid gap-2" variants={{ hidden: {}, shown: { transition: { staggerChildren: 0.08, delayChildren: 0.45 } } }} initial="hidden" animate="shown">
                   <TransferReviewRow label="Origem" value={selectedSource?.name ?? 'Não selecionada'} />
                   <TransferReviewRow label="Destino" value={selectedDestination?.name ?? 'Não selecionado'} />
                   <TransferReviewRow label="Data" value={selectedDateLabel} />
                   <TransferReviewRow label="Descrição" value={description || 'Sem descrição'} />
                   <TransferReviewRow label="Status" value={selectedStatusLabel} />
-                </dl>
-              </div>
+                </motion.dl>
+              </motion.div>
 
               <div className="grid grid-cols-[.92fr_1.08fr] gap-2.5 pt-3">
                 <Button size="cta" type="button" variant="secondary" onClick={() => setMobileStep(2)} disabled={loading} fullWidth>Voltar</Button>
-                <Button size="cta"
-                  type="button"
-                  onClick={() => void persistTransfer()}
-                  isLoading={isSubmitting}
-                  disabled={loading}
-                  icon={<FaCheck />}
-                  iconPosition="right"
-                  fullWidth
-                >
-                  Confirmar transferência
-                </Button>
+                <ReadyGlow ready={!isSubmitting && !loading} fullWidth>
+                  <Button size="cta"
+                    type="button"
+                    onClick={() => void persistTransfer()}
+                    isLoading={isSubmitting}
+                    disabled={loading}
+                    icon={<FaCheck />}
+                    iconPosition="right"
+                    fullWidth
+                  >
+                    Confirmar transferência
+                  </Button>
+                </ReadyGlow>
               </div>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </section>
       </FormContainer>
       )}
 
       {isDesktop && (
+      <motion.div
+        className="w-full"
+        initial={intro ? { opacity: 0, y: 28 } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={reducedTransition(reduce, { type: 'spring', stiffness: 220, damping: 24 })}
+      >
       <FormContainer
         bare
         onSubmit={handleSubmit}
@@ -606,27 +675,47 @@ export default function TransferForm({
           aria-label="Nova transferência"
         >
           <div className="p-4 sm:p-6">
+            <div className="mb-5">
+              <FillRail progress={fillProgress} type="TRANSFER" />
+            </div>
             <div
-              className="mx-auto grid max-w-[520px] grid-cols-3 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
+              className="grid grid-cols-3 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface)] p-1"
               aria-label="Tipo da transação"
             >
               <Button
-                variant="ghost"
+                variant="segment"
                 onClick={() => onSelectTransactionType?.('EXPENSE')}
                 disabled={loading || Boolean(transferId) || !onSelectTransactionType}
                 icon={<FaArrowDown aria-hidden="true" />}
+                className="min-w-0 px-2"
               >
                 Despesa
               </Button>
               <Button
-                variant="ghost"
+                variant="segment"
                 onClick={() => onSelectTransactionType?.('INCOME')}
                 disabled={loading || Boolean(transferId) || !onSelectTransactionType}
                 icon={<FaArrowUp aria-hidden="true" />}
+                className="min-w-0 px-2"
               >
                 Receita
               </Button>
-              <Button variant="primary" aria-pressed="true" icon={<FaExchangeAlt aria-hidden="true" />}>
+              <Button
+                variant="segmentPrimary"
+                aria-pressed="true"
+                icon={
+                  <motion.span
+                    className="flex"
+                    initial={{ rotate: -180 }}
+                    animate={{ rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+                  >
+                    <FaExchangeAlt aria-hidden="true" />
+                  </motion.span>
+                }
+                className="min-w-0 px-2"
+              >
+                <SegmentPill layoutId="tx-type-pill" tone={TYPE_TONE.TRANSFER} />
                 Transferência
               </Button>
             </div>
@@ -634,8 +723,10 @@ export default function TransferForm({
             <div className="mt-6 grid items-center gap-5 lg:grid-cols-[minmax(0,1fr)_210px]">
               <div className="text-center lg:pl-[110px]">
                 <label htmlFor="transfer-amount" className="sr-only">Valor</label>
+                <div className="relative mx-auto max-w-[420px]">
                 <Input
                   bare
+                  textHidden
                   id="transfer-amount"
                   ref={amountInputRef}
                   aria-label="Valor"
@@ -648,6 +739,8 @@ export default function TransferForm({
                   inputMode="numeric"
                   className="mx-auto min-h-[72px] max-w-[420px] border-0 p-0 text-center text-5xl font-black tracking-tight sm:text-6xl"
                 />
+                <AmountRoll text={displayValue} type="TRANSFER" size="transfer" />
+                </div>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">Adicionar um valor</p>
               </div>
 
@@ -674,7 +767,8 @@ export default function TransferForm({
               </div>
             </div>
 
-            <div className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+            <motion.div className="mt-4 border-y border-[var(--border)]" variants={rowStack} initial={intro ? 'hidden' : false} animate="shown">
+              <RowItem first>
               <ListboxSelect
                 ariaLabel="Conta de origem"
                 value={sourceAccountId}
@@ -683,14 +777,16 @@ export default function TransferForm({
                 options={sourceOptions}
                 triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] disabled:opacity-50"
               >
-                <FaWallet className="text-[var(--text-muted)]" aria-hidden="true" />
+                <FilledIcon filled={Boolean(selectedSource)}><FaWallet /></FilledIcon>
                 <span className="text-[var(--text-muted)]">Conta de origem</span>
-                <span className="truncate text-right font-medium text-[var(--foreground)]">
+                <Pop valueKey={selectedSource?.id ?? 'none'}>
                   {selectedSource ? `${selectedSource.name} · ${selectedSource.currency}` : 'Selecione a origem'}
-                </span>
+                </Pop>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </ListboxSelect>
+              </RowItem>
 
+              <RowItem>
               <ListboxSelect
                 ariaLabel="Conta de destino"
                 value={destinationAccountId}
@@ -699,18 +795,20 @@ export default function TransferForm({
                 options={destinationOptions}
                 triggerClassName="grid min-h-[44px] w-full grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-left text-sm transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] disabled:opacity-50"
               >
-                <FaWallet className="text-[var(--text-muted)]" aria-hidden="true" />
+                <FilledIcon filled={Boolean(selectedDestination)}><FaWallet /></FilledIcon>
                 <span className="text-[var(--text-muted)]">Conta de destino</span>
-                <span className="truncate text-right font-medium text-[var(--foreground)]">
+                <Pop valueKey={selectedDestination?.id ?? 'none'}>
                   {selectedDestination ? `${selectedDestination.name} · ${selectedDestination.currency}` : selectedSource ? 'Selecione o destino' : 'Selecione primeiro a origem'}
-                </span>
+                </Pop>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </ListboxSelect>
+              </RowItem>
 
+              <RowItem>
               <label className="relative grid min-h-[44px] cursor-pointer grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
-                <FaCalendarAlt className="text-[var(--text-muted)]" aria-hidden="true" />
+                <FilledIcon filled={false}><FaCalendarAlt /></FilledIcon>
                 <span className="text-[var(--text-muted)]">Data</span>
-                <span className="truncate text-right font-medium text-[var(--foreground)]">{selectedDateLabel}</span>
+                <Pop valueKey={selectedDateLabel}>{selectedDateLabel}</Pop>
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
                 <input
                   aria-label="Data"
@@ -728,9 +826,11 @@ export default function TransferForm({
                   className="absolute inset-0 cursor-pointer opacity-0"
                 />
               </label>
+              </RowItem>
 
+              <RowItem>
               <div className="grid min-h-[44px] grid-cols-[28px_140px_minmax(0,1fr)_18px] items-center gap-2 px-2 text-sm">
-                <FaFileAlt className="text-[var(--text-muted)]" aria-hidden="true" />
+                <FilledIcon filled={description.trim().length >= 2}><FaFileAlt /></FilledIcon>
                 <label htmlFor="transfer-description" className="text-[var(--text-muted)]">Descrição</label>
                 <Input
                   bare
@@ -747,7 +847,8 @@ export default function TransferForm({
                 />
                 <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
               </div>
-            </div>
+              </RowItem>
+            </motion.div>
 
             <details className="group mt-3 border-y border-dashed border-[var(--border-strong)]">
               <summary className="flex min-h-[58px] cursor-pointer list-none items-center justify-between gap-4 px-2 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]">
@@ -778,18 +879,21 @@ export default function TransferForm({
             <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading}>
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              isLoading={loading}
-              disabled={loading}
-              icon={<FaArrowRight />}
-              iconPosition="right"
-            >
-              {transferId ? 'Revisar alterações' : 'Revisar e transferir'}
-            </Button>
+            <ReadyGlow ready={fillProgress === 1 && !loading}>
+              <Button
+                type="submit"
+                isLoading={loading}
+                disabled={loading}
+                icon={<FaArrowRight />}
+                iconPosition="right"
+              >
+                {transferId ? 'Revisar alterações' : 'Revisar e transferir'}
+              </Button>
+            </ReadyGlow>
           </footer>
         </section>
       </FormContainer>
+      </motion.div>
       )}
 
       {transferId && (
@@ -897,11 +1001,14 @@ function TransferReviewModal({
 
 function TransferReviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3">
+    <motion.div
+      className="flex items-center justify-between gap-4 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3"
+      variants={{ hidden: { opacity: 0, x: -10 }, shown: { opacity: 1, x: 0, transition: { duration: 0.35, ease: CARD_EASE } } }}
+    >
       <dt className="text-[var(--text-muted)]">{label}</dt>
       <dd className="max-w-[65%] break-words text-right font-semibold text-[var(--foreground)]">
         {value}
       </dd>
-    </div>
+    </motion.div>
   );
 }

@@ -1,14 +1,35 @@
 'use client';
 
+import { motion, useReducedMotion, type TargetAndTransition, type Transition } from 'framer-motion';
 import Link from 'next/link';
 import { ReactNode, useState } from 'react';
 import { FaArrowDown, FaArrowRight, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronRight, FaClock, FaCreditCard, FaExchangeAlt } from 'react-icons/fa';
 import { Button, IconRenderer, MoneyText, Select } from '@/app/components/ui';
+import { CARD_EASE, CARD_VIEWPORT, CountUp, reducedTransition } from '@/app/components/ui/motion';
 import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
 import { MonthBar, TimelineGroup, TimelineOrder, compactMonth, displayMoney, formatTransactionAmount, formatTransactionTime, monthTitle, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
 import { StatusPill } from '@/app/components/pages/transactions/index/transaction-dialogs';
+
+type SummaryTone = 'income' | 'expense' | 'primary' | 'scheduled';
+type Entry = { initial: TargetAndTransition; animate: TargetAndTransition; transition: Transition };
+
+/** Ícone de cada card de resumo: a seta de entrada sobe, a de saída cai, o saldo cresce e o relógio gira. */
+const iconEntry: Record<SummaryTone, Entry> = {
+  income: { initial: { y: 16, opacity: 0 }, animate: { y: 0, opacity: 1 }, transition: { type: 'spring', stiffness: 300, damping: 16, delay: 0.1 } },
+  expense: { initial: { y: -16, opacity: 0 }, animate: { y: 0, opacity: 1 }, transition: { type: 'spring', stiffness: 380, damping: 9, delay: 0.2 } },
+  primary: { initial: { scale: 0.4, opacity: 0 }, animate: { scale: 1, opacity: 1 }, transition: { type: 'spring', stiffness: 420, damping: 14, delay: 0.3 } },
+  scheduled: { initial: { rotate: -360, opacity: 0 }, animate: { rotate: 0, opacity: 1 }, transition: { duration: 0.9, ease: CARD_EASE, delay: 0.4 } },
+};
+
+/** Valor de cada card: Entradas conta até o número (CountUp, à parte); os demais têm o seu. */
+const amountEntry: Record<SummaryTone, Entry> = {
+  income: { initial: {}, animate: {}, transition: {} },
+  expense: { initial: { y: '-110%' }, animate: { y: 0 }, transition: { type: 'spring', stiffness: 320, damping: 18, delay: 0.25 } },
+  primary: { initial: { scale: 0.7, opacity: 0 }, animate: { scale: 1, opacity: 1 }, transition: { type: 'spring', stiffness: 380, damping: 14, delay: 0.35 } },
+  scheduled: { initial: { opacity: 0, filter: 'blur(10px)' }, animate: { opacity: 1, filter: 'blur(0px)' }, transition: { duration: 0.7, ease: CARD_EASE, delay: 0.45 } },
+};
 
 export function MonthSummaryCard({
   label,
@@ -22,6 +43,7 @@ export function MonthSummaryCard({
   detailDirection = 'flat',
   status = 'ready',
   detailLoading = false,
+  countUp,
 }: {
   label: string;
   count?: number;
@@ -36,7 +58,10 @@ export function MonthSummaryCard({
   status?: 'ready' | 'loading' | 'refreshing';
   /** Só o comparativo com o mês anterior ainda está carregando. */
   detailLoading?: boolean;
+  /** Entradas: o valor sobe de zero até este número (só com valores visíveis). */
+  countUp?: { value: number; format: (amount: number) => string };
 }) {
+  const reduce = useReducedMotion();
   const skeleton = 'block animate-pulse rounded-[var(--radius-sm)] bg-[var(--skeleton)]';
   const loading = status === 'loading';
   const cardTone =
@@ -74,7 +99,25 @@ export function MonthSummaryCard({
       aria-busy={status !== 'ready'}
     >
       <div className="flex items-start gap-3">
-        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg ${iconTone}`}>{icon}</span>
+        <span className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg ${iconTone}`}>
+          {tone === 'primary' && !reduce && (
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-full border-2 border-[var(--primary)]"
+              initial={{ scale: 1, opacity: 0.6 }}
+              animate={{ scale: 2.4, opacity: 0 }}
+              transition={{ duration: 1.1, ease: 'easeOut', delay: 0.3 }}
+            />
+          )}
+          <motion.span
+            className="flex"
+            initial={iconEntry[tone].initial}
+            animate={iconEntry[tone].animate}
+            transition={reducedTransition(reduce, iconEntry[tone].transition)}
+          >
+            {icon}
+          </motion.span>
+        </span>
         <div className={`min-w-0 flex-1 transition-opacity duration-150 ${status === 'refreshing' ? 'opacity-50' : ''}`}>
           <h2 className="text-sm font-bold text-[var(--foreground)]">{label}</h2>
           <p className="mt-0.5 min-h-4 text-xs text-[var(--text-muted)]">
@@ -89,7 +132,20 @@ export function MonthSummaryCard({
           {loading ? (
             <span className={`${skeleton} mt-2 h-8 w-36`} aria-hidden="true" />
           ) : (
-            <strong className={`money mt-2 block text-2xl font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
+            <span className="mt-2 block overflow-hidden">
+              {tone === 'income' && countUp ? (
+                <CountUp amount={countUp.value} format={countUp.format} className={`money block text-2xl font-extrabold tracking-tight ${amountTone}`} />
+              ) : (
+                <motion.strong
+                  className={`money block text-2xl font-extrabold tracking-tight ${amountTone}`}
+                  initial={amountEntry[tone].initial}
+                  animate={amountEntry[tone].animate}
+                  transition={reducedTransition(reduce, amountEntry[tone].transition)}
+                >
+                  {amount}
+                </motion.strong>
+              )}
+            </span>
           )}
           {!detail && !loading && !detailLoading ? null : loading || detailLoading ? (
             <span className={`${skeleton} mt-2 h-3 w-32`} aria-hidden="true" />
@@ -134,6 +190,8 @@ export function MovementTimeline({
   hasMore: boolean;
   onLoadMore: () => void;
 }) {
+  const reduce = useReducedMotion();
+
   return (
     <article className="min-h-[620px] rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -166,12 +224,31 @@ export function MovementTimeline({
         </div>
       ) : (
         <div className="relative mt-5">
-          <span className="absolute bottom-8 left-[15px] top-5 hidden w-px border-l border-dashed border-[var(--primary)]/45 md:block" aria-hidden="true" />
+          {/* A linha tracejada se desenha de cima para baixo. */}
+          <motion.span
+            className="absolute bottom-8 left-[15px] top-5 hidden w-px origin-top border-l border-dashed border-[var(--primary)]/45 md:block"
+            aria-hidden="true"
+            initial={{ scaleY: 0 }}
+            animate={{ scaleY: 1 }}
+            transition={reducedTransition(reduce, { duration: 1.4, ease: CARD_EASE })}
+          />
           <div className="space-y-3">
-            {groups.map((group) => (
-              <div key={group.key} className="grid gap-2 md:grid-cols-[145px_minmax(0,1fr)] md:gap-3">
+            {groups.map((group, groupIndex) => (
+              // O grupo (visível) observa a viewport; o marcador e as linhas só herdam a animação.
+              <motion.div
+                key={group.key}
+                className="grid gap-2 md:grid-cols-[145px_minmax(0,1fr)] md:gap-3"
+                initial="hidden"
+                whileInView="shown"
+                viewport={CARD_VIEWPORT}
+              >
                 <div className="relative flex items-start gap-3 md:pl-10">
-                  <span className="absolute left-[5px] top-1.5 hidden h-5 w-5 rounded-full border-[6px] border-[var(--primary)] bg-[var(--surface)] md:block" aria-hidden="true" />
+                  <motion.span
+                    className="absolute left-[5px] top-1.5 hidden h-5 w-5 rounded-full border-[6px] border-[var(--primary)] bg-[var(--surface)] md:block"
+                    aria-hidden="true"
+                    variants={{ hidden: { scale: 0 }, shown: { scale: 1 } }}
+                    transition={reducedTransition(reduce, { type: 'spring', stiffness: 500, damping: 12, delay: Math.min(groupIndex, 6) * 0.12 })}
+                  />
                   <div>
                     <p className="text-sm font-bold text-[var(--foreground)]">{group.primaryLabel}</p>
                     {(group.primaryLabel === 'Hoje' || group.primaryLabel === 'Ontem') && (
@@ -179,7 +256,11 @@ export function MovementTimeline({
                     )}
                   </div>
                 </div>
-                <div className="space-y-2">
+                <motion.div
+                  className="space-y-2"
+                  variants={{ hidden: { opacity: 0, y: 10 }, shown: { opacity: 1, y: 0 } }}
+                  transition={reducedTransition(reduce, { duration: 0.45, ease: CARD_EASE, delay: Math.min(groupIndex, 6) * 0.12 + 0.1 })}
+                >
                   {group.items.map((transaction) => (
                     <TimelineTransactionRow
                       key={transaction.id}
@@ -187,8 +268,8 @@ export function MovementTimeline({
                       showValues={showValues}
                     />
                   ))}
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -273,6 +354,7 @@ export function MonthOverview({
   showValues: boolean;
   balanceTrend: number | null;
 }) {
+  const reduce = useReducedMotion();
   const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
   const activeBar = activeBarIndex === null ? null : bars[activeBarIndex];
   const positive = summary.balance >= 0;
@@ -309,7 +391,7 @@ export function MonthOverview({
               'Passe o cursor ou toque numa coluna.'
             )}
           </p>
-          <div
+          <motion.div
             role="group"
             aria-label="Saldo por trecho do mês"
             tabIndex={0}
@@ -320,6 +402,9 @@ export function MonthOverview({
               } else if (event.key === 'Escape') setActiveBarIndex(null);
             }}
             onPointerLeave={(event) => event.pointerType === 'mouse' && setActiveBarIndex(null)}
+            initial="hidden"
+            whileInView="shown"
+            viewport={CARD_VIEWPORT}
             className="grid h-[92px] grid-cols-8 items-end gap-1.5 border-b border-[var(--border)] px-1 pb-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           >
             {bars.map((bar, index) => {
@@ -337,16 +422,17 @@ export function MonthOverview({
                   onPointerEnter={(event) => event.pointerType === 'mouse' && setActiveBarIndex(index)}
                   onPointerDown={() => setActiveBarIndex(index)}
                 >
-                  <span
+                  <motion.span
                     className={`w-[68%] rounded-t-sm transition-opacity ${tone} ${activeBarIndex !== null && activeBarIndex !== index ? 'opacity-45' : ''}`}
-                    style={{ height }}
+                    variants={{ hidden: { height: 0 }, shown: { height } }}
+                    transition={reducedTransition(reduce, { type: 'spring', stiffness: 300, damping: 8, delay: index * 0.07 })}
                     role="img"
                     aria-label={`Dias ${bar.fromDay} a ${bar.toDay}`}
                   />
                 </span>
               );
             })}
-          </div>
+          </motion.div>
         </div>
 
         <div className="space-y-3 pb-1">
@@ -367,7 +453,13 @@ export function MonthOverview({
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
+      <motion.div
+        className="mt-4 flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={CARD_VIEWPORT}
+        transition={reducedTransition(reduce, { type: 'spring', stiffness: 260, damping: 20, delay: 0.7 })}
+      >
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--primary-subtle)] text-[var(--primary)]">
           <FaChartLine aria-hidden="true" />
         </span>
@@ -375,7 +467,7 @@ export function MonthOverview({
           <strong className="block text-sm">{insightTitle}</strong>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]"><MoneyText>{insightText}</MoneyText></p>
         </div>
-      </div>
+      </motion.div>
     </article>
   );
 }
@@ -389,16 +481,18 @@ export function UpcomingTransactions({
   showValues: boolean;
   onViewAll: () => void;
 }) {
+  const reduce = useReducedMotion();
+
   return (
-    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="flex h-full flex-col rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <header className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Próximos lançamentos</h2>
         <Link href="/calendario" className="text-xs font-semibold text-[var(--primary)]">Ver calendário →</Link>
       </header>
 
-      <div className="mt-3 divide-y divide-[var(--border)]">
+      <div className="mt-3 flex-1 divide-y divide-[var(--border)]">
         {items.length === 0 ? (
-          <div className="grid min-h-[210px] place-items-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)] px-4 text-center">
+          <div className="grid h-full min-h-[210px] place-items-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)] px-4 text-center">
             <div>
               <FaCalendarAlt className="mx-auto text-xl text-[var(--primary)]" aria-hidden="true" />
               <p className="mt-2 text-sm font-bold">Nenhum lançamento agendado</p>
@@ -406,17 +500,23 @@ export function UpcomingTransactions({
             </div>
           </div>
         ) : (
-          items.slice(0, 4).map((transaction) => (
+          items.slice(0, 4).map((transaction, index) => (
             <Link
               key={transaction.id}
               href={`/transacoes/show/${transaction.id}`}
               aria-label={`Abrir transação ${transaction.description || 'Sem descrição'}`}
               className="grid min-h-[62px] w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-2 px-1 py-2 text-left transition-colors hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_36px_minmax(0,1fr)_auto] sm:px-0"
             >
-              <span className="grid h-11 w-11 place-content-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] text-center">
+              <motion.span
+                className="grid h-11 w-11 place-content-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] text-center"
+                initial={{ scale: 1.8, rotate: -14, opacity: 0 }}
+                whileInView={{ scale: 1, rotate: 0, opacity: 1 }}
+                viewport={CARD_VIEWPORT}
+                transition={reducedTransition(reduce, { type: 'spring', stiffness: 420, damping: 13, delay: index * 0.12 })}
+              >
                 <strong className="text-sm leading-none">{String(transaction.day).padStart(2, '0')}</strong>
                 <span className="mt-1 text-xs font-semibold uppercase text-[var(--text-muted)]">{compactMonth(transaction.month, transaction.year)}</span>
-              </span>
+              </motion.span>
               <span
                 className="hidden h-9 w-9 place-items-center rounded-full text-white sm:grid"
                 style={{ backgroundColor: transaction.category?.color || 'var(--primary)' }}

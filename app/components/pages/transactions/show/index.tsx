@@ -5,6 +5,7 @@ import { FaCopy } from 'react-icons/fa';
 import { ShowPage } from '@/app/components/base-pages';
 import { pageBarButtonProps } from '@/app/components/base-pages/page-bar';
 import { Button } from '@/app/components/ui';
+import { DropIn } from '@/app/components/ui/motion';
 import TransactionShowSkeleton from '@/app/components/pages/transactions/show/transaction-show-skeleton';
 import TransactionInfo from '@/app/components/pages/transactions/show/transaction-info';
 import MobileTransactionShow from '@/app/components/pages/transactions/show/mobile-transaction-show';
@@ -32,6 +33,7 @@ export default function Show({ id }: { id: string }) {
       entityName="transação"
       titleFallback={isTransfer ? 'Detalhes da transferência' : isCardPayment ? 'Detalhes do pagamento da fatura' : isOpeningBalance ? 'Detalhes do saldo inicial' : 'Detalhes da transação'}
       sidebarAligned
+      animatedActions
       breadcrumb={[{ label: 'Transações', href: '/transacoes' }, { label: kindLabel }]}
       loadingSkeleton={<TransactionShowSkeleton backUrl={handleBack} />}
       loading={loading}
@@ -44,12 +46,16 @@ export default function Show({ id }: { id: string }) {
       allowMutations={allowMutations}
       headerActions={
         <>
-          <Button as="a" href={`/transacoes/nova?duplicate=${encodeURIComponent(id)}`} variant="outline" {...pageBarButtonProps} icon={<FaCopy />}>
-            Duplicar
-          </Button>
-          <Button as="a" href={`/modelos?source=${encodeURIComponent(id)}`} variant="outline" {...pageBarButtonProps}>
-            Salvar modelo
-          </Button>
+          <DropIn order={1}>
+            <Button as="a" href={`/transacoes/nova?duplicate=${encodeURIComponent(id)}`} variant="outline" {...pageBarButtonProps} icon={<FaCopy />}>
+              Duplicar
+            </Button>
+          </DropIn>
+          <DropIn order={2}>
+            <Button as="a" href={`/modelos?source=${encodeURIComponent(id)}`} variant="outline" {...pageBarButtonProps}>
+              Salvar modelo
+            </Button>
+          </DropIn>
         </>
       }
       emptyRedirectTo="/transacoes"

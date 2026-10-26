@@ -11,8 +11,8 @@ const surface = 'border border-[var(--border)] bg-[var(--surface)]';
 
 /**
  * Seletor de período padrão: anterior, "Mês / Ano" e próximo, tudo com 44px de altura. O período
- * muda só pelos botões; o rótulo é texto, sem clique. Com `animated`, o rótulo desliza na direção do
- * clique e os botões dão um pequeno empurrão.
+ * muda só pelos botões; o rótulo é texto, sem clique. Com `animated`, o rótulo desliza na horizontal na
+ * direção do clique (`true`) ou rola na vertical, como um odômetro (`'roll'`).
  */
 export default function PeriodSwitcher({
   month,
@@ -34,7 +34,7 @@ export default function PeriodSwitcher({
   nextDisabled?: boolean;
   disabled?: boolean;
   className?: string;
-  animated?: boolean;
+  animated?: boolean | 'roll';
 }) {
   // Direção do último clique: -1 volta no tempo, 1 avança. Muda no mesmo lote da troca de período.
   const [direction, setDirection] = useState(1);
@@ -49,9 +49,13 @@ export default function PeriodSwitcher({
   };
 
   if (animated) {
+    const roll = animated === 'roll';
+    const axis = roll ? 'y' : 'x';
+    const distance = roll ? 20 : 28;
+
     return (
       <div className={`flex min-w-0 items-center gap-2 ${className}`} role="group" aria-label="Período">
-        <motion.div whileTap={{ x: -3 }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} className="flex">
+        <motion.div whileTap={roll ? { scale: 0.88 } : { x: -3 }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} className="flex">
           <IconButton
             label="Mês anterior"
             icon={<FaChevronLeft />}
@@ -69,9 +73,9 @@ export default function PeriodSwitcher({
               key={label}
               custom={direction}
               variants={{
-                enter: (dir: number) => ({ x: dir * 28, opacity: 0 }),
-                center: { x: 0, opacity: 1 },
-                exit: (dir: number) => ({ x: dir * -28, opacity: 0 }),
+                enter: (dir: number) => ({ [axis]: dir * distance, opacity: 0 }),
+                center: { [axis]: 0, opacity: 1 },
+                exit: (dir: number) => ({ [axis]: dir * -distance, opacity: 0 }),
               }}
               initial="enter"
               animate="center"
@@ -84,7 +88,7 @@ export default function PeriodSwitcher({
           </AnimatePresence>
         </output>
 
-        <motion.div whileTap={{ x: 3 }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} className="flex">
+        <motion.div whileTap={roll ? { scale: 0.88 } : { x: 3 }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} className="flex">
           <IconButton
             label="Próximo mês"
             icon={<FaChevronRight />}

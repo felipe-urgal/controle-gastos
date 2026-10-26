@@ -137,45 +137,6 @@ select optgroup {
 }
 
 /* Menu "Mais" do mobile: o painel cresce da barra inferior (mesma largura, sem vão) e some do mesmo jeito. */
-@keyframes moreMenuIn {
-  from { opacity: 0; transform: translateY(18px) scaleY(0.9); }
-  to { opacity: 1; transform: translateY(0) scaleY(1); }
-}
-
-@keyframes moreMenuOut {
-  from { opacity: 1; transform: translateY(0) scaleY(1); }
-  to { opacity: 0; transform: translateY(18px) scaleY(0.9); }
-}
-
-@keyframes moreBackdropIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes moreBackdropOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .more-menu-panel {
-    transform-origin: bottom center;
-    animation: moreMenuIn var(--motion-slow) cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  }
-
-  .more-menu-panel[data-state="closed"] {
-    animation: moreMenuOut var(--motion-normal) var(--ease-standard) both;
-  }
-
-  .more-menu-backdrop {
-    animation: moreBackdropIn var(--motion-slow) var(--ease-standard) both;
-  }
-
-  .more-menu-backdrop[data-state="closed"] {
-    animation: moreBackdropOut var(--motion-normal) var(--ease-standard) both;
-  }
-}
-
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }

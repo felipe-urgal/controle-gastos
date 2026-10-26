@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion } from 'framer-motion';
 import { ListPageHeader } from '@/app/components/base-pages';
 
 import { useMediaQuery } from '@/app/hooks/use-media-query';
@@ -34,6 +35,13 @@ const QUICK_FILTERS: Array<[MobileQuickFilter, string]> = [
   ['pending', 'Pendentes'],
 ];
 
+/** Entrada dos controles da linha de filtros: sobem e aparecem em sequência. */
+const controlRise = (order: number) => ({
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const, delay: 0.25 + order * 0.07 },
+});
+
 export default function OrbitTransactions() {
   const {
     loading,
@@ -58,6 +66,7 @@ export default function OrbitTransactions() {
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
   const isTabletUp = useMediaQuery('(min-width: 640px)');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersOrigin, setFiltersOrigin] = useState<{ x: number; y: number } | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<TimelineOrder>('newest');
   const [mobileQuickFilter, setMobileQuickFilter] = useState<MobileQuickFilter>('all');
   const [summaryCurrency, setSummaryCurrency] = useState<SupportedCurrency | null>(null);
@@ -294,7 +303,7 @@ export default function OrbitTransactions() {
 
   return (
     <ProtectedRoute>
-      <ListPageHeader title="Transações" createHref="/transacoes/nova" createLabel="Nova transação"
+      <ListPageHeader animated="letters" loading={loading} title="Transações" createHref="/transacoes/nova" createLabel="Nova transação"
         secondary={{ href: '/transacoes/importar', label: 'Importar', icon: <FaFileImport aria-hidden="true" /> }} />
       {error && (
         <div role="alert" className="mb-4 rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm font-semibold text-[var(--expense)]">
@@ -318,7 +327,10 @@ export default function OrbitTransactions() {
           loading={loading}
           summaryStatus={summaryStatus}
           onMovePeriod={movePeriod}
-          onOpenFilters={() => setFiltersOpen(true)}
+          onOpenFilters={() => {
+            setFiltersOrigin(null);
+            setFiltersOpen(true);
+          }}
           onQuickFilterChange={setMobileQuickFilter}
           onShowPending={() => setMobileQuickFilter('pending')}
           hasMore={hasMore}
@@ -330,33 +342,50 @@ export default function OrbitTransactions() {
       {isTabletUp && (
       <div>
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <PeriodSwitcher
-                  className="shrink-0"
-                  month={month}
-                  year={year}
-                  onPrevious={() => movePeriod(-1)}
-                  onNext={() => movePeriod(1)}
-                  disabled={loading}
-                />
-        
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0"
-                  icon={<FaFilter aria-hidden="true" />}
-                  onClick={() => setFiltersOpen(true)}
-                  aria-label={activeFiltersCount > 0 ? `Filtros, ${activeFiltersCount} ativos` : 'Filtros'}
-                >
-                  Filtros
-                </Button>
-                <ChipRow label="Filtros rápidos">
-                  {QUICK_FILTERS.map(([value, label]) => (
-                    <Chip key={value} selected={mobileQuickFilter === value} onClick={() => setMobileQuickFilter(value)}>
-                      {label}
-                    </Chip>
-                  ))}
-                </ChipRow>
-                {summaryCurrencySelect && <div className="ml-auto">{summaryCurrencySelect}</div>}
+                {/* Os controles sobem em sequência, da esquerda para a direita. */}
+                <motion.div {...controlRise(0)} className="shrink-0">
+                  <PeriodSwitcher
+                    animated="roll"
+                    className="shrink-0"
+                    month={month}
+                    year={year}
+                    onPrevious={() => movePeriod(-1)}
+                    onNext={() => movePeriod(1)}
+                    disabled={loading}
+                  />
+                </motion.div>
+
+                <motion.div {...controlRise(1)} className="shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    icon={<FaFilter aria-hidden="true" />}
+                    onClick={(event) => {
+                      // O diálogo voa do centro deste botão e volta para ele ao fechar.
+                      const box = event.currentTarget.getBoundingClientRect();
+                      setFiltersOrigin({ x: box.left + box.width / 2, y: box.top + box.height / 2 });
+                      setFiltersOpen(true);
+                    }}
+                    aria-label={activeFiltersCount > 0 ? `Filtros, ${activeFiltersCount} ativos` : 'Filtros'}
+                  >
+                    Filtros
+                  </Button>
+                </motion.div>
+                <motion.div {...controlRise(2)} className="min-w-0">
+                  <ChipRow label="Filtros rápidos">
+                    {QUICK_FILTERS.map(([value, label]) => (
+                      <Chip key={value} layoutId="transactions-quick-filter" selected={mobileQuickFilter === value} onClick={() => setMobileQuickFilter(value)}>
+                        {label}
+                      </Chip>
+                    ))}
+                  </ChipRow>
+                </motion.div>
+                {summaryCurrencySelect && (
+                  <motion.div {...controlRise(3)} className="ml-auto">
+                    {summaryCurrencySelect}
+                  </motion.div>
+                )}
               </div>
 
         
@@ -367,6 +396,7 @@ export default function OrbitTransactions() {
                   count={incomeCount}
                   countLabel={incomeCount === 1 ? 'transação' : 'transações'}
                   amount={displayMoney(currentSummary.income, showValues, currentSummary.currency)}
+                  countUp={showValues ? { value: currentSummary.income, format: (value) => displayMoney(value, true, currentSummary.currency) } : undefined}
                   tone="income"
                   icon={<FaArrowUp aria-hidden="true" />}
                   detail={incomeTrend.text}
@@ -433,7 +463,7 @@ export default function OrbitTransactions() {
                   }}
                 />
         
-                <aside className="grid content-start gap-[18px]">
+                <aside className="grid grid-rows-[auto_1fr] gap-[18px]">
                   <MonthOverview
                     summary={currentSummary}
                     previousSummary={previousSummary}
@@ -454,16 +484,19 @@ export default function OrbitTransactions() {
       </div>
       )}
 
-      {filtersOpen && (
-        <FilterDialog
-          fields={filtersWithRelations}
-          values={refinementValues}
-          loading={loading}
-          total={total}
-          onApply={applyRefinementFilters}
-          onClose={() => setFiltersOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {filtersOpen && (
+          <FilterDialog
+            fields={filtersWithRelations}
+            values={refinementValues}
+            loading={loading}
+            total={total}
+            origin={filtersOrigin}
+            onApply={applyRefinementFilters}
+            onClose={() => setFiltersOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
     </ProtectedRoute>
   );

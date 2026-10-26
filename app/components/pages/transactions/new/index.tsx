@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { NewPage } from '@/app/components/base-pages';
 import TransactionForm from '@/app/components/pages/transactions/form';
 import OfflineQueuePanel from '@/app/components/pages/transactions/new/offline-queue-panel';
+import { FormIntroProvider } from '@/app/components/pages/transactions/form/form-motion';
 import TransferForm from '@/app/components/pages/transactions/transfer-form';
 import { useAuth } from '@/app/context';
 import { FormData } from '@/app/lib/interface/transaction.interface';
@@ -68,6 +69,9 @@ export default function New({
   const [templateWarnings, setTemplateWarnings] = useState<string[]>([]);
   const [favoriteTemplates, setFavoriteTemplates] = useState<TransactionTemplateDTO[]>([]);
   const [composeMode, setComposeMode] = useState<ComposeMode>(duplicateId || templateId ? 'transaction' : initialMode);
+  // A entrada do formulário (cartão que sobe, linhas em cascata) só toca na abertura; ao alternar entre
+  // transação e transferência, só o destaque do tipo se move.
+  const [switchedType, setSwitchedType] = useState(false);
   const [preferredCategoryType, setPreferredCategoryType] = useState<CategoryType | null>(initialCategoryType);
   const [offlineDraft, setOfflineDraft] = useState<OfflineTransactionDraft | null>(null);
   const [offlineQueue, setOfflineQueue] = useState<OfflineTransactionQueueItem[]>([]);
@@ -357,10 +361,12 @@ export default function New({
   const pageTitle = isDuplicating ? 'Duplicar transação' : isUsingTemplate ? 'Usar modelo' : isTransfer ? 'Nova transferência' : 'Nova transação';
 
   return (
+    <FormIntroProvider value={!switchedType}>
     <NewPage
       backUrl="/transacoes"
       title={pageTitle}
       sidebarAligned
+      animated="trail"
       breadcrumb={[{ label: 'Transações', href: '/transacoes' }, { label: pageTitle }]}
     >
       {!isDuplicating && !isUsingTemplate && !isTransfer && favoriteTemplates.length > 0 && (
@@ -496,6 +502,7 @@ export default function New({
         <TransferForm
           onSelectTransactionType={(type) => {
             setPreferredCategoryType(type);
+            setSwitchedType(true);
             setComposeMode('transaction');
           }}
         />
@@ -514,9 +521,13 @@ export default function New({
           onCancelOverride={
             loadedOfflineDraftId ? () => router.replace('/transacoes') : undefined
           }
-          onSelectTransfer={isDuplicating ? undefined : () => setComposeMode('transfer')}
+          onSelectTransfer={isDuplicating ? undefined : () => {
+            setSwitchedType(true);
+            setComposeMode('transfer');
+          }}
         />
       )}
     </NewPage>
+    </FormIntroProvider>
   );
 }

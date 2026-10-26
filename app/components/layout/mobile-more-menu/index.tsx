@@ -1,5 +1,6 @@
 'use client';
 
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
@@ -12,8 +13,17 @@ import {
   type AppNavigationItem,
 } from '@/app/components/layout/app-navigation';
 import { lockBodyScroll } from '@/app/components/overlays/modal-shell';
+import { switchThemeWithReveal } from '@/app/components/layout/theme-transition';
 import { IconButton, IconLink } from '@/app/components/ui';
+import { CARD_EASE } from '@/app/components/ui/motion';
 import { useAuth, useTheme } from '@/app/context';
+
+const menuStack: Variants = { hidden: {}, shown: { transition: { staggerChildren: 0.05, delayChildren: 0.12 } } };
+const menuGroup: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  shown: { opacity: 1, y: 0, transition: { duration: 0.3, ease: CARD_EASE, staggerChildren: 0.025 } },
+};
+const menuItem: Variants = { hidden: { opacity: 0, scale: 0.85 }, shown: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 500, damping: 26 } } };
 
 /** Distância do painel até a borda de baixo: respiro da pílula (0,75rem) + a pílula (66px), sem vão: o painel é a barra crescendo. */
 const PANEL_BOTTOM = 'calc(env(safe-area-inset-bottom) + 0.75rem + 4.125rem)';
@@ -40,6 +50,7 @@ export default function MobileMoreMenu({
   onInstallApp?: () => Promise<void>;
   onOpenGlobalSearch?: () => void;
 }) {
+  const reduce = useReducedMotion();
   const pathname = usePathname();
   const { logout, user } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
@@ -88,11 +99,14 @@ export default function MobileMoreMenu({
 
   return (
     <div className="lg:hidden">
-      <div
+      <motion.div
         aria-hidden="true"
         onClick={onClose}
         data-state={closing ? 'closed' : 'open'}
-        className="more-menu-backdrop fixed inset-0 z-[var(--z-popover)] bg-[color-mix(in_srgb,var(--background)_55%,transparent)] backdrop-blur-sm"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: closing ? 0 : 1 }}
+        transition={{ duration: closing ? 0.18 : 0.25 }}
+        className="fixed inset-0 z-[var(--z-popover)] bg-[color-mix(in_srgb,var(--background)_55%,transparent)] backdrop-blur-sm"
       />
 
       <div
@@ -103,23 +117,23 @@ export default function MobileMoreMenu({
           paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
         }}
       >
-        <div
+        <motion.div
           ref={panelRef}
           role="dialog"
           aria-label="Mais opções"
           tabIndex={-1}
           data-state={closing ? 'closed' : 'open'}
+          style={{ transformOrigin: 'bottom center', maxHeight: `calc(100dvh - var(--app-mobile-topbar-height) - env(safe-area-inset-top) - ${PANEL_BOTTOM} - 0.75rem)` }}
+          initial={{ y: 28, scale: 0.96, opacity: 0 }}
+          animate={closing ? { y: 20, scale: 0.97, opacity: 0, transition: { duration: 0.18, ease: 'easeIn' } } : { y: 0, scale: 1, opacity: 1, transition: { type: 'spring', stiffness: 380, damping: 30 } }}
           className={
-            'more-menu-panel mx-auto max-w-sm overflow-y-auto overscroll-contain rounded-t-[1.25rem] rounded-b-none border border-b-0 border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_-16px_40px_-12px_rgba(0,0,0,0.35)] outline-none ' +
+            'mx-auto max-w-sm overflow-y-auto overscroll-contain rounded-t-[1.25rem] rounded-b-none border border-b-0 border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_-16px_40px_-12px_rgba(0,0,0,0.35)] outline-none ' +
             (closing ? 'pointer-events-none' : 'pointer-events-auto')
           }
-          style={{
-            maxHeight: `calc(100dvh - var(--app-mobile-topbar-height) - env(safe-area-inset-top) - ${PANEL_BOTTOM} - 0.75rem)`,
-          }}
         >
-          <nav aria-label="Todas as funcionalidades" className="space-y-3">
+          <motion.nav aria-label="Todas as funcionalidades" className="space-y-3" variants={menuStack} initial={reduce ? false : 'hidden'} animate="shown">
             {groups.map((group) => (
-              <section key={group.label}>
+              <motion.section key={group.label} variants={menuGroup}>
                 <h3 className="mb-1.5 px-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                   {group.label}
                 </h3>
@@ -129,8 +143,8 @@ export default function MobileMoreMenu({
                     const active = item.isActive(pathname);
 
                     return (
+                      <motion.div key={item.key} variants={menuItem}>
                       <Link
-                        key={item.key}
                         href={item.href}
                         onClick={() => {
                           onPick(item.key);
@@ -150,12 +164,13 @@ export default function MobileMoreMenu({
                         />
                         <span className="truncate">{item.label}</span>
                       </Link>
+                      </motion.div>
                     );
                   })}
                 </div>
-              </section>
+              </motion.section>
             ))}
-          </nav>
+          </motion.nav>
 
           <section className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-2" aria-label="Conta e preferências">
             <IconLink
@@ -179,7 +194,11 @@ export default function MobileMoreMenu({
               label={resolvedTheme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
               title={resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}
               icon={resolvedTheme === 'dark' ? <FaSun /> : <FaMoon />}
-              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              onClick={(event) => {
+                // O mesmo círculo que se expande do sidebar: para o escuro nasce no botão, para o claro volta do canto superior direito.
+                const box = event.currentTarget.getBoundingClientRect();
+                switchThemeWithReveal(resolvedTheme === 'dark' ? 'light' : 'dark', setTheme, { x: box.left + box.width / 2, y: box.top + box.height / 2 });
+              }}
             />
             <IconButton label="Sair da conta" title="Sair" tone="danger" icon={<FaSignOutAlt />} onClick={() => void logout()} />
           </section>
@@ -194,7 +213,7 @@ export default function MobileMoreMenu({
               <span>Instalar aplicativo</span>
             </button>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

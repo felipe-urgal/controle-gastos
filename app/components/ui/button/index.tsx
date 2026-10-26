@@ -34,7 +34,11 @@ type ButtonVariant =
   | 'info'
   | 'outline'
   | 'ghost'
-  | 'link';
+  | 'link'
+  | 'segment'
+  | 'segmentPrimary'
+  | 'segmentIncome'
+  | 'segmentExpense';
 
 /** `compact`: 36px (sem a área de toque de 44px); para controles de cabeçalho em que o botão grande pesa. */
 type ButtonSize = 'compact' | 'xs' | 'sm' | 'md' | 'cta' | 'lg' | 'xl';
@@ -96,6 +100,13 @@ const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
         'border-transparent bg-transparent text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]',
       link:
         'border-transparent bg-transparent text-[var(--primary)] hover:text-[var(--primary-hover)] hover:underline underline-offset-4',
+      // Opções de um controle segmentado: o destaque da ativa é um elemento à parte (`-z-10`, por isso `isolate`),
+      // então o botão só muda a cor do texto.
+      segment:
+        'isolate border-transparent bg-transparent text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]',
+      segmentPrimary: 'isolate border-transparent bg-transparent text-[var(--primary)]',
+      segmentIncome: 'isolate border-transparent bg-transparent text-[var(--income)]',
+      segmentExpense: 'isolate border-transparent bg-transparent text-[var(--expense)]',
     };
 
     const isIconOnly = Boolean(icon && !children);

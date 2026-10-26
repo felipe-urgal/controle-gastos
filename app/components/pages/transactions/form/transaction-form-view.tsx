@@ -1,11 +1,14 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChevronRight, FaExchangeAlt, FaFileAlt, FaFlag, FaRedoAlt, FaCreditCard, FaStore, FaTag, FaWallet } from 'react-icons/fa';
 
 import { FormActions, FormContainer } from '@/app/components/forms';
 import ReceiptOcrScanner from '@/app/components/pages/transactions/form/receipt-ocr-scanner';
 import { Button, IconRenderer, Input, RadioGroup } from '@/app/components/ui';
+import { reducedTransition } from '@/app/components/ui/motion';
+import { AmountRoll, FilledIcon, FillRail, Pop, RowItem, SegmentPill, TYPE_TONE, rowStack, useFormIntro } from '@/app/components/pages/transactions/form/form-motion';
 import ListboxSelect from '@/app/components/ui/listbox-select';
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { MAX_RECURRENCE_OCCURRENCES } from '@/app/lib/transactions/logical-recurrence';
@@ -21,10 +24,10 @@ const ROW_TRIGGER_CLASS = `${ROW_CLASS} transition-colors hover:bg-[var(--surfac
 const SEGMENT_CLASS = 'min-w-0 px-2';
 const PANEL_CLASS = 'space-y-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4';
 
-function Row({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+function Row({ icon, label, children, filled = false }: { icon: ReactNode; label: string; children: ReactNode; filled?: boolean }) {
   return (
     <>
-      <span className="grid h-7 w-7 place-items-center text-[var(--text-muted)]" aria-hidden="true">{icon}</span>
+      <FilledIcon filled={filled}>{icon}</FilledIcon>
       <span className="text-[var(--text-muted)]">{label}</span>
       {children}
       <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
@@ -66,11 +69,27 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
   const hasExtras = Boolean(formData.merchantId) || (formData.tagIds?.length ?? 0) > 0 || (formData.allocations?.length ?? 0) > 0 || merchantRecognition !== null;
   const submitLabel = reviewingQueueItem ? 'Confirmar nova tentativa' : isEditing ? 'Salvar alterações' : createLabel;
   const typeButtons = [
-    { type: 'EXPENSE' as const, label: 'Despesa', icon: <FaArrowDown aria-hidden="true" /> },
-    { type: 'INCOME' as const, label: 'Receita', icon: <FaArrowUp aria-hidden="true" /> },
+    { type: 'EXPENSE' as const, label: 'Despesa', Icon: FaArrowDown, drop: -7 },
+    { type: 'INCOME' as const, label: 'Receita', Icon: FaArrowUp, drop: 7 },
   ];
+  const amountType = operationType === 'INCOME' ? 'INCOME' : 'EXPENSE';
+  const reduce = useReducedMotion();
+  const intro = useFormIntro();
+  const requiredFilled = [
+    Number(formData.amount) > 0,
+    formData.description.trim().length > 0,
+    Boolean(formData.accountId),
+    Boolean(formData.categoryId),
+  ];
+  const fillProgress = requiredFilled.filter(Boolean).length / requiredFilled.length;
 
   return (
+    <motion.div
+      className="w-full"
+      initial={intro ? { opacity: 0, y: 28 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={reducedTransition(reduce, { type: 'spring', stiffness: 220, damping: 24 })}
+    >
     <FormContainer
       bare
       onSubmit={handleSubmit}
@@ -79,24 +98,39 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
       className="mt-4 w-full gap-5 lg:rounded-[var(--radius-lg)] lg:border lg:border-[var(--border)] lg:bg-[var(--card)] lg:p-6 lg:shadow-[var(--shadow-surface)]"
     >
       <section aria-label={isEditing ? 'Editar transação' : 'Nova transação'} className="grid gap-5">
+        <FillRail progress={fillProgress} type={amountType} />
         <div
           className={`grid overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface)] p-1 ${isEditing ? 'grid-cols-2' : 'grid-cols-3'}`}
           role="group"
           aria-label="Tipo da transação"
         >
-          {typeButtons.map(({ type, label, icon }) => (
-            <Button
-              key={type}
-              variant={operationType === type ? 'primary' : 'ghost'}
-              aria-pressed={operationType === type}
-              onClick={() => handleCategoryType(type)}
-              disabled={loading}
-              icon={icon}
-              className={SEGMENT_CLASS}
-            >
-              <span className="truncate">{label}</span>
-            </Button>
-          ))}
+          {typeButtons.map(({ type, label, Icon, drop }) => {
+            const active = operationType === type;
+
+            return (
+              <Button
+                key={type}
+                variant={active ? (type === 'EXPENSE' ? 'segmentExpense' : 'segmentIncome') : 'segment'}
+                aria-pressed={active}
+                onClick={() => handleCategoryType(type)}
+                disabled={loading}
+                icon={
+                  <motion.span
+                    key={String(active)}
+                    className="flex"
+                    animate={active ? { y: [drop, 0] } : undefined}
+                    transition={{ type: 'spring', stiffness: 500, damping: 12 }}
+                  >
+                    <Icon aria-hidden="true" />
+                  </motion.span>
+                }
+                className={SEGMENT_CLASS}
+              >
+                {active && <SegmentPill layoutId="tx-type-pill" tone={TYPE_TONE[type]} />}
+                <span className="truncate">{label}</span>
+              </Button>
+            );
+          })}
           {!isEditing && (
             <Button
               variant="ghost"
@@ -114,8 +148,10 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
           <label htmlFor="transaction-amount" className="text-sm text-[var(--text-muted)]">
             {isInstallment ? 'Valor total da compra' : 'Valor'}
           </label>
+          <div className="relative mx-auto max-w-[420px]">
           <Input
             bare
+            textHidden
             id="transaction-amount"
             ref={amountInputRef}
             value={displayValue}
@@ -127,6 +163,8 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
             inputMode="numeric"
             className="mx-auto min-h-[64px] max-w-[420px] border-0 p-0 amount-display text-center font-black tracking-tight"
           />
+          <AmountRoll text={displayValue} type={amountType} />
+          </div>
         </div>
 
         {!isEditing && (
@@ -138,9 +176,10 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
           />
         )}
 
-        <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
+        <motion.div className="border-y border-[var(--border)]" variants={rowStack} initial={intro ? 'hidden' : false} animate="shown">
+          <RowItem first>
           <div className={ROW_CLASS}>
-            <Row icon={<FaFileAlt />} label="Descrição">
+            <Row icon={<FaFileAlt />} label="Descrição" filled={formData.description.trim().length > 0}>
               <Input
                 bare
                 id="transaction-description"
@@ -156,7 +195,9 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
               />
             </Row>
           </div>
+          </RowItem>
 
+          <RowItem>
           <ListboxSelect
             ariaLabel="Conta"
             value={formData.accountId}
@@ -165,13 +206,13 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
             options={accountOptions}
             triggerClassName={ROW_TRIGGER_CLASS}
           >
-            <Row icon={<FaWallet />} label="Conta">
-              <span className="truncate text-right font-medium text-[var(--foreground)]">
-                {selectedAccount?.name ?? 'Selecione'}
-              </span>
+            <Row icon={<FaWallet />} label="Conta" filled={Boolean(selectedAccount)}>
+              <Pop valueKey={selectedAccount?.id ?? 'none'}>{selectedAccount?.name ?? 'Selecione'}</Pop>
             </Row>
           </ListboxSelect>
+          </RowItem>
 
+          <RowItem>
           <ListboxSelect
             ariaLabel="Categoria"
             value={formData.categoryId}
@@ -182,21 +223,22 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
           >
             <Row
               label="Categoria"
+              filled={Boolean(selectedCategory)}
               icon={
                 <span className="grid h-7 w-7 place-items-center rounded-full text-white" style={{ backgroundColor: selectedCategory?.color || 'var(--surface-subtle)' }}>
                   {selectedCategory ? <IconRenderer iconName={selectedCategory.icon || 'tag'} size={12} /> : <FaTag className="text-[var(--text-muted)]" />}
                 </span>
               }
             >
-              <span className="truncate text-right font-medium text-[var(--foreground)]">
-                {selectedCategory?.name ?? 'Selecione'}
-              </span>
+              <Pop valueKey={selectedCategory?.id ?? 'none'}>{selectedCategory?.name ?? 'Selecione'}</Pop>
             </Row>
           </ListboxSelect>
+          </RowItem>
 
+          <RowItem>
           <label className={`relative ${ROW_CLASS} ${isFixedDate ? '' : 'cursor-pointer hover:bg-[var(--surface-hover)]'}`}>
             <Row icon={<FaCalendarAlt />} label="Data">
-              <span className="truncate text-right font-medium text-[var(--foreground)]">{selectedDateLabel}</span>
+              <Pop valueKey={selectedDateLabel}>{selectedDateLabel}</Pop>
             </Row>
             {!isFixedDate && (
               <input
@@ -221,7 +263,9 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
               />
             )}
           </label>
+          </RowItem>
 
+          <RowItem>
           <ListboxSelect
             ariaLabel="Status"
             value={formData.status}
@@ -231,10 +275,11 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
             triggerClassName={ROW_TRIGGER_CLASS}
           >
             <Row icon={<FaFlag />} label={isInstallment ? 'Status 1ª parcela' : 'Status'}>
-              <span className="truncate text-right font-medium text-[var(--foreground)]">{selectedStatusLabel}</span>
+              <Pop valueKey={selectedStatusLabel}>{selectedStatusLabel}</Pop>
             </Row>
           </ListboxSelect>
-        </div>
+          </RowItem>
+        </motion.div>
 
         {!isEditing && (
           <div className="grid gap-2">
@@ -247,12 +292,13 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
               ] as Array<[CreationMode, string]>).map(([value, label]) => (
                 <Button
                   key={value}
-                  variant={creationMode === value ? 'primary' : 'ghost'}
+                  variant={creationMode === value ? 'segmentPrimary' : 'segment'}
                   aria-pressed={creationMode === value}
                   onClick={() => setCreationMode(value)}
                   disabled={loading}
                   className={SEGMENT_CLASS}
                 >
+                  {creationMode === value && <SegmentPill layoutId="tx-format-pill" tone="var(--primary)" />}
                   <span className="truncate">{label}</span>
                 </Button>
               ))}
@@ -399,7 +445,9 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
         submitLabel={submitLabel}
         createLabel={createLabel}
         iconsOnMobile
+        ready={fillProgress === 1 && !isSubmitting}
       />
     </FormContainer>
+    </motion.div>
   );
 }

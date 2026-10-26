@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { CARD_EASE, CARD_VIEWPORT, reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
+import { CARD_EASE, CARD_VIEWPORT, reducedTransition } from '@/app/components/ui/motion';
 import Link from 'next/link';
 
 import { PlanningMetric } from '@/app/components/pages/dashboard/dashboard/cards/planning-metric';

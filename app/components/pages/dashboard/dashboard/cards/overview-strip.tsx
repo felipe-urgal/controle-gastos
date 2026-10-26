@@ -5,7 +5,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { FaChevronRight } from 'react-icons/fa';
 
-import { CARD_EASE, CARD_VIEWPORT, reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
+import { CARD_EASE, CARD_VIEWPORT, reducedTransition } from '@/app/components/ui/motion';
 import { dashboardLogicalDateLabel, displayMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import type { DashboardNetWorthSummary, MonthlyDashboard } from '@/app/types/dashboard';
 

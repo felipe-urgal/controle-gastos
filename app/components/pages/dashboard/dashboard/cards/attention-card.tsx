@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { reducedTransition } from '@/app/components/pages/dashboard/dashboard/cards/card-motion';
+import { reducedTransition } from '@/app/components/ui/motion';
 import Link from 'next/link';
 import { MoneyText } from '@/app/components/ui';
 import { FaCheckCircle, FaChevronRight, FaExclamationCircle, FaInfoCircle } from 'react-icons/fa';

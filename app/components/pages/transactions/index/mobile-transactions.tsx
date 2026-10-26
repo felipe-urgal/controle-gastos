@@ -1,7 +1,9 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaFilter } from 'react-icons/fa';
+import { CARD_EASE, CARD_VIEWPORT, CountUp, reducedTransition } from '@/app/components/ui/motion';
 import { Button, Chip, ChipRow, IconRenderer, PeriodSwitcher } from '@/app/components/ui';
 import { isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
@@ -45,6 +47,7 @@ export function MobileTransactionsPrototype2({
   hasMore: boolean;
   onLoadMore: () => void;
 }) {
+  const reduce = useReducedMotion();
   const skeleton = 'block animate-pulse rounded-[var(--radius-sm)] bg-[var(--skeleton)]';
   const summaryLoading = summaryStatus === 'loading';
   const dim = summaryStatus === 'refreshing' ? 'opacity-50' : '';
@@ -58,6 +61,7 @@ export function MobileTransactionsPrototype2({
   return (
     <div className="space-y-4 pb-3">
       <PeriodSwitcher
+        animated="roll"
         className="w-full"
         month={month}
         year={year}
@@ -76,8 +80,25 @@ export function MobileTransactionsPrototype2({
         aria-busy={summaryStatus !== 'ready'}
       >
         <div className="flex items-start gap-3">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--danger-subtle)] text-lg text-[var(--expense)]">
-            <FaChartLine aria-hidden="true" />
+          <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--danger-subtle)] text-lg text-[var(--expense)]">
+            {/* O anel de ondulação sai do ícone uma vez, como no card de saldo do desktop. */}
+            {!reduce && (
+              <motion.span
+                aria-hidden="true"
+                className="absolute inset-0 rounded-full border-2 border-[var(--primary)]"
+                initial={{ scale: 1, opacity: 0.6 }}
+                animate={{ scale: 2.4, opacity: 0 }}
+                transition={{ duration: 1.1, ease: 'easeOut', delay: 0.3 }}
+              />
+            )}
+            <motion.span
+              className="flex"
+              initial={{ scale: 0.4, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 14, delay: 0.3 }}
+            >
+              <FaChartLine aria-hidden="true" />
+            </motion.span>
           </span>
           <div className="min-w-0">
             <p className="text-sm text-[var(--text-muted)]">Saldo do mês</p>
@@ -88,11 +109,17 @@ export function MobileTransactionsPrototype2({
               </>
             ) : (
               <div className={`transition-opacity duration-150 ${dim}`}>
-                <strong className={`mt-1 block text-3xl font-black tracking-tight ${
-                  summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
-                }`}>
+                <motion.strong
+                  className={`mt-1 block text-3xl font-black tracking-tight ${
+                    summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'
+                  }`}
+                  initial={{ scale: 0.7, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  style={{ transformOrigin: 'left center' }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 14, delay: 0.35 }}
+                >
                   <span className="money">{displayMoney(summary.balance, showValues, summary.currency)}</span>
-                </strong>
+                </motion.strong>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">{balanceMessage}</p>
               </div>
             )}
@@ -101,8 +128,15 @@ export function MobileTransactionsPrototype2({
 
         <div className="mt-4 grid grid-cols-2 divide-x divide-[var(--border)] border-t border-[var(--border)] pt-4">
           <div className="flex items-center gap-2.5 pr-3">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--primary-subtle)] text-[var(--income)]">
-              <FaArrowUp aria-hidden="true" />
+            <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--primary-subtle)] text-[var(--income)]">
+              <motion.span
+                className="flex"
+                initial={{ y: 16, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 16, delay: 0.1 }}
+              >
+                <FaArrowUp aria-hidden="true" />
+              </motion.span>
             </span>
             <div className="min-w-0">
               <p className="text-xs text-[var(--text-muted)]">Entradas</p>
@@ -110,23 +144,41 @@ export function MobileTransactionsPrototype2({
                 <span className={`${skeleton} mt-1 h-4 w-20`} aria-hidden="true" />
               ) : (
                 <strong className={`mt-0.5 block tabular-nums text-sm text-[var(--income)] transition-opacity duration-150 ${dim}`}>
-                  <span className="money">{displayMoney(summary.income, showValues, summary.currency)}</span>
+                  {showValues ? (
+                    <CountUp amount={summary.income} format={(value) => displayMoney(value, true, summary.currency)} className="money" />
+                  ) : (
+                    <span className="money">{displayMoney(summary.income, showValues, summary.currency)}</span>
+                  )}
                 </strong>
               )}
             </div>
           </div>
           <div className="flex items-center gap-2.5 pl-3">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--danger-subtle)] text-[var(--expense)]">
-              <FaArrowDown aria-hidden="true" />
+            <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--danger-subtle)] text-[var(--expense)]">
+              <motion.span
+                className="flex"
+                initial={{ y: -16, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 9, delay: 0.2 }}
+              >
+                <FaArrowDown aria-hidden="true" />
+              </motion.span>
             </span>
             <div className="min-w-0">
               <p className="text-xs text-[var(--text-muted)]">Saídas</p>
               {summaryLoading ? (
                 <span className={`${skeleton} mt-1 h-4 w-20`} aria-hidden="true" />
               ) : (
-                <strong className={`mt-0.5 block tabular-nums text-sm text-[var(--expense)] transition-opacity duration-150 ${dim}`}>
-                  <span className="money">{displayMoney(summary.expense, showValues, summary.currency)}</span>
-                </strong>
+                <span className="block overflow-hidden">
+                  <motion.strong
+                    className={`mt-0.5 block tabular-nums text-sm text-[var(--expense)] transition-opacity duration-150 ${dim}`}
+                    initial={{ y: '-110%' }}
+                    animate={{ y: 0 }}
+                    transition={{ type: 'spring', stiffness: 320, damping: 18, delay: 0.25 }}
+                  >
+                    <span className="money">{displayMoney(summary.expense, showValues, summary.currency)}</span>
+                  </motion.strong>
+                </span>
               )}
             </div>
           </div>
@@ -141,25 +193,37 @@ export function MobileTransactionsPrototype2({
             ['expense', 'Despesas'],
             ['pending', 'Pendentes'],
           ] as Array<[MobileQuickFilter, string]>).map(([value, label]) => (
-            <Chip key={value} selected={quickFilter === value} onClick={() => onQuickFilterChange(value)}>
+            <Chip key={value} layoutId="transactions-mobile-quick-filter" selected={quickFilter === value} onClick={() => onQuickFilterChange(value)}>
               {label}
             </Chip>
           ))}
         </ChipRow>
-        <Button
-          variant="outline"
-          fullWidth
+        <motion.div
           className="mt-2"
-          icon={<FaFilter aria-hidden="true" />}
-          onClick={onOpenFilters}
+          initial={{ scale: 0.92, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 20, delay: 0.4 }}
         >
-          Filtros
-          {activeFiltersCount > 0 && (
-            <span className="ml-2 rounded-full bg-[var(--primary-subtle)] px-2 py-0.5 text-xs font-bold text-[var(--primary)]">
-              {activeFiltersCount}
-            </span>
-          )}
-        </Button>
+          <Button
+            variant="outline"
+            fullWidth
+            icon={<FaFilter aria-hidden="true" />}
+            onClick={onOpenFilters}
+          >
+            Filtros
+            {activeFiltersCount > 0 && (
+              <motion.span
+                key={activeFiltersCount}
+                className="ml-2 rounded-full bg-[var(--primary-subtle)] px-2 py-0.5 text-xs font-bold text-[var(--primary)]"
+                initial={{ scale: 0.4 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 12 }}
+              >
+                {activeFiltersCount}
+              </motion.span>
+            )}
+          </Button>
+        </motion.div>
       </div>
 
       <MobileUpcomingPreview
@@ -189,6 +253,7 @@ export function MobileUpcomingPreview({
   showValues: boolean;
   onViewAll: () => void;
 }) {
+  const reduce = useReducedMotion();
   const first = items[0];
   if (!first) return null;
 
@@ -208,9 +273,15 @@ export function MobileUpcomingPreview({
           aria-label={`Abrir transação ${first.description || 'Sem descrição'}`}
           className="mt-2 grid min-h-[58px] w-full grid-cols-[38px_minmax(0,1fr)_auto_12px] items-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 text-left"
         >
-          <span className="grid h-9 w-9 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]">
+          <motion.span
+            className="grid h-9 w-9 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]"
+            initial={{ scale: 1.8, rotate: -14, opacity: 0 }}
+            whileInView={{ scale: 1, rotate: 0, opacity: 1 }}
+            viewport={CARD_VIEWPORT}
+            transition={reducedTransition(reduce, { type: 'spring', stiffness: 420, damping: 13 })}
+          >
             <FaCalendarAlt aria-hidden="true" />
-          </span>
+          </motion.span>
           <span className="min-w-0">
             <strong className="block truncate text-sm">{first.description || 'Sem descrição'}</strong>
             <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
@@ -241,6 +312,8 @@ export function MobileActivityFeed({
   hasMore: boolean;
   onLoadMore: () => void;
 }) {
+  const reduce = useReducedMotion();
+
   if (loading) {
     return (
       <section className="space-y-2" role="status" aria-label="Carregando movimentações">
@@ -264,25 +337,38 @@ export function MobileActivityFeed({
 
   return (
     <section className="space-y-4" aria-label="Atividade financeira">
-      {groups.map((group) => {
+      {groups.map((group, groupIndex) => {
         const title =
           group.primaryLabel === 'Hoje' || group.primaryLabel === 'Ontem'
             ? `${group.primaryLabel} • ${group.secondaryLabel}`
             : group.secondaryLabel;
 
         return (
-          <div key={group.key}>
-            <h2 className="border-b border-[var(--border)] pb-2 text-sm font-bold text-[var(--foreground)]">{title}</h2>
-            <div className="divide-y divide-[var(--border)]">
+          // O grupo (visível) observa a viewport: o título desenha a linha e as transações sobem em sequência.
+          <motion.div key={group.key} initial="hidden" whileInView="shown" viewport={CARD_VIEWPORT}>
+            <h2 className="relative pb-2 text-sm font-bold text-[var(--foreground)]">
+              {title}
+              <motion.span
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 h-px origin-left bg-[var(--border)]"
+                variants={{ hidden: { scaleX: 0 }, shown: { scaleX: 1 } }}
+                transition={reducedTransition(reduce, { duration: 0.5, ease: CARD_EASE, delay: Math.min(groupIndex, 5) * 0.08 })}
+              />
+            </h2>
+            <motion.div
+              className="divide-y divide-[var(--border)]"
+              variants={{ hidden: {}, shown: { transition: { staggerChildren: 0.06, delayChildren: Math.min(groupIndex, 5) * 0.08 + 0.1 } } }}
+            >
               {group.items.map((transaction) => (
-                <MobileTransactionRow
+                <motion.div
                   key={transaction.id}
-                  transaction={transaction}
-                  showValues={showValues}
-                />
+                  variants={{ hidden: { opacity: 0, y: 12 }, shown: { opacity: 1, y: 0, transition: { duration: 0.35, ease: CARD_EASE } } }}
+                >
+                  <MobileTransactionRow transaction={transaction} showValues={showValues} />
+                </motion.div>
               ))}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         );
       })}
       {hasMore && (

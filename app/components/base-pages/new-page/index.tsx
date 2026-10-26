@@ -15,6 +15,8 @@ interface NewPageProps {
   hideHeaderOnMobile?: boolean;
   sidebarAligned?: boolean;
   breadcrumb?: Crumb[];
+  /** Movimento da faixa do título (ver `PageBar`); só vale com `sidebarAligned`. */
+  animated?: boolean | 'letters' | 'trail';
 };
 
 export default function NewPage({
@@ -25,6 +27,7 @@ export default function NewPage({
   hideHeaderOnMobile = false,
   sidebarAligned = false,
   breadcrumb,
+  animated = false,
 }: NewPageProps) {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
@@ -33,7 +36,7 @@ export default function NewPage({
       <div className="w-full space-y-6">
         {sidebarAligned && (
           <ShowBelow breakpoint="lg">
-            <MobileAppBar title={title ?? ''} backHref={backUrl} />
+            <MobileAppBar title={title ?? ''} backHref={backUrl} animated={animated === 'trail' ? 'trail' : false} />
           </ShowBelow>
         )}
 
@@ -44,6 +47,7 @@ export default function NewPage({
             backUrl={backUrl}
             sidebarAligned={sidebarAligned}
             breadcrumb={breadcrumb}
+            animated={animated}
           />
         )}
 
