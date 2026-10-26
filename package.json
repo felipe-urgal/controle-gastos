@@ -37,7 +37,7 @@
     "@tesseract.js-data/por": "1.0.0",
     "bcryptjs": "^3.0.2",
     "date-fns": "^4.4.0",
-    "framer-motion": "^14.4.0",
+    "framer-motion": "^14.6.0",
     "jsonwebtoken": "^9.0.2",
     "next": "16.4.2",
     "otplib": "13.5.0",
