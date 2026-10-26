@@ -12,7 +12,7 @@ import Pagination from '@/app/components/navigation/pagination';
 import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Button, Input } from '@/app/components/ui';
-import { FaPlus } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaStar } from 'react-icons/fa';
 import TransactionTemplateCard from '@/app/components/pages/transaction-templates/transaction-template-card';
 import TransactionTemplateFormFields from '@/app/components/pages/transaction-templates/transaction-template-form-fields';
 import { formPreview, groupTemplates } from '@/app/components/pages/transaction-templates/transaction-templates-model';
@@ -472,30 +472,29 @@ export default function TransactionTemplatesPage({
 
       <section className="mt-5 space-y-4" aria-labelledby="transaction-template-list-heading">
         <h2 id="transaction-template-list-heading" className="sr-only">Seus modelos</h2>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-[240px] flex-1 sm:max-w-[420px]">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1 sm:max-w-[420px]">
             <Input
-              label="Buscar modelos"
+              aria-label="Buscar modelos"
               type="search"
               enterKeyHint="search"
+              icon={<FaSearch aria-hidden="true" />}
               value={templateSearch}
-              placeholder="Nome ou descrição"
+              placeholder="Buscar por nome ou descrição"
               onChange={(event) => {
                 setTemplateSearch(event.target.value);
                 setTemplatePage(1);
               }}
             />
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--text-muted)]">
-              {templateTotal} {templateTotal === 1 ? 'modelo' : 'modelos'}
-            </span>
-            {templateError && (
-              <Button variant="outline" size="sm" onClick={() => void loadTemplates()}>
-                Tentar novamente
-              </Button>
-            )}
-          </div>
+          <span className="hidden text-sm text-[var(--text-muted)] sm:inline">
+            {templateTotal} {templateTotal === 1 ? 'modelo' : 'modelos'}
+          </span>
+          {templateError && (
+            <Button variant="outline" size="sm" onClick={() => void loadTemplates()}>
+              Tentar novamente
+            </Button>
+          )}
         </div>
 
         {templateError ? (
@@ -528,8 +527,8 @@ export default function TransactionTemplatesPage({
           <>
             {favorites.length > 0 && (
               <div className="grid gap-3">
-                <h3 className="flex items-baseline gap-2.5 text-sm font-bold">
-                  ★ Favoritos <span className="text-xs font-normal text-[var(--text-muted)]">{favorites.length}</span>
+                <h3 className="flex items-center gap-2 text-sm font-bold">
+                  <FaStar className="text-[var(--primary)]" aria-hidden="true" /> Favoritos <span className="text-xs font-normal text-[var(--text-muted)]">{favorites.length}</span>
                 </h3>
                 {renderCards(favorites)}
               </div>
@@ -570,12 +569,12 @@ export default function TransactionTemplatesPage({
           onClose={resetForm}
           closeDisabled={saving}
           footer={
-            <div className="grid gap-2">
-              <Button type="submit" form="transaction-template-form" fullWidth disabled={submitDisabled}>
-                {submitLabel}
-              </Button>
-              <Button variant="outline" fullWidth disabled={saving} onClick={resetForm}>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" disabled={saving} onClick={resetForm}>
                 Cancelar
+              </Button>
+              <Button type="submit" form="transaction-template-form" disabled={submitDisabled}>
+                {submitLabel}
               </Button>
             </div>
           }

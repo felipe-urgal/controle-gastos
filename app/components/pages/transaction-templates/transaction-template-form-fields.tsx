@@ -50,12 +50,18 @@ export default function TransactionTemplateFormFields({
 
       <div className="grid gap-1.5">
         <span className="text-sm font-semibold">Tipo</span>
-        <div className="flex gap-2" role="group" aria-label="Tipo">
-          <Chip selected={form.type === 'EXPENSE'} onClick={() => setForm((value) => ({ ...value, type: 'EXPENSE', categoryId: null }))}>
-            Despesa
-          </Chip>
-          <Chip selected={form.type === 'INCOME'} onClick={() => setForm((value) => ({ ...value, type: 'INCOME', categoryId: null }))}>
-            Receita
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex gap-2" role="group" aria-label="Tipo">
+            <Chip selected={form.type === 'EXPENSE'} onClick={() => setForm((value) => ({ ...value, type: 'EXPENSE', categoryId: null }))}>
+              Despesa
+            </Chip>
+            <Chip selected={form.type === 'INCOME'} onClick={() => setForm((value) => ({ ...value, type: 'INCOME', categoryId: null }))}>
+              Receita
+            </Chip>
+          </div>
+          <Chip selected={form.isFavorite ?? false} onClick={() => setForm((value) => ({ ...value, isFavorite: !value.isFavorite }))}>
+            {form.isFavorite ? <FaStar aria-hidden="true" /> : <FaRegStar aria-hidden="true" />}
+            Favoritar
           </Chip>
         </div>
       </div>
@@ -106,13 +112,6 @@ export default function TransactionTemplateFormFields({
           />
           {categoryError && <RetryNotice message={categoryError} onRetry={onRetryCategories} />}
         </div>
-      </div>
-
-      <div>
-        <Chip selected={form.isFavorite ?? false} onClick={() => setForm((value) => ({ ...value, isFavorite: !value.isFavorite }))}>
-          {form.isFavorite ? <FaStar aria-hidden="true" /> : <FaRegStar aria-hidden="true" />}
-          Favoritar
-        </Chip>
       </div>
 
       <div className="grid gap-1 rounded-[var(--radius-md)] bg-[var(--primary-subtle)] px-3.5 py-3">
