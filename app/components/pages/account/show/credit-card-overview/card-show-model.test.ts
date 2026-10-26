@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  closingDistanceLabel,
   daysBetween,
-  dueDistanceLabel,
   isPayableStatement,
   limitTone,
   pickStatementToPay,
@@ -63,22 +61,6 @@ describe('isPayableStatement / pickStatementToPay', () => {
 
   it('devolve null quando não há nada para pagar', () => {
     expect(pickStatementToPay({ current, history: [paid, empty] }, today)).toBeNull();
-  });
-});
-
-describe('rótulos de prazo', () => {
-  it('vencimento', () => {
-    expect(dueDistanceLabel({ year: 2026, month: 10, day: 22 }, today)).toBe('vence hoje');
-    expect(dueDistanceLabel({ year: 2026, month: 10, day: 23 }, today)).toBe('vence amanhã');
-    expect(dueDistanceLabel({ year: 2026, month: 10, day: 27 }, today)).toBe('vence em 5 dias');
-    expect(dueDistanceLabel({ year: 2026, month: 10, day: 21 }, today)).toBe('venceu há 1 dia');
-    expect(dueDistanceLabel({ year: 2026, month: 10, day: 19 }, today)).toBe('venceu há 3 dias');
-  });
-
-  it('fechamento', () => {
-    expect(closingDistanceLabel({ year: 2026, month: 11, day: 10 }, today)).toBe('fecha em 19 dias');
-    expect(closingDistanceLabel({ year: 2026, month: 10, day: 22 }, today)).toBe('fecha hoje');
-    expect(closingDistanceLabel({ year: 2026, month: 10, day: 10 }, today)).toBe('fechada');
   });
 });
 

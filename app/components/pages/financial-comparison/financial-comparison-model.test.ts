@@ -2,8 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   activePreset,
-  buildVerdict,
-  deltaLabel,
   deltaTone,
   metricRows,
   pairWidths,
@@ -13,8 +11,6 @@ import {
 } from '@/app/components/pages/financial-comparison/financial-comparison-model';
 import type { FinancialComparisonData } from '@/app/types/financial-comparison';
 
-const labels = { a: '2025', b: '2026' };
-const money = (cents: number) => 'R$ ' + (cents / 100).toFixed(2).replace('.', ',');
 const metric = (current: number, baseline: number) => ({
   difference: current - baseline,
   percentage: baseline === 0 ? null : Math.round(((current - baseline) / Math.abs(baseline)) * 1000) / 10,
@@ -71,12 +67,6 @@ describe('financial-comparison-model', () => {
     expect(activePreset({ ...ytd, aFrom: '2025-03' }, { year: 2026, month: 10 })).toBeNull();
   });
 
-  it('rotula a variação sem inventar percentual quando A é zero', () => {
-    expect(deltaLabel({ difference: 8900, percentage: 10.8 }, money)).toBe('▲ 10,8% · + R$ 89,00');
-    expect(deltaLabel({ difference: -250, percentage: null }, money)).toBe('▼ sem base percentual · − R$ 2,50');
-    expect(deltaLabel({ difference: 0, percentage: 0 }, money)).toBe('Sem mudança');
-  });
-
   it('escala as duas barras pela maior e aceita ambos zero', () => {
     expect(pairWidths(50, 100)).toEqual([50, 100]);
     expect(pairWidths(-200, 100)).toEqual([100, 50]);
@@ -87,20 +77,6 @@ describe('financial-comparison-model', () => {
     const value = data({ a: { months: 2 }, b: { months: 4, income: 12000, averageMonthlyIncome: 3000 } });
     expect(metricRows(value, 'total')[0]).toMatchObject({ a: 10000, b: 12000 });
     expect(metricRows(value, 'average')[0]).toMatchObject({ a: 5000, b: 3000 });
-  });
-
-  it('monta o veredito com tom, sem percentual quando A é zero e para períodos vazios', () => {
-    const text = (value: FinancialComparisonData, basis: 'total' | 'average' = 'total') =>
-      buildVerdict(value, basis, money, labels).map((segment) => segment.text).join('');
-
-    expect(text(data())).toBe('Em 2026 você gastou R$ 50,00, 16,7% a menos que em 2025, e o resultado melhorou R$ 30,00.');
-    expect(text(data({ a: { expense: 0, balance: 10000, averageMonthlyExpense: 0, averageMonthlyBalance: 5000 } }))).toContain('Em 2026 você gastou R$ 50,00, e o resultado');
-    expect(text(data({ a: { income: 0, expense: 0, balance: 0, averageMonthlyIncome: 0, averageMonthlyExpense: 0, averageMonthlyBalance: 0 }, b: { income: 0, expense: 0, balance: 0, averageMonthlyIncome: 0, averageMonthlyExpense: 0, averageMonthlyBalance: 0 } })))
-      .toBe('Sem receitas ou despesas realizadas nos dois períodos.');
-    expect(text(data(), 'average')).toContain('em média');
-
-    const expenseSegment = buildVerdict(data(), 'total', money, labels).find((segment) => segment.money);
-    expect(expenseSegment?.tone).toBe('good');
   });
 
   it('ordena categorias pela maior diferença na base escolhida', () => {

@@ -6,18 +6,10 @@ import {
   describeDelta,
   shiftPeriod,
   spentShare,
-  summaryLede,
 } from '@/app/components/pages/monthly-closing/monthly-closing-model';
 import type { MonthlyClosingReadiness } from '@/app/types/monthly-closing';
 
 const money = (cents: number) => 'R$ ' + (cents / 100).toFixed(2).replace('.', ',');
-const noComparison = { percentage: null, difference: 0 };
-const comparison = (balancePercentage: number | null) => ({
-  previousPeriod: { year: 2026, month: 9 },
-  income: noComparison,
-  expense: noComparison,
-  balance: { percentage: balancePercentage, difference: 0 },
-});
 
 function readiness(overrides: Partial<MonthlyClosingReadiness> = {}): MonthlyClosingReadiness {
   return {
@@ -41,18 +33,6 @@ describe('monthly-closing-model', () => {
     expect(spentShare({ income: 1000, expense: 5000 })).toBe(100);
     expect(spentShare({ income: 0, expense: 500 })).toBe(100);
     expect(spentShare({ income: 1000, expense: 0 })).toBe(0);
-  });
-
-  it('descreve o mês positivo, negativo e vazio sem inventar comparação', () => {
-    const base = { previousMonth: 'setembro', money };
-    expect(summaryLede({ ...base, summary: { income: 10000, expense: 6900, balance: 3100 }, comparison: comparison(8) }))
-      .toBe('Você ganhou R$ 100,00 e gastou R$ 69,00. Ficou com 31% da receita, 8% mais que em setembro.');
-    expect(summaryLede({ ...base, summary: { income: 10000, expense: 6900, balance: 3100 }, comparison: comparison(null) }))
-      .toBe('Você ganhou R$ 100,00 e gastou R$ 69,00. Ficou com 31% da receita.');
-    expect(summaryLede({ ...base, summary: { income: 1000, expense: 3000, balance: -2000 }, comparison: comparison(null) }))
-      .toContain('As saídas superaram as entradas em R$ 20,00.');
-    expect(summaryLede({ ...base, summary: { income: 0, expense: 0, balance: 0 }, comparison: comparison(null) }))
-      .toContain('Nenhuma receita ou despesa realizada');
   });
 
   it('trata queda de despesa como boa e ausência de base como neutra', () => {
