@@ -1,5 +1,6 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { useEffect, useRef, useState } from 'react';
@@ -12,13 +13,15 @@ import { tagService } from '@/app/services/tag-service';
 import { TransactionDTO } from '@/app/types/transaction';
 import { TagDTO } from '@/app/types/tag';
 
-export function FilterDialog({ fields, values, loading, total, onApply, onClose }: { fields: FilterField[]; values: Record<string, any>; loading: boolean; total?: number; onApply: (values: Record<string, any>) => void; onClose: () => void }) {
+export function FilterDialog({ fields, values, loading, total, origin = null, onApply, onClose }: { fields: FilterField[]; values: Record<string, any>; loading: boolean; total?: number; /** Centro do botão Filtros, de onde o diálogo voa e para onde volta. */ origin?: { x: number; y: number } | null; onApply: (values: Record<string, any>) => void; onClose: () => void }) {
   const [draftValues, setDraftValues] = useState<Record<string, any>>(() => ({ ...values }));
   const activeCount = Object.values(draftValues).filter((value) => value !== undefined && value !== null && value !== '').length;
 
   return (
     <ModalShell
       variant="fullscreen-sheet"
+      animated
+      origin={origin}
       title="Filtros"
       description={`${activeCount} filtro${activeCount === 1 ? '' : 's'} selecionado${activeCount === 1 ? '' : 's'}${total !== undefined ? ` · ${total} resultado${total === 1 ? '' : 's'}` : ''}`}
       closeLabel="Fechar filtros"
@@ -146,31 +149,49 @@ export function TagFilterField({
   );
 }
 
+/** Cada campo sobe e aparece em sequência; a busca vem primeiro. */
+const fieldRise = {
+  hidden: { opacity: 0, y: 14 },
+  shown: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const } },
+};
+
 export function TransactionFilterFields({ fields, values, loading, onChange }: { fields: FilterField[]; values: Record<string, any>; loading: boolean; onChange: (key: string, value: any) => void }) {
+  const reduce = useReducedMotion();
   const searchField = fields.find((field) => field.type === 'search');
   const otherFields = fields.filter((field) => field.type !== 'search');
 
   return (
-    <div className="space-y-5">
+    <motion.div
+      className="space-y-5"
+      initial={reduce ? false : 'hidden'}
+      animate="shown"
+      variants={{ shown: { transition: { delayChildren: 0.2, staggerChildren: 0.045 } } }}
+    >
       {searchField?.type === 'search' && (
+        <motion.div variants={fieldRise}>
         <Input value={values[searchField.key] || ''} onChange={(event) => onChange(searchField.key, event.target.value)} placeholder={searchField.placeholder} aria-label={searchField.placeholder ?? 'Pesquisar'} icon={<FaSearch />} disabled={loading} />
+        </motion.div>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {otherFields.map((field) => {
           if (field.type === 'select') {
             const grouped = Array.isArray(field.options) && field.options.length > 0 && 'options' in field.options[0];
-            return <Select key={field.key} label={field.label} value={values[field.key]} onChange={(value) => onChange(field.key, value)} options={field.options} placeholder="Todos" grouped={grouped} disabled={loading} />;
+            return (
+              <motion.div key={field.key} variants={fieldRise}>
+                <Select label={field.label} value={values[field.key]} onChange={(value) => onChange(field.key, value)} options={field.options} placeholder="Todos" grouped={grouped} disabled={loading} />
+              </motion.div>
+            );
           }
 
           if (field.type === 'custom') {
-            return <div key={field.key}>{field.render(values[field.key], (value) => onChange(field.key, value))}</div>;
+            return <motion.div key={field.key} variants={fieldRise}>{field.render(values[field.key], (value) => onChange(field.key, value))}</motion.div>;
           }
 
           return null;
         })}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

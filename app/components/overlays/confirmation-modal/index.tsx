@@ -24,6 +24,10 @@ interface ConfirmationModalProps {
   showCancelButton?: boolean;
   children?: ReactNode;
   dangerNotice?: string | null;
+  /** Movimento do diálogo (ver `ModalShell`); o chamador envolve em `AnimatePresence` para a saída. */
+  animated?: boolean;
+  /** Centro do botão que abriu o diálogo, de onde ele voa. */
+  origin?: { x: number; y: number } | null;
 }
 
 export default function ConfirmationModal({
@@ -39,6 +43,8 @@ export default function ConfirmationModal({
   showCancelButton = true,
   children,
   dangerNotice = 'Esta ação é irreversível e removerá permanentemente todos os dados associados.',
+  animated = false,
+  origin = null,
 }: ConfirmationModalProps) {
   if (!isOpen) return null;
 
@@ -71,6 +77,8 @@ export default function ConfirmationModal({
 
   return (
     <ModalShell
+      animated={animated}
+      origin={origin}
       title={title}
       description={message}
       icon={

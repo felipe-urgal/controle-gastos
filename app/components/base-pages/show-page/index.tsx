@@ -2,6 +2,8 @@
 
 // importing components
 
+import { AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { PageHeader } from "@/app/components/base-pages";
 import type { Crumb } from "@/app/components/base-pages/page-bar";
@@ -36,6 +38,8 @@ interface ShowPageProps<T> {
   breadcrumb?: Crumb[];
   /** Esqueleto próprio do carregamento (no lugar do genérico). */
   loadingSkeleton?: React.ReactNode;
+  /** Movimento da página de detalhe: os botões do cabeçalho caem e a confirmação de exclusão voa do botão Excluir. */
+  animatedActions?: boolean;
 
   emptyRedirectTo?: string;
   mobileContent?: React.ReactNode;
@@ -65,11 +69,14 @@ export default function ShowPage<T>({
   sidebarAligned = false,
   breadcrumb,
   loadingSkeleton,
+  animatedActions = false,
   emptyRedirectTo,
   mobileContent,
   children,
 }: ShowPageProps<T>) {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+  // De onde partiu o clique em Excluir: a confirmação voa dali e volta para lá.
+  const [deleteOrigin, setDeleteOrigin] = useState<{ x: number; y: number } | null>(null);
   // Com `mobileContent` (mesmo `null` enquanto carrega), monta só a árvore do viewport (sem duplicar DOM escondido por CSS).
   const showDesktop = mobileContent === undefined || isDesktop;
 
@@ -87,7 +94,12 @@ export default function ShowPage<T>({
           description={description}
           backUrl={backUrl}
           editUrl={allowMutations ? editUrl : undefined}
-          onDelete={allowMutations && !hideHeaderDelete ? () => setIsDeleteModalOpen(true) : undefined}
+          onDelete={allowMutations && !hideHeaderDelete ? (event) => {
+            const box = event.currentTarget.getBoundingClientRect();
+            setDeleteOrigin({ x: box.left + box.width / 2, y: box.top + box.height / 2 });
+            setIsDeleteModalOpen(true);
+          } : undefined}
+          dropActions={animatedActions}
           deleteDisabled={deleteDisabled}
           deleteHint={deleteHint}
           sidebarAligned={sidebarAligned}
@@ -111,7 +123,11 @@ export default function ShowPage<T>({
           {showDesktop && children}
 
           {allowMutations && (
+            <AnimatePresence>
+            {isDeleteModalOpen && (
             <ConfirmationModal
+              animated={animatedActions}
+              origin={deleteOrigin}
               isOpen={isDeleteModalOpen}
               onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
               onConfirm={onDelete}
@@ -133,6 +149,8 @@ export default function ShowPage<T>({
                 </p>
               )}
             </ConfirmationModal>
+            )}
+            </AnimatePresence>
           )}
         </>
       )}

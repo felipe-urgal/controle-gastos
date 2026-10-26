@@ -1,5 +1,7 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { CARD_EASE, CARD_VIEWPORT, reducedTransition } from '@/app/components/ui/motion';
 import { FaCalendarWeek } from 'react-icons/fa';
 import { Button } from '@/app/components/ui';
 
@@ -27,6 +29,8 @@ export function PeriodicSummaryCard({
   showValues: boolean;
   onRetry?: () => void;
 }) {
+  const reduce = useReducedMotion();
+
   if (loading) {
     return (
       <section className="ds-panel p-4 sm:p-5" aria-label="Carregando resumo semanal">
@@ -52,7 +56,14 @@ export function PeriodicSummaryCard({
   const { content: summary, generatedAt } = state.summary;
 
   return (
-    <section className="ds-panel p-4 sm:p-5" aria-labelledby="periodic-summary-title">
+    <motion.section
+      className="ds-panel p-4 sm:p-5"
+      aria-labelledby="periodic-summary-title"
+      initial={{ opacity: 0, y: 16, filter: 'blur(10px)' }}
+      whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      viewport={CARD_VIEWPORT}
+      transition={reducedTransition(reduce, { duration: 0.7, ease: CARD_EASE })}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--primary)]">
@@ -108,6 +119,6 @@ export function PeriodicSummaryCard({
           </div>
         </div>
       )}
-    </section>
+    </motion.section>
   );
 }

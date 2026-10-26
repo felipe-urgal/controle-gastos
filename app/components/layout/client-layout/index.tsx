@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, MotionConfig } from 'framer-motion';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 
@@ -107,6 +108,7 @@ export default function ClientLayout({
   }
 
   return (
+    <MotionConfig reducedMotion="user">
     <div
       className="authenticated-shell min-h-screen w-full bg-[var(--background)] text-[var(--foreground)]"
       data-sidebar-collapsed={sidebarCollapsed ? 'true' : 'false'}
@@ -122,9 +124,10 @@ export default function ClientLayout({
         collapsed={sidebarCollapsed}
         onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
         onOpenGlobalSearch={openGlobalSearch}
+        globalSearchOpen={globalSearchOpen}
       />
 
-      <div className="min-h-screen lg:pl-[var(--app-sidebar-current-width)]">
+      <div className="min-h-screen transition-[padding-left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none lg:pl-[var(--app-sidebar-current-width)]">
         <MobileTopbar onOpenGlobalSearch={openGlobalSearch} />
 
         <main
@@ -162,9 +165,12 @@ export default function ClientLayout({
         />
       )}
 
-      {globalSearchOpen && (
-        <GlobalSearchDialog onClose={() => setGlobalSearchOpen(false)} />
-      )}
+      <AnimatePresence>
+        {globalSearchOpen && (
+          <GlobalSearchDialog onClose={() => setGlobalSearchOpen(false)} />
+        )}
+      </AnimatePresence>
     </div>
+    </MotionConfig>
   );
 }

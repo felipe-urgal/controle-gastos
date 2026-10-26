@@ -1,6 +1,6 @@
 :root {
   --app-sidebar-width: 264px;
-  --app-sidebar-collapsed-width: 76px;
+  --app-sidebar-collapsed-width: 72px;
   --app-sidebar-current-width: var(--app-sidebar-width);
   /* Bloco do logo na sidebar e faixa do título nas páginas: a linha de baixo dos dois fica na mesma altura. */
   --app-sidebar-header-height: 68px;

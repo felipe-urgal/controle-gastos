@@ -6,13 +6,16 @@ import { FaArrowLeft, FaEdit, FaPlus, FaTrash } from 'react-icons/fa';
 import PageBar, { pageBarButtonProps, type Crumb } from '@/app/components/base-pages/page-bar';
 import { pageTitleClassName } from '@/app/components/base-pages/page-title-classes';
 import { Button } from '@/app/components/ui';
+import { motion } from 'framer-motion';
+import { DropIn } from '@/app/components/ui/motion';
 
 interface PageHeaderProps {
   title?: string;
   description?: string;
   backUrl?: string;
   editUrl?: string;
-  onDelete?: () => void;
+  /** Recebe o clique, para o chamador saber de onde partiu (ex.: o diálogo de exclusão voa do botão). */
+  onDelete?: (event: React.MouseEvent<HTMLElement>) => void;
   /** Exclusão indisponível (ex.: há histórico); `deleteHint` explica o motivo. */
   deleteDisabled?: boolean;
   deleteHint?: string;
@@ -26,6 +29,10 @@ interface PageHeaderProps {
   sidebarAligned?: boolean;
   /** Níveis do breadcrumb (o último é a página atual); sem isso, só o título. */
   breadcrumb?: Crumb[];
+  /** Só com `sidebarAligned`: movimento da faixa (ver `PageBar`). */
+  animated?: boolean | 'letters' | 'trail';
+  /** Os botões de ação (Editar e Excluir) caem de cima, em sequência; as `actions` próprias usam `DropIn` por conta própria. */
+  dropActions?: boolean;
 }
 
 export default function PageHeader({
@@ -43,7 +50,11 @@ export default function PageHeader({
   isDeleting,
   sidebarAligned = false,
   breadcrumb,
+  animated = false,
+  dropActions = false,
 }: PageHeaderProps) {
+  const drop = (order: number, node: ReactNode, pulse = false) =>
+    dropActions ? <DropIn order={order} pulse={pulse}>{node}</DropIn> : node;
   const buttonProps = sidebarAligned ? pageBarButtonProps : {};
   const actionButtons = (
     <>
@@ -60,27 +71,41 @@ export default function PageHeader({
         </Button>
       )}
 
-      {editUrl && (
+      {editUrl && drop(0, (
         <Button
           as="a"
           href={editUrl}
           variant="outline"
           {...buttonProps}
-          icon={<FaEdit />}
+          icon={dropActions ? (
+            // O lápis "escreve": balança na diagonal.
+            <motion.span className="flex" variants={{ hover: { rotate: [0, -22, 16, -8, 0], x: [0, 3, -2, 0], transition: { duration: 0.55 } } }}>
+              <FaEdit />
+            </motion.span>
+          ) : (
+            <FaEdit />
+          )}
           disabled={isDeleting}
           isLoading={loading}
         >
           Editar
         </Button>
-      )}
+      ))}
 
       {actions}
 
-      {onDelete && (
+      {onDelete && drop(3, (
         <Button
           variant="danger"
           {...buttonProps}
-          icon={<FaTrash />}
+          icon={dropActions ? (
+            // A lixeira sacode.
+            <motion.span className="flex" variants={{ hover: { rotate: [0, -14, 12, -10, 8, -4, 0], transition: { duration: 0.55 } } }}>
+              <FaTrash />
+            </motion.span>
+          ) : (
+            <FaTrash />
+          )}
           onClick={onDelete}
           disabled={isDeleting || deleteDisabled}
           title={deleteDisabled ? deleteHint : undefined}
@@ -88,12 +113,12 @@ export default function PageHeader({
         >
           Excluir
         </Button>
-      )}
+      ), true)}
     </>
   );
 
   if (sidebarAligned) {
-    return <PageBar crumbs={breadcrumb ?? [{ label: title ?? '' }]} actions={actionButtons} />;
+    return <PageBar crumbs={breadcrumb ?? [{ label: title ?? '' }]} actions={actionButtons} animated={animated} />;
   }
 
   return (

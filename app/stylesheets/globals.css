@@ -137,45 +137,6 @@ select optgroup {
 }
 
 /* Menu "Mais" do mobile: o painel cresce da barra inferior (mesma largura, sem vão) e some do mesmo jeito. */
-@keyframes moreMenuIn {
-  from { opacity: 0; transform: translateY(18px) scaleY(0.9); }
-  to { opacity: 1; transform: translateY(0) scaleY(1); }
-}
-
-@keyframes moreMenuOut {
-  from { opacity: 1; transform: translateY(0) scaleY(1); }
-  to { opacity: 0; transform: translateY(18px) scaleY(0.9); }
-}
-
-@keyframes moreBackdropIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes moreBackdropOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .more-menu-panel {
-    transform-origin: bottom center;
-    animation: moreMenuIn var(--motion-slow) cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  }
-
-  .more-menu-panel[data-state="closed"] {
-    animation: moreMenuOut var(--motion-normal) var(--ease-standard) both;
-  }
-
-  .more-menu-backdrop {
-    animation: moreBackdropIn var(--motion-slow) var(--ease-standard) both;
-  }
-
-  .more-menu-backdrop[data-state="closed"] {
-    animation: moreBackdropOut var(--motion-normal) var(--ease-standard) both;
-  }
-}
-
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
@@ -437,4 +398,28 @@ body {
 /* Elementos já marcados com tabular-nums mostram valores (dinheiro, quantidades): mesma fonte numérica. */
 .tabular-nums {
   font-family: var(--font-numeric), ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+/* Troca de tema com revelação circular: o novo tema é recortado por cima do antigo (theme-transition.ts). */
+.theme-reveal::view-transition-old(root),
+.theme-reveal::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+.theme-reveal::view-transition-old(root) {
+  z-index: 1;
+}
+
+.theme-reveal::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* Inverso (mobile, escuro → claro): o tema antigo fica por cima e encolhe até o botão. */
+.theme-reveal-inverse::view-transition-old(root) {
+  z-index: 2;
+}
+
+.theme-reveal-inverse::view-transition-new(root) {
+  z-index: 1;
 }

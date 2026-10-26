@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import {
   useCallback,
   useEffect,
@@ -11,24 +12,52 @@ import {
 
 interface ChipProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
   selected?: boolean;
+  /** Quando vários chips compartilham o mesmo id, o destaque do selecionado desliza de um para o outro. */
+  layoutId?: string;
   children: ReactNode;
 }
 
 /** Pílula de filtro/aba (botão alternável, 44px de altura de toque). */
-export function Chip({ selected = false, className = '', children, ...props }: ChipProps) {
-  return (
+export function Chip({ selected = false, layoutId, className = '', children, ...props }: ChipProps) {
+  const sliding = Boolean(layoutId) && selected;
+
+  const button = (
     <button
       type="button"
       aria-pressed={selected}
-      className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:cursor-not-allowed disabled:opacity-50 ${
-        selected
+      className={`relative isolate inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:cursor-not-allowed disabled:opacity-50 ${
+        sliding
+          ? 'border-transparent font-semibold text-[var(--primary)]'
+          : selected
           ? 'border-[var(--primary)] bg-[var(--primary-subtle)] font-semibold text-[var(--primary)]'
           : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]'
       } ${className}`}
       {...props}
     >
+      {sliding && (
+        <motion.span
+          aria-hidden="true"
+          layoutId={layoutId}
+          transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+          className="absolute inset-0 -z-10 rounded-full border border-[var(--primary)] bg-[var(--primary-subtle)]"
+        />
+      )}
       {children}
     </button>
+  );
+
+  // Chips com destaque deslizante (`layoutId`) também "achatam" ao passar o mouse, como uma gota.
+  if (!layoutId) return button;
+
+  return (
+    <motion.span
+      className="inline-flex shrink-0"
+      whileHover={{ scaleX: 1.06, scaleY: 0.94 }}
+      whileTap={{ scaleX: 0.96, scaleY: 1.04 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 16 }}
+    >
+      {button}
+    </motion.span>
   );
 }
 

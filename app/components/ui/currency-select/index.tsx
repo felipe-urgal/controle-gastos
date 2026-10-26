@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { FaChevronDown } from 'react-icons/fa';
 
 import ListboxSelect from '@/app/components/ui/listbox-select';
@@ -33,7 +34,7 @@ export default function CurrencySelect({
   }));
 
   return (
-    <div className={`shrink-0 ${className}`}>
+    <motion.div className={`shrink-0 ${className}`} whileHover="hover">
       <ListboxSelect
         ariaLabel={ariaLabel}
         value={value}
@@ -43,9 +44,18 @@ export default function CurrencySelect({
         triggerClassName="flex min-h-11 w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
         menuClassName="min-w-[9rem]"
       >
-        <span className="truncate">{labelOf(value)}</span>
-        <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
+        {/* Ao passar o mouse, o símbolo faz um flip vertical e o chevron gira. */}
+        <motion.span
+          className="truncate"
+          style={{ transformPerspective: 400 }}
+          variants={{ hover: { rotateX: [0, 360], transition: { duration: 0.6, ease: 'easeInOut' } } }}
+        >
+          {labelOf(value)}
+        </motion.span>
+        <motion.span className="flex shrink-0" variants={{ hover: { rotate: 180 } }} transition={{ type: 'spring', stiffness: 400, damping: 20 }}>
+          <FaChevronDown className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+        </motion.span>
       </ListboxSelect>
-    </div>
+    </motion.div>
   );
 }

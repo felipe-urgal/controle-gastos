@@ -1,14 +1,45 @@
 'use client';
 
+import { motion, useReducedMotion, type TargetAndTransition, type Transition } from 'framer-motion';
 import Link from 'next/link';
 import { ReactNode, useState } from 'react';
 import { FaArrowDown, FaArrowRight, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronRight, FaClock, FaCreditCard, FaExchangeAlt } from 'react-icons/fa';
 import { Button, IconRenderer, MoneyText, Select } from '@/app/components/ui';
+import { CARD_EASE, CARD_VIEWPORT, CountUp, reducedTransition } from '@/app/components/ui/motion';
 import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
 import { MonthBar, TimelineGroup, TimelineOrder, compactMonth, displayMoney, formatTransactionAmount, formatTransactionTime, monthTitle, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
 import { StatusPill } from '@/app/components/pages/transactions/index/transaction-dialogs';
+
+type SummaryTone = 'income' | 'expense' | 'primary' | 'scheduled';
+
+const MotionLink = motion.create(Link);
+type Entry = { initial: TargetAndTransition; animate: TargetAndTransition; transition: Transition };
+
+/** Ícone de cada card de resumo: a seta de entrada sobe, a de saída cai, o saldo cresce e o relógio gira. */
+const iconEntry: Record<SummaryTone, Entry> = {
+  income: { initial: { y: 16, opacity: 0 }, animate: { y: 0, opacity: 1 }, transition: { type: 'spring', stiffness: 300, damping: 16, delay: 0.1 } },
+  expense: { initial: { y: -16, opacity: 0 }, animate: { y: 0, opacity: 1 }, transition: { type: 'spring', stiffness: 380, damping: 9, delay: 0.2 } },
+  primary: { initial: { scale: 0.4, opacity: 0 }, animate: { scale: 1, opacity: 1 }, transition: { type: 'spring', stiffness: 420, damping: 14, delay: 0.3 } },
+  scheduled: { initial: { rotate: -360, opacity: 0 }, animate: { rotate: 0, opacity: 1 }, transition: { duration: 0.9, ease: CARD_EASE, delay: 0.4 } },
+};
+
+/** Valor de cada card: Entradas conta até o número (CountUp, à parte); os demais têm o seu. */
+const amountEntry: Record<SummaryTone, Entry> = {
+  income: { initial: {}, animate: {}, transition: {} },
+  expense: { initial: { y: '-110%' }, animate: { y: 0 }, transition: { type: 'spring', stiffness: 320, damping: 18, delay: 0.25 } },
+  primary: { initial: { scale: 0.7, opacity: 0 }, animate: { scale: 1, opacity: 1 }, transition: { type: 'spring', stiffness: 380, damping: 14, delay: 0.35 } },
+  scheduled: { initial: { opacity: 0, filter: 'blur(10px)' }, animate: { opacity: 1, filter: 'blur(0px)' }, transition: { duration: 0.7, ease: CARD_EASE, delay: 0.45 } },
+};
+
+/** Hover de cada card de resumo: o card, o ícone e o valor reagem de um jeito próprio por tom. */
+const cardHover: Record<SummaryTone, { card: TargetAndTransition; icon: TargetAndTransition; amount: TargetAndTransition; glow: string }> = {
+  income: { card: { y: -3 }, icon: { y: [0, -6, 0] }, amount: { y: -2 }, glow: 'hover:shadow-[0_10px_26px_-14px_var(--income)]' },
+  expense: { card: { y: 3 }, icon: { y: [0, 6, 0] }, amount: { y: 2 }, glow: 'hover:shadow-[0_10px_26px_-14px_var(--expense)]' },
+  primary: { card: { scale: 1.02 }, icon: { scale: [1, 1.25, 1] }, amount: { scale: 1.05 }, glow: 'hover:shadow-[0_10px_26px_-14px_var(--primary)]' },
+  scheduled: { card: { y: -2 }, icon: { rotate: 360 }, amount: { x: 3 }, glow: 'hover:shadow-[0_10px_26px_-14px_var(--primary)]' },
+};
 
 export function MonthSummaryCard({
   label,
@@ -22,6 +53,7 @@ export function MonthSummaryCard({
   detailDirection = 'flat',
   status = 'ready',
   detailLoading = false,
+  countUp,
 }: {
   label: string;
   count?: number;
@@ -36,7 +68,10 @@ export function MonthSummaryCard({
   status?: 'ready' | 'loading' | 'refreshing';
   /** Só o comparativo com o mês anterior ainda está carregando. */
   detailLoading?: boolean;
+  /** Entradas: o valor sobe de zero até este número (só com valores visíveis). */
+  countUp?: { value: number; format: (amount: number) => string };
 }) {
+  const reduce = useReducedMotion();
   const skeleton = 'block animate-pulse rounded-[var(--radius-sm)] bg-[var(--skeleton)]';
   const loading = status === 'loading';
   const cardTone =
@@ -69,12 +104,35 @@ export function MonthSummaryCard({
         : 'text-[var(--text-muted)]';
 
   return (
-    <article
-      className={`min-h-[138px] rounded-[var(--radius-lg)] border p-4 ${cardTone}`}
+    <motion.article
+      className={`min-h-[138px] rounded-[var(--radius-lg)] border p-4 transition-shadow ${cardHover[tone].glow} ${cardTone}`}
       aria-busy={status !== 'ready'}
+      whileHover="hover"
+      whileTap={{ scale: 0.98 }}
+      variants={{ hover: { ...cardHover[tone].card, transition: { type: 'spring', stiffness: 420, damping: 24 } } }}
     >
       <div className="flex items-start gap-3">
-        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg ${iconTone}`}>{icon}</span>
+        <span className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg ${iconTone}`}>
+          {tone === 'primary' && !reduce && (
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-full border-2 border-[var(--primary)]"
+              initial={{ scale: 1, opacity: 0.6 }}
+              animate={{ scale: 2.4, opacity: 0 }}
+              transition={{ duration: 1.1, ease: 'easeOut', delay: 0.3 }}
+            />
+          )}
+          <motion.span className="flex" variants={{ hover: { ...cardHover[tone].icon, transition: { duration: 0.6, ease: 'easeInOut' } } }}>
+            <motion.span
+              className="flex"
+              initial={iconEntry[tone].initial}
+              animate={iconEntry[tone].animate}
+              transition={reducedTransition(reduce, iconEntry[tone].transition)}
+            >
+              {icon}
+            </motion.span>
+          </motion.span>
+        </span>
         <div className={`min-w-0 flex-1 transition-opacity duration-150 ${status === 'refreshing' ? 'opacity-50' : ''}`}>
           <h2 className="text-sm font-bold text-[var(--foreground)]">{label}</h2>
           <p className="mt-0.5 min-h-4 text-xs text-[var(--text-muted)]">
@@ -89,7 +147,22 @@ export function MonthSummaryCard({
           {loading ? (
             <span className={`${skeleton} mt-2 h-8 w-36`} aria-hidden="true" />
           ) : (
-            <strong className={`money mt-2 block text-2xl font-extrabold tracking-tight ${amountTone}`}>{amount}</strong>
+            <motion.span className="mt-2 block" variants={{ hover: { ...cardHover[tone].amount, transition: { type: 'spring', stiffness: 400, damping: 16 } } }}>
+            <span className="block overflow-hidden">
+              {tone === 'income' && countUp ? (
+                <CountUp amount={countUp.value} format={countUp.format} className={`money block text-2xl font-extrabold tracking-tight ${amountTone}`} />
+              ) : (
+                <motion.strong
+                  className={`money block text-2xl font-extrabold tracking-tight ${amountTone}`}
+                  initial={amountEntry[tone].initial}
+                  animate={amountEntry[tone].animate}
+                  transition={reducedTransition(reduce, amountEntry[tone].transition)}
+                >
+                  {amount}
+                </motion.strong>
+              )}
+            </span>
+            </motion.span>
           )}
           {!detail && !loading && !detailLoading ? null : loading || detailLoading ? (
             <span className={`${skeleton} mt-2 h-3 w-32`} aria-hidden="true" />
@@ -109,7 +182,7 @@ export function MonthSummaryCard({
           )}
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
@@ -134,6 +207,8 @@ export function MovementTimeline({
   hasMore: boolean;
   onLoadMore: () => void;
 }) {
+  const reduce = useReducedMotion();
+
   return (
     <article className="min-h-[620px] rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -166,12 +241,33 @@ export function MovementTimeline({
         </div>
       ) : (
         <div className="relative mt-5">
-          <span className="absolute bottom-8 left-[15px] top-5 hidden w-px border-l border-dashed border-[var(--primary)]/45 md:block" aria-hidden="true" />
+          {/* A linha tracejada se desenha de cima para baixo. */}
+          <motion.span
+            className="absolute bottom-8 left-[15px] top-5 hidden w-px origin-top border-l border-dashed border-[var(--primary)]/45 md:block"
+            aria-hidden="true"
+            initial={{ scaleY: 0 }}
+            animate={{ scaleY: 1 }}
+            transition={reducedTransition(reduce, { duration: 1.4, ease: CARD_EASE })}
+          />
           <div className="space-y-3">
-            {groups.map((group) => (
-              <div key={group.key} className="grid gap-2 md:grid-cols-[145px_minmax(0,1fr)] md:gap-3">
+            {groups.map((group, groupIndex) => (
+              // O grupo (visível) observa a viewport; o marcador e as linhas só herdam a animação.
+              <motion.div
+                key={group.key}
+                className="grid gap-2 md:grid-cols-[145px_minmax(0,1fr)] md:gap-3"
+                initial="hidden"
+                whileInView="shown"
+                viewport={CARD_VIEWPORT}
+                whileHover="groupHover"
+              >
                 <div className="relative flex items-start gap-3 md:pl-10">
-                  <span className="absolute left-[5px] top-1.5 hidden h-5 w-5 rounded-full border-[6px] border-[var(--primary)] bg-[var(--surface)] md:block" aria-hidden="true" />
+                  {/* Ao passar o mouse no dia, o marcador da linha pulsa. */}
+                  <motion.span
+                    className="absolute left-[5px] top-1.5 hidden h-5 w-5 rounded-full border-[6px] border-[var(--primary)] bg-[var(--surface)] md:block"
+                    aria-hidden="true"
+                    variants={{ hidden: { scale: 0 }, shown: { scale: 1 }, groupHover: { scale: [1, 1.35, 1], transition: { duration: 0.5 } } }}
+                    transition={reducedTransition(reduce, { type: 'spring', stiffness: 500, damping: 12, delay: Math.min(groupIndex, 6) * 0.12 })}
+                  />
                   <div>
                     <p className="text-sm font-bold text-[var(--foreground)]">{group.primaryLabel}</p>
                     {(group.primaryLabel === 'Hoje' || group.primaryLabel === 'Ontem') && (
@@ -179,7 +275,11 @@ export function MovementTimeline({
                     )}
                   </div>
                 </div>
-                <div className="space-y-2">
+                <motion.div
+                  className="space-y-2"
+                  variants={{ hidden: { opacity: 0, y: 10 }, shown: { opacity: 1, y: 0 } }}
+                  transition={reducedTransition(reduce, { duration: 0.45, ease: CARD_EASE, delay: Math.min(groupIndex, 6) * 0.12 + 0.1 })}
+                >
                   {group.items.map((transaction) => (
                     <TimelineTransactionRow
                       key={transaction.id}
@@ -187,23 +287,30 @@ export function MovementTimeline({
                       showValues={showValues}
                     />
                   ))}
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             ))}
           </div>
         </div>
       )}
 
       {hasMore && !loading && (
-        <Button
-          variant="secondary"
-          onClick={onLoadMore}
-          icon={<FaChevronDown aria-hidden="true" />}
-          iconPosition="right"
-          className="mx-auto mt-4 w-full max-w-[520px]"
-        >
-          Ver mais transações
-        </Button>
+        <motion.div className="mx-auto mt-4 w-full max-w-[520px]" whileHover="hover" whileTap={{ scale: 0.98 }}>
+          <Button
+            variant="secondary"
+            onClick={onLoadMore}
+            icon={
+              // O chevron quica para baixo.
+              <motion.span className="flex" variants={{ hover: { y: [0, 5, -2, 0], transition: { duration: 0.5 } } }}>
+                <FaChevronDown aria-hidden="true" />
+              </motion.span>
+            }
+            iconPosition="right"
+            className="w-full"
+          >
+            Ver mais transações
+          </Button>
+        </motion.div>
       )}
     </article>
   );
@@ -230,14 +337,22 @@ export function TimelineTransactionRow({
   const iconColor = isTransfer || isCardPayment ? 'var(--primary)' : '#ffffff';
 
   return (
-    <Link
+    <MotionLink
       href={`/transacoes/show/${transaction.id}`}
       aria-label={`Abrir transação ${transaction.description || 'Sem descrição'}`}
+      whileHover="hover"
+      whileTap={{ scale: 0.985 }}
+      variants={{ hover: { x: 4, transition: { type: 'spring', stiffness: 420, damping: 24 } } }}
       className="grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_110px_88px_24px] sm:gap-3"
     >
-      <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)]" style={{ backgroundColor: iconBackground, color: iconColor }}>
+      {/* O ícone da categoria pula. */}
+      <motion.span
+        className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)]"
+        style={{ backgroundColor: iconBackground, color: iconColor }}
+        variants={{ hover: { y: [0, -7, 0], scale: [1, 1.12, 1], transition: { duration: 0.5 } } }}
+      >
         {isTransfer ? <FaExchangeAlt aria-hidden="true" /> : isCardPayment ? <FaCreditCard aria-hidden="true" /> : <IconRenderer iconName={transaction.category?.icon || (isIncome ? 'income-up' : 'tag')} size={16} />}
-      </span>
+      </motion.span>
       <span className="min-w-0">
         <strong className="block truncate text-sm text-[var(--foreground)]">{transaction.description || 'Sem descrição'}</strong>
         <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
@@ -254,7 +369,7 @@ export function TimelineTransactionRow({
         {transaction.status !== 'COMPLETED' && <StatusPill status={transaction.status} />}
       </span>
       <FaChevronRight className="col-start-3 row-start-1 justify-self-center text-xs text-[var(--text-muted)] sm:col-start-auto sm:row-start-auto" aria-hidden="true" />
-    </Link>
+    </MotionLink>
   );
 }
 
@@ -273,6 +388,7 @@ export function MonthOverview({
   showValues: boolean;
   balanceTrend: number | null;
 }) {
+  const reduce = useReducedMotion();
   const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
   const activeBar = activeBarIndex === null ? null : bars[activeBarIndex];
   const positive = summary.balance >= 0;
@@ -290,7 +406,10 @@ export function MonthOverview({
     <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <header className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Visão do mês</h2>
-        <Link href="/dashboard" className="text-xs font-semibold text-[var(--primary)]">Ver relatório →</Link>
+        <MotionLink href="/dashboard" whileHover="hover" className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--primary)]">
+          Ver relatório
+          <motion.span aria-hidden="true" className="inline-block" variants={{ hover: { x: 5 } }} transition={{ type: 'spring', stiffness: 400, damping: 14 }}>→</motion.span>
+        </MotionLink>
       </header>
 
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)_135px] items-end gap-4">
@@ -309,7 +428,7 @@ export function MonthOverview({
               'Passe o cursor ou toque numa coluna.'
             )}
           </p>
-          <div
+          <motion.div
             role="group"
             aria-label="Saldo por trecho do mês"
             tabIndex={0}
@@ -320,6 +439,9 @@ export function MonthOverview({
               } else if (event.key === 'Escape') setActiveBarIndex(null);
             }}
             onPointerLeave={(event) => event.pointerType === 'mouse' && setActiveBarIndex(null)}
+            initial="hidden"
+            whileInView="shown"
+            viewport={CARD_VIEWPORT}
             className="grid h-[92px] grid-cols-8 items-end gap-1.5 border-b border-[var(--border)] px-1 pb-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           >
             {bars.map((bar, index) => {
@@ -331,51 +453,66 @@ export function MonthOverview({
                     ? 'bg-[var(--expense)]'
                     : 'bg-[var(--surface-subtle)]';
               return (
-                <span
+                <motion.span
                   key={index}
                   className="flex h-full min-w-0 cursor-pointer items-end justify-center border-x border-[var(--border)]/25"
+                  style={{ transformOrigin: 'bottom' }}
+                  // Onda: a coluna sob o cursor sobe mais e as vizinhas sobem cada vez menos.
+                  animate={{ scaleY: activeBarIndex === null ? 1 : 1 + 0.14 / (1 + Math.abs(activeBarIndex - index) ** 2) }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 18 }}
                   onPointerEnter={(event) => event.pointerType === 'mouse' && setActiveBarIndex(index)}
                   onPointerDown={() => setActiveBarIndex(index)}
                 >
-                  <span
+                  <motion.span
                     className={`w-[68%] rounded-t-sm transition-opacity ${tone} ${activeBarIndex !== null && activeBarIndex !== index ? 'opacity-45' : ''}`}
-                    style={{ height }}
+                    variants={{ hidden: { height: 0 }, shown: { height } }}
+                    transition={reducedTransition(reduce, { type: 'spring', stiffness: 300, damping: 8, delay: index * 0.07 })}
                     role="img"
                     aria-label={`Dias ${bar.fromDay} a ${bar.toDay}`}
                   />
-                </span>
+                </motion.span>
               );
             })}
-          </div>
+          </motion.div>
         </div>
 
         <div className="space-y-3 pb-1">
-          <div className="flex items-start gap-2">
-            <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--income)]" />
+          <motion.div className="flex items-start gap-2" whileHover="hover">
+            <motion.span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--income)]" variants={{ hover: { scale: [1, 1.7, 1], transition: { duration: 0.5 } } }} />
             <div>
               <strong className="block text-base text-[var(--income)]"><span className="money">{displayMoney(summary.income, showValues, summary.currency)}</span></strong>
               <span className="text-xs text-[var(--text-muted)]">Entradas</span>
             </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-[3px] border-[var(--expense)]" />
+          </motion.div>
+          <motion.div className="flex items-start gap-2" whileHover="hover">
+            <motion.span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-[3px] border-[var(--expense)]" variants={{ hover: { scale: [1, 1.7, 1], transition: { duration: 0.5 } } }} />
             <div>
               <strong className="block text-base text-[var(--expense)]"><span className="money">{displayMoney(summary.expense, showValues, summary.currency)}</span></strong>
               <span className="text-xs text-[var(--text-muted)]">Saídas</span>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--primary-subtle)] text-[var(--primary)]">
-          <FaChartLine aria-hidden="true" />
+      <motion.div
+        className="mt-4 flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={CARD_VIEWPORT}
+        whileHover="hover"
+        transition={reducedTransition(reduce, { type: 'spring', stiffness: 260, damping: 20, delay: 0.7 })}
+      >
+        <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--primary-subtle)] text-[var(--primary)]">
+          {/* O gráfico "sobe": sai por cima e reentra por baixo. */}
+          <motion.span className="flex" variants={{ hover: { y: ['0%', '-140%', '140%', '0%'], opacity: [1, 0, 0, 1], transition: { duration: 0.6, times: [0, 0.4, 0.41, 1] } } }}>
+            <FaChartLine aria-hidden="true" />
+          </motion.span>
         </span>
         <div>
           <strong className="block text-sm">{insightTitle}</strong>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]"><MoneyText>{insightText}</MoneyText></p>
         </div>
-      </div>
+      </motion.div>
     </article>
   );
 }
@@ -389,16 +526,21 @@ export function UpcomingTransactions({
   showValues: boolean;
   onViewAll: () => void;
 }) {
+  const reduce = useReducedMotion();
+
   return (
-    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
+    <article className="flex h-full flex-col rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <header className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Próximos lançamentos</h2>
-        <Link href="/calendario" className="text-xs font-semibold text-[var(--primary)]">Ver calendário →</Link>
+        <MotionLink href="/calendario" whileHover="hover" className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--primary)]">
+          Ver calendário
+          <motion.span aria-hidden="true" className="inline-block" variants={{ hover: { x: 5 } }} transition={{ type: 'spring', stiffness: 400, damping: 14 }}>→</motion.span>
+        </MotionLink>
       </header>
 
-      <div className="mt-3 divide-y divide-[var(--border)]">
+      <div className="mt-3 flex-1 divide-y divide-[var(--border)]">
         {items.length === 0 ? (
-          <div className="grid min-h-[210px] place-items-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)] px-4 text-center">
+          <div className="grid h-full min-h-[210px] place-items-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)] px-4 text-center">
             <div>
               <FaCalendarAlt className="mx-auto text-xl text-[var(--primary)]" aria-hidden="true" />
               <p className="mt-2 text-sm font-bold">Nenhum lançamento agendado</p>
@@ -406,17 +548,28 @@ export function UpcomingTransactions({
             </div>
           </div>
         ) : (
-          items.slice(0, 4).map((transaction) => (
-            <Link
+          items.slice(0, 4).map((transaction, index) => (
+            <MotionLink
               key={transaction.id}
               href={`/transacoes/show/${transaction.id}`}
               aria-label={`Abrir transação ${transaction.description || 'Sem descrição'}`}
+              whileHover="hover"
+              whileTap={{ scale: 0.985 }}
               className="grid min-h-[62px] w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-2 px-1 py-2 text-left transition-colors hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_36px_minmax(0,1fr)_auto] sm:px-0"
             >
-              <span className="grid h-11 w-11 place-content-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] text-center">
+              {/* A data balança de leve, como um carimbo assentando. */}
+              <motion.span className="flex" variants={{ hover: { rotate: [0, -9, 8, -4, 0], transition: { duration: 0.55 } } }}>
+              <motion.span
+                className="grid h-11 w-11 place-content-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] text-center"
+                initial={{ scale: 1.8, rotate: -14, opacity: 0 }}
+                whileInView={{ scale: 1, rotate: 0, opacity: 1 }}
+                viewport={CARD_VIEWPORT}
+                transition={reducedTransition(reduce, { type: 'spring', stiffness: 420, damping: 13, delay: index * 0.12 })}
+              >
                 <strong className="text-sm leading-none">{String(transaction.day).padStart(2, '0')}</strong>
                 <span className="mt-1 text-xs font-semibold uppercase text-[var(--text-muted)]">{compactMonth(transaction.month, transaction.year)}</span>
-              </span>
+              </motion.span>
+              </motion.span>
               <span
                 className="hidden h-9 w-9 place-items-center rounded-full text-white sm:grid"
                 style={{ backgroundColor: transaction.category?.color || 'var(--primary)' }}
@@ -430,27 +583,37 @@ export function UpcomingTransactions({
                 </span>
               </span>
               <span className="col-start-2 flex min-w-0 items-center justify-between gap-2 sm:col-start-auto sm:grid sm:shrink-0 sm:justify-items-end sm:gap-1">
-                <strong className={`text-xs ${transaction.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}>
+                <motion.strong
+                  className={`text-xs ${transaction.type === 'INCOME' ? 'text-[var(--income)]' : 'text-[var(--expense)]'}`}
+                  style={{ transformOrigin: 'right center' }}
+                  variants={{ hover: { scale: 1.12, transition: { type: 'spring', stiffness: 420, damping: 14 } } }}
+                >
                   {formatTransactionAmount(transaction, showValues)}
-                </strong>
+                </motion.strong>
                 <span className="flex items-center gap-2">
                   <span className="text-xs text-[var(--text-muted)]">{scheduledDistanceLabel(transaction)}</span>
                   <span className="rounded-full bg-[var(--primary-subtle)] px-2 py-1 text-xs font-bold text-[var(--primary)]">Agendada</span>
                 </span>
               </span>
-            </Link>
+            </MotionLink>
           ))
         )}
       </div>
 
       {items.length > 0 && (
-        <button
+        <motion.button
           type="button"
           onClick={onViewAll}
-          className="mt-3 flex min-h-11 sm:min-h-9 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold hover:bg-[var(--surface-hover)]"
+          whileHover="hover"
+          whileTap={{ scale: 0.98 }}
+          className="mt-3 flex min-h-11 sm:min-h-9 w-full items-center justify-center gap-2 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 text-xs font-semibold hover:bg-[var(--surface-hover)]"
         >
-          Ver todos os agendados ({items.length}) <FaArrowRight aria-hidden="true" />
-        </button>
+          Ver todos os agendados ({items.length})
+          {/* A seta atravessa o botão: sai pela direita e reentra pela esquerda. */}
+          <motion.span className="flex" variants={{ hover: { x: [0, 26, -26, 0], opacity: [1, 0, 0, 1], transition: { duration: 0.6, times: [0, 0.4, 0.41, 1] } } }}>
+            <FaArrowRight aria-hidden="true" />
+          </motion.span>
+        </motion.button>
       )}
     </article>
   );

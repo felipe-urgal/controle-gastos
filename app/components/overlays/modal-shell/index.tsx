@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useId, useRef, type ReactNode } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { FaTimes } from 'react-icons/fa';
 
 import { useModalFocus } from '@/app/hooks/use-modal-focus';
@@ -38,6 +39,8 @@ export function ModalShell({
   variant = 'sheet',
   sectionClassName = '',
   icon,
+  animated = false,
+  origin = null,
 }: {
   title: string;
   children: ReactNode;
@@ -65,7 +68,24 @@ export function ModalShell({
   sectionClassName?: string;
   /** Ícone ao lado do título (decorativo). */
   icon?: ReactNode;
+  /**
+   * Liga o movimento do diálogo (o chamador precisa envolvê-lo em `AnimatePresence` para a saída): fundo com
+   * fade e blur, cabeçalho e rodapé que entram em sequência. Em ≥ sm ele voa do `origin` (centro do botão que
+   * o abriu) e volta para lá ao fechar; no celular a folha sobe de baixo.
+   */
+  animated?: boolean;
+  /** Centro do botão que abriu o diálogo, em px da janela; sem ele o diálogo só sobe e escala de leve. */
+  origin?: { x: number; y: number } | null;
 }) {
+  const reduce = useReducedMotion();
+  // De onde o diálogo parte (e para onde volta): calculado uma vez, na abertura.
+  const [flight] = useState(() => {
+    if (!animated) return null;
+    const small = window.matchMedia('(max-width: 639px)').matches;
+    if (small) return { y: '100%', opacity: 1 };
+    if (!origin) return { y: 24, scale: 0.96, opacity: 0 };
+    return { x: origin.x - window.innerWidth / 2, y: origin.y - window.innerHeight / 2, scale: 0.2, opacity: 0 };
+  });
   const titleId = useId();
   const descriptionId = useId();
   const onCloseRef = useRef(onClose);
@@ -95,7 +115,10 @@ export function ModalShell({
       : 'max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top)))]';
 
   return (
-    <div
+    <motion.div
+      initial={animated ? { opacity: 0, backdropFilter: 'blur(0px)' } : undefined}
+      animate={animated ? { opacity: 1, backdropFilter: reduce ? 'blur(0px)' : 'blur(4px)', transition: { duration: 0.25 } } : undefined}
+      exit={animated ? { opacity: 0, backdropFilter: 'blur(0px)', transition: { duration: 0.2 } } : undefined}
       data-overlay-hide-nav={hideBottomNav || undefined}
       className={`fixed inset-0 z-[var(--z-modal)] flex ${fullscreen ? 'items-stretch' : 'items-end'} justify-center bg-[var(--overlay)] ${fullscreen ? 'px-0' : 'px-3'} ${topInset} ${sidePanel ? 'sm:items-stretch sm:justify-end sm:p-0' : 'sm:items-center sm:p-5'}`}
       onMouseDown={(event) => {
@@ -108,8 +131,11 @@ export function ModalShell({
         pressedBackdrop.current = false;
       }}
     >
-      <section
+      <motion.section
         ref={dialogRef}
+        initial={flight ?? undefined}
+        animate={flight ? { x: 0, y: 0, scale: 1, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 28 } } : undefined}
+        exit={flight ? { ...flight, transition: { duration: 0.22, ease: 'easeIn' } } : undefined}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
@@ -118,7 +144,12 @@ export function ModalShell({
         aria-busy={closeDisabled || undefined}
         className={`flex w-full ${maxWidthClass} ${sectionSize} flex-col overflow-hidden rounded-t-[22px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-elevated)] outline-none ${sidePanel ? '' : 'sm:rounded-[var(--radius-lg)]'} ${sectionClassName}`}
       >
-        <header className="flex shrink-0 items-start justify-between gap-4 px-5 pb-5 pt-5">
+        <motion.header
+          initial={animated ? { opacity: 0, y: -8 } : undefined}
+          animate={animated ? { opacity: 1, y: 0 } : undefined}
+          transition={{ duration: 0.3, delay: 0.12 }}
+          className="flex shrink-0 items-start justify-between gap-4 px-5 pb-5 pt-5"
+        >
           {icon && <span className="mr-3 shrink-0" aria-hidden="true">{icon}</span>}
           <div className="min-w-0 flex-1">
             {eyebrow && (
@@ -144,18 +175,23 @@ export function ModalShell({
           >
             <FaTimes aria-hidden="true" />
           </button>
-        </header>
+        </motion.header>
         <div
           className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 ${footer ? 'pb-5' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom))]'}`}
         >
           {children}
         </div>
         {footer && (
-          <footer className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
+          <motion.footer
+            initial={animated ? { opacity: 0, y: 16 } : undefined}
+            animate={animated ? { opacity: 1, y: 0 } : undefined}
+            transition={{ duration: 0.3, delay: 0.3 }}
+            className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4"
+          >
             {footer}
-          </footer>
+          </motion.footer>
         )}
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
