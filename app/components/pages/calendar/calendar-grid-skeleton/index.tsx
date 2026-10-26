@@ -3,7 +3,7 @@
 export default function CalendarGridSkeleton() {
   return (
     <div
-      className="grid grid-cols-7 auto-rows-[7.5rem] animate-pulse border-l border-t border-[var(--border)]"
+      className="grid grid-cols-7 auto-rows-[7.5rem] -mb-px -mr-px animate-pulse"
       aria-hidden="true"
     >
       {Array.from({ length: 35 }).map((_, index) => (

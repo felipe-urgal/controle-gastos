@@ -132,7 +132,7 @@ export default function CalendarGrid({
       className={
         compact
           ? 'grid grid-cols-7 gap-0 py-2'
-          : 'grid grid-cols-7 auto-rows-[7.5rem] border-l border-t border-[var(--border)]'
+          : 'grid grid-cols-7 auto-rows-[7.5rem] -mb-px -mr-px'
       }
       aria-label="Dias do mês"
     >
