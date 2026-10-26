@@ -1,7 +1,6 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { useState } from 'react';
 import { CARD_EASE, reducedTransition } from '@/app/components/ui/motion';
 import Link from 'next/link';
 
@@ -58,10 +57,9 @@ function StepMark({ done }: { done: boolean }) {
 
 const MotionLink = motion.create(Link);
 
-/** Passo do "Comece por aqui": ao passar o mouse, o aro faz pop e o check se redesenha. */
+/** Passo do "Comece por aqui": ao passar o mouse, o aro faz pop. */
 function StepLink({ step }: { step: GettingStartedStep }) {
   const reduce = useReducedMotion();
-  const [redraw, setRedraw] = useState(0);
 
   return (
     <li>
@@ -69,11 +67,10 @@ function StepLink({ step }: { step: GettingStartedStep }) {
         href={step.href}
         whileHover="hover"
         whileTap={{ scale: 0.98 }}
-        onHoverStart={() => setRedraw((count) => count + 1)}
         className="flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 text-sm font-semibold transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
       >
         <motion.span className="flex" variants={{ hover: { scale: [1, 1.3, 1], transition: { duration: 0.45 } } }}>
-          <StepMark key={redraw} done={step.done} />
+          <StepMark done={step.done} />
         </motion.span>
         <span className={`relative ${step.done ? 'text-[var(--text-muted)]' : ''}`}>
           {step.label}

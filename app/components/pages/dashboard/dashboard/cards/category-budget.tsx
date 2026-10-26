@@ -46,14 +46,11 @@ export function CategoryBudgetBar({
   showValues,
   currency,
   delay = 0,
-  refillKey = 0,
 }: {
   limit: DashboardCategoryLimit;
   showValues: boolean;
   currency: string;
   delay?: number;
-  /** Muda a cada hover da linha: remonta a barra, que preenche de novo com o brilho. */
-  refillKey?: number;
 }) {
   const { percent, tone } = categoryBudgetState(limit);
 
@@ -64,7 +61,7 @@ export function CategoryBudgetBar({
         role="img"
         aria-label={`${Math.round(percent)}% do orçamento de ${limit.category.name} consumido`}
       >
-        <FillBar key={refillKey} percent={percent} className={barTone[tone]} delay={delay} />
+        <FillBar percent={percent} className={barTone[tone]} delay={delay} />
       </div>
       <p className={`mt-1 truncate text-xs ${textTone[tone]}`}>
         <span className="money">{Math.round(percent)}%</span> de <span className="money">{displayMoney(limit.amount, showValues, currency)}</span>

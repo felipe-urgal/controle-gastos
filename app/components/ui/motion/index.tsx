@@ -52,6 +52,7 @@ export function DropIn({ order = 0, pulse = false, children }: { order?: number;
     <motion.span
       className="relative inline-flex"
       style={{ transformPerspective: 500 }}
+      whileHover="hover"
       initial={{ y: -26, opacity: 0, rotateX: -60 }}
       animate={{ y: 0, opacity: 1, rotateX: 0 }}
       transition={reducedTransition(reduce, { type: 'spring', stiffness: 320, damping: 17, delay })}
@@ -111,5 +112,21 @@ export function Odometer({ text }: { text: string }) {
         ),
       )}
     </span>
+  );
+}
+
+/** Um brilho diagonal atravessa o botão da esquerda para a direita ao passar o mouse. */
+export function HoverSheen({ children }: { children: ReactNode }) {
+  return (
+    <motion.span className="relative inline-flex overflow-hidden rounded-full" whileHover="hover">
+      {children}
+      <motion.span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/45 to-transparent"
+        style={{ x: '-150%' }}
+        variants={{ hover: { x: '450%' } }}
+        transition={{ duration: 0.7, ease: 'easeInOut' }}
+      />
+    </motion.span>
   );
 }

@@ -30,7 +30,9 @@ function Row({ icon, label, children, filled = false }: { icon: ReactNode; label
       <FilledIcon filled={filled}>{icon}</FilledIcon>
       <span className="text-[var(--text-muted)]">{label}</span>
       {children}
-      <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+      <motion.span className="flex" variants={{ hover: { x: 4 } }} transition={{ type: 'spring', stiffness: 400, damping: 18 }}>
+        <FaChevronRight className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+      </motion.span>
     </>
   );
 }
@@ -69,8 +71,8 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
   const hasExtras = Boolean(formData.merchantId) || (formData.tagIds?.length ?? 0) > 0 || (formData.allocations?.length ?? 0) > 0 || merchantRecognition !== null;
   const submitLabel = reviewingQueueItem ? 'Confirmar nova tentativa' : isEditing ? 'Salvar alterações' : createLabel;
   const typeButtons = [
-    { type: 'EXPENSE' as const, label: 'Despesa', Icon: FaArrowDown, drop: -7 },
-    { type: 'INCOME' as const, label: 'Receita', Icon: FaArrowUp, drop: 7 },
+    { type: 'EXPENSE' as const, label: 'Despesa', Icon: FaArrowDown, drop: -7, hoverY: [0, 6, -2, 0] },
+    { type: 'INCOME' as const, label: 'Receita', Icon: FaArrowUp, drop: 7, hoverY: [0, -6, 2, 0] },
   ];
   const amountType = operationType === 'INCOME' ? 'INCOME' : 'EXPENSE';
   const reduce = useReducedMotion();
@@ -104,12 +106,13 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
           role="group"
           aria-label="Tipo da transação"
         >
-          {typeButtons.map(({ type, label, Icon, drop }) => {
+          {typeButtons.map(({ type, label, Icon, drop, hoverY }) => {
             const active = operationType === type;
 
             return (
+              <motion.span key={type} className="flex" whileHover="hover">
               <Button
-                key={type}
+                fullWidth
                 variant={active ? (type === 'EXPENSE' ? 'segmentExpense' : 'segmentIncome') : 'segment'}
                 aria-pressed={active}
                 onClick={() => handleCategoryType(type)}
@@ -121,7 +124,10 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
                     animate={active ? { y: [drop, 0] } : undefined}
                     transition={{ type: 'spring', stiffness: 500, damping: 12 }}
                   >
-                    <Icon aria-hidden="true" />
+                    {/* Ao passar o mouse, a seta faz o gesto do tipo: a de saída cai e a de entrada sobe. */}
+                    <motion.span className="flex" variants={{ hover: { y: hoverY, transition: { duration: 0.5 } } }}>
+                      <Icon aria-hidden="true" />
+                    </motion.span>
                   </motion.span>
                 }
                 className={SEGMENT_CLASS}
@@ -129,18 +135,26 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
                 {active && <SegmentPill layoutId="tx-type-pill" tone={TYPE_TONE[type]} />}
                 <span className="truncate">{label}</span>
               </Button>
+              </motion.span>
             );
           })}
           {!isEditing && (
-            <Button
-              variant="ghost"
-              onClick={onSelectTransfer}
-              disabled={loading || !onSelectTransfer}
-              icon={<FaExchangeAlt aria-hidden="true" />}
-              className={SEGMENT_CLASS}
-            >
-              <span className="truncate">Transferência</span>
-            </Button>
+            <motion.span className="flex" whileHover="hover">
+              <Button
+                fullWidth
+                variant="segment"
+                onClick={onSelectTransfer}
+                disabled={loading || !onSelectTransfer}
+                icon={
+                  <motion.span className="flex" variants={{ hover: { x: [0, -5, 5, 0], transition: { duration: 0.5 } } }}>
+                    <FaExchangeAlt aria-hidden="true" />
+                  </motion.span>
+                }
+                className={SEGMENT_CLASS}
+              >
+                <span className="truncate">Transferência</span>
+              </Button>
+            </motion.span>
           )}
         </div>
 
@@ -290,17 +304,22 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
                 ['recurring', 'Recorrente'],
                 ['installment', 'Parcelada'],
               ] as Array<[CreationMode, string]>).map(([value, label]) => (
-                <Button
-                  key={value}
-                  variant={creationMode === value ? 'segmentPrimary' : 'segment'}
-                  aria-pressed={creationMode === value}
-                  onClick={() => setCreationMode(value)}
-                  disabled={loading}
-                  className={SEGMENT_CLASS}
-                >
-                  {creationMode === value && <SegmentPill layoutId="tx-format-pill" tone="var(--primary)" />}
-                  <span className="truncate">{label}</span>
-                </Button>
+                <motion.span key={value} className="flex" whileHover="hover">
+                  <Button
+                    fullWidth
+                    variant={creationMode === value ? 'segmentPrimary' : 'segment'}
+                    aria-pressed={creationMode === value}
+                    onClick={() => setCreationMode(value)}
+                    disabled={loading}
+                    className={SEGMENT_CLASS}
+                  >
+                    {creationMode === value && <SegmentPill layoutId="tx-format-pill" tone="var(--primary)" />}
+                    {/* Ao passar o mouse, o texto "respira": o espaçamento entre as letras abre. */}
+                    <motion.span className="truncate" variants={{ hover: { letterSpacing: '0.06em' } }} transition={{ type: 'spring', stiffness: 300, damping: 18 }}>
+                      {label}
+                    </motion.span>
+                  </Button>
+                </motion.span>
               ))}
             </div>
           </div>
@@ -394,13 +413,28 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
         )}
 
         <details className="group border-y border-[var(--border)]" open={hasExtras || undefined}>
-          <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between gap-3 px-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
+          <motion.summary
+            whileHover="hover"
+            className="flex min-h-[52px] cursor-pointer list-none items-center justify-between gap-3 px-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden"
+          >
             <span>
-              <strong className="text-[var(--foreground)]">Mais detalhes</strong>
+              <strong className="relative text-[var(--foreground)]">
+                Mais detalhes
+                {/* O sublinhado se desenha da esquerda e o chevron balança. */}
+                <motion.span
+                  aria-hidden="true"
+                  className="absolute -bottom-0.5 left-0 h-px w-full origin-left bg-current"
+                  style={{ scaleX: 0 }}
+                  variants={{ hover: { scaleX: 1 } }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </strong>
               <span className="ml-2 text-xs text-[var(--text-muted)]">Estabelecimento, tags e divisão</span>
             </span>
-            <FaChevronRight className="text-xs text-[var(--text-muted)] transition-transform group-open:rotate-90" aria-hidden="true" />
-          </summary>
+            <motion.span className="flex" variants={{ hover: { rotate: [0, -14, 12, -6, 0], transition: { duration: 0.5 } } }}>
+              <FaChevronRight className="text-xs text-[var(--text-muted)] transition-transform group-open:rotate-90" aria-hidden="true" />
+            </motion.span>
+          </motion.summary>
 
           <div className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
             <ListboxSelect
@@ -446,6 +480,7 @@ export function TransactionFormView({ form }: { form: TransactionFormState }) {
         createLabel={createLabel}
         iconsOnMobile
         ready={fillProgress === 1 && !isSubmitting}
+        hoverEffects
       />
     </FormContainer>
     </motion.div>

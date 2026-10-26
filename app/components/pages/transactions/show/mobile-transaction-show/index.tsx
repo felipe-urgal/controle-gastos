@@ -411,7 +411,7 @@ export default function MobileTransactionShow({
             variants={{ hidden: {}, shown: { transition: { staggerChildren: 0.1 } } }}
           >
             {/* Os botões "pulam" para o lugar, um depois do outro. */}
-            <motion.div variants={{ hidden: { opacity: 0, scale: 0.8 }, shown: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 460, damping: 16 } } }}>
+            <motion.div whileTap={{ scale: 0.96 }} variants={{ hidden: { opacity: 0, scale: 0.8 }, shown: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 460, damping: 16 } } }}>
               <Link
                 href={`/transacoes/nova?duplicate=${encodeURIComponent(transaction.id)}`}
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-sm font-bold text-[var(--foreground)]"
@@ -419,7 +419,7 @@ export default function MobileTransactionShow({
                 <FaCopy aria-hidden="true" /> Duplicar
               </Link>
             </motion.div>
-            <motion.div variants={{ hidden: { opacity: 0, scale: 0.8 }, shown: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 460, damping: 16 } } }}>
+            <motion.div whileTap={{ scale: 0.96 }} variants={{ hidden: { opacity: 0, scale: 0.8 }, shown: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 460, damping: 16 } } }}>
               <Link
                 href={`/modelos?source=${encodeURIComponent(transaction.id)}`}
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3 text-sm font-bold text-[var(--foreground)]"

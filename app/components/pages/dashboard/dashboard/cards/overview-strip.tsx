@@ -6,22 +6,11 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { FaChevronRight } from 'react-icons/fa';
 
-import { CARD_EASE, CARD_VIEWPORT, Odometer, reducedTransition } from '@/app/components/ui/motion';
+import { CARD_EASE, CARD_VIEWPORT, reducedTransition } from '@/app/components/ui/motion';
 import { dashboardLogicalDateLabel, displayMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import type { DashboardNetWorthSummary, MonthlyDashboard } from '@/app/types/dashboard';
 
 /** Faturas abertas dos cartões: soma (mesma moeda do dashboard) e a data de vencimento mais próxima. */
-/** Valor do patrimônio: ao passar o mouse, os dígitos giram de novo como num odômetro. */
-function SpinOnHover({ text }: { text: string }) {
-  const [spin, setSpin] = useState(0);
-
-  return (
-    <strong className="money" onPointerEnter={() => setSpin((count) => count + 1)}>
-      {spin === 0 || !/\d/.test(text) ? text : <Odometer key={spin} text={text} />}
-    </strong>
-  );
-}
-
 export function summarizeCardStatements(cards: MonthlyDashboard['cards']) {
   const open = cards.flatMap((card) => (card.nextStatement && card.nextStatement.amount > 0 ? [card.nextStatement] : []));
   if (open.length === 0) return null;
@@ -197,7 +186,7 @@ export function OverviewStrip({
         ) : netWorth.data?.total === null || netWorth.data?.total === undefined ? (
           <span className="text-[var(--text-muted)]">Sem saldo realizado</span>
         ) : (
-          <SpinOnHover text={money(netWorth.data.total)} />
+          <strong className="money">{money(netWorth.data.total)}</strong>
         )}
       </Tile>
     </section>

@@ -112,14 +112,17 @@ export function FillRail({ progress, type }: { progress: number; type: FormKind 
 /** Valor escolhido num campo: ao mudar, entra com um pequeno "pop". */
 export function Pop({ valueKey, className = '', children }: { valueKey: string; className?: string; children: ReactNode }) {
   return (
-    <motion.span
-      key={valueKey}
-      className={`truncate text-right font-medium text-[var(--foreground)] ${className}`}
-      initial={{ opacity: 0, scale: 0.9, y: 4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 520, damping: 22 }}
-    >
-      {children}
+    // Ao passar o mouse na linha, o valor escolhido sobe 2px (o "pop" de quando muda fica no filho).
+    <motion.span className="min-w-0 text-right" variants={{ hover: { y: -2 } }}>
+      <motion.span
+        key={valueKey}
+        className={`block truncate font-medium text-[var(--foreground)] ${className}`}
+        initial={{ opacity: 0, scale: 0.9, y: 4 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 520, damping: 22 }}
+      >
+        {children}
+      </motion.span>
     </motion.span>
   );
 }
@@ -140,7 +143,7 @@ const rowLine = {
 /** Linha de campo: entra pela esquerda e o divisor de cima se desenha. */
 export function RowItem({ first = false, children }: { first?: boolean; children: ReactNode }) {
   return (
-    <motion.div className="relative" variants={rowItem}>
+    <motion.div className="relative" variants={rowItem} whileHover="hover">
       {!first && <motion.span aria-hidden="true" className="absolute inset-x-0 top-0 h-px origin-left bg-[var(--border)]" variants={rowLine} />}
       {children}
     </motion.div>
@@ -158,7 +161,10 @@ export function FilledIcon({ filled, children }: { filled: boolean; children: Re
       transition={{ duration: 0.4 }}
       aria-hidden="true"
     >
-      {children}
+      {/* Ao passar o mouse na linha, o ícone gira de leve. */}
+      <motion.span className="flex" variants={{ hover: { rotate: [0, -18, 14, 0], transition: { duration: 0.5 } } }}>
+        {children}
+      </motion.span>
     </motion.span>
   );
 }

@@ -6,6 +6,7 @@ import { FaArrowLeft, FaEdit, FaPlus, FaTrash } from 'react-icons/fa';
 import PageBar, { pageBarButtonProps, type Crumb } from '@/app/components/base-pages/page-bar';
 import { pageTitleClassName } from '@/app/components/base-pages/page-title-classes';
 import { Button } from '@/app/components/ui';
+import { motion } from 'framer-motion';
 import { DropIn } from '@/app/components/ui/motion';
 
 interface PageHeaderProps {
@@ -76,7 +77,14 @@ export default function PageHeader({
           href={editUrl}
           variant="outline"
           {...buttonProps}
-          icon={<FaEdit />}
+          icon={dropActions ? (
+            // O lápis "escreve": balança na diagonal.
+            <motion.span className="flex" variants={{ hover: { rotate: [0, -22, 16, -8, 0], x: [0, 3, -2, 0], transition: { duration: 0.55 } } }}>
+              <FaEdit />
+            </motion.span>
+          ) : (
+            <FaEdit />
+          )}
           disabled={isDeleting}
           isLoading={loading}
         >
@@ -90,7 +98,14 @@ export default function PageHeader({
         <Button
           variant="danger"
           {...buttonProps}
-          icon={<FaTrash />}
+          icon={dropActions ? (
+            // A lixeira sacode.
+            <motion.span className="flex" variants={{ hover: { rotate: [0, -14, 12, -10, 8, -4, 0], transition: { duration: 0.55 } } }}>
+              <FaTrash />
+            </motion.span>
+          ) : (
+            <FaTrash />
+          )}
           onClick={onDelete}
           disabled={isDeleting || deleteDisabled}
           title={deleteDisabled ? deleteHint : undefined}

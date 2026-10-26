@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { Button } from '@/app/components/ui';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -52,6 +53,8 @@ function draftAmountLabel(amount: number) {
     maximumFractionDigits: 2,
   }).format(amount / 100);
 }
+
+const MotionLink = motion.create(Link);
 
 export default function New({
   duplicateId,
@@ -376,13 +379,16 @@ export default function New({
         >
           <span className="shrink-0 text-sm font-semibold text-[var(--text-muted)]">Modelos</span>
           {favoriteTemplates.map((template) => (
-            <Link
+            <MotionLink
               key={template.id}
               href={`/transacoes/nova?template=${encodeURIComponent(template.id)}`}
+              // Ao passar o mouse, o chip "quica" como uma bolinha.
+              whileHover={{ y: [0, -7, 0, -3, 0], transition: { duration: 0.55, ease: 'easeOut' } }}
+              whileTap={{ scale: 0.95 }}
               className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-hover)]"
             >
               {template.name}
-            </Link>
+            </MotionLink>
           ))}
         </nav>
       )}

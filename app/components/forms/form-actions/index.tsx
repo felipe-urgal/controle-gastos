@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { FaSave, FaSpinner, FaTimes } from 'react-icons/fa';
 
 import { Button, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { HoverSheen } from '@/app/components/ui/motion';
 
 interface FormActionsProps {
   isEditing: boolean;
@@ -15,6 +16,8 @@ interface FormActionsProps {
   iconsOnMobile?: boolean;
   /** Formulário pronto para enviar: o botão principal ganha um anel que respira. */
   ready?: boolean;
+  /** Hover dos botões: o X do Cancelar gira 90° e um brilho atravessa o botão principal. */
+  hoverEffects?: boolean;
 }
 
 /** Anel que pulsa em volta do botão enquanto o formulário está pronto. */
@@ -46,31 +49,45 @@ export default function FormActions({
   disabled = false,
   iconsOnMobile = false,
   ready = false,
+  hoverEffects = false,
 }: FormActionsProps) {
+  const cancelIcon = hoverEffects ? (
+    <motion.span className="flex" variants={{ hover: { rotate: 90 } }} transition={{ type: 'spring', stiffness: 400, damping: 14 }}>
+      <FaTimes />
+    </motion.span>
+  ) : (
+    <FaTimes />
+  );
+  const wrapCancel = (node: ReactNode) => (hoverEffects ? <motion.span className="inline-flex" whileHover="hover">{node}</motion.span> : node);
+  const sheen = (node: ReactNode) => (hoverEffects ? <HoverSheen>{node}</HoverSheen> : node);
   const submitText = isEditing ? submitLabel : createLabel;
   const submitIcon = loading ? <FaSpinner className="animate-spin" /> : <FaSave />;
 
   const regular = (
     <div className="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:justify-end">
-      <Button
-        type="button"
-        onClick={onCancel}
-        variant="outline"
-        disabled={loading}
-        icon={<FaTimes />}
-      >
-        Cancelar
-      </Button>
+      {wrapCancel(
+        <Button
+          type="button"
+          onClick={onCancel}
+          variant="outline"
+          disabled={loading}
+          icon={cancelIcon}
+        >
+          Cancelar
+        </Button>,
+      )}
 
       <ReadyGlow ready={ready}>
-        <Button
-          type="submit"
-          disabled={loading || disabled}
-          isLoading={loading}
-          icon={submitIcon}
-        >
-          {loading ? (isEditing ? 'Salvando...' : 'Criando...') : submitText}
-        </Button>
+        {sheen(
+          <Button
+            type="submit"
+            disabled={loading || disabled}
+            isLoading={loading}
+            icon={submitIcon}
+          >
+            {loading ? (isEditing ? 'Salvando...' : 'Criando...') : submitText}
+          </Button>,
+        )}
       </ReadyGlow>
     </div>
   );

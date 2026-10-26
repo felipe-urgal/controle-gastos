@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useAnimationControls, useReducedMotion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Link from 'next/link';
@@ -49,6 +49,8 @@ function TypeGlyph({ kind, children }: { kind: 'expense' | 'income' | 'transfer'
   );
 }
 
+const MotionLink = motion.create(Link);
+
 const rowStack = { hidden: {}, shown: { transition: { staggerChildren: 0.08, delayChildren: 0.55 } } };
 const rowItem = { hidden: { opacity: 0, x: -10 }, shown: { opacity: 1, x: 0, transition: { duration: 0.35, ease: CARD_EASE } } };
 
@@ -57,6 +59,8 @@ export default function TransactionInfo({
   isDeleting = false,
 }: TransactionInfoProps) {
   const reduce = useReducedMotion();
+  // Hover do ícone do tipo: dá uma volta completa.
+  const spin = useAnimationControls();
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const transactionDate = new Date(transaction.year, transaction.month - 1, transaction.day);
@@ -111,10 +115,13 @@ export default function TransactionInfo({
             initial={{ scale: 1.9, rotate: -18, opacity: 0 }}
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 420, damping: 15, delay: 0.1 }}
+            onHoverStart={() => void spin.start({ rotate: [0, 360], transition: { duration: 0.6, ease: 'easeInOut' } })}
           >
-            <TypeGlyph kind={isTransfer ? 'transfer' : isCardPayment ? 'card' : isIncome ? 'income' : 'expense'}>
-              {isTransfer ? <FaExchangeAlt /> : isCardPayment ? <FaCreditCard /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
-            </TypeGlyph>
+            <motion.span className="flex" animate={spin}>
+              <TypeGlyph kind={isTransfer ? 'transfer' : isCardPayment ? 'card' : isIncome ? 'income' : 'expense'}>
+                {isTransfer ? <FaExchangeAlt /> : isCardPayment ? <FaCreditCard /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
+              </TypeGlyph>
+            </motion.span>
           </motion.span>
           <div className="min-w-0">
             <h2 id="transaction-detail-heading" className="break-words text-xl font-bold tracking-tight">
@@ -125,6 +132,7 @@ export default function TransactionInfo({
                 className={`mr-2 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold ${status.color}`}
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
+                whileHover={{ scale: [1, 1.2, 1], transition: { duration: 0.4, delay: 0 } }}
                 transition={{ type: 'spring', stiffness: 500, damping: 14, delay: 0.3 }}
               >
                 {transaction.status === 'PENDING' && !reduce && (
@@ -250,7 +258,8 @@ export default function TransactionInfo({
 
             {isNormal && transaction.category && (
               <Row label="Categoria">
-                <Link href={`/categorias/show/${transaction.category.id}`} className={`${linkClassName} inline-flex min-w-0 items-center gap-2`}>
+                <MotionLink href={`/categorias/show/${transaction.category.id}`} whileHover="hover" className={`${linkClassName} inline-flex min-w-0 items-center gap-2`}>
+                  <motion.span className="flex" variants={{ hover: { scale: 1.35, rotate: 14 } }} transition={{ type: 'spring', stiffness: 500, damping: 12 }}>
                   <motion.span
                     className="flex"
                     initial={{ scale: 0, rotate: -30 }}
@@ -259,9 +268,10 @@ export default function TransactionInfo({
                   >
                     <IconRenderer iconName={transaction.category.icon || 'tag'} size={16} color={transaction.category.color} />
                   </motion.span>
+                  </motion.span>
                   <span className="break-words">{transaction.category.name}</span>
                   <LinkUnderline />
-                </Link>
+                </MotionLink>
               </Row>
             )}
 
@@ -274,6 +284,7 @@ export default function TransactionInfo({
                       className="rounded-full bg-[var(--surface-subtle)] px-2 py-0.5 text-xs"
                       initial={{ scale: 0, rotate: -12 }}
                       animate={{ scale: 1, rotate: 0 }}
+                      whileHover={{ y: -3, rotate: 6, transition: { type: 'spring', stiffness: 500, damping: 14, delay: 0 } }}
                       transition={{ type: 'spring', stiffness: 500, damping: 14, delay: 1.05 + tagIndex * 0.08 }}
                     >
                       #{tag.name}
@@ -295,16 +306,18 @@ export default function TransactionInfo({
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <motion.div className="flex justify-between gap-4" variants={rowItem}>
-      <dt className="shrink-0 text-[var(--text-muted)]">{label}</dt>
-      <dd className="min-w-0 break-words text-right font-semibold">{children}</dd>
+    <motion.div className="flex justify-between gap-4" variants={rowItem} whileHover="hover">
+      {/* Ao passar o mouse, o rótulo se afasta e o valor ganha destaque. */}
+      <motion.dt className="shrink-0 text-[var(--text-muted)]" variants={{ hover: { x: -4, opacity: 0.65 } }}>{label}</motion.dt>
+      <motion.dd className="min-w-0 break-words text-right font-semibold" style={{ transformOrigin: 'right center' }} variants={{ hover: { scale: 1.04 } }} transition={{ type: 'spring', stiffness: 400, damping: 18 }}>{children}</motion.dd>
     </motion.div>
   );
 }
 
 function AccountLabel({ account, href }: { account: TransactionAccountDTO; href: string }) {
   return (
-    <Link href={href} className={`${linkClassName} inline-flex min-w-0 items-center gap-2`}>
+    <MotionLink href={href} whileHover="hover" className={`${linkClassName} inline-flex min-w-0 items-center gap-2`}>
+      <motion.span className="flex shrink-0" variants={{ hover: { scale: 1.3 } }} transition={{ type: 'spring', stiffness: 500, damping: 12 }}>
       <motion.span
         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
         style={{ backgroundColor: account.color ?? 'var(--surface-subtle)' }}
@@ -314,8 +327,9 @@ function AccountLabel({ account, href }: { account: TransactionAccountDTO; href:
       >
         <IconRenderer iconName={account.icon || 'wallet'} size={13} className="text-white" />
       </motion.span>
+      </motion.span>
       <span className="break-words">{account.name} · {account.currency}</span>
       <LinkUnderline />
-    </Link>
+    </MotionLink>
   );
 }

@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
 import { SectionMessage } from '@/app/components/pages/dashboard/dashboard/cards/section-message';
 import Link from 'next/link';
 import { IconRenderer } from '@/app/components/ui';
@@ -14,7 +13,7 @@ const MotionLink = motion.create(Link);
 
 type CategoryItem = MonthlyDashboard['categories'][number];
 
-/** Linha de categoria: ao passar o mouse, a barra "recarrega" do zero com o brilho e o ícone gira. */
+/** Linha de categoria: ao passar o mouse, o ícone gira. */
 function CategoryRow({
   category,
   limit,
@@ -28,14 +27,11 @@ function CategoryRow({
   showValues: boolean;
   currency: string;
 }) {
-  const [refill, setRefill] = useState(0);
-
   return (
     <MotionLink
       href={`/categorias/show/${encodeURIComponent(category.id)}`}
       whileHover="hover"
       whileTap={{ scale: 0.985 }}
-      onHoverStart={() => setRefill((count) => count + 1)}
       className="block rounded-[var(--radius-md)] py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
     >
       <span className="flex min-h-8 items-center justify-between gap-3">
@@ -53,11 +49,11 @@ function CategoryRow({
       </span>
       <span className="mt-1.5 block pl-[38px]">
         {limit ? (
-          <CategoryBudgetBar limit={limit} showValues={showValues} currency={currency} delay={index * 0.1} refillKey={refill} />
+          <CategoryBudgetBar limit={limit} showValues={showValues} currency={currency} delay={index * 0.1} />
         ) : (
           <span className="flex items-center gap-3">
             <span className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
-              <FillBar key={refill} percent={category.sharePercentage} className="bg-[var(--primary)]" delay={index * 0.1} />
+              <FillBar percent={category.sharePercentage} className="bg-[var(--primary)]" delay={index * 0.1} />
             </span>
             <span className="w-12 text-right text-xs font-semibold text-[var(--text-muted)]">{category.sharePercentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
           </span>

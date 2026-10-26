@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FaCamera, FaCheck, FaTimes } from 'react-icons/fa';
 
@@ -271,15 +272,25 @@ export default function ReceiptOcrScanner({
       />
 
       {!isProcessing && !result ? (
-        <Button
-          ref={pickerButtonRef}
-          variant="outline"
-          onClick={openPicker}
-          disabled={disabled}
-          icon={<FaCamera aria-hidden="true" />}
-        >
-          Ler recibo
-        </Button>
+        <motion.span className="relative block overflow-hidden rounded-full" whileHover="hover">
+          <Button
+            ref={pickerButtonRef}
+            variant="outline"
+            fullWidth
+            onClick={openPicker}
+            disabled={disabled}
+            icon={<FaCamera aria-hidden="true" />}
+          >
+            Ler recibo
+          </Button>
+          {/* Ao passar o mouse, uma linha de leitura varre o botão, como num scanner. */}
+          <motion.span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-1 w-0.5 rounded-full bg-[var(--primary)] shadow-[0_0_10px_var(--primary)]"
+            style={{ left: '0%', opacity: 0 }}
+            variants={{ hover: { left: ['0%', '100%'], opacity: [0, 1, 1, 0], transition: { duration: 0.9, ease: 'easeInOut' } } }}
+          />
+        </motion.span>
       ) : null}
 
       {isProcessing ? (
