@@ -26,12 +26,12 @@ export function PayrollYearOverview({
   const money = (cents: number | null) => payrollMoney(cents, showValues);
 
   return (
-    <section aria-labelledby="payroll-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="payroll-hero-label" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div>
         <p id="payroll-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">
           Líquido recebido em {year}
         </p>
-        <strong className="money mt-2 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+        <strong className="money mt-2 block break-words text-3xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
           {money(totals.netPaidCents)}
         </strong>
         <p className="mt-3 text-sm text-[var(--text-muted)]">
@@ -41,11 +41,13 @@ export function PayrollYearOverview({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-2 sm:gap-3 ${totals.reviewCount > 0 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         <Stat label="Renda bruta" value={money(totals.grossCents)} detail={`em ${totals.grossKnownCount} ${totals.grossKnownCount === 1 ? 'competência' : 'competências'}`} />
         <Stat label="IRRF retido" value={money(totals.irrfCents)} detail={totals.irrfMissingCount > 0 ? `${totals.irrfMissingCount} sem valor` : 'todas informadas'} />
-        <Stat label="Média líquida" value={money(totals.averageNetCents)} detail="das competências conhecidas" />
-        <Stat label="Para revisar" value={String(totals.reviewCount)} detail={totals.reviewCount === 1 ? 'competência' : 'competências'} />
+        <Stat label="Média líquida" value={money(totals.averageNetCents)} detail="das competências conhecidas" className={totals.reviewCount === 0 ? 'col-span-2 lg:col-span-1' : ''} />
+        {totals.reviewCount > 0 && (
+          <Stat label="Para revisar" value={String(totals.reviewCount)} detail={totals.reviewCount === 1 ? 'competência' : 'competências'} />
+        )}
       </div>
 
       {hasMore && (
@@ -59,11 +61,11 @@ export function PayrollYearOverview({
   );
 }
 
-function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
+function Stat({ label, value, detail, className = '' }: { label: string; value: string; detail: string; className?: string }) {
   return (
-    <div className="grid min-w-0 gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3">
-      <span className="text-sm font-semibold text-[var(--text-muted)]">{label}</span>
-      <span className="money break-words text-lg font-semibold sm:text-xl">{value}</span>
+    <div className={`grid min-w-0 content-start gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-3 sm:px-3.5 ${className}`}>
+      <span className="truncate text-xs font-semibold text-[var(--text-muted)] sm:text-sm">{label}</span>
+      <span className="money truncate text-base font-semibold sm:text-xl">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
     </div>
   );

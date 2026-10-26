@@ -1,6 +1,6 @@
 'use client';
 
-import { FaRedo } from 'react-icons/fa';
+import { FaChevronDown, FaRedo } from 'react-icons/fa';
 
 import { Button } from '@/app/components/ui';
 import {
@@ -41,22 +41,25 @@ export function DocumentHistoryPanel({
   onNext: () => void;
 }) {
   return (
-    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] p-4 sm:p-5">
-        <div>
-          <h2 className="text-lg font-bold text-[var(--foreground)]">
-            Documentos importados
-          </h2>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Histórico paginado; cada versão continua separada e auditável.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={onRetry}
-          disabled={loading}
-          icon={<FaRedo aria-hidden="true" />}
-        >
+    <details className="group overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
+      <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
+        <span>
+          <span className="block text-lg font-bold text-[var(--foreground)]">Documentos importados</span>
+          <span className="block text-xs text-[var(--text-muted)]">
+            Histórico de cada holerite importado; cada versão continua separada e auditável.
+          </span>
+        </span>
+        <span className="flex items-center gap-3">
+          {!loading && !result.pageInfo.hasMore && (
+            <span className="rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--text-muted)]">
+              {result.items.length}
+            </span>
+          )}
+          <FaChevronDown className="text-xs text-[var(--text-muted)] transition-transform group-open:rotate-180" aria-hidden="true" />
+        </span>
+      </summary>
+      <div className="flex justify-end border-t border-[var(--border)] px-4 py-2 sm:px-5">
+        <Button variant="outline" size="sm" onClick={onRetry} disabled={loading} icon={<FaRedo aria-hidden="true" />}>
           Atualizar
         </Button>
       </div>
@@ -145,7 +148,7 @@ export function DocumentHistoryPanel({
         </div>
       )}
 
-      {!loading && (page > 1 || result.pageInfo.hasMore) && (
+      {!loading && !result.pageInfo.hasMore && (page > 1 || result.pageInfo.hasMore) && (
         <div className="p-4">
           <Pagination
             page={page}
@@ -155,6 +158,6 @@ export function DocumentHistoryPanel({
           />
         </div>
       )}
-    </section>
+    </details>
   );
 }
