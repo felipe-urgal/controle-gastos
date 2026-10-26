@@ -56,11 +56,26 @@ export function RecentTransactionsCard({
               <MotionLink
                 key={transaction.id}
                 href={`/transacoes/show/${transaction.id}`}
-                className="block"
+                className="relative block"
                 initial="hidden"
                 whileInView="shown"
                 viewport={CARD_VIEWPORT}
+                whileHover="hover"
+                whileTap={{ scale: 0.985 }}
+                // O foco de luz segue o mouse dentro da linha.
+                onMouseMove={(event) => {
+                  const box = event.currentTarget.getBoundingClientRect();
+                  event.currentTarget.style.setProperty('--mx', `${event.clientX - box.left}px`);
+                  event.currentTarget.style.setProperty('--my', `${event.clientY - box.top}px`);
+                }}
               >
+                <motion.span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-[var(--radius-md)]"
+                  style={{ opacity: 0, background: 'radial-gradient(150px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--primary) 16%, transparent), transparent 70%)' }}
+                  variants={{ hover: { opacity: 1 } }}
+                  transition={{ duration: 0.2 }}
+                />
                 {/* O recorte fica no filho: um elemento totalmente recortado nunca conta como visível para o whileInView. */}
                 <motion.div
                   className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5"

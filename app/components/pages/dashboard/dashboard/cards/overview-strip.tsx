@@ -1,15 +1,27 @@
 'use client';
 
-import { motion, useMotionValue, useReducedMotion, useSpring } from 'framer-motion';
+import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring } from 'framer-motion';
+import { useState } from 'react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { FaChevronRight } from 'react-icons/fa';
 
-import { CARD_EASE, CARD_VIEWPORT, reducedTransition } from '@/app/components/ui/motion';
+import { CARD_EASE, CARD_VIEWPORT, Odometer, reducedTransition } from '@/app/components/ui/motion';
 import { dashboardLogicalDateLabel, displayMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import type { DashboardNetWorthSummary, MonthlyDashboard } from '@/app/types/dashboard';
 
 /** Faturas abertas dos cartões: soma (mesma moeda do dashboard) e a data de vencimento mais próxima. */
+/** Valor do patrimônio: ao passar o mouse, os dígitos giram de novo como num odômetro. */
+function SpinOnHover({ text }: { text: string }) {
+  const [spin, setSpin] = useState(0);
+
+  return (
+    <strong className="money" onPointerEnter={() => setSpin((count) => count + 1)}>
+      {spin === 0 || !/\d/.test(text) ? text : <Odometer key={spin} text={text} />}
+    </strong>
+  );
+}
+
 export function summarizeCardStatements(cards: MonthlyDashboard['cards']) {
   const open = cards.flatMap((card) => (card.nextStatement && card.nextStatement.amount > 0 ? [card.nextStatement] : []));
   if (open.length === 0) return null;
@@ -39,6 +51,8 @@ function Tile({ href, label, effect, children }: { href: string; label: string; 
   const rotateX = useSpring(tiltX, { stiffness: 220, damping: 18 });
   const rotateY = useSpring(tiltY, { stiffness: 220, damping: 18 });
   const tilt = effect === 'tilt' && !reduce;
+  // Metas: uma ondulação sai do ponto por onde o mouse entrou.
+  const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
 
   return (
     <motion.div
@@ -58,6 +72,14 @@ function Tile({ href, label, effect, children }: { href: string; label: string; 
                 const box = event.currentTarget.getBoundingClientRect();
                 tiltY.set(((event.clientX - box.left) / box.width - 0.5) * 10);
                 tiltX.set(-((event.clientY - box.top) / box.height - 0.5) * 10);
+              }
+            : undefined
+        }
+        onPointerEnter={
+          effect === 'mask' && !reduce
+            ? (event) => {
+                const box = event.currentTarget.getBoundingClientRect();
+                setRipple({ x: event.clientX - box.left, y: event.clientY - box.top, id: Date.now() });
               }
             : undefined
         }
@@ -89,6 +111,21 @@ function Tile({ href, label, effect, children }: { href: string; label: string; 
           )}
         </span>
         <FaChevronRight className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
+        <AnimatePresence>
+          {ripple && (
+            <motion.span
+              key={ripple.id}
+              aria-hidden="true"
+              className="pointer-events-none absolute h-10 w-10 rounded-full bg-[var(--primary)]"
+              style={{ left: ripple.x - 20, top: ripple.y - 20 }}
+              initial={{ scale: 0, opacity: 0.3 }}
+              animate={{ scale: 14, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              onAnimationComplete={() => setRipple(null)}
+            />
+          )}
+        </AnimatePresence>
         {effect === 'shimmer' && !reduce && (
           <motion.span
             aria-hidden="true"
@@ -160,7 +197,7 @@ export function OverviewStrip({
         ) : netWorth.data?.total === null || netWorth.data?.total === undefined ? (
           <span className="text-[var(--text-muted)]">Sem saldo realizado</span>
         ) : (
-          <strong className="money">{money(netWorth.data.total)}</strong>
+          <SpinOnHover text={money(netWorth.data.total)} />
         )}
       </Tile>
     </section>

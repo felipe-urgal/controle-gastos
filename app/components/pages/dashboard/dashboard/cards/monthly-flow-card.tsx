@@ -102,7 +102,9 @@ export function MonthlyFlowCard({
             >
               <div className={`flex h-full w-full max-w-12 items-end justify-center gap-1 transition-opacity ${dim ? 'opacity-45' : ''}`}>
                 <motion.span
-                  className="block w-1/2 rounded-t-md bg-[var(--income)]"
+                  className="block w-1/2 rounded-t-md bg-[var(--income)] transition-shadow hover:shadow-[0_0_14px_var(--income)]"
+                  style={{ transformOrigin: 'bottom' }}
+                  whileHover={{ scaleY: 1.06, filter: 'brightness(1.18)' }}
                   initial={{ height: 0 }}
                   whileInView={{ height: `${bar.incomeHeight}%` }}
                   viewport={CARD_VIEWPORT}
@@ -111,7 +113,9 @@ export function MonthlyFlowCard({
                   aria-label={`${bar.label}: entrou ${displayMoney(bar.income, showValues, currency)}`}
                 />
                 <motion.span
-                  className={`block w-1/2 rounded-t-md bg-[var(--expense)] ${bar.current && partial ? 'opacity-60' : ''}`}
+                  className={`block w-1/2 rounded-t-md bg-[var(--expense)] transition-shadow hover:shadow-[0_0_14px_var(--expense)] ${bar.current && partial ? 'opacity-60' : ''}`}
+                  style={{ transformOrigin: 'bottom' }}
+                  whileHover={{ scaleY: 1.06, filter: 'brightness(1.18)' }}
                   initial={{ height: 0 }}
                   whileInView={{ height: `${bar.expenseHeight}%` }}
                   viewport={CARD_VIEWPORT}

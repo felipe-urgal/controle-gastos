@@ -8,11 +8,13 @@ import { FaCheckCircle, FaChevronRight, FaExclamationCircle, FaInfoCircle } from
 
 import type { AttentionItem, AttentionTone } from '@/app/components/pages/dashboard/dashboard/dashboard-attention';
 
-const toneStyles: Record<AttentionTone, { box: string; Icon: typeof FaInfoCircle }> = {
-  urgent: { box: 'bg-[var(--danger-subtle)] text-[var(--expense)]', Icon: FaExclamationCircle },
-  warning: { box: 'bg-[var(--warning-subtle)] text-[var(--warning)]', Icon: FaExclamationCircle },
-  info: { box: 'bg-[var(--primary-subtle)] text-[var(--primary)]', Icon: FaInfoCircle },
+const toneStyles: Record<AttentionTone, { box: string; accent: string; Icon: typeof FaInfoCircle }> = {
+  urgent: { box: 'bg-[var(--danger-subtle)] text-[var(--expense)]', accent: 'bg-[var(--expense)]', Icon: FaExclamationCircle },
+  warning: { box: 'bg-[var(--warning-subtle)] text-[var(--warning)]', accent: 'bg-[var(--warning)]', Icon: FaExclamationCircle },
+  info: { box: 'bg-[var(--primary-subtle)] text-[var(--primary)]', accent: 'bg-[var(--primary)]', Icon: FaInfoCircle },
 };
+
+const MotionLink = motion.create(Link);
 
 export function AttentionCard({
   items,
@@ -56,7 +58,7 @@ export function AttentionCard({
       ) : (
         <ul className="mt-3 space-y-2">
           {items.map((item, index) => {
-            const { box, Icon } = toneStyles[item.tone];
+            const { box, accent, Icon } = toneStyles[item.tone];
             const urgent = item.tone === 'urgent';
             const content = (
               <>
@@ -75,7 +77,10 @@ export function AttentionCard({
                     animate={urgent && !reduce ? { rotate: [0, -14, 12, -8, 0] } : undefined}
                     transition={reducedTransition(reduce, { duration: 0.6, delay: 0.5 + index * 0.1 })}
                   >
-                    <Icon aria-hidden="true" />
+                    {/* Ao passar o mouse, o ícone chacoalha. */}
+                    <motion.span className="flex" variants={{ hover: { rotate: [0, -18, 16, -10, 6, 0], transition: { duration: 0.55 } } }}>
+                      <Icon aria-hidden="true" />
+                    </motion.span>
                   </motion.span>
                 </span>
                 <span className="min-w-0 flex-1">
@@ -103,12 +108,22 @@ export function AttentionCard({
                 transition={reducedTransition(reduce, { type: 'spring', stiffness: 360, damping: 30, delay: 0.1 + index * 0.09 })}
               >
                 {item.href ? (
-                  <Link
+                  <MotionLink
                     href={item.href}
-                    className={`${className} transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]`}
+                    whileHover="hover"
+                    whileTap={{ scale: 0.985 }}
+                    className={`${className} relative overflow-hidden transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]`}
                   >
+                    {/* Uma borda lateral na cor do alerta "acende" de baixo para cima. */}
+                    <motion.span
+                      aria-hidden="true"
+                      className={`absolute inset-y-0 left-0 w-[3px] origin-bottom ${accent}`}
+                      style={{ scaleY: 0 }}
+                      variants={{ hover: { scaleY: 1 } }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                    />
                     {content}
-                  </Link>
+                  </MotionLink>
                 ) : (
                   <div className={className}>{content}</div>
                 )}

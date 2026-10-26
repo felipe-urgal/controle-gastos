@@ -11,6 +11,8 @@ import { TransactionDTO } from '@/app/types/transaction';
 import { MobileQuickFilter, TimelineGroup, displayMoney, formatTransactionAmount, formatTransactionTime, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
 import { TransactionTags } from '@/app/components/pages/transactions/index/desktop-transactions';
 
+const MotionLink = motion.create(Link);
+
 export function MobileTransactionsPrototype2({
   month,
   year,
@@ -400,9 +402,10 @@ export function MobileTransactionRow({
     : transaction.category?.color || 'var(--surface-subtle)';
 
   return (
-    <Link
+    <MotionLink
       href={`/transacoes/show/${transaction.id}`}
       aria-label={`Abrir transação ${transaction.description || 'Sem descrição'}`}
+      whileTap={{ scale: 0.98 }}
       className="grid min-h-[56px] w-full grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2.5 py-1.5 text-left"
     >
       <span className="grid h-9 w-9 place-items-center rounded-full text-white" style={{ backgroundColor: iconBackground }}>
@@ -429,6 +432,6 @@ export function MobileTransactionRow({
           {transaction.status === 'PENDING' ? 'Pendente' : formatTransactionTime(transaction)}
         </span>
       </span>
-    </Link>
+    </MotionLink>
   );
 }

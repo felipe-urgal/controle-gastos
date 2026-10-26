@@ -9,6 +9,20 @@ import { monthNames } from '@/app/lib/date/constants';
 
 const surface = 'border border-[var(--border)] bg-[var(--surface)]';
 
+/** Rastro da seta: uma cópia sai na direção do botão e some, como se a seta tivesse sido disparada. */
+function ArrowTrail({ direction }: { direction: -1 | 1 }) {
+  return (
+    <motion.span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[var(--primary)]"
+      initial={{ opacity: 0 }}
+      variants={{ hover: { x: direction * 14, opacity: [0.7, 0], transition: { duration: 0.45, ease: 'easeOut' } } }}
+    >
+      {direction === -1 ? <FaChevronLeft /> : <FaChevronRight />}
+    </motion.span>
+  );
+}
+
 /**
  * Seletor de período padrão: anterior, "Mês / Ano" e próximo, tudo com 44px de altura. O período
  * muda só pelos botões; o rótulo é texto, sem clique. Com `animated`, o rótulo desliza na horizontal na
@@ -55,10 +69,11 @@ export default function PeriodSwitcher({
 
     return (
       <div className={`flex min-w-0 items-center gap-2 ${className}`} role="group" aria-label="Período">
-        <motion.div whileTap={roll ? { scale: 0.88 } : { x: -3 }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} className="flex">
+        <motion.div whileHover="hover" whileTap={roll ? { scale: 0.88 } : { x: -3 }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} className="relative flex">
+          <ArrowTrail direction={-1} />
           <IconButton
             label="Mês anterior"
-            icon={<FaChevronLeft />}
+            icon={<motion.span className="flex" variants={{ hover: { x: -3 } }}><FaChevronLeft /></motion.span>}
             onClick={previous}
             disabled={disabled || previousDisabled}
             className={surface}
@@ -88,10 +103,11 @@ export default function PeriodSwitcher({
           </AnimatePresence>
         </output>
 
-        <motion.div whileTap={roll ? { scale: 0.88 } : { x: 3 }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} className="flex">
+        <motion.div whileHover="hover" whileTap={roll ? { scale: 0.88 } : { x: 3 }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} className="relative flex">
+          <ArrowTrail direction={1} />
           <IconButton
             label="Próximo mês"
-            icon={<FaChevronRight />}
+            icon={<motion.span className="flex" variants={{ hover: { x: 3 } }}><FaChevronRight /></motion.span>}
             onClick={next}
             disabled={disabled || nextDisabled}
             className={surface}

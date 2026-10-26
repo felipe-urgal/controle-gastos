@@ -8,6 +8,8 @@ import { DashboardHome } from '@/app/types/dashboard';
 import { FinancialCommitment } from '@/app/types/financial-commitment';
 import { commitmentBadge, compactMonthLabel, displayMoney, groupCommitments } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 
+const MotionLink = motion.create(Link);
+
 export function UpcomingCard({
   items,
   asOf,
@@ -57,7 +59,13 @@ export function UpcomingCard({
                 </div>
                 <div className="divide-y divide-[var(--border)]">
                   {group.items.map((item, itemIndex) => (
-                    <Link key={item.id} href={item.href} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
+                    <MotionLink key={item.id} href={item.href} whileHover="hover" whileTap={{ scale: 0.985 }} className="grid min-h-[52px] grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-1">
+                      {/* Ao passar o mouse, o tile da data vira como uma folha de calendário e o selo pulsa. */}
+                      <motion.span
+                        className="flex"
+                        style={{ transformPerspective: 500 }}
+                        variants={{ hover: { rotateX: [0, 360], transition: { duration: 0.7, ease: 'easeInOut' } } }}
+                      >
                       <motion.span
                         className="grid h-[43px] w-[43px] place-content-center rounded-[var(--radius-md)] border border-[var(--border-strong)] text-center"
                         style={{ transformPerspective: 400, transformOrigin: 'top center' }}
@@ -69,16 +77,20 @@ export function UpcomingCard({
                         <strong className="text-sm leading-none">{String(item.date.day).padStart(2, '0')}</strong>
                         <span className="mt-1 text-xs font-medium uppercase leading-none text-[var(--text-muted)]">{compactMonthLabel(item.date.month, item.date.year)}</span>
                       </motion.span>
+                      </motion.span>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold">{item.title}</p>
                         <p className="mt-1 text-sm text-[var(--text-muted)]">
                           {item.amount === null ? 'Marco sem valor financeiro' : <span className="money">{displayMoney(item.amount, showValues, currency)}</span>}
                         </p>
                       </div>
-                      <span className={`rounded-[var(--radius-sm)] px-2.5 py-1.5 text-xs font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--primary-subtle)] text-[var(--primary)]'}`}>
+                      <motion.span
+                        className={`rounded-[var(--radius-sm)] px-2.5 py-1.5 text-xs font-semibold ${item.state === 'OVERDUE' ? 'bg-[var(--danger-subtle)] text-[var(--expense)]' : 'bg-[var(--primary-subtle)] text-[var(--primary)]'}`}
+                        variants={{ hover: { scale: [1, 1.18, 1], transition: { duration: 0.45 } } }}
+                      >
                         {item.state === 'OVERDUE' ? 'Vencido' : commitmentBadge(item.date, asOf)}
-                      </span>
-                    </Link>
+                      </motion.span>
+                    </MotionLink>
                   ))}
                 </div>
               </section>

@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
+import { useState } from 'react';
 import { CARD_EASE, reducedTransition } from '@/app/components/ui/motion';
 import Link from 'next/link';
 
@@ -55,8 +56,43 @@ function StepMark({ done }: { done: boolean }) {
   );
 }
 
-export function GettingStartedCard({ steps }: { steps: GettingStartedStep[] }) {
+const MotionLink = motion.create(Link);
+
+/** Passo do "Comece por aqui": ao passar o mouse, o aro faz pop e o check se redesenha. */
+function StepLink({ step }: { step: GettingStartedStep }) {
   const reduce = useReducedMotion();
+  const [redraw, setRedraw] = useState(0);
+
+  return (
+    <li>
+      <MotionLink
+        href={step.href}
+        whileHover="hover"
+        whileTap={{ scale: 0.98 }}
+        onHoverStart={() => setRedraw((count) => count + 1)}
+        className="flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 text-sm font-semibold transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+      >
+        <motion.span className="flex" variants={{ hover: { scale: [1, 1.3, 1], transition: { duration: 0.45 } } }}>
+          <StepMark key={redraw} done={step.done} />
+        </motion.span>
+        <span className={`relative ${step.done ? 'text-[var(--text-muted)]' : ''}`}>
+          {step.label}
+          {step.done && (
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-x-0 top-1/2 h-px origin-left bg-[var(--text-muted)]"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={reducedTransition(reduce, { duration: 0.4, ease: CARD_EASE, delay: 0.6 })}
+            />
+          )}
+        </span>
+      </MotionLink>
+    </li>
+  );
+}
+
+export function GettingStartedCard({ steps }: { steps: GettingStartedStep[] }) {
   if (steps.length === 0) return null;
 
   return (
@@ -65,26 +101,7 @@ export function GettingStartedCard({ steps }: { steps: GettingStartedStep[] }) {
       <p className="mt-0.5 text-xs text-[var(--text-muted)]">Três passos para o dashboard começar a mostrar o seu mês.</p>
       <ol className="mt-3 grid gap-2 md:grid-cols-3">
         {steps.map((step) => (
-          <li key={step.id}>
-            <Link
-              href={step.href}
-              className="flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 text-sm font-semibold transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-            >
-              <StepMark done={step.done} />
-              <span className={`relative ${step.done ? 'text-[var(--text-muted)]' : ''}`}>
-                {step.label}
-                {step.done && (
-                  <motion.span
-                    aria-hidden="true"
-                    className="absolute inset-x-0 top-1/2 h-px origin-left bg-[var(--text-muted)]"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={reducedTransition(reduce, { duration: 0.4, ease: CARD_EASE, delay: 0.6 })}
-                  />
-                )}
-              </span>
-            </Link>
-          </li>
+          <StepLink key={step.id} step={step} />
         ))}
       </ol>
     </section>

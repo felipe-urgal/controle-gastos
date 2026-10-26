@@ -21,7 +21,7 @@ interface ChipProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'
 export function Chip({ selected = false, layoutId, className = '', children, ...props }: ChipProps) {
   const sliding = Boolean(layoutId) && selected;
 
-  return (
+  const button = (
     <button
       type="button"
       aria-pressed={selected}
@@ -44,6 +44,20 @@ export function Chip({ selected = false, layoutId, className = '', children, ...
       )}
       {children}
     </button>
+  );
+
+  // Chips com destaque deslizante (`layoutId`) também "achatam" ao passar o mouse, como uma gota.
+  if (!layoutId) return button;
+
+  return (
+    <motion.span
+      className="inline-flex shrink-0"
+      whileHover={{ scaleX: 1.06, scaleY: 0.94 }}
+      whileTap={{ scaleX: 0.96, scaleY: 1.04 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 16 }}
+    >
+      {button}
+    </motion.span>
   );
 }
 

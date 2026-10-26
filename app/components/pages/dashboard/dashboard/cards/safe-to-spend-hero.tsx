@@ -1,6 +1,7 @@
 'use client';
 
-import { motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useState } from 'react';
 import { CountUp, reducedTransition } from '@/app/components/ui/motion';
 import Link from 'next/link';
 import { FaChevronDown } from 'react-icons/fa';
@@ -35,6 +36,73 @@ export function safeToSpendPerDay(
 
   const days = Math.max(logicalDateDistance(through, asOf), 1);
   return { days, perDay: Math.floor(safeToSpend / days) };
+}
+
+/** Preenchimento que varre o botão da esquerda para a direita ao passar o mouse. */
+function SweepFill({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.span className="relative isolate inline-flex overflow-hidden rounded-full" whileHover="hover" whileTap={{ scale: 0.97 }}>
+      <motion.span
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 origin-left bg-[var(--primary-subtle)]"
+        style={{ scaleX: 0 }}
+        variants={{ hover: { scaleX: 1 } }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      />
+      {children}
+    </motion.span>
+  );
+}
+
+const PART_LABELS: Record<string, string> = { free: 'Livre para gastar', pending: 'Pendências', cards: 'Faturas em aberto' };
+
+/** Barra segmentada: o segmento sob o cursor cresce e um balão mostra o nome e o valor. */
+function SegmentedBar({ parts, money }: { parts: Array<{ key: string; value: number; color: string }>; money: (amount: number) => string }) {
+  const [hovered, setHovered] = useState<string | null>(null);
+  const total = parts.reduce((sum, part) => sum + part.value, 0);
+  // Centro de cada segmento, em % da largura, a partir do que vem antes dele.
+  const centers = Object.fromEntries(
+    parts.map((part, index) => {
+      const before = parts.slice(0, index).reduce((sum, item) => sum + item.value, 0);
+      return [part.key, ((before + part.value / 2) / total) * 100];
+    }),
+  );
+  const active = parts.find((part) => part.key === hovered);
+
+  return (
+    <div className="relative" aria-hidden="true" onPointerLeave={() => setHovered(null)}>
+      <AnimatePresence>
+        {active && (
+          <motion.span
+            key={active.key}
+            className="pointer-events-none absolute -top-9 z-10 -translate-x-1/2 whitespace-nowrap rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs font-semibold shadow-[var(--shadow-elevated)]"
+            style={{ left: `${centers[active.key]}%` }}
+            initial={{ opacity: 0, y: 6, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.9 }}
+            transition={{ duration: 0.15 }}
+          >
+            <span className="mr-1.5 inline-block h-2 w-2 rounded-sm align-middle" style={{ background: active.color }} />
+            {PART_LABELS[active.key] ?? active.key}
+            <span className="money ml-1.5 tabular-nums text-[var(--text-muted)]">{money(active.value)}</span>
+          </motion.span>
+        )}
+      </AnimatePresence>
+      <div className="flex h-2.5 items-center gap-0.5">
+        {parts.map((part) => (
+          <motion.span
+            key={part.key}
+            className="block min-w-[3px] rounded-full"
+            style={{ flex: part.value, background: part.color, height: '100%' }}
+            animate={{ scaleY: hovered === part.key ? 1.9 : 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 26 }}
+            onPointerEnter={() => setHovered(part.key)}
+            onPointerDown={() => setHovered(part.key)}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function SafeToSpendHero({
@@ -147,19 +215,28 @@ export function SafeToSpendHero({
             </div>
           </div>
 
-          {barParts.length > 0 && (
-            <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
-              {barParts.map((part) => (
-                <span key={part.key} className="block min-w-[3px]" style={{ flex: part.value, background: part.color }} />
-              ))}
-            </div>
-          )}
+          {barParts.length > 0 && <SegmentedBar parts={barParts} money={money} />}
 
           <details className="group">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
-              Como chegamos nesse valor
-              <FaChevronDown className="text-xs transition-transform group-open:rotate-180" aria-hidden="true" />
-            </summary>
+            <motion.summary
+              whileHover="hover"
+              className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden"
+            >
+              <span className="relative">
+                Como chegamos nesse valor
+                {/* O sublinhado se desenha da esquerda e o chevron balança. */}
+                <motion.span
+                  aria-hidden="true"
+                  className="absolute -bottom-0.5 left-0 h-px w-full origin-left bg-current"
+                  style={{ scaleX: 0 }}
+                  variants={{ hover: { scaleX: 1 } }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </span>
+              <motion.span className="flex" variants={{ hover: { rotate: [0, -14, 12, -6, 0], transition: { duration: 0.5 } } }}>
+                <FaChevronDown className="text-xs transition-transform group-open:rotate-180" aria-hidden="true" />
+              </motion.span>
+            </motion.summary>
             <dl className="grid gap-x-6 gap-y-1 pb-2 text-sm sm:grid-cols-2">
               {breakdown.map((row) => (
                 <div key={row.label} className="flex items-center justify-between gap-3">
@@ -175,10 +252,14 @@ export function SafeToSpendHero({
               Receitas futuras não entram na conta; metas e dívidas só contam quando já viraram compromisso. Saldo de {cashAccounts.length} {cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}.
             </p>
             <div className="flex flex-wrap gap-x-5">
-              <Link href="/contas" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--primary)]">Ver contas</Link>
-              <Button type="button" size="sm" variant="ghost" onClick={onOpenForecast} disabled={!forecastEnabled}>
-                Ver projeção dos próximos 30 dias
-              </Button>
+              <SweepFill>
+                <Link href="/contas" className="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-[var(--primary)]">Ver contas</Link>
+              </SweepFill>
+              <SweepFill>
+                <Button type="button" size="sm" variant="ghost" onClick={onOpenForecast} disabled={!forecastEnabled}>
+                  Ver projeção dos próximos 30 dias
+                </Button>
+              </SweepFill>
             </div>
           </details>
         </div>
@@ -189,21 +270,21 @@ export function SafeToSpendHero({
       <dl className="mt-4 grid grid-cols-3 border-t border-[var(--border)] pt-4">
         <div className="min-w-0 pr-2 sm:pr-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Entrou</dt>
-          <dd className="money mt-1.5 break-words text-sm font-bold text-[var(--income)] sm:text-xl">{money(summary.income)}</dd>
+          <motion.dd whileHover={{ scale: 1.08 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }} style={{ transformOrigin: 'left center' }} className="money mt-1.5 break-words text-sm font-bold text-[var(--income)] sm:text-xl">{money(summary.income)}</motion.dd>
           <dd className="mt-1 text-xs">
             <ComparisonDetail percentage={comparison.income.percentage} previousMonth={previous.month} previousYear={previous.year} tone="income" />
           </dd>
         </div>
         <div className="min-w-0 border-l border-[var(--border)] px-2 sm:px-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Saiu</dt>
-          <dd className="money mt-1.5 break-words text-sm font-bold text-[var(--expense)] sm:text-xl">{money(summary.expense)}</dd>
+          <motion.dd whileHover={{ scale: 1.08 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }} style={{ transformOrigin: 'left center' }} className="money mt-1.5 break-words text-sm font-bold text-[var(--expense)] sm:text-xl">{money(summary.expense)}</motion.dd>
           <dd className="mt-1 text-xs">
             <ComparisonDetail percentage={comparison.expense.percentage} previousMonth={previous.month} previousYear={previous.year} tone="expense" />
           </dd>
         </div>
         <div className="min-w-0 border-l border-[var(--border)] pl-2 sm:pl-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Sobrou</dt>
-          <dd className={`money mt-1.5 break-words text-sm font-bold sm:text-xl ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>{signedMoney(summary.balance, showValues, currency)}</dd>
+          <motion.dd whileHover={{ scale: 1.08 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }} style={{ transformOrigin: 'left center' }} className={`money mt-1.5 break-words text-sm font-bold sm:text-xl ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>{signedMoney(summary.balance, showValues, currency)}</motion.dd>
           <dd className="mt-1 text-xs text-[var(--text-muted)]">
             {summary.balance < 0 ? 'Gastou mais que recebeu' : keptShare}
           </dd>

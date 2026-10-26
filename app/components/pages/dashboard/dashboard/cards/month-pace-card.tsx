@@ -40,6 +40,8 @@ const toneClass = {
   neutral: 'bg-[var(--surface-subtle)] text-[var(--text-muted)]',
 } as const;
 
+const MotionLink = motion.create(Link);
+
 function PaceChart({ pace, showValues, currency }: { pace: MonthPace; showValues: boolean; currency: string }) {
   const reduce = useReducedMotion();
   const { ref: chartRef, width: WIDTH } = useChartWidth(640);
@@ -244,9 +246,13 @@ export function MonthPaceCard({
         </div>
       )}
       <div className="mt-3 flex justify-end">
-        <Link href="/categorias" className="inline-flex min-h-11 items-center text-xs font-semibold text-[var(--primary)]">
+        <MotionLink href="/categorias" whileHover="hover" className="relative inline-flex min-h-11 items-center text-xs font-semibold text-[var(--primary)]">
           {hasBudget ? 'Ajustar orçamento' : 'Definir orçamento'}
-        </Link>
+          {/* Uma seta entra deslizando da esquerda, fora do fluxo (não empurra o texto). */}
+          <motion.span aria-hidden="true" className="absolute -right-4 flex" style={{ opacity: 0, x: -8 }} variants={{ hover: { opacity: 1, x: 0 } }} transition={{ type: 'spring', stiffness: 500, damping: 24 }}>
+            →
+          </motion.span>
+        </MotionLink>
       </div>
     </section>
   );

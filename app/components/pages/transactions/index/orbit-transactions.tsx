@@ -355,12 +355,17 @@ export default function OrbitTransactions() {
                   />
                 </motion.div>
 
-                <motion.div {...controlRise(1)} className="shrink-0">
+                <motion.div {...controlRise(1)} className="shrink-0" whileHover="hover" whileTap={{ scale: 0.95 }}>
                   <Button
                     variant="outline"
                     size="sm"
                     className="shrink-0"
-                    icon={<FaFilter aria-hidden="true" />}
+                    icon={
+                      // Ao passar o mouse, o funil balança.
+                      <motion.span className="flex" variants={{ hover: { rotate: [0, -18, 16, -10, 0], transition: { duration: 0.5 } } }}>
+                        <FaFilter aria-hidden="true" />
+                      </motion.span>
+                    }
                     onClick={(event) => {
                       // O diálogo voa do centro deste botão e volta para ele ao fechar.
                       const box = event.currentTarget.getBoundingClientRect();
