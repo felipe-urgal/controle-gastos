@@ -155,7 +155,3 @@ export function buildTodoItems({
     },
   ];
 }
-
-export function countItemsToReview(readiness: MonthlyClosingReadiness) {
-  return buildTodoItems({ readiness, money: () => '', pendingHref: '' }).filter((item) => !item.ok).length;
-}

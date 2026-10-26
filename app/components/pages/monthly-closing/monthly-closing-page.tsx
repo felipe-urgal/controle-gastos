@@ -8,7 +8,6 @@ import { PageError } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import MonthlyClosingView from '@/app/components/pages/monthly-closing/monthly-closing-view';
 import {
-  countItemsToReview,
   monthName,
   periodValue,
   shiftPeriod,
@@ -19,12 +18,6 @@ import { monthlyClosingService } from '@/app/services/monthly-closing-service';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { MonthlyClosingData } from '@/app/types/monthly-closing';
 
-
-const PERIOD_STATUS_LABELS = {
-  IN_PROGRESS: 'Mês em andamento',
-  REVIEWABLE: 'Pronto para revisão',
-  FUTURE: 'Período futuro',
-} as const;
 
 export default function MonthlyClosingPage() {
   const now = useMemo(() => new Date(), []);
@@ -92,7 +85,6 @@ export default function MonthlyClosingPage() {
   const retrospective = data?.retrospective ?? null;
   const transactionsHref = '/transacoes?year=' + year + '&month=' + month;
   const atCurrentMonth = year === currentYear && month === currentMonth;
-  const pendingItems = retrospective ? countItemsToReview(retrospective.readiness) : 0;
 
   const headerControls = (
         <div className="flex flex-wrap items-center gap-2.5">
@@ -118,24 +110,6 @@ export default function MonthlyClosingPage() {
         <ShowBelow breakpoint="lg">
           <div className="mt-4">{headerControls}</div>
         </ShowBelow>
-
-        <header className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3 empty:hidden">
-          <div className="grid gap-1">
-            <div className="flex flex-wrap items-center gap-3">
-              {data && (
-                <span className="rounded-full bg-[var(--primary-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--primary)]">
-                  {PERIOD_STATUS_LABELS[data.status]}
-                </span>
-              )}
-              {data && retrospective && (
-                <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${pendingItems === 0 ? 'bg-[var(--primary-subtle)] text-[var(--income)]' : 'bg-[var(--warning-subtle)] text-[var(--warning)]'}`}>
-                  {pendingItems === 0 ? 'Tudo conferido' : pendingItems === 1 ? '1 item para revisar' : pendingItems + ' itens para revisar'}
-                </span>
-              )}
-            </div>
-          </div>
-
-        </header>
 
         <div className="mt-5">
           {loading && (

@@ -31,6 +31,12 @@ const TONE_CLASS: Record<ClosingTone, string> = {
   flat: 'text-[var(--text-muted)]',
 };
 
+const PERIOD_STATUS_LABELS = {
+  IN_PROGRESS: 'Mês em andamento',
+  REVIEWABLE: 'Pronto para revisão',
+  FUTURE: 'Período futuro',
+} as const;
+
 const CARD_STATE_LABELS = { PAID: 'Paga', OPEN: 'Em aberto', OVERDUE: 'Vencida' } as const;
 
 export default function MonthlyClosingView({
@@ -56,13 +62,24 @@ export default function MonthlyClosingView({
   const spent = spentShare(summary);
   const budget = budgetUsage(planning);
   const reviewable = data.status === 'REVIEWABLE';
+  const balanceColor =
+    summary.balance > 0 ? 'var(--income)' : summary.balance < 0 ? 'var(--expense)' : 'var(--foreground)';
+  const toReview = todo.filter((item) => !item.ok).length;
+  // Sem mês anterior comparável não há o que comparar: a linha some em vez de repetir "sem base".
+  const deltaOf = (metric: typeof comparison.income, lowerIsBetter = false) =>
+    metric.percentage === null ? null : describeDelta(metric, previousMonth, lowerIsBetter);
 
   return (
     <div className="space-y-4">
       <section aria-labelledby="closing-result-label" className="grid gap-6 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
         <div className="grid gap-1.5">
-          <p id="closing-result-label" className="text-sm font-semibold text-[var(--text-muted)]">Resultado do mês</p>
-          <strong className={`money break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${summary.balance < 0 ? 'text-[var(--expense)]' : ''}`}>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p id="closing-result-label" className="text-sm font-semibold text-[var(--text-muted)]">Resultado do mês</p>
+            <span className="rounded-full bg-[var(--primary-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--primary)]">
+              {PERIOD_STATUS_LABELS[data.status]}
+            </span>
+          </div>
+          <strong className="money break-words text-3xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl" style={{ color: balanceColor }}>
             {summary.balance > 0 ? '+ ' : summary.balance < 0 ? '− ' : ''}
             {money(Math.abs(summary.balance))}
           </strong>
@@ -81,10 +98,10 @@ export default function MonthlyClosingView({
               <span className="h-full bg-[var(--expense)]" style={{ width: spent + '%' }} />
               <span className="h-full bg-[var(--income)]" style={{ width: 100 - spent + '%' }} />
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <FlowItem label="Receitas" dot="var(--income)" amount={money(summary.income)} delta={describeDelta(comparison.income, previousMonth)} />
-              <FlowItem label="Despesas" dot="var(--expense)" amount={money(summary.expense)} delta={describeDelta(comparison.expense, previousMonth, true)} />
-              <FlowItem label="Sobrou" dot="var(--primary)" amount={money(summary.balance)} delta={describeDelta(comparison.balance, previousMonth)} />
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <FlowItem label="Receitas" color="var(--income)" amount={money(summary.income)} delta={deltaOf(comparison.income)} />
+              <FlowItem label="Despesas" color="var(--expense)" amount={money(summary.expense)} delta={deltaOf(comparison.expense, true)} />
+              <FlowItem label="Sobrou" color={balanceColor} amount={money(summary.balance)} delta={deltaOf(comparison.balance)} />
             </div>
           </div>
         )}
@@ -94,8 +111,13 @@ export default function MonthlyClosingView({
         <div className="min-w-0 space-y-4">
           <section className={cardClassName} aria-labelledby="closing-todo-heading">
             <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-4 sm:px-5">
-              <h2 id="closing-todo-heading" className="text-base font-bold">Para fechar o mês</h2>
-              <p className="text-xs text-[var(--text-muted)]">Conferências informativas. Nada aqui bloqueia alterações.</p>
+              <h2 id="closing-todo-heading" className="flex items-center gap-2 text-base font-bold">
+                Para fechar o mês
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${toReview === 0 ? 'bg-[var(--primary-subtle)] text-[var(--income)]' : 'bg-[var(--warning-subtle)] text-[var(--warning)]'}`}>
+                  {toReview === 0 ? 'Tudo conferido' : toReview === 1 ? '1 item' : toReview + ' itens'}
+                </span>
+              </h2>
+              <p className="text-xs text-[var(--text-muted)]">Só informa: nada bloqueia alterações.</p>
             </div>
             <ul className="mt-2">
               {todo.map((item) => (
@@ -182,6 +204,15 @@ export default function MonthlyClosingView({
         </div>
 
         <div className="min-w-0 space-y-4">
+          {!budget && (
+            <section className={cardClassName} aria-labelledby="closing-budget-heading">
+              <div className="grid gap-1 px-4 py-4 sm:px-5">
+                <h2 id="closing-budget-heading" className="text-base font-bold">Orçamento</h2>
+                <p className="text-sm text-[var(--text-muted)]">Defina limites por categoria para ver aqui quanto do planejado você usou.</p>
+                <Link href="/categorias" className={linkClassName}>Definir orçamento</Link>
+              </div>
+            </section>
+          )}
           {budget && (
             <section className={cardClassName} aria-labelledby="closing-budget-heading">
               <div className="px-4 pb-2 pt-4 sm:px-5">
@@ -267,15 +298,15 @@ export default function MonthlyClosingView({
   );
 }
 
-function FlowItem({ label, dot, amount, delta }: { label: string; dot: string; amount: string; delta: { text: string; tone: ClosingTone } }) {
+function FlowItem({ label, color, amount, delta }: { label: string; color: string; amount: string; delta: { text: string; tone: ClosingTone } | null }) {
   return (
-    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="text-sm font-semibold text-[var(--text-muted)]">
-        <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: dot }} aria-hidden="true" />
+    <div className="grid min-w-0 content-start gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-3 sm:px-4 sm:py-3.5">
+      <span className="truncate text-xs font-semibold text-[var(--text-muted)] sm:text-sm">
+        <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
         {label}
       </span>
-      <span className="money break-words text-2xl font-semibold">{amount}</span>
-      <span className={`text-xs font-bold ${TONE_CLASS[delta.tone]}`}>{delta.text}</span>
+      <span className="money truncate text-base font-semibold sm:text-2xl" style={{ color }}>{amount}</span>
+      {delta && <span className={`text-xs font-bold ${TONE_CLASS[delta.tone]}`}>{delta.text}</span>}
     </div>
   );
 }
