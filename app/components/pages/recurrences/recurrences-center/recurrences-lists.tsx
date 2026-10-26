@@ -65,7 +65,7 @@ export function FormalList({
                 <span className="money text-xs text-[var(--text-muted)]">≈ {money(item.monthlyEquivalent, item.currency)}/mês</span>
               </div>
               <div className="col-span-2 flex items-center justify-between gap-2">
-                <Button size="sm" onClick={() => onEdit(item)}>
+                <Button variant="outline" size="sm" onClick={() => onEdit(item)}>
                   Editar série
                 </Button>
                 <span className="flex">
@@ -108,7 +108,7 @@ export function ConfirmedSubscriptions({
         <p className="text-xs text-[var(--text-muted)]">{active.length} {active.length === 1 ? 'ativa' : 'ativas'}</p>
       </div>
       {items.length === 0 ? (
-        <p className="border-t border-[var(--border)] px-4 py-6 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma assinatura confirmada.</p>
+        <p className="border-t border-[var(--border)] px-4 py-6 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma assinatura confirmada ainda. Confirme as sugestões em “Para revisar”.</p>
       ) : (
         <ul>
           {items.map((item) => (

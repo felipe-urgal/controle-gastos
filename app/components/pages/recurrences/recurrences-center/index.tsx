@@ -126,6 +126,25 @@ export default function RecurrencesCenter() {
               reviewCount={queue.length}
             />
 
+            <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+              <FormalList
+                items={data.formal}
+                showValues={showValues}
+                today={today}
+                endingId={ending ? endCandidate?.id ?? null : null}
+                onEdit={setEditing}
+                onEnd={setEndCandidate}
+              />
+              <ConfirmedSubscriptions
+                items={data.subscriptions.confirmed}
+                showValues={showValues}
+                busyKey={busyKey}
+                onCreateRecurrence={(id) =>
+                  void run(`subscription:${id}`, () => subscriptionService.createRecurrence(id), 'Não foi possível criar a recorrência.')
+                }
+              />
+            </div>
+
             <RecurrencesReview
               entries={queue}
               showValues={showValues}
@@ -146,25 +165,6 @@ export default function RecurrencesCenter() {
               }
               onIgnore={ignore}
             />
-
-            <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-              <FormalList
-                items={data.formal}
-                showValues={showValues}
-                today={today}
-                endingId={ending ? endCandidate?.id ?? null : null}
-                onEdit={setEditing}
-                onEnd={setEndCandidate}
-              />
-              <ConfirmedSubscriptions
-                items={data.subscriptions.confirmed}
-                showValues={showValues}
-                busyKey={busyKey}
-                onCreateRecurrence={(id) =>
-                  void run(`subscription:${id}`, () => subscriptionService.createRecurrence(id), 'Não foi possível criar a recorrência.')
-                }
-              />
-            </div>
 
             <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
               <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between px-4 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
