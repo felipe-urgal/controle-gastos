@@ -1,0 +1,20 @@
+name: Setup
+description: Node, pnpm e dependências do projeto
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 24
+
+    - name: Enable pnpm
+      shell: bash
+      run: |
+        corepack enable
+        corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

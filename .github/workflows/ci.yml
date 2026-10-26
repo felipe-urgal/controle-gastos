@@ -16,23 +16,17 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  quality:
+  lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: controle_gastos_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d controle_gastos_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm lint
+
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controle_gastos_test
       JWT_SECRET: ci-only-placeholder-secret-with-sufficient-length
@@ -42,24 +36,57 @@ jobs:
       NEXT_PUBLIC_SITE_URL: http://localhost:5100
       NODE_OPTIONS: --trace-deprecation
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm typecheck
 
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controle_gastos_test
+      JWT_SECRET: ci-only-placeholder-secret-with-sufficient-length
+      TOTP_ENCRYPTION_KEY: "1111111111111111111111111111111111111111111111111111111111111111"
+      RESEND_API_KEY: re_ci_placeholder
+      RESEND_FROM_EMAIL: no-reply@example.test
+      NEXT_PUBLIC_SITE_URL: http://localhost:5100
+      NODE_OPTIONS: --trace-deprecation
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm db:migrate
+      - run: pnpm test --shard=${{ matrix.shard }}/2
 
-      - name: Enable pnpm
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controle_gastos_test
+      JWT_SECRET: ci-only-placeholder-secret-with-sufficient-length
+      TOTP_ENCRYPTION_KEY: "1111111111111111111111111111111111111111111111111111111111111111"
+      RESEND_API_KEY: re_ci_placeholder
+      RESEND_FROM_EMAIL: no-reply@example.test
+      NEXT_PUBLIC_SITE_URL: http://localhost:5100
+      NODE_OPTIONS: --trace-deprecation
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+
+  # Check obrigatório no ruleset da main: só passa se todos os jobs acima passarem.
+  quality:
+    if: always()
+    needs: [lint, typecheck, test, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify results
         run: |
-          corepack enable
-          corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Apply migrations
-        run: pnpm db:migrate
-
-      - name: Quality gate
-        run: pnpm check
+          [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "false" ]
