@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { PageError, PageLoading } from '@/app/components/feedback';
 import FinancialCommitmentsView from '@/app/components/pages/financial-commitments/financial-commitments-view';
-import { Chip, CurrencySelect } from '@/app/components/ui';
+import { CurrencySelect, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { financialCommitmentsService } from '@/app/services/financial-commitments-service';
 import type { FinancialCommitmentsData } from '@/app/types/financial-commitment';
@@ -53,36 +53,35 @@ export default function FinancialCommitmentsPage() {
   }
 
   const headerControls = (
-        <div className="flex flex-wrap items-center gap-2">
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Horizonte">
-              {HORIZONS.map((option) => (
-                <Chip
-                  key={option}
-                  selected={days === option}
-                  onClick={() => {
-                    beginReload();
-                    setDays(option);
-                  }}
-                >
-                  {option} dias
-                </Chip>
-              ))}
-            </div>
-            <CurrencySelect
-              value={currency}
-              onChange={(option) => {
-                beginReload();
-                setCurrency(option);
-              }}
-            />
-          </div>
+    <div className="flex flex-wrap items-center gap-2.5">
+      <div className="min-w-0 flex-1 sm:w-[190px] sm:flex-none">
+        <Select
+          ariaLabel="Horizonte"
+          value={days}
+          onChange={(value) => {
+            beginReload();
+            setDays(Number(value) as (typeof HORIZONS)[number]);
+          }}
+          options={HORIZONS.map((option) => ({ value: option, label: `Próximos ${option} dias` }))}
+        />
+      </div>
+      <CurrencySelect
+        value={currency}
+        onChange={(option) => {
+          beginReload();
+          setCurrency(option);
+        }}
+      />
+    </div>
   );
 
   return (
     <ProtectedRoute>
     <PageContainer as="section">
-      <PageTitle title="Compromissos financeiros" sidebarAligned />
-      <div className="mt-4">{headerControls}</div>
+      <PageTitle title="Compromissos financeiros" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+      <ShowBelow breakpoint="lg">
+        <div className="mt-4">{headerControls}</div>
+      </ShowBelow>
 
       {error && (
         <PageError
