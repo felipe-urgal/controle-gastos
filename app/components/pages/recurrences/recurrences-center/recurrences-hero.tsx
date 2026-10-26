@@ -28,7 +28,7 @@ export default function RecurrencesHero({
   const currencies = [...new Set([...data.totals.map((item) => item.currency), ...data.subscriptions.totals.map((item) => item.currency)])];
 
   return (
-    <section aria-labelledby="recurrences-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="recurrences-hero-label" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div className="grid gap-1.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p id="recurrences-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">Seu custo fixo por mês</p>
@@ -42,7 +42,7 @@ export default function RecurrencesHero({
             </div>
           )}
         </div>
-        <strong className="money break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+        <strong className="money break-words text-3xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
           {money(recurrences?.monthlyEquivalent ?? 0)}
           <span className="ml-2 text-base font-semibold tracking-normal text-[var(--text-muted)]">/ mês</span>
         </strong>
@@ -53,25 +53,33 @@ export default function RecurrencesHero({
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Recorrências cadastradas" value={money(recurrences?.monthlyEquivalent ?? 0)} detail="por mês · cria lançamentos futuros" />
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <Stat label="Assinaturas ativas" value={money(subscriptions?.monthlyEquivalent ?? 0)} detail="por mês · detectadas no histórico" />
         <Stat
           label="Para revisar"
           value={String(reviewCount)}
-          detail={reviewCount === 0 ? 'tudo em dia' : 'sugestões, assinaturas e preços'}
+          detail={reviewCount === 0 ? 'tudo em dia' : 'ver sugestões e preços'}
+          href={reviewCount === 0 ? undefined : '#recorrencias-revisar'}
         />
       </div>
     </section>
   );
 }
 
-function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="text-sm font-semibold text-[var(--text-muted)]">{label}</span>
-      <span className="money break-words text-xl font-semibold">{value}</span>
+function Stat({ label, value, detail, href }: { label: string; value: string; detail: string; href?: string }) {
+  const className = 'grid min-w-0 content-start gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-3 sm:px-4 sm:py-3.5';
+  const content = (
+    <>
+      <span className="truncate text-xs font-semibold text-[var(--text-muted)] sm:text-sm">{label}</span>
+      <span className="money truncate text-base font-semibold sm:text-xl">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
-    </div>
+    </>
+  );
+  return href ? (
+    <a href={href} className={`${className} hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]`}>
+      {content}
+    </a>
+  ) : (
+    <div className={className}>{content}</div>
   );
 }

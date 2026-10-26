@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { FaCheck, FaClock, FaQuestion, FaSyncAlt, FaArrowUp } from 'react-icons/fa';
 
 import {
@@ -22,6 +23,8 @@ type Actions = {
   onIgnore: (id: string) => void;
 };
 
+const REVIEW_PREVIEW = 3;
+
 const REASON_BADGE = {
   PRICE: { label: 'Preço subiu', tone: 'bg-[var(--danger-subtle)] text-[var(--expense)]' },
   STALE: { label: 'Sem cobrança recente', tone: 'bg-[var(--warning-subtle)] text-[var(--warning)]' },
@@ -41,11 +44,22 @@ export default function RecurrencesReview({
   window: { months: number; limit: number };
 } & Actions) {
   const money = (cents: number, currency: string) => (showValues ? formatCurrency(cents, currency) : '••••');
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? entries : entries.slice(0, REVIEW_PREVIEW);
 
   return (
-    <section className="rounded-[var(--radius-lg)] border border-[var(--primary)] bg-[var(--surface)]" aria-labelledby="recurrences-review-heading">
+    <section
+      id="recurrencias-revisar"
+      className={`scroll-mt-20 rounded-[var(--radius-lg)] border bg-[var(--surface)] ${entries.length > 0 ? 'border-[var(--primary)]' : 'border-[var(--border)]'}`}
+      aria-labelledby="recurrences-review-heading"
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 pb-2 pt-4 sm:px-5">
-        <h2 id="recurrences-review-heading" className="text-base font-bold">Para revisar</h2>
+        <h2 id="recurrences-review-heading" className="flex items-center gap-2 text-base font-bold">
+          Para revisar
+          {entries.length > 0 && (
+            <span className="rounded-full bg-[var(--primary-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--primary)]">{entries.length}</span>
+          )}
+        </h2>
         <p className="text-xs text-[var(--text-muted)]">
           Nada é criado sem a sua confirmação. Sugestões usam até {candidateWindow.months} meses e {candidateWindow.limit} lançamentos.
         </p>
@@ -67,7 +81,7 @@ export default function RecurrencesReview({
         </div>
       ) : (
         <ul>
-          {entries.map((entry) => (
+          {visible.map((entry) => (
             <li key={entry.key} className="border-t border-[var(--border)]">
               {entry.kind === 'subscription' ? (
                 <SubscriptionRow entry={entry} money={money} {...actions} />
@@ -77,6 +91,13 @@ export default function RecurrencesReview({
             </li>
           ))}
         </ul>
+      )}
+      {entries.length > REVIEW_PREVIEW && (
+        <div className="border-t border-[var(--border)] p-1.5">
+          <Button type="button" variant="ghost" size="sm" className="w-full" onClick={() => setShowAll((value) => !value)}>
+            {showAll ? 'Mostrar menos' : `Ver todas as ${entries.length} sugestões`}
+          </Button>
+        </div>
       )}
     </section>
   );
@@ -91,6 +112,7 @@ function RowShell({
   amount,
   amountHint,
   children,
+  details,
   actions,
 }: {
   icon: React.ReactNode;
@@ -100,26 +122,29 @@ function RowShell({
   subtitle: string;
   amount: string;
   amountHint: string;
+  /** Avisos que precisam ficar à vista (preço, valor variável). */
   children?: React.ReactNode;
+  /** Explicação e cobranças usadas: recolhidas atrás de "Ver detalhes". */
+  details?: React.ReactNode;
   actions: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-3 sm:grid-cols-[40px_minmax(0,1fr)_auto] sm:px-5">
+    <div className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 px-4 py-3 sm:px-5">
       <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]" aria-hidden="true">
         {icon}
       </span>
       <div className="min-w-0">
-        <strong className="block break-words text-sm">
-          {title} <span className={`ml-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${badgeTone}`}>{badge}</span>
-        </strong>
-        <span className="block break-words text-xs text-[var(--text-muted)]">{subtitle}</span>
+        <strong className="block break-words text-sm">{title}</strong>
+        <span className={`mt-0.5 inline-block rounded-full px-2.5 py-0.5 text-xs font-bold ${badgeTone}`}>{badge}</span>
+        <span className="mt-0.5 block break-words text-xs text-[var(--text-muted)]">{subtitle}</span>
         {children}
       </div>
-      <div className="col-start-2 sm:col-start-3 sm:text-right">
+      <div className="text-right">
         <span className="money block text-sm font-semibold">{amount}</span>
         <span className="text-xs text-[var(--text-muted)]">{amountHint}</span>
       </div>
-      <div className="col-start-2 flex flex-wrap gap-2 sm:col-span-2">{actions}</div>
+      <div className="col-span-3 flex flex-wrap items-center gap-2 sm:col-span-2 sm:col-start-2">{actions}</div>
+      {details && <div className="col-span-3 sm:col-span-2 sm:col-start-2">{details}</div>}
     </div>
   );
 }
@@ -146,6 +171,17 @@ function SubscriptionRow({
       subtitle={`${item.status === 'CONFIRMED' ? 'Assinatura confirmada' : `${item.occurrenceCount} cobranças`} · ${item.account.name} · ${frequencyLabel(item.frequency, item.interval)}`}
       amount={money(item.currentAmount, item.currency)}
       amountHint={`${money(item.annualEquivalent, item.currency)}/ano`}
+      details={
+        <MoreInfo
+          text={item.explanation}
+          evidenceLabel="Cobranças usadas"
+          items={item.evidence.map((evidence) => ({
+            id: evidence.id,
+            text: `${String(evidence.day).padStart(2, '0')}/${String(evidence.month).padStart(2, '0')} · ${evidence.description}`,
+            amount: money(evidence.amount, item.currency),
+          }))}
+        />
+      }
       actions={
         <>
           {reason === 'STALE' && (
@@ -189,15 +225,6 @@ function SubscriptionRow({
           Sem nova cobrança por mais de dois ciclos. Fora dos totais ativos até você confirmar que continua vigente.
         </p>
       )}
-      <p className="mt-1 text-xs text-[var(--text-muted)]">{item.explanation}</p>
-      <Evidence
-        label="Ver cobranças usadas"
-        items={item.evidence.map((evidence) => ({
-          id: evidence.id,
-          text: `${String(evidence.day).padStart(2, '0')}/${String(evidence.month).padStart(2, '0')} · ${evidence.description}`,
-          amount: money(evidence.amount, item.currency),
-        }))}
-      />
     </RowShell>
   );
 }
@@ -221,6 +248,17 @@ function CandidateRow({
       subtitle={`${candidate.type === 'INCOME' ? 'Receita' : 'Despesa'} · ${candidate.account.name} · ${candidate.category.name}`}
       amount={money(candidate.amount, candidate.currency)}
       amountHint={candidate.variableAmount ? 'média' : frequencyLabel(candidate.frequency, candidate.interval).toLowerCase()}
+      details={
+        <MoreInfo
+          text={`${frequencyLabel(candidate.frequency, candidate.interval)} · ${candidate.occurrenceCount} ocorrências · próxima estimativa em ${shortDate(candidate.nextOccurrence)}. ${candidate.explanation}`}
+          evidenceLabel={`${candidate.evidence.length} lançamentos usados`}
+          items={candidate.evidence.map((evidence) => ({
+            id: evidence.id,
+            text: `${String(evidence.day).padStart(2, '0')}/${String(evidence.month).padStart(2, '0')} · ${evidence.description}`,
+            amount: money(evidence.amount, candidate.currency),
+          }))}
+        />
+      }
       actions={
         <>
           <Button size="sm" disabled={busy} onClick={() => onConfirmCandidate(candidate)}>
@@ -235,41 +273,37 @@ function CandidateRow({
         </>
       }
     >
-      <p className="mt-1 text-xs text-[var(--text-muted)]">
-        {frequencyLabel(candidate.frequency, candidate.interval)} · {candidate.occurrenceCount} ocorrências · próxima estimativa em {shortDate(candidate.nextOccurrence)}. {candidate.explanation}
-      </p>
       {candidate.variableAmount && (
         <p className="mt-1 text-xs font-semibold text-[var(--warning)]">
           Valor variável: <MoneyText>{`de ${money(candidate.minAmount, candidate.currency)} a ${money(candidate.maxAmount, candidate.currency)}`}</MoneyText>.
         </p>
       )}
-      <Evidence
-        label={`Revisar ${candidate.evidence.length} lançamentos usados`}
-        items={candidate.evidence.map((evidence) => ({
-          id: evidence.id,
-          text: `${String(evidence.day).padStart(2, '0')}/${String(evidence.month).padStart(2, '0')} · ${evidence.description}`,
-          amount: money(evidence.amount, candidate.currency),
-        }))}
-      />
     </RowShell>
   );
 }
 
-function Evidence({ label, items }: { label: string; items: Array<{ id: string; text: string; amount: string }> }) {
-  if (items.length === 0) return null;
+function MoreInfo({ text, evidenceLabel, items }: { text: string; evidenceLabel: string; items: Array<{ id: string; text: string; amount: string }> }) {
   return (
-    <details className="mt-1">
+    <details>
       <summary className="flex min-h-11 cursor-pointer list-none items-center text-xs font-bold text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] [&::-webkit-details-marker]:hidden">
-        {label}
+        Ver detalhes
       </summary>
-      <ul className="grid gap-1 pb-2 text-xs text-[var(--text-muted)]">
-        {items.map((item) => (
-          <li key={item.id} className="flex flex-wrap justify-between gap-2">
-            <span className="break-words">{item.text}</span>
-            <span className="money font-semibold text-[var(--foreground)]">{item.amount}</span>
-          </li>
-        ))}
-      </ul>
+      <div className="grid gap-2 pb-2 text-xs text-[var(--text-muted)]">
+        <p>{text}</p>
+        {items.length > 0 && (
+          <div className="grid gap-1">
+            <p className="font-semibold text-[var(--foreground)]">{evidenceLabel}</p>
+            <ul className="grid gap-1">
+              {items.map((item) => (
+                <li key={item.id} className="flex flex-wrap justify-between gap-2">
+                  <span className="break-words">{item.text}</span>
+                  <span className="money font-semibold text-[var(--foreground)]">{item.amount}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </details>
   );
 }
