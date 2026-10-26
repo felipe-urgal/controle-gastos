@@ -1,18 +1,23 @@
 'use client';
 
-import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { CalendarDaysSkeleton } from '@/app/components/pages/calendar';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import type { CalendarDay } from '@/app/types/calendar';
+import type { CalendarDay, CalendarEvent } from '@/app/types/calendar';
 
 interface CalendarGridProps {
   isLoading: boolean;
   calendarDays: CalendarDay[];
   selectedDate?: Date | null;
   onDayClick: (day: CalendarDay) => void;
+  /** Mobile: um ponto por dia. Desktop (padrão): chips com os eventos de cada dia. */
   compact?: boolean;
   showValues?: boolean;
 }
+
+/** Quantos eventos aparecem como chip em cada dia do grid grande. */
+const VISIBLE_CHIPS = 2;
+
+type DayState = 'overdue' | 'pending' | 'done' | 'empty';
 
 function isSameDay(left?: Date | null, right?: Date | null) {
   if (!left || !right) return false;
@@ -23,6 +28,80 @@ function isSameDay(left?: Date | null, right?: Date | null) {
   );
 }
 
+const isOverdue = (event: CalendarEvent) => event.commitmentState === 'OVERDUE';
+const isPending = (event: CalendarEvent) => event.status === 'PENDING';
+
+/** Vencido > pendente > realizado: o que exige ação aparece primeiro. */
+function eventPriority(event: CalendarEvent) {
+  if (isOverdue(event)) return 0;
+  if (isPending(event)) return 1;
+  if (event.status === 'CANCELLED') return 3;
+  return 2;
+}
+
+function dayState(events: CalendarEvent[]): DayState {
+  if (events.length === 0) return 'empty';
+  if (events.some(isOverdue)) return 'overdue';
+  if (events.some(isPending)) return 'pending';
+  return 'done';
+}
+
+const dotTone: Record<DayState, string> = {
+  overdue: 'bg-[var(--expense)]',
+  pending: 'bg-[var(--warning)]',
+  done: 'bg-[var(--text-muted)]',
+  empty: '',
+};
+
+function chipTone(event: CalendarEvent) {
+  if (event.status === 'CANCELLED') return 'text-[var(--text-subtle)] line-through';
+  if (isOverdue(event)) return 'bg-[var(--danger-subtle)] font-semibold text-[var(--expense)]';
+  if (isPending(event)) return 'bg-[var(--warning-subtle)] text-[var(--pending)]';
+  if (event.direction === 'INCOME') return 'bg-[var(--surface-subtle)] text-[var(--income)]';
+  if (event.direction === 'TRANSFER') return 'bg-[var(--primary-subtle)] text-[var(--primary)]';
+  return 'bg-[var(--surface-subtle)] text-[var(--foreground)]';
+}
+
+function plural(count: number, one: string, many: string) {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+function dayAriaLabel(day: CalendarDay, showValues: boolean) {
+  const { date, events, summaries, isToday } = day;
+  const count = (predicate: (event: CalendarEvent) => boolean) => events.filter(predicate).length;
+  const overdue = count(isOverdue);
+  const pending = count(isPending);
+  const transfers = count((event) => event.direction === 'TRANSFER');
+  const milestones = count((event) => event.direction === 'MILESTONE');
+  const cancelled = count((event) => event.status === 'CANCELLED');
+
+  const parts = [
+    plural(events.length, 'evento', 'eventos'),
+    ...summaries.flatMap((summary) => [
+      summary.income > 0
+        ? `receitas realizadas em ${summary.currency}${showValues ? ` ${formatCurrency(summary.income, summary.currency)}` : ''}`
+        : null,
+      summary.expense > 0
+        ? `despesas realizadas em ${summary.currency}${showValues ? ` ${formatCurrency(summary.expense, summary.currency)}` : ''}`
+        : null,
+    ]),
+    transfers > 0 ? plural(transfers, 'transferência', 'transferências') : null,
+    pending > 0 ? plural(pending, 'pendente', 'pendentes') : null,
+    overdue > 0 ? plural(overdue, 'vencido', 'vencidos') : null,
+    milestones > 0 ? plural(milestones, 'marco', 'marcos') : null,
+    cancelled > 0 ? plural(cancelled, 'cancelado', 'cancelados') : null,
+  ].filter(Boolean);
+
+  const dateLabel = date.toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  return `${date.getDate()}${isToday ? ' Hoje' : ''}. ${dateLabel}. ${parts.join('. ')}.`;
+}
+
 export default function CalendarGrid({
   isLoading,
   calendarDays,
@@ -31,34 +110,29 @@ export default function CalendarGrid({
   compact = false,
   showValues = true,
 }: CalendarGridProps) {
-  const isMd = useMediaQuery('(min-width: 768px)');
-  // Abaixo de 390 px não cabem chips por célula: a densidade vira pontos coloridos + contador.
-  const isNarrow = useMediaQuery('(max-width: 389px)');
-
   if (isLoading) {
     if (!compact) return <CalendarDaysSkeleton />;
 
     return (
-      <div className="grid grid-cols-7 gap-0 px-0 py-2 sm:gap-1 sm:p-2" aria-hidden="true">
+      <div className="grid grid-cols-7 gap-0 px-0 py-2" aria-hidden="true">
         {Array.from({ length: 35 }).map((_, index) => (
           <div
             key={index}
-            className="min-h-11 animate-pulse rounded-[var(--radius-md)] bg-[var(--surface-subtle)]"
+            className="min-h-12 animate-pulse rounded-[var(--radius-md)] bg-[var(--surface-subtle)]"
           />
         ))}
       </div>
     );
   }
 
-  const firstDay = calendarDays[0]?.date;
-  const emptyCells = firstDay ? firstDay.getDay() : 0;
+  const emptyCells = calendarDays[0]?.date.getDay() ?? 0;
 
   return (
     <div
       className={
         compact
-          ? 'grid grid-cols-7 gap-0 px-0 py-2 sm:gap-1 sm:p-2'
-          : 'grid grid-cols-7 auto-rows-[88px] bg-[var(--border)] md:auto-rows-[118px]'
+          ? 'grid grid-cols-7 gap-0 py-2'
+          : 'grid grid-cols-7 auto-rows-[7.5rem] border-l border-t border-[var(--border)]'
       }
       aria-label="Dias do mês"
     >
@@ -66,272 +140,78 @@ export default function CalendarGrid({
         <div
           key={`empty-${index}`}
           aria-hidden="true"
-          className={
-            compact
-              ? 'min-h-11 rounded-[var(--radius-md)]'
-              : 'border-b border-r border-[var(--border)] bg-[var(--surface-raised)]'
-          }
+          className={compact ? 'min-h-12' : 'border-b border-r border-[var(--border)] bg-[var(--surface-raised)]'}
         />
       ))}
 
       {calendarDays.map((day) => {
-        const { date, events, summaries } = day;
-        const eventCount = events.length;
-        const pendingCount = events.filter(
-          (event) => event.status === 'PENDING',
-        ).length;
-        const cancelledCount = events.filter(
-          (event) => event.status === 'CANCELLED',
-        ).length;
-        const transferCount = events.filter(
-          (event) => event.direction === 'TRANSFER',
-        ).length;
-        const milestoneCount = events.filter(
-          (event) => event.direction === 'MILESTONE',
-        ).length;
-        const overdueCount = events.filter(
-          (event) => event.commitmentState === 'OVERDUE',
-        ).length;
-        const hasIncome = events.some(
-          (event) => event.direction === 'INCOME',
-        );
-        const hasExpense = events.some(
-          (event) => event.direction === 'EXPENSE',
-        );
-        const hasTransfer = transferCount > 0;
+        const { date, events, isToday } = day;
         const selected = isSameDay(date, selectedDate);
-
-        const dateLabel = date.toLocaleDateString('pt-BR', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        });
-
-        const summaryParts = [
-          `${eventCount} ${eventCount === 1 ? 'evento' : 'eventos'}`,
-          ...summaries.flatMap((summary) => [
-            summary.income > 0
-              ? showValues
-                ? `receitas realizadas em ${summary.currency} ${formatCurrency(summary.income, summary.currency)}`
-                : `receitas realizadas em ${summary.currency}`
-              : null,
-            summary.expense > 0
-              ? showValues
-                ? `despesas realizadas em ${summary.currency} ${formatCurrency(summary.expense, summary.currency)}`
-                : `despesas realizadas em ${summary.currency}`
-              : null,
-          ]),
-          transferCount > 0
-            ? `${transferCount} ${transferCount === 1 ? 'transferência' : 'transferências'}`
-            : null,
-          pendingCount > 0
-            ? `${pendingCount} pendente${pendingCount === 1 ? '' : 's'}`
-            : null,
-          overdueCount > 0
-            ? `${overdueCount} vencido${overdueCount === 1 ? '' : 's'}`
-            : null,
-          milestoneCount > 0
-            ? `${milestoneCount} marco${milestoneCount === 1 ? '' : 's'}`
-            : null,
-          cancelledCount > 0
-            ? `${cancelledCount} cancelado${cancelledCount === 1 ? '' : 's'}`
-            : null,
-        ].filter(Boolean);
-
-        const visibleDateLabel = `${date.getDate()}${day.isToday ? ' Hoje' : ''}`;
+        const state = dayState(events);
+        const common = {
+          type: 'button' as const,
+          onClick: () => onDayClick(day),
+          'aria-label': dayAriaLabel(day, showValues),
+          'aria-pressed': selected,
+          'aria-current': isToday ? ('date' as const) : undefined,
+        };
 
         if (compact) {
           return (
             <button
               key={date.toISOString()}
-              type="button"
-              onClick={() => onDayClick(day)}
-              aria-label={`${visibleDateLabel}. ${dateLabel}. ${summaryParts.join('. ')}.`}
-              aria-pressed={selected}
-              aria-current={day.isToday ? 'date' : undefined}
-              className={`relative min-h-11 min-w-0 rounded-[var(--radius-md)] border px-1 py-1 text-center transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+              {...common}
+              className={`relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border text-center transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
                 selected
-                  ? 'border-[var(--primary)] bg-[var(--primary-subtle)] text-[var(--foreground)]'
-                  : day.isToday
-                    ? 'border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--primary)]'
-                    : 'border-transparent text-[var(--foreground)] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]'
+                  ? 'border-[var(--primary)] bg-[var(--primary-subtle)]'
+                  : 'border-transparent hover:bg-[var(--surface-hover)]'
               }`}
             >
-              <span className="block text-sm font-bold leading-none">
-                {date.getDate()}
-              </span>
               <span
-                className="mt-1 flex min-h-1.5 items-center justify-center gap-0.5"
-                aria-hidden="true"
-              >
-                {hasIncome && (
-                  <span className="h-1 w-1 rounded-full bg-[var(--income)]" />
-                )}
-                {hasExpense && (
-                  <span className="h-1 w-1 rounded-full bg-[var(--expense)]" />
-                )}
-                {hasTransfer && (
-                  <span className="h-1 w-1 rotate-45 bg-[var(--primary)]" />
-                )}
-                {pendingCount > 0 && (
-                  <span className="h-1 w-1 rounded-full bg-[var(--warning)]" />
-                )}
-                {milestoneCount > 0 && (
-                  <span className="h-1 w-1 rounded-full bg-[var(--text-muted)]" />
-                )}
-              </span>
-            </button>
-          );
-        }
-
-        return (
-          <button
-            key={date.toISOString()}
-            type="button"
-            onClick={() => onDayClick(day)}
-            aria-label={`${visibleDateLabel}. ${dateLabel}. ${summaryParts.join('. ')}.`}
-            aria-pressed={selected}
-            aria-current={day.isToday ? 'date' : undefined}
-            className={`
-              group relative min-w-0 overflow-hidden border-b border-r border-[var(--border)] p-1.5 text-left
-              transition-[background-color,box-shadow] duration-150 focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)]
-              md:p-2.5
-              ${
-                selected
-                  ? 'bg-[var(--primary-subtle)] shadow-[inset_0_0_0_1px_var(--primary)]'
-                  : day.isToday
-                    ? 'bg-[var(--surface-raised)] hover:bg-[var(--surface-hover)]'
-                    : 'bg-[var(--surface)] hover:bg-[var(--surface-raised)]'
-              }
-            `}
-          >
-            <div className="flex min-w-0 items-start justify-between gap-1">
-              <span
-                className={`flex h-7 min-w-7 items-center justify-center rounded-full px-1 text-base font-bold ${
-                  day.isToday
-                    ? 'bg-[var(--primary)] text-[var(--on-primary)] shadow-sm'
-                    : 'text-[var(--foreground)]'
+                className={`grid h-7 w-7 place-items-center rounded-full text-sm font-bold leading-none ${
+                  isToday ? 'bg-[var(--primary)] text-[var(--on-primary)]' : 'text-[var(--foreground)]'
                 }`}
               >
                 {date.getDate()}
               </span>
+              <span className={`h-1.5 w-1.5 rounded-full ${dotTone[state]}`} aria-hidden="true" />
+            </button>
+          );
+        }
 
-              {eventCount > 0 && (
-                <span className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1.5 py-0.5 text-sm font-bold leading-none text-[var(--foreground)] shadow-sm">
-                  {eventCount}
+        const sorted = [...events].sort((a, b) => eventPriority(a) - eventPriority(b));
+        const hidden = sorted.length - VISIBLE_CHIPS;
+
+        return (
+          <button
+            key={date.toISOString()}
+            {...common}
+            className={`flex min-w-0 flex-col gap-1 overflow-hidden border-b border-r border-[var(--border)] p-2 text-left transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] ${
+              selected
+                ? 'bg-[var(--primary-subtle)] shadow-[inset_0_0_0_2px_var(--primary)]'
+                : 'bg-[var(--surface)] hover:bg-[var(--surface-raised)]'
+            }`}
+          >
+            <span
+              className={`grid h-7 min-w-7 place-items-center self-start rounded-full px-1 text-sm font-bold ${
+                isToday ? 'bg-[var(--primary)] text-[var(--on-primary)]' : 'text-[var(--foreground)]'
+              }`}
+            >
+              {date.getDate()}
+            </span>
+            <span className="flex min-w-0 flex-col gap-1" aria-hidden="true">
+              {sorted.slice(0, VISIBLE_CHIPS).map((event) => (
+                <span
+                  key={event.id}
+                  className={`block truncate rounded-[var(--radius-sm)] px-1.5 py-0.5 text-xs ${chipTone(event)}`}
+                >
+                  {event.title}
                 </span>
+              ))}
+              {hidden > 0 && (
+                <span className="px-1.5 text-xs font-semibold text-[var(--text-muted)]">+{hidden} mais</span>
               )}
-            </div>
-
-            {day.isToday && (
-              <span className="mt-1 block truncate text-sm font-bold text-[var(--primary)]">
-                Hoje
-              </span>
-            )}
-
-            {eventCount > 0 && (
-              <div className="mt-1.5 space-y-1 md:mt-2">
-                {!isMd && isNarrow && (
-                <div className="flex flex-wrap items-center gap-1" aria-hidden="true">
-                  {hasIncome && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--income)]" />
-                  )}
-                  {hasExpense && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--expense)]" />
-                  )}
-                  {hasTransfer && (
-                    <span className="h-1.5 w-1.5 rotate-45 bg-[var(--primary)]" />
-                  )}
-                  {pendingCount > 0 && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--warning)]" />
-                  )}
-                  {milestoneCount > 0 && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--text-muted)]" />
-                  )}
-                </div>
-                )}
-
-                {!isMd && !isNarrow && (
-                <div className="flex flex-wrap gap-1" aria-hidden="true">
-                  {summaries.map((summary) => (
-                    <span
-                      key={summary.currency}
-                      className="rounded border border-[var(--border-strong)] bg-[var(--surface-raised)] px-1 py-0.5 text-sm font-bold text-[var(--foreground)]"
-                    >
-                      {summary.currency}
-                    </span>
-                  ))}
-                  {transferCount > 0 && (
-                    <span className="rounded bg-[var(--primary-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--primary)]">
-                      T{transferCount}
-                    </span>
-                  )}
-                  {pendingCount > 0 && (
-                    <span className="rounded bg-[var(--warning-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--pending)]">
-                      P{pendingCount}
-                    </span>
-                  )}
-                  {overdueCount > 0 && (
-                    <span className="rounded bg-[var(--danger-subtle)] px-1 py-0.5 text-sm font-bold text-[var(--expense)]">
-                      V{overdueCount}
-                    </span>
-                  )}
-                </div>
-                )}
-
-                {isMd && (
-                <div className="min-w-0 space-y-1" aria-hidden="true">
-                  {summaries.map((summary) => (
-                    <p
-                      key={summary.currency}
-                      className="truncate text-sm font-bold text-[var(--foreground)]"
-                    >
-                      <span className="text-[var(--text-muted)]">
-                        {summary.currency}
-                      </span>{' '}
-                      {showValues && summary.income > 0 && (
-                        <span className="text-[var(--income)]">
-                          + <span className="money">{formatCurrency(summary.income, summary.currency)}</span>
-                        </span>
-                      )}
-                      {showValues &&
-                      summary.income > 0 &&
-                      summary.expense > 0
-                        ? ' · '
-                        : ''}
-                      {showValues && summary.expense > 0 && (
-                        <span className="text-[var(--expense)]">
-                          − <span className="money">{formatCurrency(summary.expense, summary.currency)}</span>
-                        </span>
-                      )}
-                      {!showValues &&
-                        (summary.income > 0 || summary.expense > 0) && (
-                          <span className="text-[var(--text-muted)]">••••</span>
-                        )}
-                    </p>
-                  ))}
-                  {(transferCount > 0 ||
-                    pendingCount > 0 ||
-                    overdueCount > 0 ||
-                    milestoneCount > 0 ||
-                    cancelledCount > 0) && (
-                    <p className="truncate text-sm font-medium text-[var(--text-muted)]">
-                      {[
-                        transferCount > 0 ? `${transferCount} transf.` : '',
-                        pendingCount > 0 ? `${pendingCount} pend.` : '',
-                        overdueCount > 0 ? `${overdueCount} venc.` : '',
-                        milestoneCount > 0 ? `${milestoneCount} marco` : '',
-                        cancelledCount > 0 ? `${cancelledCount} canc.` : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' • ')}
-                    </p>
-                  )}
-                </div>
-                )}
-              </div>
-            )}
+            </span>
           </button>
         );
       })}
