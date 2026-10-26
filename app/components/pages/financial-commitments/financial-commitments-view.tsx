@@ -6,11 +6,12 @@ import { FaArrowDown, FaArrowUp, FaFlag } from 'react-icons/fa';
 
 import {
   buildLede,
+  dayMonth,
   filterItems,
+  forecastBalance,
   formatDate,
   groupByDay,
   overdueLabel,
-  payableShare,
   signedAmount,
   splitCommitments,
   weekBuckets,
@@ -45,7 +46,7 @@ const FILTERS: Array<{ key: CommitmentFilter; label: string }> = [
 
 const ICON_TONE: Record<FinancialCommitmentDirection, string> = {
   PAYABLE: 'bg-[var(--danger-subtle)] text-[var(--expense)]',
-  RECEIVABLE: 'bg-[var(--primary-subtle)] text-[var(--income)]',
+  RECEIVABLE: 'bg-[color-mix(in_srgb,var(--income)_12%,transparent)] text-[var(--income)]',
   MILESTONE: 'bg-[var(--primary-subtle)] text-[var(--primary)]',
 };
 
@@ -62,15 +63,15 @@ export default function FinancialCommitmentsView({
   const { overdue, upcoming } = splitCommitments(data.items);
   const days = groupByDay(filterItems(upcoming, filter), data.asOf);
   const weeks = weekBuckets(data.items, data.asOf);
-  const share = payableShare(data.totals);
+  const balance = forecastBalance(data.totals);
   const hasAnything = data.items.length > 0 || payable.count > 0 || receivable.count > 0 || milestoneCount > 0;
 
   return (
     <div className="space-y-4">
-      <section aria-labelledby="commitments-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+      <section aria-labelledby="commitments-hero-label" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
         <div className="grid gap-1.5">
-          <p id="commitments-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">A pagar até {formatDate(data.through)}</p>
-          <strong className="money break-words text-4xl font-semibold leading-none tracking-[-0.035em] text-[var(--expense)] sm:text-5xl">
+          <p id="commitments-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">A pagar até {formatDate(data.through)} · {payable.count} compromisso{payable.count === 1 ? '' : 's'}</p>
+          <strong className="money break-words text-3xl font-semibold leading-none tracking-[-0.035em] text-[var(--expense)] sm:text-5xl">
             {money(payable.amount)}
           </strong>
           <p className="mt-2 max-w-[62ch] text-sm text-[var(--text-muted)]">
@@ -79,22 +80,24 @@ export default function FinancialCommitmentsView({
         </div>
 
         {hasAnything && (
-          <div className="grid gap-3">
-            <div className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${share}% do movimento previsto é a pagar`}>
-              <span className="h-full bg-[var(--expense)]" style={{ width: share + '%' }} />
-              <span className="h-full bg-[var(--income)]" style={{ width: 100 - share + '%' }} />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Legend dot="var(--expense)" label="A pagar" value={money(payable.amount)} detail={`${payable.count} compromisso${payable.count === 1 ? '' : 's'}`} />
-              <Legend dot="var(--income)" label="A receber" value={money(receivable.amount)} detail={`${receivable.count} entrada${receivable.count === 1 ? '' : 's'}`} />
-              <Legend dot="var(--primary)" label="Marcos" value={String(milestoneCount)} detail="sem valor monetário" />
-            </div>
+          <div className={`grid grid-cols-2 gap-2 sm:gap-3 ${milestoneCount > 0 ? 'sm:grid-cols-3' : ''}`}>
+            <Legend dot="var(--income)" label="A receber" value={money(receivable.amount)} detail={`${receivable.count} entrada${receivable.count === 1 ? '' : 's'}`} color="var(--income)" />
+            <Legend
+              dot={balance < 0 ? 'var(--expense)' : 'var(--income)'}
+              label="Saldo previsto"
+              value={`${balance > 0 ? '+ ' : balance < 0 ? '− ' : ''}${money(Math.abs(balance))}`}
+              detail="a receber − a pagar"
+              color={balance === 0 ? 'var(--foreground)' : balance < 0 ? 'var(--expense)' : 'var(--income)'}
+            />
+            {milestoneCount > 0 && (
+              <Legend dot="var(--primary)" label="Marcos" value={String(milestoneCount)} detail="sem valor monetário" color="var(--foreground)" />
+            )}
           </div>
         )}
       </section>
 
       {overdue.length > 0 && (
-        <section className="rounded-[var(--radius-lg)] border border-[var(--expense)] bg-[var(--danger-subtle)]" aria-labelledby="commitments-overdue-heading">
+        <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)]" aria-labelledby="commitments-overdue-heading">
           <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1.5 pt-3.5 text-[var(--expense)] sm:px-5">
             <h2 id="commitments-overdue-heading" className="text-base font-bold">Vencidos · resolva primeiro</h2>
             <p className="text-xs font-semibold">{overdueCount} {overdueCount === 1 ? 'item ainda pendente' : 'itens ainda pendentes'}</p>
@@ -145,7 +148,7 @@ export default function FinancialCommitmentsView({
             )}
           </section>
 
-          <section className={cardClassName} aria-labelledby="commitments-weeks-heading">
+          <section className={`${cardClassName} lg:sticky lg:top-[calc(var(--app-sidebar-header-height)+1rem)]`} aria-labelledby="commitments-weeks-heading">
             <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
               <h2 id="commitments-weeks-heading" className="text-base font-bold">Quando pesa mais</h2>
               <p className="text-xs text-[var(--text-muted)]">por semana</p>
@@ -173,7 +176,7 @@ export default function FinancialCommitmentsView({
               </ul>
             )}
             <p className="border-t border-[var(--border)] px-4 py-3 text-xs text-[var(--text-muted)] sm:px-5">
-              Valores só da moeda escolhida; moedas diferentes nunca são somadas. Itens sem valor definido aparecem com “—”.
+              Só a moeda escolhida; moedas diferentes não são somadas. Sem valor definido aparece “—”.
             </p>
           </section>
         </div>
@@ -206,25 +209,27 @@ function CommitmentRow({ item, money, lateLabel }: { item: FinancialCommitment; 
         <small className="block text-xs text-[var(--text-muted)]">
           {TYPE_LABEL[item.type]}
           {item.accountName ? ` · ${item.accountName}` : ''}
-          {lateLabel ? ` · venceu em ${formatDate(item.date)}` : ''}
-          {lateLabel && <span className="ml-1.5 rounded-full bg-[var(--danger-subtle)] px-2 py-0.5 text-xs font-bold text-[var(--expense)]">{lateLabel}</span>}
+          {lateLabel ? ` · venceu ${dayMonth(item.date)}` : ''}
         </small>
       </span>
-      <strong className={`money text-sm font-semibold ${signed === null ? 'text-[var(--text-muted)]' : signed < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
-        {signed === null ? '—' : `${signed < 0 ? '− ' : '+ '}${money(Math.abs(signed))}`}
-      </strong>
+      <span className="grid justify-items-end gap-1">
+        <strong className={`money text-sm font-semibold ${signed === null ? 'text-[var(--text-muted)]' : signed < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
+          {signed === null ? '—' : `${signed < 0 ? '− ' : '+ '}${money(Math.abs(signed))}`}
+        </strong>
+        {lateLabel && <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-xs font-bold text-[var(--expense)]">{lateLabel}</span>}
+      </span>
     </Link>
   );
 }
 
-function Legend({ dot, label, value, detail }: { dot: string; label: string; value: string; detail: string }) {
+function Legend({ dot, label, value, detail, color }: { dot: string; label: string; value: string; detail: string; color: string }) {
   return (
-    <div className="grid gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-4 py-3.5">
-      <span className="text-sm font-semibold text-[var(--text-muted)]">
+    <div className="grid min-w-0 content-start gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-3 sm:px-4 sm:py-3.5">
+      <span className="truncate text-xs font-semibold text-[var(--text-muted)] sm:text-sm">
         <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: dot }} aria-hidden="true" />
         {label}
       </span>
-      <span className="money break-words text-xl font-semibold">{value}</span>
+      <span className="money truncate text-base font-semibold sm:text-xl" style={{ color }}>{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
     </div>
   );

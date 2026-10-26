@@ -5,7 +5,7 @@ import {
   filterItems,
   groupByDay,
   overdueLabel,
-  payableShare,
+  forecastBalance,
   signedAmount,
   splitCommitments,
   weekBuckets,
@@ -99,8 +99,8 @@ describe('financial-commitments-model', () => {
     expect(buildLede(data({ receivable: { count: 1, amount: 100 } }), money)).toContain('entram R$ 1,00 a mais do que saem');
   });
 
-  it('calcula a parcela a pagar para a barra e aceita total zero', () => {
-    expect(payableShare(data({ payable: { count: 1, amount: 770 }, receivable: { count: 1, amount: 230 } }).totals)).toBe(77);
-    expect(payableShare(data().totals)).toBe(0);
+  it('calcula o saldo previsto como o que entra menos o que sai', () => {
+    expect(forecastBalance(data({ payable: { count: 1, amount: 770 }, receivable: { count: 1, amount: 230 } }).totals)).toBe(-540);
+    expect(forecastBalance(data().totals)).toBe(0);
   });
 });

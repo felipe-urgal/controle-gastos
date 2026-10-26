@@ -128,10 +128,13 @@ export function weekBuckets(items: FinancialCommitment[], asOf: FinancialCommitm
     }));
 }
 
-/** Parcela do total comprometido que é a pagar, para a barra do resumo. */
-export function payableShare(totals: FinancialCommitmentsData['totals']) {
-  const total = totals.payable.amount + totals.receivable.amount;
-  return total === 0 ? 0 : Math.round((totals.payable.amount / total) * 100);
+/** Saldo previsto do horizonte: o que entra menos o que sai (negativo quando saem mais do que entram). */
+export function forecastBalance(totals: FinancialCommitmentsData['totals']) {
+  return totals.receivable.amount - totals.payable.amount;
+}
+
+export function dayMonth(date: FinancialCommitmentDate) {
+  return [date.day, date.month].map((part) => String(part).padStart(2, '0')).join('/');
 }
 
 function plural(count: number, one: string, many: string) {
@@ -147,7 +150,7 @@ export function buildLede(data: FinancialCommitmentsData, money: Money) {
   const parts = [
     `Você tem ${plural(payable.count, 'compromisso a pagar', 'compromissos a pagar')} e ${plural(receivable.count, 'entrada a receber', 'entradas a receber')} nos próximos ${data.days} dias.`,
   ];
-  const net = receivable.amount - payable.amount;
+  const net = forecastBalance(data.totals);
   if (payable.count > 0 || receivable.count > 0) {
     parts.push(
       net === 0
