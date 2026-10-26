@@ -17,7 +17,7 @@ import {
   type ComparisonFilters,
   type ComparisonPreset,
 } from '@/app/components/pages/financial-comparison/financial-comparison-model';
-import { Button, Chip, IconButton, Input, ShowBelow, ShowFrom, CurrencySelect } from '@/app/components/ui';
+import { Button, IconButton, Input, Select, ShowBelow, ShowFrom, CurrencySelect } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import {
@@ -54,9 +54,19 @@ function formatMonth(period: ComparisonMonth) {
   }).format(new Date(Date.UTC(period.year, period.month - 1, 1)));
 }
 
+function formatMonthName(period: ComparisonMonth) {
+  return new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: 'UTC' }).format(
+    new Date(Date.UTC(period.year, period.month - 1, 1)),
+  );
+}
+
+/** "jan. – out. de 2026" quando o intervalo cabe num ano; o ano aparece uma vez só. */
 function formatRange(range: ComparisonRange) {
   if (range.from.year === range.to.year && range.from.month === range.to.month) {
     return formatMonth(range.from);
+  }
+  if (range.from.year === range.to.year) {
+    return `${formatMonthName(range.from)} – ${formatMonth(range.to)}`;
   }
   return `${formatMonth(range.from)} – ${formatMonth(range.to)}`;
 }
@@ -136,7 +146,7 @@ export default function FinancialComparisonPage() {
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
   const [basisOverride, setBasisOverride] = useState<ComparisonBasis | null>(null);
-  const [editing, setEditing] = useState<{ a: boolean; b: boolean }>({ a: false, b: false });
+  const [editing, setEditing] = useState(false);
 
   const queryKey = useMemo(() => serializeFilters(filters), [filters]);
   useEffect(() => {
@@ -212,11 +222,30 @@ export default function FinancialComparisonPage() {
     });
   }
 
+  const editOpen = editing || validationError !== null;
   const rangeA = rangeFromValues(filters.aFrom, filters.aTo);
   const rangeB = rangeFromValues(filters.bFrom, filters.bTo);
 
+  function choosePreset(value: string | number) {
+    if (value === 'custom') {
+      setEditing(true);
+      return;
+    }
+    applyFilters(presetFilters(value as ComparisonPreset, filters, currentMonth));
+  }
+
   const headerControls = (
-          <CurrencySelect value={filters.currency} onChange={(item) => updateFilter('currency', item)} />
+    <div className="flex flex-wrap items-center gap-2.5">
+      <div className="min-w-0 flex-1 sm:w-[230px] sm:flex-none">
+        <Select
+          ariaLabel="Tipo de comparação"
+          value={preset ?? 'custom'}
+          onChange={choosePreset}
+          options={[...PRESETS.map((item) => ({ value: item.key, label: item.label })), { value: 'custom', label: 'Personalizado' }]}
+        />
+      </div>
+      <CurrencySelect value={filters.currency} onChange={(item) => updateFilter('currency', item)} />
+    </div>
   );
 
   return (
@@ -227,49 +256,45 @@ export default function FinancialComparisonPage() {
           <div className="mt-4">{headerControls}</div>
         </ShowBelow>
 
-        <nav aria-label="Atalhos de comparação" className="mt-5 flex flex-wrap gap-2">
-          {PRESETS.map((item) => (
-            <Chip key={item.key} selected={preset === item.key} onClick={() => applyFilters(presetFilters(item.key, filters, currentMonth))}>
-              {item.label}
-            </Chip>
-          ))}
-        </nav>
-
-        <section aria-label="Períodos comparados" className="mt-3 grid items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-          <PeriodCard
-            side="A"
-            title="Período A · base"
-            range={rangeA ? formatRange(rangeA) : 'Período inválido'}
-            months={data ? monthsLabel(data.a.months) : null}
-            from={filters.aFrom}
-            to={filters.aTo}
-            maxMonth={maxMonth}
-            open={editing.a || validationError !== null}
-            onToggle={() => setEditing((value) => ({ ...value, a: !value.a }))}
-            onFrom={(value) => updateFilter('aFrom', value)}
-            onTo={(value) => updateFilter('aTo', value)}
-          />
-          <div className="grid place-items-center">
+        <section aria-label="Períodos comparados" className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] sm:gap-4">
+            <PeriodLabel
+              side="A"
+              title="A · base"
+              range={rangeA ? formatRange(rangeA) : 'Período inválido'}
+              months={data ? monthsLabel(data.a.months) : null}
+            />
             <IconButton
               label="Inverter períodos A e B"
               icon={<FaExchangeAlt />}
               onClick={swapPeriods}
-              className="rounded-full border border-[var(--border-strong)] bg-[var(--surface)] rotate-90 lg:rotate-0"
+              className="rounded-full border border-[var(--border-strong)] bg-[var(--surface)]"
             />
+            <PeriodLabel
+              side="B"
+              title="B · comparado"
+              range={rangeB ? formatRange(rangeB) : 'Período inválido'}
+              months={data ? monthsLabel(data.b.months) : null}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="col-span-3 justify-self-end sm:col-span-1"
+              aria-expanded={editOpen}
+              onClick={() => setEditing((value) => !value)}
+            >
+              {editOpen ? 'Fechar' : 'Alterar períodos'}
+            </Button>
           </div>
-          <PeriodCard
-            side="B"
-            title="Período B · comparado"
-            range={rangeB ? formatRange(rangeB) : 'Período inválido'}
-            months={data ? monthsLabel(data.b.months) : null}
-            from={filters.bFrom}
-            to={filters.bTo}
-            maxMonth={maxMonth}
-            open={editing.b || validationError !== null}
-            onToggle={() => setEditing((value) => ({ ...value, b: !value.b }))}
-            onFrom={(value) => updateFilter('bFrom', value)}
-            onTo={(value) => updateFilter('bTo', value)}
-          />
+          {editOpen && (
+            <div className="grid gap-2 border-t border-[var(--border)] pt-3 mt-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Input aria-label="Início período A" type="month" max={maxMonth} value={filters.aFrom} onChange={(event) => updateFilter('aFrom', event.target.value)} />
+              <Input aria-label="Fim período A" type="month" max={maxMonth} value={filters.aTo} onChange={(event) => updateFilter('aTo', event.target.value)} />
+              <Input aria-label="Início período B" type="month" max={maxMonth} value={filters.bFrom} onChange={(event) => updateFilter('bFrom', event.target.value)} />
+              <Input aria-label="Fim período B" type="month" max={maxMonth} value={filters.bTo} onChange={(event) => updateFilter('bTo', event.target.value)} />
+            </div>
+          )}
         </section>
 
         <div className="mt-4">
@@ -303,7 +328,13 @@ export default function FinancialComparisonPage() {
           )}
 
           {!showLoading && currentError === null && data && (
-            <FinancialComparisonView data={data} showValues={showValues} override={basisOverride} onOverride={setBasisOverride} />
+            <FinancialComparisonView
+              data={data}
+              showValues={showValues}
+              labels={{ a: formatRange(data.a.range), b: formatRange(data.b.range) }}
+              override={basisOverride}
+              onOverride={setBasisOverride}
+            />
           )}
         </div>
       </PageContainer>
@@ -311,47 +342,25 @@ export default function FinancialComparisonPage() {
   );
 }
 
-function PeriodCard({
+function PeriodLabel({
   side,
   title,
   range,
   months,
-  from,
-  to,
-  maxMonth,
-  open,
-  onToggle,
-  onFrom,
-  onTo,
 }: {
   side: 'A' | 'B';
   title: string;
   range: string;
   months: string | null;
-  from: string;
-  to: string;
-  maxMonth: string;
-  open: boolean;
-  onToggle: () => void;
-  onFrom: (value: string) => void;
-  onTo: (value: string) => void;
 }) {
   return (
-    <div className={`grid gap-1 rounded-[var(--radius-lg)] border border-[var(--border)] border-t-4 bg-[var(--surface)] p-4 ${side === 'A' ? 'border-t-[var(--border-strong)]' : 'border-t-[var(--primary)]'}`}>
-      <span className="text-xs font-bold text-[var(--text-muted)]">{title}</span>
-      <span className="break-words text-xl font-extrabold tracking-tight">{range}</span>
-      <span className="min-h-5 text-sm text-[var(--text-muted)]">{months ?? ' '}</span>
-      <div>
-        <Button type="button" variant="ghost" size="sm" aria-expanded={open} onClick={onToggle}>
-          {open ? 'Fechar' : 'Alterar período'}
-        </Button>
-      </div>
-      {open && (
-        <div className="grid gap-2 pt-1 sm:grid-cols-2">
-          <Input aria-label={`Início período ${side}`} type="month" max={maxMonth} value={from} onChange={(event) => onFrom(event.target.value)} />
-          <Input aria-label={`Fim período ${side}`} type="month" max={maxMonth} value={to} onChange={(event) => onTo(event.target.value)} />
-        </div>
-      )}
+    <div className="grid min-w-0 gap-0.5">
+      <span className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
+        <span className={`h-2 w-2 rounded-full ${side === 'A' ? 'bg-[var(--border-strong)]' : 'bg-[var(--primary)]'}`} aria-hidden="true" />
+        {title}
+      </span>
+      <span className="break-words text-sm font-bold leading-snug tracking-tight sm:text-lg">{range}</span>
+      <span className="min-h-4 text-xs text-[var(--text-muted)]">{months ?? ' '}</span>
     </div>
   );
 }
