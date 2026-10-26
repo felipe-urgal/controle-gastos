@@ -9,7 +9,7 @@ import { InvestmentFiscalYearProvider } from '@/app/components/pages/investment/
 import { EconomicIndicatorsCard } from '@/app/components/pages/investment/economic-indicators-card';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { ActionsMenu, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { ActionsMenu, Button, Chip, ChipRow, ShowBelow, ShowFrom } from '@/app/components/ui';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import { useAuth } from '@/app/context';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
@@ -77,9 +77,9 @@ export default function InvestmentsCenter() {
     useState<FiscalCostForm>(emptyFiscalCost);
   const [fiscalCostModal, setFiscalCostModal] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<SupportedCurrency>('BRL');
-  const [area, setArea] = useState<'PORTFOLIO' | 'FISCAL' | 'STATEMENTS'>(
-    'PORTFOLIO',
-  );
+  const [tab, setTab] = useState<'PORTFOLIO' | 'MOVEMENTS' | 'FISCAL'>('PORTFOLIO');
+  // Dentro de "Fiscal e IR": apuração e custo, ou informes para a declaração.
+  const [fiscalView, setFiscalView] = useState<'FISCAL' | 'STATEMENTS'>('FISCAL');
   const [pendingDelete, setPendingDelete] = useState<
     | { kind: 'OPERATION'; value: InvestmentOperation }
     | { kind: 'ASSET'; value: InvestmentAsset }
@@ -513,20 +513,13 @@ export default function InvestmentsCenter() {
     setOperationModal(true);
   }
 
+  const canOperate = Boolean(portfolio?.accounts.some((account) => account.isActive) && portfolio?.assets.length);
+
   const headerControls = (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="w-[10.5rem] shrink-0">
-        <Select
-          ariaLabel="Área de investimentos"
-          value={area}
-          onChange={(value) => setArea(value as 'PORTFOLIO' | 'FISCAL' | 'STATEMENTS')}
-          options={[
-            { value: 'PORTFOLIO', label: 'Carteira' },
-            { value: 'FISCAL', label: 'Fiscal' },
-            { value: 'STATEMENTS', label: 'Informes / IR' },
-          ]}
-        />
-      </div>
+      <Button onClick={openOperationModal} disabled={!canOperate}>
+        Nova operação
+      </Button>
       <ActionsMenu
         items={[
           {
@@ -534,9 +527,8 @@ export default function InvestmentsCenter() {
             onSelect: refreshQuotes,
             disabled: !hasQuoteablePositions || refreshingQuotes,
           },
-          { label: 'Nova operação', onSelect: openOperationModal, disabled: !portfolio?.accounts.some((account) => account.isActive) || !portfolio?.assets.length },
           { label: 'Novo ativo', onSelect: () => setAssetModal(true) },
-          { label: 'Novo provento', onSelect: openIncomeModal, disabled: !portfolio?.accounts.some((account) => account.isActive) || !portfolio?.assets.length },
+          { label: 'Novo provento', onSelect: openIncomeModal, disabled: !canOperate },
           {
             label: 'Importar extrato',
             onSelect: () => setImportModal(true),
@@ -589,7 +581,19 @@ export default function InvestmentsCenter() {
               </div>
             )}
 
-            {area === 'PORTFOLIO' && (
+            <ChipRow label="Áreas de investimentos">
+              {([
+                ['PORTFOLIO', 'Carteira'],
+                ['MOVEMENTS', 'Movimentações'],
+                ['FISCAL', 'Fiscal e IR'],
+              ] as const).map(([value, label]) => (
+                <Chip key={value} selected={tab === value} onClick={() => setTab(value)}>
+                  {label}
+                </Chip>
+              ))}
+            </ChipRow>
+
+            {tab === 'PORTFOLIO' && (
               <>
                 {summary && (
                   <PortfolioSummary
@@ -598,9 +602,11 @@ export default function InvestmentsCenter() {
                     currencies={currencies}
                     onCurrency={setSelectedCurrency}
                     showValues={showValues}
+                    canRefreshQuotes={hasQuoteablePositions}
+                    refreshingQuotes={refreshingQuotes}
+                    onRefreshQuotes={refreshQuotes}
                   />
                 )}
-                <EconomicIndicatorsCard />
                 {summary && (
                   <PositionsList
                     ranked={summary.ranked}
@@ -608,6 +614,12 @@ export default function InvestmentsCenter() {
                     onHistory={openHistory}
                   />
                 )}
+                <EconomicIndicatorsCard />
+              </>
+            )}
+
+            {tab === 'MOVEMENTS' && (
+              <>
                 <IncomesCard
                   incomes={portfolio.incomes}
                   totals={portfolio.incomeTotalsByCurrency}
@@ -628,32 +640,41 @@ export default function InvestmentsCenter() {
               </>
             )}
 
-            {area === 'FISCAL' && (
+            {tab === 'FISCAL' && (
               <>
-                <FiscalCostCard
-                  portfolio={portfolio}
-                  showValues={showValues}
-                  onAdjust={openFiscalCostModal}
-                />
-                <RealizedResultReportCard showValues={showValues} />
-                <TaxLossCarryforwardCard showValues={showValues} />
-                <InvestmentTaxControlCard showValues={showValues} />
-                <ForeignInvestmentAnnualTaxCard showValues={showValues} />
-                <FiscalPendingCenterCard />
-              </>
-            )}
+                <ChipRow label="Visão fiscal">
+                  <Chip selected={fiscalView === 'FISCAL'} onClick={() => setFiscalView('FISCAL')}>Apuração e custo</Chip>
+                  <Chip selected={fiscalView === 'STATEMENTS'} onClick={() => setFiscalView('STATEMENTS')}>Informes e IR</Chip>
+                </ChipRow>
 
-            {area === 'STATEMENTS' && (
-              <>
-                <AnnualIncomeReportCard showValues={showValues} />
-                <AnnualFinancialStatementCard
-                  showValues={showValues}
-                  onInspectAsset={openHistory}
-                  onBaselineApplied={load}
-                />
-                <AnnualTaxSupportReportCard showValues={showValues} />
-                <CustodyStatementCard showValues={showValues} />
-                <FiscalYearEndSnapshotCard showValues={showValues} />
+                {fiscalView === 'FISCAL' && (
+                  <>
+                    <FiscalCostCard
+                      portfolio={portfolio}
+                      showValues={showValues}
+                      onAdjust={openFiscalCostModal}
+                    />
+                    <RealizedResultReportCard showValues={showValues} />
+                    <TaxLossCarryforwardCard showValues={showValues} />
+                    <InvestmentTaxControlCard showValues={showValues} />
+                    <ForeignInvestmentAnnualTaxCard showValues={showValues} />
+                    <FiscalPendingCenterCard />
+                  </>
+                )}
+
+                {fiscalView === 'STATEMENTS' && (
+                  <>
+                    <AnnualIncomeReportCard showValues={showValues} />
+                    <AnnualFinancialStatementCard
+                      showValues={showValues}
+                      onInspectAsset={openHistory}
+                      onBaselineApplied={load}
+                    />
+                    <AnnualTaxSupportReportCard showValues={showValues} />
+                    <CustodyStatementCard showValues={showValues} />
+                    <FiscalYearEndSnapshotCard showValues={showValues} />
+                  </>
+                )}
               </>
             )}
           </div>

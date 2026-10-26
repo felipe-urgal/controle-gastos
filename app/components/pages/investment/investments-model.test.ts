@@ -38,6 +38,14 @@ describe('summarizeCurrency', () => {
     expect(summary.costBasis).toBe(350_00);
   });
 
+  it('estima o valor com mercado onde há cotação e custo onde não há, sem zerar nada', () => {
+    const summary = summarizeCurrency(positions, 'BRL');
+    expect(summary.estimatedValue).toBe(360_00);
+    expect(summary.atCostValue).toBe(50_00);
+    expect(summary.ranked.map((item) => Math.round(item.sharePercent))).toEqual([50, 36, 14]);
+    expect(summarizeCurrency([], 'BRL')).toMatchObject({ estimatedValue: 0, atCostValue: 0 });
+  });
+
   it('conta cobertura e cotações antigas sem misturar moedas', () => {
     const summary = summarizeCurrency(positions, 'BRL');
     expect([summary.positionCount, summary.pricedCount, summary.unpricedCount, summary.staleCount]).toEqual([3, 2, 1, 1]);
@@ -73,6 +81,19 @@ describe('summarizeCurrency', () => {
     ], 'BRL');
     expect(summary.latestQuoteAt).toBe('2026-10-22T10:00:00Z');
     expect(summarizeCurrency([position({ assetId: 'C', investedCents: 1 })], 'BRL').latestQuoteAt).toBeNull();
+  });
+
+  it('considera antiga só a cotação com referência de mais de 7 dias, não a que expirou no cache', () => {
+    const now = new Date('2026-10-26T12:00:00Z');
+    const fresh = { ...quote(true), referenceAt: '2026-10-25T10:00:00Z' };
+    const old = { ...quote(true), referenceAt: '2026-10-10T10:00:00Z' };
+    const summary = summarizeCurrency([
+      position({ assetId: 'A', investedCents: 1, marketValueCents: 2, quote: fresh }),
+      position({ assetId: 'B', investedCents: 1, marketValueCents: 2, quote: old }),
+      position({ assetId: 'C', investedCents: 1 }),
+    ], 'BRL', now);
+    expect(summary.staleCount).toBe(2);
+    expect(summary.oldQuoteCount).toBe(1);
   });
 
   it('lida com carteira vazia', () => {

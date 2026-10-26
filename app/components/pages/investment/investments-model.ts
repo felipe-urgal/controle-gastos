@@ -1,6 +1,13 @@
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { InvestmentAssetType, InvestmentPortfolio, InvestmentPosition } from '@/app/types/investment';
 
+/** Cotação cuja data de referência passou deste limite é tratada como antiga (o cache expira em minutos; isso é o que importa ao usuário). */
+export const OLD_QUOTE_DAYS = 7;
+
+export function isOldQuote(referenceAt: string, now: Date = new Date()) {
+  return now.getTime() - new Date(referenceAt).getTime() > OLD_QUOTE_DAYS * 86_400_000;
+}
+
 const currencyOrder: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
 
 export type RankedPosition = {
@@ -13,6 +20,8 @@ export type RankedPosition = {
   gainPercent: number | null;
   /** Largura relativa da barra de peso (0–100), em relação à maior posição. */
   weightPercent: number;
+  /** Participação da posição no valor estimado da carteira (0–100). */
+  sharePercent: number;
 };
 
 export type AllocationSlice = { type: InvestmentAssetType; value: number; share: number };
@@ -24,12 +33,18 @@ export type CurrencyPortfolioSummary = {
   /** Custo somente das posições com cotação (base do resultado). */
   pricedCost: number;
   costBasis: number;
+  /** Mercado nas posições com cotação mais custo nas sem cotação: o valor que a carteira "vale" hoje, sem zerar o que não tem preço. */
+  estimatedValue: number;
+  /** Parte do valor estimado que está a custo (posições sem cotação). */
+  atCostValue: number;
   gain: number;
   gainPercent: number | null;
   positionCount: number;
   pricedCount: number;
   unpricedCount: number;
   staleCount: number;
+  /** Posições cuja cotação tem data de referência com mais de `OLD_QUOTE_DAYS` dias. */
+  oldQuoteCount: number;
   /** Referência da cotação mais recente entre as posições; `null` sem cotações. */
   latestQuoteAt: string | null;
   allocation: AllocationSlice[];
@@ -45,7 +60,7 @@ export function portfolioCurrencies(portfolio: Pick<InvestmentPortfolio, 'positi
   return currencyOrder.filter((currency) => present.has(currency));
 }
 
-export function summarizeCurrency(positions: InvestmentPosition[], currency: SupportedCurrency): CurrencyPortfolioSummary {
+export function summarizeCurrency(positions: InvestmentPosition[], currency: SupportedCurrency, now: Date = new Date()): CurrencyPortfolioSummary {
   const own = positions.filter((position) => position.currency === currency);
   const priced = own.filter((position) => position.marketValueCents !== null);
 
@@ -78,6 +93,7 @@ export function summarizeCurrency(positions: InvestmentPosition[], currency: Sup
         gain: positionGain,
         gainPercent: positionGain !== null && position.investedCents > 0 ? (positionGain / position.investedCents) * 100 : null,
         weightPercent: largest > 0 ? (valueOf(position) / largest) * 100 : 0,
+        sharePercent: total > 0 ? (valueOf(position) / total) * 100 : 0,
       };
     });
 
@@ -86,12 +102,15 @@ export function summarizeCurrency(positions: InvestmentPosition[], currency: Sup
     marketValue,
     pricedCost,
     costBasis,
+    estimatedValue: total,
+    atCostValue: own.filter((position) => position.marketValueCents === null).reduce((sum, position) => sum + position.investedCents, 0),
     gain,
     gainPercent: pricedCost > 0 ? (gain / pricedCost) * 100 : null,
     positionCount: own.length,
     pricedCount: priced.length,
     unpricedCount: own.length - priced.length,
     staleCount: own.filter((position) => position.quote?.isStale).length,
+    oldQuoteCount: own.filter((position) => position.quote && isOldQuote(position.quote.referenceAt, now)).length,
     latestQuoteAt: own.reduce<string | null>((latest, position) => {
       const at = position.quote?.referenceAt ?? null;
       return at && (!latest || at > latest) ? at : latest;
