@@ -240,11 +240,16 @@ body {
 
 /* iOS Safari dá zoom automático ao focar campos com fonte < 16px. */
 @media (max-width: 767px) {
-  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not(.amount-display),
   select,
   textarea {
     font-size: 16px;
   }
+}
+
+/* Valor em destaque dos formulários: já é maior que 16px, então não há zoom do iOS. */
+.amount-display {
+  font-size: clamp(2.25rem, 9vw, 3.75rem);
 }
 
 .ds-panel {

@@ -20,6 +20,7 @@
 - Na faixa, os botões usam `pageBarButtonProps` (40px no desktop). No celular a ação principal da lista é só o ícone, na linha do título (`size="compact"` com `ShowBelow`/`ShowFrom`).
 - Ações da entidade ficam ao lado de **Editar** no cabeçalho (Inativar, Excluir), com `ShowPage` `headerActions`. Excluir desabilitado quando o servidor não permite, com `deleteHint` explicando. Não há "zona de risco" nem atalhos de ação dentro do card de resumo.
 - Formulários: ações no fim do conteúdo, sem barra fixa. No celular, `FormActions` com `iconsOnMobile` (compactos, cancelar num canto e salvar no outro).
+- Transações (nova/editar): tela única para desktop e mobile, com `FormActions` no fim do conteúdo; a criação não tem etapa de revisão.
 - Detalhe: passe `loadingSkeleton` no formato da tela para o carregamento não "pular" (no mobile inclui a `MobileAppBar`).
 
 ## Tokens e regras

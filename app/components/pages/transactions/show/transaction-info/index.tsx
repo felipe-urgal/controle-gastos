@@ -40,6 +40,7 @@ export default function TransactionInfo({
   const currency = transaction.account.currency;
   const money = (cents: number) => (showValues ? formatCurrency(cents, currency) : '••••');
   const allocations = transaction.allocations ?? [];
+  const hasSideContent = allocations.length > 1 || Boolean(transaction.series) || !isNormal;
   const kindLabel = isTransfer
     ? getTransferDirectionLabel(transaction)
     : isCardPayment
@@ -94,8 +95,8 @@ export default function TransactionInfo({
         </div>
       </section>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <div className="space-y-4">
+      <div className={`grid items-start gap-4 ${hasSideContent ? 'lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]' : ''}`}>
+        {hasSideContent && <div className="space-y-4">
           {allocations.length > 1 && (
             <section className={cardClassName} aria-labelledby="transaction-allocations-heading">
               <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
@@ -136,14 +137,14 @@ export default function TransactionInfo({
             </section>
           )}
 
-          <p className={`${cardClassName} p-4 text-sm leading-relaxed text-[var(--text-muted)] sm:p-5`}>
-            {isTransfer
-              ? 'Esta é uma perna de uma transferência ligada. A contraparte é somente leitura aqui e alterações da operação usam o fluxo dedicado de transferências.'
-              : isCardPayment
-                ? 'Este lançamento foi criado pelo fluxo de pagamento da fatura e é somente leitura no CRUD comum de transações.'
-                : 'O status financeiro e a categoria exibidos aqui vêm do lançamento persistido. Esta tela não recalcula nem altera valores ao abrir.'}
-          </p>
-        </div>
+          {!isNormal && (
+            <p className={`${cardClassName} p-4 text-sm leading-relaxed text-[var(--text-muted)] sm:p-5`}>
+              {isTransfer
+                ? 'Esta é uma perna de uma transferência ligada. A contraparte é somente leitura aqui e alterações da operação usam o fluxo dedicado de transferências.'
+                : 'Este lançamento foi criado pelo fluxo de pagamento da fatura e é somente leitura no CRUD comum de transações.'}
+            </p>
+          )}
+        </div>}
 
         <section className={cardClassName} aria-labelledby="transaction-context-heading">
           <h2 id="transaction-context-heading" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Sobre este lançamento</h2>

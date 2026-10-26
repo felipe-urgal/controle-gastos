@@ -3,8 +3,7 @@
 import { TransactionFormProps } from '@/app/components/pages/transactions/form/transaction-form-shared';
 import { LearningOption, TransactionReviewModal } from '@/app/components/pages/transactions/form/transaction-review-modal';
 import { useTransactionForm } from '@/app/components/pages/transactions/form/use-transaction-form';
-import { MobileTransactionWizard } from '@/app/components/pages/transactions/form/mobile-transaction-wizard';
-import { DesktopTransactionForm } from '@/app/components/pages/transactions/form/desktop-transaction-form';
+import { TransactionFormView } from '@/app/components/pages/transactions/form/transaction-form-view';
 
 export default function TransactionForm({
   transaction,
@@ -22,12 +21,10 @@ export default function TransactionForm({
   onReviewedQueueItem,
 }: TransactionFormProps) {
   const form = useTransactionForm({ transaction, isEditing, initialDate, initialValues, onSuccess, onCancelOverride, initialCategoryType, onSelectTransfer, offlineOwnerUserId, offlineDraftId, onOfflineQueueChanged, reviewingQueueItem, onReviewedQueueItem });
-  const { formData, reviewOpen, setReviewOpen, learnMerchantCorrection, setLearnMerchantCorrection, learnCategoryCorrection, setLearnCategoryCorrection, merchantLearningOperator, setMerchantLearningOperator, categoryLearningOperator, setCategoryLearningOperator, storageUnavailable, isSubmitting, isDesktop, selectedAccount, selectedCategory, selectedMerchant, learningSuggestions, hasLearningSuggestions, formatCentsToCurrency, persistTransaction, operationLabel } = form;
+  const { formData, reviewOpen, setReviewOpen, learnMerchantCorrection, setLearnMerchantCorrection, learnCategoryCorrection, setLearnCategoryCorrection, merchantLearningOperator, setMerchantLearningOperator, categoryLearningOperator, setCategoryLearningOperator, storageUnavailable, isSubmitting, selectedAccount, selectedCategory, selectedMerchant, learningSuggestions, hasLearningSuggestions, formatCentsToCurrency, persistTransaction, operationLabel } = form;
 
   return (
     <>
-      {!isDesktop && <MobileTransactionWizard form={form} />}
-
       {storageUnavailable && !isEditing && (
         <p role="alert" className="mt-3 rounded-lg border border-[var(--warning)]/35 bg-[var(--warning-subtle)] p-3 text-sm text-[var(--foreground)]">
           O armazenamento local está indisponível. Esta aba mantém a chave de segurança durante tentativas de reenvio,
@@ -35,7 +32,7 @@ export default function TransactionForm({
           Antes de criar novamente, confira se o lançamento já existe em Transações.
         </p>
       )}
-      {isDesktop && <DesktopTransactionForm form={form} />}
+      <TransactionFormView form={form} />
 
       <TransactionReviewModal
         isOpen={reviewOpen}
