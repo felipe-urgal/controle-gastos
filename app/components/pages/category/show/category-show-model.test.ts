@@ -59,27 +59,6 @@ describe('buildHistoryBars', () => {
 describe('describeMonth', () => {
   const today = { year: 2026, month: 10, day: 22 };
 
-  it('avisa quando passou do limite e quantos dias faltam', () => {
-    const parts = describeMonth({ month: month(61_000, 45_000), previousAverage: 41_400, today, type: 'EXPENSE', money });
-
-    expect(parts[0]).toBe('Passou R$ 160.00 do limite');
-    expect(parts[1]).toBe('9 dias pela frente');
-    expect(parts[2]).toBe('47% acima da média dos meses anteriores');
-  });
-
-  it('mostra quanto falta para o limite e usa singular para um dia', () => {
-    const parts = describeMonth({ month: month(10_000, 50_000), previousAverage: 0, today: { year: 2026, month: 10, day: 30 }, type: 'EXPENSE', money });
-
-    expect(parts).toEqual(['Faltam R$ 400.00 para o limite', '1 dia pela frente']);
-  });
-
-  it('em mês passado não fala de dias; sem limite só compara com a média', () => {
-    const parts = describeMonth({ month: month(20_000, null), previousAverage: 40_000, today, type: 'EXPENSE', money });
-
-    expect(parts).toEqual(['9 dias pela frente', '50% abaixo da média dos meses anteriores']);
-    expect(describeMonth({ month: { ...month(20_000, null), month: 9 }, previousAverage: 0, today, type: 'EXPENSE', money })).toEqual([]);
-  });
-
   it('receita só compara com a média e ignora variação pequena', () => {
     expect(describeMonth({ month: month(105_000, null), previousAverage: 100_000, today, type: 'INCOME', money })).toEqual([]);
     expect(describeMonth({ month: month(150_000, null), previousAverage: 100_000, today, type: 'INCOME', money })).toEqual(['50% acima da média dos meses anteriores']);

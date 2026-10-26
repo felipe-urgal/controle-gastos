@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { daysUntil, dueLabel, installmentLoad, owedCurrencies, summarizeDebts } from '@/app/components/pages/debt/debts-model';
+import { daysUntil, installmentLoad, owedCurrencies, summarizeDebts } from '@/app/components/pages/debt/debts-model';
 import type { Debt } from '@/app/types/debt';
 
 const today = { year: 2026, month: 10, day: 23 };
@@ -30,14 +30,6 @@ describe('daysUntil / dueLabel', () => {
     expect(daysUntil('2026-10-28', today)).toBe(5);
     expect(daysUntil('2026-10-20', today)).toBe(-3);
     expect(daysUntil('2026-11-05', today)).toBe(13);
-  });
-
-  it('descreve o vencimento', () => {
-    expect(dueLabel(-3)).toBe('Vencida há 3 dias');
-    expect(dueLabel(-1)).toBe('Vencida há 1 dia');
-    expect(dueLabel(0)).toBe('Vence hoje');
-    expect(dueLabel(1)).toBe('Vence amanhã');
-    expect(dueLabel(9)).toBe('Em 9 dias');
   });
 });
 

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildLede,
   filterItems,
   groupByDay,
   overdueLabel,
@@ -13,8 +12,6 @@ import {
 import type { FinancialCommitment, FinancialCommitmentsData } from '@/app/types/financial-commitment';
 
 const asOf = { year: 2026, month: 10, day: 22 };
-const money = (cents: number) => 'R$ ' + (cents / 100).toFixed(2).replace('.', ',');
-
 function item(partial: Partial<FinancialCommitment> & { id: string }): FinancialCommitment {
   return {
     type: 'PENDING',
@@ -87,16 +84,6 @@ describe('financial-commitments-model', () => {
     expect(weeks).toHaveLength(2);
     expect(weeks[0]).toMatchObject({ label: '22 out – 28 out', payable: 400, receivable: 1600, payableWidth: 25, receivableWidth: 100 });
     expect(weeks[1]).toMatchObject({ label: '29 out – 4 nov', payable: 800, payableWidth: 50 });
-  });
-
-  it('descreve o horizonte sem inventar saldo e trata o horizonte vazio', () => {
-    expect(buildLede(data(), money)).toContain('Nada previsto para os próximos 30 dias');
-    const lede = buildLede(
-      data({ payable: { count: 9, amount: 748260 }, receivable: { count: 1, amount: 520000 }, overdueCount: 2 }),
-      money,
-    );
-    expect(lede).toBe('Você tem 9 compromissos a pagar e 1 entrada a receber nos próximos 30 dias. Descontando o que entra, saem R$ 2282,60 a mais do que entram. Há 2 itens vencidos.');
-    expect(buildLede(data({ receivable: { count: 1, amount: 100 } }), money)).toContain('entram R$ 1,00 a mais do que saem');
   });
 
   it('calcula o saldo previsto como o que entra menos o que sai', () => {

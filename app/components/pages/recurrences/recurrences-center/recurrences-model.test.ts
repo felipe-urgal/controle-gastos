@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildLede,
   buildReviewQueue,
   currencyTotals,
   daysUntil,
@@ -14,8 +13,6 @@ import type { RecurrenceCandidate, RecurrencesData, RecurrenceSummaryItem } from
 import type { SubscriptionItem } from '@/app/types/subscription';
 
 const today = { year: 2026, month: 10, day: 22 };
-const money = (cents: number, currency: string) => `${currency} ${(cents / 100).toFixed(2)}`;
-
 function formal(id: string, nextOccurrence: RecurrenceSummaryItem['nextOccurrence'], amount = 1000): RecurrenceSummaryItem {
   return {
     id,
@@ -100,11 +97,9 @@ describe('recurrences-model', () => {
     expect(formatAmountInput(5590)).toBe('55,90');
   });
 
-  it('escolhe a próxima série e descreve o resumo sem recorrências', () => {
+  it('escolhe a próxima série', () => {
     const items = [formal('Condomínio', { year: 2026, month: 11, day: 10 }), formal('Aluguel', { year: 2026, month: 10, day: 26 }, 210000)];
     expect(nextFormal(items)?.id).toBe('Aluguel');
-    expect(buildLede({ formal: items, today, money })).toBe('Você tem 2 recorrências ativas. A próxima é Aluguel, em 4 dias (BRL 2100.00).');
-    expect(buildLede({ formal: [], today, money })).toContain('Nenhuma recorrência ativa');
   });
 
   it('monta a fila de revisão sem duplicar assinaturas e respeitando o que foi ignorado', () => {

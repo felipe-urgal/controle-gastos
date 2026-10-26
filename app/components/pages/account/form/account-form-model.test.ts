@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   accountNameSuggestions,
   accountStructureLock,
-  describeCardCycle,
   readCardCycle,
 } from '@/app/components/pages/account/form/account-form-model';
 
@@ -23,22 +22,6 @@ describe('readCardCycle', () => {
 
   it('limita o dia a 31', () => {
     expect(readCardCycle('45', '31')).toMatchObject({ closingDay: 31, dueDay: 31 });
-  });
-});
-
-describe('describeCardCycle', () => {
-  it('explica em que fatura a compra entra', () => {
-    expect(describeCardCycle('10', '24')).toBe(
-      'Compras feitas até o dia 10 entram na fatura que vence no dia 24. Depois do dia 10, entram na fatura seguinte.',
-    );
-  });
-
-  it('avisa quando o vencimento é no mês seguinte', () => {
-    expect(describeCardCycle('25', '5')).toContain('no dia 5 do mês seguinte');
-  });
-
-  it('pede os dias enquanto não forem válidos', () => {
-    expect(describeCardCycle('', '')).toBe('Informe o dia em que a fatura fecha e o dia em que você paga.');
   });
 });
 
