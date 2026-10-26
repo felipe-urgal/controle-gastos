@@ -11,6 +11,7 @@ import {
   mobileMoreNavigationGroups,
   type AppNavigationItem,
 } from '@/app/components/layout/app-navigation';
+import { lockBodyScroll } from '@/app/components/overlays/modal-shell';
 import { IconButton, IconLink } from '@/app/components/ui';
 import { useAuth, useTheme } from '@/app/context';
 
@@ -63,6 +64,12 @@ export default function MobileMoreMenu({
   useEffect(() => {
     onCloseRef.current = onClose;
   });
+
+  // Trava o scroll da página enquanto o menu está aberto; libera já ao começar a fechar.
+  useEffect(() => {
+    if (closing) return;
+    return lockBodyScroll();
+  }, [closing]);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;

@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FaEllipsisH } from 'react-icons/fa';
@@ -7,13 +8,27 @@ import { FaEllipsisH } from 'react-icons/fa';
 import { getAppNavigation, type AppNavigationItem } from '@/app/components/layout/app-navigation';
 
 const itemBase =
-  'relative flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1.5 text-xs transition-colors duration-150 ' +
+  'relative isolate flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1.5 text-xs transition-[color,background-color,transform] duration-150 active:scale-95 ' +
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ';
 
 function itemTone(active: boolean) {
   return active
-    ? 'bg-[var(--primary-subtle)] font-semibold text-[var(--primary)]'
+    ? 'font-semibold text-[var(--primary)]'
     : 'font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]';
+}
+
+const ACTIVE_SPRING = { type: 'spring', stiffness: 500, damping: 40 } as const;
+
+/** Fundo do item ativo: um só elemento que desliza entre os itens (inclusive o "Mais"). */
+function ActiveBackground() {
+  return (
+    <motion.span
+      aria-hidden="true"
+      layoutId="bottom-nav-active"
+      transition={ACTIVE_SPRING}
+      className="absolute inset-0 -z-10 rounded-full bg-[var(--primary-subtle)]"
+    />
+  );
 }
 
 /** Barra inferior flutuante (pílula): Início, Transações, um terceiro item (Contas por padrão) e Mais. */
@@ -66,6 +81,7 @@ export default function BottomNav({
               aria-label={label}
               className={itemBase + itemTone(active)}
             >
+              {active && <ActiveBackground />}
               <Icon className="h-5 w-5" aria-hidden="true" />
               <span className="max-w-full truncate max-[359px]:sr-only">{label}</span>
             </Link>
@@ -80,6 +96,7 @@ export default function BottomNav({
           aria-expanded={moreOpen}
           className={itemBase + itemTone(moreActive || moreOpen)}
         >
+          {(moreActive || moreOpen) && <ActiveBackground />}
           <FaEllipsisH className="h-5 w-5" aria-hidden="true" />
           <span className="max-w-full truncate max-[359px]:sr-only">Mais</span>
         </button>

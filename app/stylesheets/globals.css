@@ -438,3 +438,18 @@ body {
 .tabular-nums {
   font-family: var(--font-numeric), ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
+
+/* Troca de tema com revelação circular: o novo tema é recortado por cima do antigo (theme-transition.ts). */
+.theme-reveal::view-transition-old(root),
+.theme-reveal::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+.theme-reveal::view-transition-old(root) {
+  z-index: 1;
+}
+
+.theme-reveal::view-transition-new(root) {
+  z-index: 2;
+}

@@ -1,7 +1,8 @@
 'use client';
 
+import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { IconButton } from '@/app/components/ui';
 import { usePathname } from 'next/navigation';
 import {
@@ -20,9 +21,23 @@ import {
   type AppNavigationItem,
 } from '@/app/components/layout/app-navigation';
 import OfflinePendingBadge from '@/app/components/pwa/offline-pending-badge';
+import { GLOBAL_SEARCH_SURFACE_ID } from '@/app/components/layout/global-search-dialog';
+import { switchThemeWithReveal } from '@/app/components/layout/theme-transition';
 import { useAuth, useTheme } from '@/app/context';
 
 const GROUPS_STORAGE_KEY = 'sidebar-closed-groups';
+const ACTIVE_SPRING = { type: 'spring', stiffness: 500, damping: 40 } as const;
+const ICON_SPRING = { type: 'spring', stiffness: 400, damping: 12 } as const;
+const ICON_VARIANTS = { hover: { rotate: -8, scale: 1.12 } };
+
+const MotionLink = motion.create(Link);
+
+// Recolher e expandir: largura, margens e opacidades usam a mesma curva e duração para andar juntas.
+const COLLAPSE = 'duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none';
+
+// A entrada em cascata toca só na primeira carga; navegar entre páginas não a repete.
+let introPlayed = false;
+const introDelay = (order: number) => 0.1 + order * 0.03;
 
 function readClosedGroups(): string[] {
   if (typeof window === 'undefined') return [];
@@ -40,43 +55,78 @@ function SidebarLink({
   active,
   collapsed,
   indented = false,
+  hovered,
+  onHover,
+  intro,
 }: {
   item: AppNavigationItem;
   active: boolean;
   collapsed: boolean;
   indented?: boolean;
+  hovered: boolean;
+  onHover: (key: string) => void;
+  /** Ordem do item na cascata de entrada; `null` quando não há entrada a tocar. */
+  intro: number | null;
 }) {
   const Icon = item.icon;
 
   return (
-    <Link
+    <MotionLink
       href={item.href}
+      initial={intro === null ? false : { opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: 'easeOut', delay: intro === null ? 0 : introDelay(intro) }}
+      whileHover="hover"
+      whileTap={{ scale: 0.98 }}
+      onHoverStart={() => onHover(item.key)}
+      onFocus={() => onHover(item.key)}
       aria-current={active ? 'page' : undefined}
       title={collapsed ? item.label : undefined}
       className={`
-        group relative flex min-h-10 items-center rounded-[var(--radius-md)] py-2
-        text-sm font-medium transition-[background-color,color] duration-150
+        group relative isolate flex min-h-10 items-center gap-3 rounded-[var(--radius-md)] px-[14px] py-2
+        text-sm font-medium transition-colors duration-150
         focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]
-        ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}
         ${
           active
-            ? 'bg-[var(--primary-subtle)] text-[var(--foreground)]'
-            : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+            ? 'text-[var(--foreground)]'
+            : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'
         }
       `}
     >
-      {active && (
-        <span
+      {hovered && !active && (
+        <motion.span
           aria-hidden="true"
-          className={`absolute top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--primary)] ${indented ? '-left-[9px]' : 'left-0'}`}
+          layoutId="sidebar-hover-bg"
+          transition={ACTIVE_SPRING}
+          className="absolute inset-0 -z-20 rounded-[var(--radius-md)] bg-[var(--surface-hover)]"
         />
       )}
-      <Icon
-        className={`h-[18px] w-[18px] shrink-0 transition-colors ${active ? 'text-[var(--primary)]' : 'text-[var(--text-subtle)] group-hover:text-[var(--foreground)]'}`}
-        aria-hidden="true"
-      />
-      <span className={collapsed ? 'sr-only' : 'truncate'}>{item.label}</span>
-    </Link>
+      {active && (
+        <>
+          <motion.span
+            aria-hidden="true"
+            layoutId="sidebar-active-bg"
+            transition={ACTIVE_SPRING}
+            className="absolute inset-0 -z-10 rounded-[var(--radius-md)] bg-[var(--primary-subtle)]"
+          />
+          <motion.span
+            aria-hidden="true"
+            layoutId="sidebar-active-bar"
+            transition={ACTIVE_SPRING}
+            className={`absolute top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--primary)] ${indented ? '-left-[9px]' : 'left-0'}`}
+          />
+        </>
+      )}
+      <motion.span variants={ICON_VARIANTS} transition={ICON_SPRING} className="flex shrink-0">
+        <Icon
+          className={`h-[18px] w-[18px] transition-colors ${active ? 'text-[var(--primary)]' : 'text-[var(--text-subtle)] group-hover:text-[var(--foreground)]'}`}
+          aria-hidden="true"
+        />
+      </motion.span>
+      <span className={`min-w-0 truncate whitespace-nowrap transition-opacity ${COLLAPSE} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>
+        {item.label}
+      </span>
+    </MotionLink>
   );
 }
 
@@ -84,10 +134,13 @@ export default function AppSidebar({
   collapsed = false,
   onToggleCollapsed,
   onOpenGlobalSearch,
+  globalSearchOpen = false,
 }: {
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
   onOpenGlobalSearch?: () => void;
+  /** Com a busca aberta, a superfície do botão passa para a caixa (morph) e volta ao fechar. */
+  globalSearchOpen?: boolean;
 }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
@@ -97,6 +150,12 @@ export default function AppSidebar({
   const profileActive = pathname === '/usuario' || pathname.startsWith('/usuario/');
   // O shell só renderiza a sidebar após a hidratação, então ler o localStorage aqui é seguro.
   const [closedGroups, setClosedGroups] = useState<string[]>(readClosedGroups);
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [playIntro] = useState(() => !introPlayed);
+  useEffect(() => {
+    introPlayed = true;
+  }, []);
+  let introOrder = 0;
 
   const byKey = new Map(navigation.map((item) => [item.key, item]));
   const primaryItems = mobilePrimaryNavigationKeys
@@ -127,20 +186,24 @@ export default function AppSidebar({
 
   const initial = user?.name?.trim().charAt(0).toUpperCase() || 'U';
 
-  const toggleTheme = () => {
-    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  const toggleTheme = (event: MouseEvent<HTMLElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    switchThemeWithReveal(resolvedTheme === 'dark' ? 'light' : 'dark', setTheme, {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    });
   };
 
   return (
     <aside
       aria-label="Navegação principal"
-      className="orbit-navigation-surface fixed inset-y-0 left-0 z-[var(--z-header)] hidden w-[var(--app-sidebar-current-width)] flex-col border-r border-[var(--border)] lg:flex"
+      className={`orbit-navigation-surface fixed inset-y-0 left-0 z-[var(--z-header)] hidden w-[var(--app-sidebar-current-width)] flex-col overflow-hidden border-r border-[var(--border)] transition-[width] ${COLLAPSE} lg:flex`}
     >
-      <div className={`flex h-[var(--app-sidebar-header-height)] items-center border-b border-[var(--border)] ${collapsed ? 'px-2' : 'px-4'}`}>
+      <div className="flex h-[var(--app-sidebar-header-height)] items-center border-b border-[var(--border)] px-[17px]">
         <button
           type="button"
           onClick={onToggleCollapsed}
-          className={`flex min-w-0 items-center rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)] ${collapsed ? 'w-full justify-center' : 'gap-3'}`}
+          className={`flex min-w-0 items-center rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)] gap-3`}
           aria-label={collapsed ? 'Expandir barra lateral — Controle de Gastos' : 'Recolher barra lateral — Controle de Gastos'}
           aria-expanded={!collapsed}
           title={collapsed ? 'Expandir barra lateral' : 'Recolher barra lateral'}
@@ -148,7 +211,7 @@ export default function AppSidebar({
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-hover)] text-[var(--on-primary)] shadow-sm">
             <FaWallet aria-hidden="true" />
           </span>
-          <span className={collapsed ? 'sr-only' : 'min-w-0 text-left'}>
+          <span className={`min-w-0 whitespace-nowrap text-left transition-opacity ${COLLAPSE} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>
             <span className="block truncate text-base font-bold tracking-tight text-[var(--foreground)]">
               Controle de Gastos
             </span>
@@ -159,24 +222,38 @@ export default function AppSidebar({
         </button>
       </div>
 
-      <nav className={`flex-1 overflow-y-auto py-4 ${collapsed ? 'px-2' : 'px-3'}`} aria-label="Seções do aplicativo">
-        <button
+      <nav
+          className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4"
+          aria-label="Seções do aplicativo"
+          onMouseLeave={() => setHoveredKey(null)}
+          onBlur={() => setHoveredKey(null)}
+        >
+        <motion.button
           type="button"
+          whileTap={{ scale: 0.97 }}
           onClick={onOpenGlobalSearch}
           aria-label="Abrir busca global"
           title={collapsed ? 'Busca global' : undefined}
-          className={`mb-4 flex min-h-10 w-full items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] py-2.5 text-base font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--primary)]/35 hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
+          className="group relative isolate mb-4 flex min-h-10 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-base font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
         >
+          {/* Superfície do botão: é o elemento que a caixa da busca assume ao abrir (layoutId) e para onde volta ao fechar. */}
+          {!globalSearchOpen && (
+            <motion.span
+              aria-hidden="true"
+              layoutId={GLOBAL_SEARCH_SURFACE_ID}
+              transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+              style={{ borderRadius: 12 }}
+              className="absolute inset-0 -z-10 border border-[var(--border)] bg-[var(--surface)] transition-colors group-hover:border-[var(--primary)]/35"
+            />
+          )}
           <FaSearch className="h-5 w-5 shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
-          <span className={collapsed ? 'sr-only' : 'min-w-0 flex-1 truncate text-left'}>
+          <span className={`min-w-0 flex-1 truncate whitespace-nowrap text-left transition-opacity ${COLLAPSE} ${collapsed || globalSearchOpen ? 'opacity-0' : 'opacity-100'}`}>
             Busca global
           </span>
-          {!collapsed && (
-            <kbd className="rounded border border-[var(--border)] px-1.5 py-0.5 text-xs text-[var(--text-subtle)]">
-              Ctrl K
-            </kbd>
-          )}
-        </button>
+          <kbd className={`whitespace-nowrap rounded border border-[var(--border)] px-1.5 py-0.5 text-xs text-[var(--text-subtle)] transition-opacity ${COLLAPSE} ${collapsed || globalSearchOpen ? 'opacity-0' : 'opacity-100'}`}>
+            Ctrl K
+          </kbd>
+        </motion.button>
 
         {groups.map((group, index) => {
           const hasActive = group.items.some((item) => item.isActive(pathname));
@@ -184,15 +261,27 @@ export default function AppSidebar({
           const panelId = `sidebar-group-${group.label}`;
 
           return (
-            <div
+            <motion.div
               key={group.label}
+              initial={playIntro ? { clipPath: 'inset(0 0 100% 0)' } : false}
+              animate={{ clipPath: 'inset(0 0 0% 0)', transitionEnd: { clipPath: 'none' } }}
+              transition={{ duration: 0.45, ease: 'easeOut', delay: index * 0.08 }}
               className={
                 index === 0
-                  ? collapsed ? 'space-y-0.5' : ''
-                  : collapsed ? 'mt-3 space-y-0.5 border-t border-[var(--border)] pt-3' : 'mt-4'
+                  ? ''
+                  : `border-t transition-[margin,padding,border-color] ${COLLAPSE} ${
+                      collapsed ? 'mt-3 border-[var(--border)] pt-3' : 'mt-[15px] border-transparent pt-0'
+                    }`
               }
             >
-              {!collapsed && (
+              {/* Título do grupo: recolhe a altura e some ao recolher a sidebar, sem trocar de layout de uma vez. */}
+              <div
+                inert={collapsed}
+                className={`grid transition-[grid-template-rows,opacity] ${COLLAPSE} ${
+                  collapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'
+                }`}
+              >
+                <div className="min-h-0 overflow-hidden">
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.label)}
@@ -205,8 +294,11 @@ export default function AppSidebar({
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    <span
+                    <motion.span
                       aria-hidden="true"
+                      initial={playIntro ? { scale: 0 } : false}
+                      animate={{ scale: 1 }}
+                      transition={{ ...ICON_SPRING, delay: index * 0.08 + 0.3 }}
                       className={`h-[7px] w-[7px] rounded-full transition-colors ${hasActive ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
                     />
                     {group.label}
@@ -216,48 +308,83 @@ export default function AppSidebar({
                     aria-hidden="true"
                   />
                 </button>
-              )}
-              {open && (
-                <div
-                  id={panelId}
-                  className={
-                    collapsed
-                      ? 'space-y-0.5'
-                      : `ml-[15px] space-y-0.5 border-l pl-2 ${hasActive ? 'border-[var(--primary)]/40' : 'border-[var(--border)]'}`
-                  }
-                >
-                  {group.items.map((item) => (
-                    <SidebarLink key={item.key} item={item} active={item.isActive(pathname)} collapsed={collapsed} indented={!collapsed} />
-                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+              <AnimatePresence initial={false}>
+                {open && (
+                  <motion.div
+                    key="panel"
+                    id={panelId}
+                    initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
+                    animate={{ height: 'auto', opacity: 1, transitionEnd: { overflow: 'visible' } }}
+                    exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className={`space-y-0.5 border-l transition-[margin,padding,border-color] ${COLLAPSE} ${
+                      collapsed
+                        ? 'ml-0 border-transparent pl-0'
+                        : `ml-[15px] pl-2 ${hasActive ? 'border-[var(--primary)]/40' : 'border-[var(--border)]'}`
+                    }`}
+                  >
+                    {group.items.map((item) => (
+                      <SidebarLink
+                      key={item.key}
+                      item={item}
+                      active={item.isActive(pathname)}
+                      collapsed={collapsed}
+                      indented={!collapsed}
+                      hovered={hoveredKey === item.key}
+                      onHover={setHoveredKey}
+                      intro={playIntro ? introOrder++ : null}
+                    />
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           );
         })}
       </nav>
 
-      <div className={`border-t border-[var(--border)] ${collapsed ? 'p-2' : 'p-3'}`}>
+      <motion.div
+        initial={playIntro ? { opacity: 0, y: 8 } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: 'easeOut', delay: 0.5 }}
+        className="border-t border-[var(--border)] px-[10px] py-3"
+      >
         <button
           type="button"
           onClick={toggleTheme}
-          className={`mb-2 flex min-h-11 w-full items-center rounded-[var(--radius-md)] py-2.5 text-left text-base font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
+          className="mb-2 flex min-h-11 w-full items-center gap-3 overflow-hidden rounded-[var(--radius-md)] px-[15px] py-2.5 text-left text-base font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           aria-label={resolvedTheme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
           title={collapsed ? (resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro') : undefined}
         >
-          {resolvedTheme === 'dark' ? (
-            <FaSun className="h-5 w-5 text-[var(--text-subtle)]" aria-hidden="true" />
-          ) : (
-            <FaMoon className="h-5 w-5 text-[var(--text-subtle)]" aria-hidden="true" />
-          )}
-          <span className={collapsed ? 'sr-only' : undefined}>{resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}</span>
+          <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={resolvedTheme}
+                initial={{ rotate: -90, scale: 0.4, opacity: 0 }}
+                animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                exit={{ rotate: 90, scale: 0.4, opacity: 0 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="flex text-[var(--text-subtle)]"
+              >
+                {resolvedTheme === 'dark' ? (
+                  <FaSun className="h-5 w-5" aria-hidden="true" />
+                ) : (
+                  <FaMoon className="h-5 w-5" aria-hidden="true" />
+                )}
+              </motion.span>
+            </AnimatePresence>
+          </span>
+          <span className={`whitespace-nowrap transition-opacity ${COLLAPSE} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>
+            {resolvedTheme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+          </span>
         </button>
 
         <OfflinePendingBadge block />
 
         <div
-          className={`flex items-center rounded-[var(--radius-lg)] border p-2 transition-colors ${
-            collapsed ? 'flex-col gap-1' : 'gap-2'
-          } ${
+          className={`flex items-center gap-2 overflow-hidden rounded-[var(--radius-lg)] border p-1.5 transition-colors ${
             profileActive
               ? 'border-[var(--primary)]/35 bg-[var(--primary-subtle)]'
               : 'border-[var(--border)] bg-[var(--orbit-navigation-raised)]'
@@ -267,7 +394,7 @@ export default function AppSidebar({
             href={profileHref}
             aria-current={profileActive ? 'page' : undefined}
             title={collapsed ? user?.name || 'Meu perfil' : undefined}
-            className={`flex min-w-0 items-center rounded-[var(--radius-md)] p-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${collapsed ? 'justify-center' : 'flex-1 gap-3'}`}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           >
             <span
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--primary-subtle)] text-base font-bold text-[var(--primary)]"
@@ -275,7 +402,7 @@ export default function AppSidebar({
             >
               {initial}
             </span>
-            <span className={collapsed ? 'sr-only' : 'min-w-0'}>
+            <span className={`min-w-0 whitespace-nowrap transition-opacity ${COLLAPSE} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>
               <span className="block truncate text-sm font-semibold text-[var(--foreground)]">
                 {user?.name || 'Meu perfil'}
               </span>
@@ -285,15 +412,42 @@ export default function AppSidebar({
             </span>
           </Link>
 
-          <IconButton
-            label="Sair da conta"
-            title="Sair"
-            tone="danger"
-            icon={<FaSignOutAlt />}
-            onClick={() => void logout()}
-          />
+          <div
+            inert={collapsed}
+            className={`shrink-0 overflow-hidden transition-[max-width,opacity] ${COLLAPSE} ${collapsed ? 'max-w-0 opacity-0' : 'max-w-11 opacity-100'}`}
+          >
+            <IconButton
+              label="Sair da conta"
+              title="Sair"
+              tone="danger"
+              icon={<FaSignOutAlt />}
+              onClick={() => void logout()}
+            />
+          </div>
         </div>
-      </div>
+
+        {/* Recolhida, a ação de sair desce para uma linha própria, com altura animada. */}
+        <AnimatePresence initial={false}>
+          {collapsed && (
+            <motion.div
+              key="logout-collapsed"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="flex justify-center overflow-hidden pt-1"
+            >
+              <IconButton
+                label="Sair da conta"
+                title="Sair"
+                tone="danger"
+                icon={<FaSignOutAlt />}
+                onClick={() => void logout()}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </aside>
   );
 }

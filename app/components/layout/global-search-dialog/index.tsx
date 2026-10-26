@@ -1,5 +1,6 @@
 'use client';
 
+import { motion, useDragControls } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useVisualViewportInset } from '@/app/hooks/use-visual-viewport-inset';
@@ -78,6 +79,21 @@ function highlightSearchText(value: string, query: string) {
   return <>{value.slice(0, start)}<mark className="rounded-sm bg-[var(--primary-subtle)] text-inherit">{value.slice(start, start + needle.length)}</mark>{value.slice(start + needle.length)}</>;
 }
 
+/** Id compartilhado com o botão da busca no sidebar (app-sidebar): o botão e a caixa são a mesma superfície. */
+export const GLOBAL_SEARCH_SURFACE_ID = 'global-search-surface';
+
+/** Destaque do resultado ativo: um só elemento que desliza entre as linhas (setas e hover). */
+function ActiveRowBackground() {
+  return (
+    <motion.span
+      aria-hidden="true"
+      layoutId="global-search-active-row"
+      transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+      className="absolute inset-0 -z-10 rounded-[var(--radius-md)] bg-[var(--primary-subtle)]"
+    />
+  );
+}
+
 export default function GlobalSearchDialog({
   onClose,
 }: {
@@ -95,6 +111,35 @@ export default function GlobalSearchDialog({
   const [error, setError] = useState('');
   const [retryVersion, setRetryVersion] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
+  // No mobile a busca ocupa a tela e sobe de baixo; no desktop é uma caixa que cresce do topo.
+  const [compact] = useState(() => window.matchMedia('(max-width: 639px)').matches);
+  // Só com o botão da busca visível (sidebar, a partir de lg) a caixa nasce e volta para ele.
+  const [fromTrigger] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
+  const dragControls = useDragControls();
+  const [closing, setClosing] = useState(false);
+  const closeTimerRef = useRef<number>(0);
+  useEffect(() => () => window.clearTimeout(closeTimerRef.current), []);
+  // Fechar em duas fases: a lista recolhe, e só então a caixa volta ao botão (ou sai de cena).
+  function close() {
+    if (closing) return;
+    if (compact || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      onClose();
+      return;
+    }
+    setClosing(true);
+    closeTimerRef.current = window.setTimeout(onClose, 180);
+  }
+  // A cascata de entrada toca só na abertura; resultados que chegam depois entram sem atraso.
+  const [introDone, setIntroDone] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIntroDone(true), 600);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const rowIntro = (index: number) => ({
+    initial: introDone ? false : ({ opacity: 0, y: 8 } as const),
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.22, ease: 'easeOut', delay: introDone ? 0 : 0.12 + Math.min(Math.max(index, 0), 8) * 0.03 },
+  } as const);
 
   const normalizedQuery = normalizeGlobalSearchMatch(query);
   const filteredQuickActions = useMemo(
@@ -236,14 +281,14 @@ export default function GlobalSearchDialog({
 
   function activate(result: { href: string }) {
     navigatingRef.current = true;
-    onClose();
+    close();
     router.push(result.href);
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Escape') {
       event.preventDefault();
-      onClose();
+      close();
       return;
     }
 
@@ -283,19 +328,41 @@ export default function GlobalSearchDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[var(--z-search)] flex items-start justify-center bg-[var(--overlay)] backdrop-blur-[2px] sm:px-4 sm:pt-[12vh]"
+    <motion.div
+      initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+      animate={{ opacity: closing ? 0.6 : 1, backdropFilter: closing ? 'blur(2px)' : 'blur(4px)', transition: { duration: 0.25 } }}
+      exit={{ opacity: 0, backdropFilter: 'blur(0px)', transition: { duration: 0.2 } }}
+      className="fixed inset-0 z-[var(--z-search)] flex items-start justify-center bg-[var(--overlay)] sm:px-4 sm:pt-[12vh]"
       onMouseDown={(event) => {
-        if (event.currentTarget === event.target) onClose();
+        if (event.currentTarget === event.target) close();
       }}
     >
-      <section
+      <motion.section
         ref={dialogRef}
+        // Arrastar para baixo fecha (só mobile); o arrasto começa pelo cabeçalho para não brigar com o scroll da lista.
+        drag={compact ? 'y' : false}
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.6 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 120 || info.velocity.y > 600) close();
+        }}
+        style={{ transformOrigin: 'top center' }}
+        initial={fromTrigger ? false : compact ? { opacity: 0, y: 48 } : { opacity: 0, y: -20, scale: 0.94 }}
+        animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 420, damping: 34 } }}
+        exit={
+          fromTrigger
+            ? undefined
+            : compact
+              ? { opacity: 0, y: 32, transition: { duration: 0.16, ease: 'easeIn' } }
+              : { opacity: 0, y: -10, scale: 0.97, transition: { duration: 0.14, ease: 'easeIn' } }
+        }
         onKeyDownCapture={(event) => {
           if (event.key === 'Escape') {
             event.preventDefault();
             event.stopPropagation();
-            onClose();
+            close();
           }
           if (event.key !== 'Tab') return;
           const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? []);
@@ -313,10 +380,35 @@ export default function GlobalSearchDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="global-search-title"
-        className="flex w-full flex-col overflow-hidden border-[var(--border)] bg-[var(--surface)] pt-[env(safe-area-inset-top)] shadow-2xl max-sm:h-dvh max-sm:max-w-none sm:max-w-2xl sm:rounded-[var(--radius-lg)] sm:border sm:pt-0"
+        className="relative isolate flex w-full flex-col overflow-hidden pt-[env(safe-area-inset-top)] max-sm:h-dvh max-sm:max-w-none sm:max-w-2xl sm:rounded-[var(--radius-lg)] sm:pt-0"
       >
-        <header className="flex items-center gap-3 border-b border-[var(--border)] p-3 sm:p-4">
-          <FaSearch className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+        {/* Superfície da caixa: com o botão visível ela é o mesmo elemento do botão do sidebar (layoutId) e faz o morph. */}
+        <motion.span
+          aria-hidden="true"
+          layoutId={fromTrigger ? GLOBAL_SEARCH_SURFACE_ID : undefined}
+          transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+          exit={fromTrigger ? { opacity: 0, transition: { duration: 0.12 } } : undefined}
+          style={{ borderRadius: compact ? 0 : 16 }}
+          className="pointer-events-none absolute inset-0 -z-10 border-[var(--border)] bg-[var(--surface)] shadow-2xl sm:border"
+        />
+        <motion.header
+          initial={{ opacity: 0 }}
+          animate={{ opacity: closing ? 0 : 1 }}
+          transition={{ duration: closing ? 0.1 : 0.2, delay: closing ? 0 : fromTrigger ? 0.12 : 0.05 }}
+          onPointerDown={(event) => {
+            if (!compact || (event.target as HTMLElement).closest('input, button')) return;
+            dragControls.start(event);
+          }}
+          className="flex items-center gap-3 border-b border-[var(--border)] p-3 sm:p-4"
+        >
+          <motion.span
+            initial={{ rotate: -25, scale: 0.5 }}
+            animate={{ rotate: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 14, delay: 0.1 }}
+            className="flex shrink-0"
+          >
+            <FaSearch className="text-[var(--text-muted)]" aria-hidden="true" />
+          </motion.span>
           <div className="min-w-0 flex-1">
             <h2 id="global-search-title" className="sr-only">
               Busca global
@@ -363,13 +455,13 @@ export default function GlobalSearchDialog({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             aria-label="Fechar busca global"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           >
             <FaTimes aria-hidden="true" />
           </button>
-        </header>
+        </motion.header>
 
         <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
           {activeIndex >= 0 && flatResults[activeIndex]
@@ -377,13 +469,17 @@ export default function GlobalSearchDialog({
             : 'Nenhum resultado selecionado'}
         </p>
 
-        <div
+        <motion.div
+          layoutScroll
           id="global-search-results"
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:max-h-[min(68vh,560px)] sm:flex-none sm:p-4"
-          style={{ paddingBottom: keyboardInset > 0 ? keyboardInset + 12 : undefined }}
+          // Desktop: a lista desdobra depois da barra e recolhe antes de a caixa voltar ao botão.
+          initial={compact ? false : { height: 0, opacity: 0 }}
+          animate={compact ? { opacity: 1 } : { height: closing ? 0 : 'auto', opacity: closing ? 0 : 1 }}
+          transition={{ duration: closing ? 0.16 : 0.3, ease: [0.22, 1, 0.36, 1], delay: closing || compact ? 0 : fromTrigger ? 0.2 : 0.08 }}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain sm:max-h-[min(68vh,560px)] sm:flex-none"
           aria-label="Resultados da busca global"
         >
-          <div className="space-y-4">
+          <div className="space-y-4 p-3 sm:p-4" style={{ paddingBottom: keyboardInset > 0 ? keyboardInset + 12 : undefined }}>
             {filteredQuickActions.length > 0 && (
               <section aria-labelledby="global-search-quick-actions">
                 <h3
@@ -401,20 +497,22 @@ export default function GlobalSearchDialog({
                     const active = index === activeIndex;
 
                     return (
-                      <button
+                      <motion.button
                         key={result.id}
+                        {...rowIntro(index)}
                         id={'global-search-result-' + index}
                         type="button"
                         onMouseEnter={() => setActiveIndex(index)}
                         onClick={() => activate(result)}
                         className={
-                          'flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                          'relative isolate flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
                           (active
-                            ? 'bg-[var(--primary-subtle)]'
+                            ? ''
                             : 'hover:bg-[var(--surface-hover)]')
                         }
                       >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--primary)]">
+                        {active && <ActiveRowBackground />}
+<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--primary)]">
                           <Icon aria-hidden="true" />
                         </span>
                         <span className="min-w-0 flex-1">
@@ -425,7 +523,7 @@ export default function GlobalSearchDialog({
                             {result.subtitle}
                           </span>
                         </span>
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>
@@ -449,20 +547,22 @@ export default function GlobalSearchDialog({
                     const active = index === activeIndex;
 
                     return (
-                      <button
+                      <motion.button
                         key={result.key}
+                        {...rowIntro(index)}
                         id={'global-search-result-' + index}
                         type="button"
                         onMouseEnter={() => setActiveIndex(index)}
                         onClick={() => activate(result)}
                         className={
-                          'flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                          'relative isolate flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
                           (active
-                            ? 'bg-[var(--primary-subtle)]'
+                            ? ''
                             : 'hover:bg-[var(--surface-hover)]')
                         }
                       >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]">
+                        {active && <ActiveRowBackground />}
+<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]">
                           <Icon aria-hidden="true" />
                         </span>
                         <span className="min-w-0 flex-1">
@@ -473,7 +573,7 @@ export default function GlobalSearchDialog({
                             Abrir funcionalidade
                           </span>
                         </span>
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>
@@ -518,20 +618,22 @@ export default function GlobalSearchDialog({
                       const active = index === activeIndex;
 
                       return (
-                        <button
+                        <motion.button
                           key={result.type + '-' + result.id}
+                          {...rowIntro(index)}
                           id={'global-search-result-' + index}
                           type="button"
                           onMouseEnter={() => setActiveIndex(index)}
                           onClick={() => activate(result)}
                           className={
-                            'flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                            'relative isolate flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
                             (active
-                              ? 'bg-[var(--primary-subtle)]'
+                              ? ''
                               : 'hover:bg-[var(--surface-hover)]')
                           }
                         >
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]">
+                          {active && <ActiveRowBackground />}
+<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]">
                             <Icon aria-hidden="true" />
                           </span>
                           <span className="min-w-0 flex-1">
@@ -544,7 +646,7 @@ export default function GlobalSearchDialog({
                               </span>
                             )}
                           </span>
-                        </button>
+                        </motion.button>
                       );
                     })}
                   </div>
@@ -570,13 +672,18 @@ export default function GlobalSearchDialog({
                 </p>
               )}
           </div>
-        </div>
+        </motion.div>
 
-        <footer className="hidden border-t border-[var(--border)] px-4 py-2 text-xs text-[var(--text-subtle)] sm:flex sm:justify-between">
+        <motion.footer
+          initial={{ opacity: 0 }}
+          animate={{ opacity: closing ? 0 : 1 }}
+          transition={{ duration: closing ? 0.1 : 0.2, delay: closing ? 0 : 0.35 }}
+          className="hidden border-t border-[var(--border)] px-4 py-2 text-xs text-[var(--text-subtle)] sm:flex sm:justify-between"
+        >
           <span>↑ ↓ navegar · Enter abrir · Esc fechar</span>
           <span>Ctrl/Cmd + K</span>
-        </footer>
-      </section>
-    </div>
+        </motion.footer>
+      </motion.section>
+    </motion.div>
   );
 }
