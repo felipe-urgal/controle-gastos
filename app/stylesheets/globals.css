@@ -414,3 +414,12 @@ body {
 .theme-reveal::view-transition-new(root) {
   z-index: 2;
 }
+
+/* Inverso (mobile, escuro → claro): o tema antigo fica por cima e encolhe até o botão. */
+.theme-reveal-inverse::view-transition-old(root) {
+  z-index: 2;
+}
+
+.theme-reveal-inverse::view-transition-new(root) {
+  z-index: 1;
+}

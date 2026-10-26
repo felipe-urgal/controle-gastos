@@ -6,7 +6,8 @@ type ViewTransitionDocument = Document & {
 
 /**
  * Troca o tema com uma revelação circular (View Transitions API). Para o escuro, o círculo nasce no ponto
- * clicado (o botão da sidebar, no canto inferior esquerdo); para o claro, ele "volta" do canto superior direito.
+ * clicado (o botão do tema). Para o claro, no desktop ele "volta" do canto superior direito; no mobile é o
+ * inverso exato: o tema escuro encolhe de volta para o botão, deixando o claro por baixo.
  * Sem suporte, ou com "reduzir movimento", troca direto. O `data-theme` é aplicado dentro da
  * transição porque o ThemeProvider só o escreve num efeito, depois do snapshot.
  */
@@ -22,8 +23,12 @@ export function switchThemeWithReveal(
     return;
   }
 
-  const origin = next === 'dark' ? clickOrigin : { x: window.innerWidth, y: 0 };
+  const desktop = window.matchMedia('(min-width: 1024px)').matches;
+  // Mobile, escuro → claro: o círculo do tema antigo encolhe até o botão (o inverso de claro → escuro).
+  const inverse = next === 'light' && !desktop;
+  const origin = next === 'dark' || inverse ? clickOrigin : { x: window.innerWidth, y: 0 };
   root.classList.add('theme-reveal');
+  if (inverse) root.classList.add('theme-reveal-inverse');
   const transition = doc.startViewTransition(() => {
     root.dataset.theme = next;
     setTheme(next);
@@ -33,17 +38,17 @@ export function switchThemeWithReveal(
     Math.max(origin.y, window.innerHeight - origin.y),
   );
   transition.ready
-    .then(() =>
-      root.animate(
+    .then(() => {
+      const circle = (radiusPx: number) => `circle(${radiusPx}px at ${origin.x}px ${origin.y}px)`;
+      return root.animate(
+        { clipPath: inverse ? [circle(radius), circle(0)] : [circle(0), circle(radius)] },
         {
-          clipPath: [
-            `circle(0px at ${origin.x}px ${origin.y}px)`,
-            `circle(${radius}px at ${origin.x}px ${origin.y}px)`,
-          ],
+          duration: 600,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+          pseudoElement: inverse ? '::view-transition-old(root)' : '::view-transition-new(root)',
         },
-        { duration: 600, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', pseudoElement: '::view-transition-new(root)' },
-      ),
-    )
+      );
+    })
     .catch(() => {});
-  transition.finished.finally(() => root.classList.remove('theme-reveal'));
+  transition.finished.finally(() => root.classList.remove('theme-reveal', 'theme-reveal-inverse'));
 }
