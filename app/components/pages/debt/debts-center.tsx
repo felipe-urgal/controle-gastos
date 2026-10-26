@@ -7,6 +7,7 @@ import {
   FaCheck,
   FaEdit,
   FaHistory,
+  FaSlidersH,
   FaTrash,
 } from 'react-icons/fa';
 
@@ -475,8 +476,10 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
         {!loading && summary && (
           <div className="mt-5 grid gap-4">
             <DebtsSummaryPanel summary={summary} currencies={currencies} onCurrency={setSelectedCurrency} showValues={showValues} />
-            <InstallmentLoadPanel debts={items} currency={summary.currency} today={today} withoutInstallmentCount={summary.withoutInstallmentCount} showValues={showValues} />
-            <DebtsDues debts={items.filter((debt) => debt.currency === summary.currency)} today={today} showValues={showValues} onPay={openPayment} />
+            <div className="grid items-start gap-4 lg:grid-cols-2">
+              <DebtsDues debts={items.filter((debt) => debt.currency === summary.currency)} today={today} showValues={showValues} onPay={openPayment} />
+              <InstallmentLoadPanel debts={items} currency={summary.currency} today={today} withoutInstallmentCount={summary.withoutInstallmentCount} showValues={showValues} />
+            </div>
           </div>
         )}
 
@@ -497,6 +500,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
                 <DebtCard
                   key={debt.id}
                   debt={debt}
+                  share={summary?.currency === debt.currency ? (summary.weights.find((weight) => weight.debt.id === debt.id)?.share ?? null) : null}
                   showValues={showValues}
                   onEdit={() => openEdit(debt)}
                   onAdjust={() => openAdjustment(debt)}
@@ -672,6 +676,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
 
 function DebtCard({
   debt,
+  share,
   showValues,
   onEdit,
   onAdjust,
@@ -682,6 +687,8 @@ function DebtCard({
   onRemove,
 }: {
   debt: Debt;
+  /** Participação no saldo devedor da moeda (0–100); `null` quando a dívida não entra na soma. */
+  share: number | null;
   showValues: boolean;
   onEdit: () => void;
   onAdjust: () => void;
@@ -694,23 +701,21 @@ function DebtCard({
   return (
     <article
       id={`debt-${debt.id}`}
-      className="scroll-mt-24 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-surface)]"
+      className="grid min-w-0 scroll-mt-24 content-start gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass(debt.status)}`}>
-            {statusLabel(debt.status)}
-          </span>
-          <h2 className="mt-3 truncate text-lg font-extrabold text-[var(--foreground)]">
-            {debt.name}
-          </h2>
-          {debt.institution && (
-            <p className="mt-1 text-xs text-[var(--text-muted)]">{debt.institution}</p>
+          {debt.status !== 'ACTIVE' && (
+            <span className={`mb-1.5 inline-flex rounded-full border px-2.5 py-0.5 text-xs font-bold ${statusClass(debt.status)}`}>
+              {statusLabel(debt.status)}
+            </span>
           )}
+          <h2 className="truncate text-lg font-extrabold text-[var(--foreground)]">{debt.name}</h2>
+          {debt.institution && <p className="text-xs text-[var(--text-muted)]">{debt.institution}</p>}
         </div>
         {debt.status === 'ACTIVE' && (
           <IconButton
-            label="Editar dívida"
+            label={`Editar ${debt.name}`}
             icon={<FaEdit />}
             onClick={onEdit}
             className="rounded-full border border-[var(--border)]"
@@ -718,58 +723,37 @@ function DebtCard({
         )}
       </div>
 
-      <div className="mt-5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-          Saldo devedor
-        </span>
-        <strong className="mt-1 block break-words text-3xl font-extrabold tabular-nums text-[var(--foreground)]">
+      <div>
+        <strong className="block break-words text-2xl font-extrabold tabular-nums text-[var(--foreground)]">
           <span className="money">{showValues ? formatCurrency(debt.balance, debt.currency) : '••••'}</span>
         </strong>
+        <span className="text-xs text-[var(--text-muted)]">
+          saldo devedor{share !== null ? ` · ${share.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do total` : ''}
+        </span>
       </div>
 
       {debt.status === 'ACTIVE' && debt.installmentAmount !== null && debt.dueDate ? (
-        <>
-          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-xl bg-[var(--surface-raised)] p-3">
-              <span className="text-xs text-[var(--text-muted)]">Próxima parcela</span>
-              <strong className="mt-1 block text-[var(--foreground)]">
-                <span className="money">{showValues ? formatCurrency(debt.installmentAmount, debt.currency) : '••••'}</span>
-              </strong>
-            </div>
-            <div className="rounded-xl bg-[var(--surface-raised)] p-3">
-              <span className="text-xs text-[var(--text-muted)]">Vencimento</span>
-              <strong className="mt-1 block text-[var(--foreground)]">{dateLabel(debt.dueDate)}</strong>
-            </div>
-          </div>
+        <p className="text-sm text-[var(--text-muted)]">
+          Parcela{' '}
+          <span className="money font-semibold text-[var(--foreground)]">{showValues ? formatCurrency(debt.installmentAmount, debt.currency) : '••••'}</span>
+          {' · vence '}
+          <span className="font-semibold text-[var(--foreground)]">{dateLabel(debt.dueDate)}</span>
           {debt.remainingInstallments !== null && (
-            <p className="mt-3 text-xs text-[var(--text-muted)]">
-              {debt.remainingInstallments}{' '}
-              {debt.remainingInstallments === 1 ? 'parcela restante' : 'parcelas restantes'}
-            </p>
+            <> · {debt.remainingInstallments} {debt.remainingInstallments === 1 ? 'restante' : 'restantes'}</>
           )}
-        </>
+        </p>
       ) : debt.status !== 'ACTIVE' ? (
-        <p className="mt-4 rounded-xl bg-[var(--surface-raised)] p-3 text-xs text-[var(--text-muted)]">
+        <p className="text-xs text-[var(--text-muted)]">
           Sem próximos compromissos enquanto a dívida estiver {debt.status === 'PAID' ? 'quitada' : 'arquivada'}.
         </p>
       ) : null}
 
-      <div className="mt-5 flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" icon={<FaHistory aria-hidden="true" />} onClick={onHistory}>
-          Histórico
-        </Button>
-
+      <div className="-mx-1 flex flex-wrap items-center gap-1 border-t border-[var(--border)] px-1 pt-3">
         {debt.status === 'ACTIVE' && (
-          <>
-            <Button variant="outline" size="sm" onClick={onAdjust}>
-              Ajustar saldo
-            </Button>
-            <Button size="sm" icon={<FaCheck aria-hidden="true" />} onClick={onPay}>
-              Registrar pagamento
-            </Button>
-          </>
+          <Button size="sm" icon={<FaCheck aria-hidden="true" />} aria-label={`Registrar pagamento de ${debt.name}`} onClick={onPay}>
+            Pagar
+          </Button>
         )}
-
         {debt.status === 'PAID' && (
           <>
             <Button variant="outline" size="sm" onClick={onAdjust}>
@@ -780,15 +764,16 @@ function DebtCard({
             </Button>
           </>
         )}
-
         {debt.status === 'ARCHIVED' && (
           <Button variant="outline" size="sm" onClick={onRestore}>
             Restaurar
           </Button>
         )}
-
+        <span className="flex-1" />
+        <IconButton label={`Histórico de ${debt.name}`} icon={<FaHistory />} onClick={onHistory} />
+        {debt.status === 'ACTIVE' && <IconButton label={`Ajustar saldo de ${debt.name}`} icon={<FaSlidersH />} onClick={onAdjust} />}
         {debt.status !== 'ARCHIVED' && debt.adjustmentCount <= 1 && (
-          <IconButton label="Excluir dívida" icon={<FaTrash />} tone="danger" onClick={onRemove} className="rounded-full" />
+          <IconButton label={`Excluir ${debt.name}`} icon={<FaTrash />} tone="danger" onClick={onRemove} />
         )}
       </div>
     </article>

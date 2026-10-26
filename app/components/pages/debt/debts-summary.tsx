@@ -9,7 +9,6 @@ import type { Debt } from '@/app/types/debt';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 const monthNames = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-const percent = (value: number) => `${value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
 function dateLabel(value: string) {
   const [year, month, day] = value.split('-');
@@ -31,11 +30,11 @@ export function DebtsSummaryPanel({
   const next = summary.nextDue;
 
   return (
-    <section aria-labelledby="debts-hero-label" className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <section aria-labelledby="debts-hero-label" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p id="debts-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">Você deve em {summary.currency}</p>
-          <strong className="money mt-2 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+          <strong className="money mt-2 block break-words text-3xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
             {money(summary.owedCents)}
           </strong>
           <p className="mt-3 text-sm text-[var(--text-muted)]">
@@ -58,7 +57,7 @@ export function DebtsSummaryPanel({
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-2 sm:gap-3 ${summary.dueSoon.length > 0 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         <Stat label="Parcelas por mês" value={money(summary.monthlyInstallmentCents)} detail={`${summary.withInstallmentCount} de ${summary.activeCount} com parcela informada`} />
         <Stat
           label="Próximo vencimento"
@@ -69,35 +68,21 @@ export function DebtsSummaryPanel({
           label="Última parcela prevista"
           value={summary.lastInstallment ? `${monthNames[summary.lastInstallment.month - 1]}/${summary.lastInstallment.year}` : '—'}
           detail="pelo vencimento e parcelas restantes"
+          className={summary.dueSoon.length > 0 ? '' : 'col-span-2 lg:col-span-1'}
         />
-        <Stat label="Vencem em 7 dias" value={String(summary.dueSoon.length)} detail={summary.dueSoon.length ? summary.dueSoon.map((debt) => debt.name).join(', ') : 'nenhuma'} />
+        {summary.dueSoon.length > 0 && (
+          <Stat label="Vencem em 7 dias" value={String(summary.dueSoon.length)} detail={summary.dueSoon.map((debt) => debt.name).join(', ')} />
+        )}
       </div>
-
-      {summary.weights.length > 0 && (
-        <div className="grid gap-3">
-          <h2 className="text-sm font-bold">Quanto cada dívida pesa</h2>
-          {summary.weights.map(({ debt, share }) => (
-            <div key={debt.id} className="grid gap-1">
-              <div className="flex justify-between gap-3 text-sm">
-                <strong className="min-w-0 truncate">{debt.name}</strong>
-                <span className="money shrink-0 text-[var(--text-muted)]">{money(debt.balance)} · {percent(share)}</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${percent(share)} do saldo devedor`}>
-                <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${share}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </section>
   );
 }
 
-function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
+function Stat({ label, value, detail, className = '' }: { label: string; value: string; detail: string; className?: string }) {
   return (
-    <div className="grid min-w-0 gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3.5 py-3">
-      <span className="text-sm font-semibold text-[var(--text-muted)]">{label}</span>
-      <span className="money break-words text-lg font-semibold">{value}</span>
+    <div className={`grid min-w-0 content-start gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-3 sm:px-3.5 ${className}`}>
+      <span className="truncate text-xs font-semibold text-[var(--text-muted)] sm:text-sm">{label}</span>
+      <span className="money truncate text-base font-semibold sm:text-lg">{value}</span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
     </div>
   );
