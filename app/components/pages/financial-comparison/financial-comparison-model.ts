@@ -21,6 +21,11 @@ export type VerdictSegment = { text: string; tone?: DeltaTone; money?: boolean }
 
 type Money = (cents: number) => string;
 
+/** Percentual no padrão pt-BR (vírgula decimal), com no máximo uma casa. */
+export function formatPercent(value: number) {
+  return value.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%';
+}
+
 export function monthValue(period: ComparisonMonth) {
   return `${period.year}-${String(period.month).padStart(2, '0')}`;
 }
@@ -95,7 +100,7 @@ export function deltaTone(metric: FinancialComparisonMetric, lowerIsBetter = fal
 export function deltaLabel(metric: FinancialComparisonMetric, money: Money) {
   if (metric.difference === 0) return 'Sem mudança';
   const up = metric.difference > 0;
-  const percentage = metric.percentage === null ? 'sem base percentual' : `${Math.abs(metric.percentage)}%`;
+  const percentage = metric.percentage === null ? 'sem base percentual' : formatPercent(Math.abs(metric.percentage));
   return `${up ? '▲' : '▼'} ${percentage} · ${up ? '+' : '−'} ${money(Math.abs(metric.difference))}`;
 }
 
@@ -137,7 +142,12 @@ export function metricRows(data: FinancialComparisonData, basis: ComparisonBasis
 }
 
 /** Frase de veredito em segmentos, para o chamador aplicar fonte numérica e cor. */
-export function buildVerdict(data: FinancialComparisonData, basis: ComparisonBasis, money: Money): VerdictSegment[] {
+export function buildVerdict(
+  data: FinancialComparisonData,
+  basis: ComparisonBasis,
+  money: Money,
+  labels: { a: string; b: string },
+): VerdictSegment[] {
   const [income, expense, balance] = metricRows(data, basis);
   if (income.a === 0 && income.b === 0 && expense.a === 0 && expense.b === 0) {
     return [{ text: 'Sem receitas ou despesas realizadas nos dois períodos.' }];
@@ -146,7 +156,7 @@ export function buildVerdict(data: FinancialComparisonData, basis: ComparisonBas
   const average = basis === 'average';
   const expenseTone = deltaTone(expense.metric, true);
   const segments: VerdictSegment[] = [
-    { text: average ? 'Em B você gastou em média ' : 'Em B você gastou ' },
+    { text: `Em ${labels.b} você gastou${average ? ' em média ' : ' '}` },
     { text: money(expense.b), tone: expenseTone, money: true },
   ];
   if (average) segments.push({ text: ' por mês' });
@@ -155,9 +165,9 @@ export function buildVerdict(data: FinancialComparisonData, basis: ComparisonBas
   if (percentage === null) {
     // Sem base em A: não inventa percentual.
   } else if (percentage === 0) {
-    segments.push({ text: ', o mesmo que em A' });
+    segments.push({ text: `, o mesmo que em ${labels.a}` });
   } else {
-    segments.push({ text: ', ' }, { text: `${Math.abs(percentage)}% ${percentage < 0 ? 'a menos' : 'a mais'}`, tone: expenseTone }, { text: ' que em A' });
+    segments.push({ text: ', ' }, { text: `${formatPercent(Math.abs(percentage))} ${percentage < 0 ? 'a menos' : 'a mais'}`, tone: expenseTone }, { text: ` que em ${labels.a}` });
   }
 
   const diff = balance.metric.difference;
