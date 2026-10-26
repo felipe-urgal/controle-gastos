@@ -48,20 +48,17 @@ export default function GoalCard({
   return (
     <article
       id={`goal-${goal.id}`}
-      className={`grid min-w-0 scroll-mt-24 content-start gap-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-[18px] ${archived ? 'opacity-80' : ''}`}
+      className={`grid min-w-0 scroll-mt-24 content-start gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 ${archived ? 'opacity-80' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="mb-1.5 flex flex-wrap gap-1.5">
+          <div className="mb-1.5 flex min-h-[1.375rem] flex-wrap gap-1.5">
             {completed ? (
               <span className="rounded-full bg-[var(--primary-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--income)]">✓ Concluída</span>
             ) : archived ? (
               <span className="rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--text-muted)]">Arquivada</span>
             ) : (
-              <>
-                <span className="rounded-full bg-[var(--primary-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--primary)]">Ativa</span>
-                {pace && <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${PACE_PILL[pace].tone}`}>{PACE_PILL[pace].label}</span>}
-              </>
+              pace && <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${PACE_PILL[pace].tone}`}>{PACE_PILL[pace].label}</span>
             )}
           </div>
           <h2 className="break-words text-lg font-extrabold tracking-tight">{goal.name}</h2>
@@ -92,14 +89,12 @@ export default function GoalCard({
       </div>
 
       {goal.status === 'ACTIVE' && goal.monthlyContributionSuggestion !== null && (
-        <p className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2.5 text-sm text-[var(--text-muted)]">
-          <MoneyText>{`Para distribuir o restante até o prazo: ${money(goal.monthlyContributionSuggestion)} por mês.`}</MoneyText>
+        <p className="text-sm text-[var(--text-muted)]">
+          <MoneyText>{`Guarde ${money(goal.monthlyContributionSuggestion)} por mês até o prazo.`}</MoneyText>
         </p>
       )}
       {pace === 'OVERDUE' && (
-        <p className="rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3 py-2.5 text-sm font-semibold text-[var(--warning)]">
-          O prazo passou. Edite a meta para ajustar a data.
-        </p>
+        <p className="text-sm font-semibold text-[var(--warning)]">O prazo passou. Edite a meta para ajustar a data.</p>
       )}
 
       {goal.account && (
