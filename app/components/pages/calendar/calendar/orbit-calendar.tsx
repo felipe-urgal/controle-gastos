@@ -7,27 +7,26 @@ import {
   FaArrowDown,
   FaArrowUp,
   FaCalendarCheck,
-  FaChevronLeft,
-  FaChevronRight,
   FaExchangeAlt,
   FaRedo,
-  FaWallet,
 } from 'react-icons/fa';
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { CalendarGrid } from '@/app/components/pages/calendar';
-import { Button, IconButton, PeriodSwitcher, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Button, PeriodSwitcher, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { useCalendar } from '@/app/hooks/calendar/use-calendar';
+import { useMediaQuery } from '@/app/hooks/use-media-query';
+import { summarizeCommitments, type CommitmentTotals } from '@/app/lib/calendar/commitment-totals';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import { monthNames } from '@/app/lib/date/constants';
 import type {
   CalendarDay,
   CalendarEvent,
 } from '@/app/types/calendar';
 import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 
-const compactWeekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const weekDaysLong = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 function dateKey(date: Date) {
   return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
 }
@@ -129,18 +128,17 @@ export default function OrbitCalendar() {
     handleAccountChange,
     retry,
   } = useCalendar();
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [showAllCommitments, setShowAllCommitments] = useState(false);
 
   const displayDate = selectedDate ?? currentDate;
   const selectedDay = useMemo(
     () => dayForDate(calendarDays, displayDate),
     [calendarDays, displayDate],
   );
-  const dayEvents = selectedDay?.events ?? [];
-  const daySummaries = selectedDay?.summaries ?? [];
+  const totals = useMemo(() => summarizeCommitments(commitments), [commitments]);
 
   const selectDay = useCallback(
     (day: CalendarDay) => {
@@ -152,22 +150,14 @@ export default function OrbitCalendar() {
 
   const previousMonth = () => {
     setSelectedDate(null);
-    setShowAllCommitments(false);
     goToPreviousMonth();
   };
 
   const nextMonth = () => {
     setSelectedDate(null);
-    setShowAllCommitments(false);
     goToNextMonth();
   };
 
-  const changeAccount = (value: string | number) => {
-    setShowAllCommitments(false);
-    handleAccountChange(value);
-  };
-
-  const monthLabel = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
   const accountOptions = [
     { value: 'all', label: 'Todas as contas' },
     ...accounts.map((account) => ({
@@ -176,24 +166,27 @@ export default function OrbitCalendar() {
     })),
   ];
 
+  // Com uma conta só o filtro não filtra nada: some para liberar espaço.
   const headerControls = (
-        <div className="grid w-full grid-cols-[auto_1fr_auto] gap-2 sm:flex sm:w-auto sm:flex-wrap">
-          <PeriodSwitcher
-            className="col-span-3 sm:col-span-1"
-            month={currentDate.getMonth() + 1}
-            year={currentDate.getFullYear()}
-            onPrevious={previousMonth}
-            onNext={nextMonth}
+    <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+      <PeriodSwitcher
+        className="w-full sm:w-auto"
+        month={currentDate.getMonth() + 1}
+        year={currentDate.getFullYear()}
+        onPrevious={previousMonth}
+        onNext={nextMonth}
+      />
+      {accounts.length > 1 && (
+        <div className="w-full sm:w-[190px]">
+          <Select
+            ariaLabel="Filtrar por conta"
+            options={accountOptions}
+            value={selectedAccount}
+            onChange={handleAccountChange}
           />
-          <div className="col-span-3 w-full sm:col-span-1 sm:w-[190px]">
-            <Select
-              ariaLabel="Filtrar por conta"
-              options={accountOptions}
-              value={selectedAccount}
-              onChange={changeAccount}
-            />
-          </div>
         </div>
+      )}
+    </div>
   );
 
   return (
@@ -209,12 +202,7 @@ export default function OrbitCalendar() {
           className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3"
         >
           <p className="text-sm font-semibold text-[var(--expense)]">{error}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<FaRedo />}
-            onClick={retry}
-          >
+          <Button variant="outline" size="sm" icon={<FaRedo />} onClick={retry}>
             Tentar novamente
           </Button>
         </div>
@@ -222,41 +210,37 @@ export default function OrbitCalendar() {
 
       <CalendarSummary
         isLoading={isLoading}
-        summaries={summary}
-        commitmentCount={commitmentCount}
+        balances={summary}
+        totals={totals}
         overdueCount={overdueCount}
         showValues={showValues}
       />
 
-      <section className="grid items-start gap-3.5 md:grid-cols-[250px_minmax(0,1fr)] 2xl:grid-cols-[280px_minmax(420px,1fr)_360px]">
-        <MonthNavigator
-          monthLabel={monthLabel}
+      <section className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <MonthGrid
           calendarDays={calendarDays}
           selectedDate={displayDate}
           isLoading={isLoading}
+          isDesktop={isDesktop}
           showValues={showValues}
-          onPrevious={previousMonth}
-          onNext={nextMonth}
           onDayClick={selectDay}
         />
-        <FinancialTimeline
-          selectedDate={displayDate}
-          events={dayEvents}
-          summaries={daySummaries}
-          showValues={showValues}
-          onOpen={setSelectedEvent}
-        />
-        <CommitmentsAgenda
-          commitments={
-            showAllCommitments ? commitments : commitments.slice(0, 6)
-          }
-          total={commitmentCount}
-          showAll={showAllCommitments}
-          showValues={showValues}
-          onOpen={setSelectedEvent}
-          onToggleAll={() => setShowAllCommitments((value) => !value)}
-          className="md:col-span-2 2xl:col-span-1"
-        />
+        <div className="grid gap-3.5">
+          <FinancialTimeline
+            selectedDate={displayDate}
+            isToday={selectedDay?.isToday ?? false}
+            events={selectedDay?.events ?? []}
+            summaries={selectedDay?.summaries ?? []}
+            showValues={showValues}
+            onOpen={setSelectedEvent}
+          />
+          <CommitmentsAgenda
+            commitments={commitments}
+            total={commitmentCount}
+            showValues={showValues}
+            onOpen={setSelectedEvent}
+          />
+        </div>
       </section>
 
       {selectedEvent && (
@@ -270,168 +254,171 @@ export default function OrbitCalendar() {
   );
 }
 
+function money(value: number, currency: CommitmentTotals['currency'], showValues: boolean) {
+  return showValues ? formatCurrency(value, currency) : '••••';
+}
+
 function CalendarSummary({
   isLoading,
-  summaries,
-  commitmentCount,
+  balances,
+  totals,
   overdueCount,
   showValues,
 }: {
   isLoading: boolean;
-  summaries: CurrencyFinancialSummary[];
-  commitmentCount: number;
+  balances: CurrencyFinancialSummary[];
+  totals: CommitmentTotals[];
   overdueCount: number;
   showValues: boolean;
 }) {
+  const overdue = totals.filter((total) => total.overduePayable > 0);
+
   const metrics = [
-    { key: 'balance' as const, label: 'Resultado do mês', icon: FaWallet },
-    { key: 'income' as const, label: 'Receitas realizadas', icon: FaArrowUp },
-    { key: 'expense' as const, label: 'Despesas realizadas', icon: FaArrowDown },
+    {
+      label: 'Resultado do mês',
+      rows: balances.map((item) => ({
+        key: item.currency,
+        text: money(item.balance, item.currency, showValues),
+        tone: item.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]',
+      })),
+    },
+    {
+      label: 'A pagar',
+      rows: totals
+        .filter((total) => total.payable > 0)
+        .map((total) => ({
+          key: total.currency,
+          text: money(total.payable, total.currency, showValues),
+          tone: 'text-[var(--expense)]',
+        })),
+    },
+    {
+      label: 'A receber',
+      rows: totals
+        .filter((total) => total.receivable > 0)
+        .map((total) => ({
+          key: total.currency,
+          text: money(total.receivable, total.currency, showValues),
+          tone: 'text-[var(--income)]',
+        })),
+    },
   ];
+  const withoutAmount = totals.reduce((sum, total) => sum + total.withoutAmount, 0);
 
   return (
-    <section
-      className="my-[22px] grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3"
-      aria-label="Resumo do calendário"
-    >
-      {metrics.map((metric) => {
-        const Icon = metric.icon;
-        return (
+    <section className="my-4 grid gap-2 lg:my-5" aria-label="Resumo do calendário">
+      <div className="grid grid-cols-3 gap-2 lg:gap-3">
+        {metrics.map((metric) => (
           <article
-            key={metric.key}
-            className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4"
+            key={metric.label}
+            className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 lg:p-4"
           >
-            <p className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)] sm:text-xs">
-              <Icon aria-hidden="true" /> {metric.label}
-            </p>
+            <p className="truncate text-xs font-semibold text-[var(--text-muted)]">{metric.label}</p>
             {isLoading ? (
-              <div className="mt-2 h-6 animate-pulse rounded bg-[var(--skeleton)]" />
-            ) : summaries.length === 0 ? (
-              <strong className="mt-2 block text-lg sm:text-2xl">—</strong>
+              <div className="mt-2 h-5 animate-pulse rounded bg-[var(--skeleton)]" />
+            ) : metric.rows.length === 0 ? (
+              <strong className="mt-2 block text-sm text-[var(--text-muted)] lg:text-lg">—</strong>
             ) : (
               <div className="mt-2 space-y-0.5">
-                {summaries.map((summary) => {
-                  const value = summary[metric.key];
-                  const tone =
-                    metric.key === 'income'
-                      ? 'text-[var(--income)]'
-                      : metric.key === 'expense' ||
-                          (metric.key === 'balance' && value < 0)
-                        ? 'text-[var(--expense)]'
-                        : 'text-[var(--foreground)]';
-
-                  return (
-                    <strong
-                      key={summary.currency}
-                      className={`money block truncate text-sm font-bold sm:text-2xl ${tone}`}
-                    >
-                      {showValues
-                        ? formatCurrency(value, summary.currency)
-                        : '••••'}
-                    </strong>
-                  );
-                })}
+                {metric.rows.map((row) => (
+                  <strong
+                    key={row.key}
+                    className={`money block truncate text-sm font-bold lg:text-xl ${row.tone}`}
+                  >
+                    {row.text}
+                  </strong>
+                ))}
               </div>
             )}
           </article>
-        );
-      })}
+        ))}
+      </div>
 
-      <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4">
-        <p className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)] sm:text-xs">
-          <FaCalendarCheck aria-hidden="true" /> Compromissos do período
-        </p>
-        <strong className="mt-2 block text-lg font-bold text-[var(--foreground)] sm:text-2xl">
-          {isLoading ? '—' : `${commitmentCount} itens`}
-        </strong>
-        {!isLoading && overdueCount > 0 && (
-          <span className="mt-1 block text-xs font-semibold text-[var(--expense)]">
-            {overdueCount} vencido{overdueCount === 1 ? '' : 's'}
+      {!isLoading && overdueCount > 0 && (
+        <a
+          href="#calendar-agenda"
+          className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] px-3 py-2.5 text-left text-sm font-semibold text-[var(--expense)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+        >
+          <span>
+            {overdueCount} {overdueCount === 1 ? 'vencido' : 'vencidos'}
+            {overdue.length > 0 && (
+              <span className="money">
+                {' · '}
+                {overdue.map((total) => money(total.overduePayable, total.currency, showValues)).join(' + ')}
+              </span>
+            )}
           </span>
-        )}
-      </article>
+          <span className="shrink-0 text-xs">Ver agenda</span>
+        </a>
+      )}
+      {!isLoading && withoutAmount > 0 && (
+        <p className="text-xs text-[var(--text-muted)]">
+          {withoutAmount} {withoutAmount === 1 ? 'compromisso sem valor' : 'compromissos sem valor'} fora dos totais.
+        </p>
+      )}
     </section>
   );
 }
 
-function MonthNavigator({
-  monthLabel,
+function MonthGrid({
   calendarDays,
   selectedDate,
   isLoading,
+  isDesktop,
   showValues,
-  onPrevious,
-  onNext,
   onDayClick,
 }: {
-  monthLabel: string;
   calendarDays: CalendarDay[];
   selectedDate: Date;
   isLoading: boolean;
+  isDesktop: boolean;
   showValues: boolean;
-  onPrevious: () => void;
-  onNext: () => void;
   onDayClick: (day: CalendarDay) => void;
 }) {
   return (
-    <aside
-      className="-mx-4 border-y border-[var(--border)] bg-[var(--surface)] py-4 sm:mx-0 sm:rounded-2xl sm:border sm:p-4"
-      aria-label="Navegação mensal"
+    <section
+      className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-1 py-2 lg:p-0"
+      aria-label="Dias do mês"
     >
-      <div className="mb-3 flex items-center justify-between gap-2 px-4 sm:px-0">
-        <IconButton
-          label="Mês anterior"
-          icon={<FaChevronLeft />}
-          onClick={onPrevious}
-          className="border border-[var(--border)] bg-[var(--surface-raised)]"
-        />
-        <h2 className="truncate text-sm font-bold text-[var(--foreground)]">
-          {monthLabel}
-        </h2>
-        <IconButton
-          label="Próximo mês"
-          icon={<FaChevronRight />}
-          onClick={onNext}
-          className="border border-[var(--border)] bg-[var(--surface-raised)]"
-        />
-      </div>
-      <div className="grid grid-cols-7 gap-0 sm:gap-1" aria-hidden="true">
-        {compactWeekDays.map((day, index) => (
+      <div className="grid grid-cols-7 gap-0" aria-hidden="true">
+        {(isDesktop ? weekDaysLong : weekDays).map((day, index) => (
           <span
             key={`${day}-${index}`}
-            className="py-1 text-center text-xs font-semibold text-[var(--text-muted)]"
+            className="py-2 text-center text-xs font-semibold text-[var(--text-muted)] lg:border-b lg:border-[var(--border)]"
           >
             {day}
           </span>
         ))}
       </div>
       <CalendarGrid
-        compact
+        compact={!isDesktop}
         showValues={showValues}
         isLoading={isLoading}
         calendarDays={calendarDays}
         selectedDate={selectedDate}
         onDayClick={onDayClick}
       />
-      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-[var(--border)] pt-3 text-xs text-[var(--text-muted)]">
-        <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--income)]" />Receita</span>
-        <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--expense)]" />Despesa</span>
-        <span><i className="mr-1 inline-block h-1.5 w-1.5 rotate-45 bg-[var(--primary)]" />Transferência</span>
-        <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--warning)]" />Pendente</span>
-        <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--text-muted)]" />Marco</span>
-      </div>
-    </aside>
+      {!isDesktop && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--border)] px-3 pb-1 pt-3 text-xs text-[var(--text-muted)]">
+          <span><i className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--expense)]" />Vencido</span>
+          <span><i className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--warning)]" />Pendente</span>
+          <span><i className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--text-muted)]" />Realizado</span>
+        </div>
+      )}
+    </section>
   );
 }
 
 function FinancialTimeline({
   selectedDate,
+  isToday,
   events,
   summaries,
   showValues,
   onOpen,
 }: {
   selectedDate: Date;
+  isToday: boolean;
   events: CalendarEvent[];
   summaries: CurrencyFinancialSummary[];
   showValues: boolean;
@@ -439,47 +426,38 @@ function FinancialTimeline({
 }) {
   return (
     <article
-      className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5"
+      className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4"
       aria-labelledby="calendar-timeline-title"
     >
-      <header className="mb-3 flex flex-wrap items-end justify-between gap-3">
+      <header className="mb-3 flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
         <div>
-          <p className="text-xs text-[var(--text-muted)]">
+          {isToday && <p className="text-xs font-semibold text-[var(--primary)]">Hoje</p>}
+          <h2
+            id="calendar-timeline-title"
+            className="text-lg font-bold first-letter:uppercase text-[var(--foreground)]"
+          >
             {selectedDate.toLocaleDateString('pt-BR', {
               weekday: 'long',
               day: '2-digit',
               month: 'long',
             })}
-          </p>
-          <h2
-            id="calendar-timeline-title"
-            className="mt-1 text-xl font-bold text-[var(--foreground)]"
-          >
-            {selectedDate.toLocaleDateString('pt-BR', {
-              day: '2-digit',
-              month: 'long',
-            })}
           </h2>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-[var(--text-muted)]">
-            Resultado realizado do dia
-          </p>
-          {summaries.length === 0 ? (
-            <strong className="mt-1 block text-sm">—</strong>
-          ) : (
-            summaries.map((summary) => (
+        {summaries.length > 0 && (
+          <div className="text-right">
+            <p className="text-xs text-[var(--text-muted)]">Realizado no dia</p>
+            {summaries.map((summary) => (
               <strong
                 key={summary.currency}
-                className={`money mt-1 block text-sm font-bold ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}
+                className={`money block text-sm font-bold ${summary.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}
               >
                 {showValues
                   ? `${summary.balance > 0 ? '+' : summary.balance < 0 ? '-' : ''}${formatCurrency(Math.abs(summary.balance), summary.currency)}`
                   : '••••'}
               </strong>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </header>
 
       {events.length === 0 ? (
@@ -487,11 +465,7 @@ function FinancialTimeline({
           Nenhum evento financeiro neste dia.
         </p>
       ) : (
-        <div className="relative ml-1 pl-[18px] sm:pl-6">
-          <span
-            className="absolute bottom-1 left-[5px] top-1 w-px bg-[var(--border-strong)] sm:left-2"
-            aria-hidden="true"
-          />
+        <div className="grid gap-2">
           {events.map((event) => (
             <TimelineEvent
               key={event.id}
@@ -519,22 +493,7 @@ function TimelineEvent({
   const isTransfer = event.direction === 'TRANSFER';
   const isMilestone = event.direction === 'MILESTONE';
   const isPending = event.status === 'PENDING';
-  const isCancelled = event.status === 'CANCELLED';
   const isOverdue = event.commitmentState === 'OVERDUE';
-
-  const marker = isCancelled
-    ? 'bg-[var(--text-subtle)]'
-    : isOverdue
-      ? 'bg-[var(--expense)]'
-      : isMilestone
-        ? 'bg-[var(--text-muted)]'
-        : isTransfer
-          ? 'bg-[var(--primary)]'
-          : isPending
-            ? 'bg-[var(--warning)]'
-            : isIncome
-              ? 'bg-[var(--income)]'
-              : 'bg-[var(--expense)]';
 
   const iconTone = isMilestone
     ? 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'
@@ -558,17 +517,10 @@ function TimelineEvent({
     <button
       type="button"
       onClick={() => onOpen(event)}
-      className="relative mb-2.5 grid w-full grid-cols-[54px_34px_minmax(0,1fr)] items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] sm:grid-cols-[68px_42px_minmax(0,1fr)_auto] sm:gap-2.5 sm:p-3"
+      className="grid w-full grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
     >
       <span
-        className={`absolute left-[-17px] top-[21px] h-[9px] w-[9px] rounded-full border-2 border-[var(--surface)] sm:left-[-21px] sm:top-[23px] ${marker}`}
-        aria-hidden="true"
-      />
-      <span className={`text-xs font-semibold sm:text-xs ${isOverdue ? 'text-[var(--expense)]' : 'text-[var(--text-muted)]'}`}>
-        {eventStatusLabel(event)}
-      </span>
-      <span
-        className={`grid h-[34px] w-[34px] place-items-center rounded-[var(--radius-md)] sm:h-[38px] sm:w-[38px] ${iconTone}`}
+        className={`grid h-[38px] w-[38px] place-items-center rounded-[var(--radius-md)] ${iconTone}`}
         aria-hidden="true"
       >
         {isMilestone ? (
@@ -582,66 +534,58 @@ function TimelineEvent({
         )}
       </span>
       <div className="min-w-0">
-        <p className="truncate text-sm font-bold text-[var(--foreground)]">
-          {event.title}
-        </p>
+        <p className="truncate text-sm font-bold text-[var(--foreground)]">{event.title}</p>
         <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+          <span className={isOverdue ? 'font-semibold text-[var(--expense)]' : isPending ? 'text-[var(--pending)]' : ''}>
+            {eventStatusLabel(event)}
+          </span>
+          {' · '}
           {eventContextLabel(event)}
         </p>
       </div>
-      <strong className={`money col-start-3 justify-self-end whitespace-nowrap text-sm sm:col-start-auto ${amountTone}`}>
+      <strong className={`money whitespace-nowrap text-sm ${amountTone}`}>
         {signedAmount(event, showValues)}
       </strong>
     </button>
   );
 }
 
+const AGENDA_PREVIEW = 6;
+
 function CommitmentsAgenda({
   commitments,
   total,
-  showAll,
   showValues,
   onOpen,
-  onToggleAll,
-  className = '',
 }: {
   commitments: CalendarEvent[];
   total: number;
-  showAll: boolean;
   showValues: boolean;
   onOpen: (event: CalendarEvent) => void;
-  onToggleAll: () => void;
-  className?: string;
 }) {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? commitments : commitments.slice(0, AGENDA_PREVIEW);
+
   return (
     <aside
-      className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 ${className}`}
+      id="calendar-agenda"
+      className="scroll-mt-20 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4"
       aria-labelledby="calendar-upcoming-title"
     >
-      <header className="mb-3 flex items-end justify-between gap-2">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-            Agenda
-          </p>
-          <h2
-            id="calendar-upcoming-title"
-            className="mt-1 text-xl font-bold text-[var(--foreground)]"
-          >
-            Compromissos do período
-          </h2>
-        </div>
+      <header className="mb-3 flex items-baseline justify-between gap-2">
+        <h2 id="calendar-upcoming-title" className="text-lg font-bold text-[var(--foreground)]">
+          Agenda do mês
+        </h2>
         <span className="text-xs font-semibold text-[var(--text-muted)]">
           {total} {total === 1 ? 'item' : 'itens'}
         </span>
       </header>
 
       {commitments.length === 0 ? (
-        <p className="text-sm text-[var(--text-muted)]">
-          Nenhuma pendência ou marco neste período.
-        </p>
+        <p className="text-sm text-[var(--text-muted)]">Nenhuma pendência ou marco neste período.</p>
       ) : (
         <div className="grid gap-2">
-          {commitments.map((event) => {
+          {visible.map((event) => {
             const date = eventDate(event);
             const isOverdue = event.commitmentState === 'OVERDUE';
             const amountTone =
@@ -656,7 +600,7 @@ function CommitmentsAgenda({
                 key={event.id}
                 type="button"
                 onClick={() => onOpen(event)}
-                className="grid grid-cols-[54px_minmax(0,1fr)_auto] gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+                className="grid grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
               >
                 <div className="text-center">
                   <strong className="block text-base text-[var(--foreground)]">
@@ -665,20 +609,16 @@ function CommitmentsAgenda({
                   <small className={`text-xs uppercase ${isOverdue ? 'font-bold text-[var(--expense)]' : 'text-[var(--text-muted)]'}`}>
                     {isOverdue
                       ? 'venc.'
-                      : date
-                          .toLocaleDateString('pt-BR', { weekday: 'short' })
-                          .replace('.', '')}
+                      : date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
                   </small>
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-[var(--foreground)]">
-                    {event.title}
-                  </p>
+                  <p className="truncate text-sm font-bold text-[var(--foreground)]">{event.title}</p>
                   <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
                     {eventKindLabel(event)} · {event.account?.name ?? eventDateLabel(event)}
                   </p>
                 </div>
-                <strong className={`money self-center whitespace-nowrap text-xs sm:text-sm ${amountTone}`}>
+                <strong className={`money whitespace-nowrap text-sm ${amountTone}`}>
                   {signedAmount(event, showValues)}
                 </strong>
               </button>
@@ -687,9 +627,9 @@ function CommitmentsAgenda({
         </div>
       )}
 
-      {total > 6 && (
-        <Button className="mt-3" variant="outline" size="sm" fullWidth onClick={onToggleAll}>
-          {showAll ? 'Mostrar menos' : `Ver todos (${total})`}
+      {commitments.length > AGENDA_PREVIEW && (
+        <Button className="mt-3" variant="outline" size="sm" fullWidth onClick={() => setShowAll((value) => !value)}>
+          {showAll ? 'Mostrar menos' : `Ver todos (${commitments.length})`}
         </Button>
       )}
     </aside>
