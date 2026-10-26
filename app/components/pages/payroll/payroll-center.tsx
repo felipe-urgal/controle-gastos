@@ -4,7 +4,7 @@ import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useEffect, useMemo, useState } from 'react';
 
 import { ProtectedRoute } from '@/app/components/layout';
-import { ActionsMenu, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Button, Chip, ChipRow, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { usePayrollConfirmation } from '@/app/components/pages/payroll/use-payroll-confirmation';
 import { DocumentHistoryPanel } from '@/app/components/pages/payroll/payroll-monthly-panels';
 import { PayrollCompetencies, PayrollReviewQueue } from '@/app/components/pages/payroll/payroll-competencies';
@@ -317,37 +317,24 @@ export default function PayrollCenter() {
 
   const headerControls = (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="w-[12.5rem] shrink-0">
-        <Select
-          ariaLabel="Área de rendimentos do trabalho"
-          value={activeTab}
-          onChange={(value) => setActiveTab(value as 'MONTHLY' | 'BANK' | 'ANNUAL')}
-          options={[
-            { value: 'MONTHLY', label: 'Mensal' },
-            { value: 'BANK', label: 'Conciliação bancária' },
-            { value: 'ANNUAL', label: 'Anual / IR' },
-          ]}
-        />
-      </div>
-      <div className="w-[7rem] shrink-0">
-        <Select
-          ariaLabel="Ano dos rendimentos mensais"
-          value={monthlyYear}
-          onChange={(value) => changeMonthlyYear(Number(value))}
-          options={years.map((year) => ({ value: year, label: String(year) }))}
-        />
-      </div>
-      <ActionsMenu
-        items={[
-          {
-            label: 'Importar holerite',
-            onSelect: () => {
-              setActiveTab('MONTHLY');
-              setShowImporter(true);
-            },
-          },
-        ]}
-      />
+      {activeTab === 'MONTHLY' && (
+        <div className="w-[7rem] shrink-0">
+          <Select
+            ariaLabel="Ano dos rendimentos mensais"
+            value={monthlyYear}
+            onChange={(value) => changeMonthlyYear(Number(value))}
+            options={years.map((year) => ({ value: year, label: String(year) }))}
+          />
+        </div>
+      )}
+      <Button
+        onClick={() => {
+          setActiveTab('MONTHLY');
+          setShowImporter(true);
+        }}
+      >
+        Importar holerite
+      </Button>
     </div>
   );
 
@@ -359,7 +346,19 @@ export default function PayrollCenter() {
           <div className="mt-4">{headerControls}</div>
         </ShowBelow>
 
-        <div className="mt-5 space-y-5">
+        <ChipRow label="Áreas de rendimentos do trabalho" className="mt-5">
+          {([
+            ['MONTHLY', 'Mensal'],
+            ['BANK', 'Conciliação bancária'],
+            ['ANNUAL', 'Anual / IR'],
+          ] as const).map(([value, label]) => (
+            <Chip key={value} selected={activeTab === value} onClick={() => setActiveTab(value)}>
+              {label}
+            </Chip>
+          ))}
+        </ChipRow>
+
+        <div className="mt-4 space-y-5">
           {activeTab === 'MONTHLY' && (
             <div className="space-y-5">
               {feedback && !showImporter && (
