@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { CARD_VIEWPORT, reducedTransition } from '@/app/components/ui/motion';
+import { CARD_EASE, CARD_VIEWPORT, reducedTransition } from '@/app/components/ui/motion';
 import { useState, type KeyboardEvent } from 'react';
 
 import { compactMonthLabel, displayMoney, signedMoney } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
@@ -36,6 +36,26 @@ export function buildFlowBars(flow: DashboardMonthlyFlow[]): FlowBar[] {
   }));
 }
 
+/**
+ * Indicadores da janela, só com os meses fechados (o mês em andamento puxaria a média para baixo).
+ * Sem mês fechado ou sem receita, o que não dá para calcular fica nulo em vez de virar zero.
+ */
+export function buildFlowStats(bars: FlowBar[], partial: boolean) {
+  const closed = partial ? bars.slice(0, -1) : bars;
+  if (closed.length === 0) return null;
+
+  const income = closed.reduce((sum, bar) => sum + bar.income, 0);
+  const balance = closed.reduce((sum, bar) => sum + bar.balance, 0);
+  const best = closed.reduce((top, bar) => (bar.balance > top.balance ? bar : top), closed[0]);
+
+  return {
+    months: closed.length,
+    averageBalance: Math.round(balance / closed.length),
+    savingsRate: income > 0 ? Math.round((balance / income) * 100) : null,
+    best,
+  };
+}
+
 export function MonthlyFlowCard({
   flow,
   relation,
@@ -54,6 +74,7 @@ export function MonthlyFlowCard({
   const shownIndex = active ?? lastIndex;
   const shown = bars[shownIndex];
   const partial = relation === 'CURRENT';
+  const stats = buildFlowStats(bars, partial);
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
@@ -65,7 +86,7 @@ export function MonthlyFlowCard({
   }
 
   return (
-    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5" aria-labelledby="dashboard-flow-title">
+    <article className="flex h-full flex-col rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[14px] sm:p-5" aria-labelledby="dashboard-flow-title">
       <h2 id="dashboard-flow-title" className="text-lg font-bold">Entrou vs. saiu</h2>
       <p className="mt-0.5 text-xs text-[var(--text-muted)]">Últimos {bars.length} meses{partial ? ' · o último está em andamento' : ''}.</p>
 
@@ -88,7 +109,7 @@ export function MonthlyFlowCard({
         tabIndex={0}
         onKeyDown={onKeyDown}
         onPointerLeave={(event) => event.pointerType === 'mouse' && setActive(null)}
-        className="mt-2 grid h-36 items-end gap-2 rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]"
+        className="mt-2 grid min-h-36 flex-1 items-end gap-2 rounded-[var(--radius-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]"
         style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }}
       >
         {bars.map((bar, index) => {
@@ -134,6 +155,50 @@ export function MonthlyFlowCard({
         <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-[var(--income)]" aria-hidden="true" />Entrou</span>
         <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-[var(--expense)]" aria-hidden="true" />Saiu</span>
       </div>
+
+      {stats && (
+        <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-[var(--border)] pt-4" aria-label={`Resumo dos ${stats.months} meses fechados`}>
+          {[
+            {
+              label: 'Sobra média por mês',
+              value: signedMoney(stats.averageBalance, showValues, currency),
+              tone: stats.averageBalance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]',
+            },
+            {
+              label: 'Taxa de poupança',
+              value: stats.savingsRate === null ? '—' : `${stats.savingsRate}%`,
+              tone: stats.savingsRate !== null && stats.savingsRate < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]',
+            },
+            {
+              label: 'Melhor mês',
+              value: signedMoney(stats.best.balance, showValues, currency),
+              hint: stats.best.label,
+              tone: stats.best.balance < 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]',
+            },
+          ].map((item, index) => (
+            // Cada indicador sobe ao entrar na tela; no hover (ou toque) o valor cresce.
+            <motion.div
+              key={item.label}
+              className="min-w-0"
+              whileHover="hover"
+              whileTap="hover"
+              initial={reduce ? false : { opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={CARD_VIEWPORT}
+              transition={reducedTransition(reduce, { duration: 0.5, ease: CARD_EASE, delay: 0.5 + index * 0.1 })}
+            >
+              <dt className="text-xs text-[var(--text-muted)]">{item.label}</dt>
+              <motion.dd
+                className={`money mt-0.5 origin-left truncate text-sm font-bold sm:text-base ${item.tone}`}
+                variants={{ hover: { scale: 1.1, transition: { type: 'spring', stiffness: 400, damping: 16 } } }}
+              >
+                {item.value}
+              </motion.dd>
+              {'hint' in item && item.hint && <p className="text-xs capitalize text-[var(--text-subtle)]">{item.hint}</p>}
+            </motion.div>
+          ))}
+        </dl>
+      )}
     </article>
   );
 }
