@@ -198,3 +198,27 @@ export function PopBox({ index = 0, ...props }: ComponentProps<typeof motion.div
 export function RiseArticle({ delay = 0, ...props }: ComponentProps<typeof motion.article> & RiseProps) {
   return <motion.article {...useRise(delay)} {...props} />;
 }
+
+/** Como o `StaggerForm`, mas num `div`: cada bloco filho entra em sequência, de baixo para cima. */
+export function StaggerBlocks({ children, ...props }: ComponentProps<'div'>) {
+  const reduce = useReducedMotion();
+
+  return (
+    <div {...props}>
+      {Children.toArray(children).map((child, index) =>
+        reduce ? (
+          child
+        ) : (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: CARD_EASE, delay: 0.15 + Math.min(index, 8) * 0.06 }}
+          >
+            {child}
+          </motion.div>
+        ),
+      )}
+    </div>
+  );
+}

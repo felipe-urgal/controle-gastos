@@ -5,6 +5,7 @@ import { FaKey } from 'react-icons/fa';
 
 import { Button, Input } from '@/app/components/ui';
 import { mfaService } from '@/app/services/mfa-service';
+import { StaggerForm } from '@/app/components/ui/motion';
 
 type FactorMode = 'totp' | 'recovery';
 
@@ -52,7 +53,7 @@ export default function MfaDisable({ onDisabled }: { onDisabled: () => void }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4" noValidate>
+    <StaggerForm onSubmit={submit} className="space-y-4" noValidate>
       {error && <p role="alert" className="text-sm text-[var(--expense)]">{error}</p>}
       <p className="text-sm text-[var(--text-muted)]">A desativação exige sua senha atual e TOTP ou um recovery code válido.</p>
       <Input type="password" label="Senha atual" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" icon={<FaKey />} disabled={busy} required />
@@ -66,6 +67,6 @@ export default function MfaDisable({ onDisabled }: { onDisabled: () => void }) {
           <Button type="submit" variant="danger" isLoading={busy} loadingText="Desativando...">Desativar 2FA</Button>
         </div>
       </div>
-    </form>
+    </StaggerForm>
   );
 }

@@ -13,7 +13,7 @@ export type Crumb = { label: string; href?: string };
 export const pageBarButtonProps = { size: 'sm', className: 'sm:min-h-10' } as const;
 
 /** Presets de movimento da faixa do título (cada página escolhe o seu). */
-export type PageBarAnimation = boolean | 'letters' | 'trail' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor' | 'deal' | 'spin' | 'climb' | 'zoom' | 'swing' | 'wave' | 'slam' | 'fan' | 'neon' | 'dangle';
+export type PageBarAnimation = boolean | 'letters' | 'trail' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor' | 'deal' | 'spin' | 'climb' | 'zoom' | 'swing' | 'wave' | 'slam' | 'fan' | 'neon' | 'dangle' | 'tune';
 
 /**
  * Faixa do título da página. Com sidebar (`lg`), encosta nela, usa a mesma cor e altura do bloco
@@ -40,6 +40,7 @@ export type PageBarAnimation = boolean | 'letters' | 'trail' | 'focus' | 'flip' 
  * `'fan'` (Categorias): o título se abre como um leque, girando a partir do canto de baixo à esquerda, e uma faixa de cores varre a base.
  * `'neon'` (Estabelecimentos): o título acende como um letreiro, piscando até firmar, com um brilho que se apaga.
  * `'dangle'` (Tags): o título balança preso pela ponta esquerda, como uma etiqueta pendurada, e se acalma.
+ * `'tune'` (Configurações): as letras se ajustam como controles deslizantes, cada uma vindo de cima ou de baixo até a posição certa.
  * Sem `animated` a faixa é estática.
  */
 export default function PageBar({
@@ -77,6 +78,7 @@ export default function PageBar({
   const fan = animated === 'fan';
   const neon = animated === 'neon';
   const dangle = animated === 'dangle';
+  const tune = animated === 'tune';
 
   return (
     <header
@@ -143,6 +145,21 @@ export default function PageBar({
               >
                 {current.label}
               </motion.h1>
+            ) : tune ? (
+              <h1 aria-label={current.label} className={`truncate ${pageTitleClassName} lg:text-xl`}>
+                {[...current.label].map((char, index) => (
+                  <motion.span
+                    key={index}
+                    aria-hidden="true"
+                    className="inline-block whitespace-pre"
+                    initial={reduceMotion ? false : { y: index % 2 === 0 ? -14 : 14, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 280, damping: 14, delay: 0.05 + index * 0.03 }}
+                  >
+                    {char}
+                  </motion.span>
+                ))}
+              </h1>
             ) : fan ? (
               <span className="relative inline-block max-w-full align-middle">
                 <motion.h1

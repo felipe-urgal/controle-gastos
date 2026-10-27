@@ -1,7 +1,11 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useState, type FormEvent } from 'react';
 import { FaCopy, FaKey, FaTrash } from 'react-icons/fa';
+
+import { SettingsPanel } from '@/app/components/pages/user/show/settings-row';
+import { StaggerBlocks } from '@/app/components/ui/motion';
 
 import { Button, Input, Select } from '@/app/components/ui';
 import { mcpService } from '@/app/services/mcp-service';
@@ -23,6 +27,7 @@ export default function McpAccessPanel({
 }: {
   totpEnabled: boolean;
 }) {
+  const reduce = useReducedMotion();
   const [items, setItems] = useState<McpAccessTokenSummary[]>([]);
   const [totalActive, setTotalActive] = useState(0);
   const [filter, setFilter] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
@@ -182,21 +187,13 @@ export default function McpAccessPanel({
   );
 
   return (
-    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]" aria-labelledby="mcp-access-title">
-      <div className="space-y-5 p-4 sm:p-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <FaKey className="text-[var(--primary)]" aria-hidden="true" />
-            <h2 id="mcp-access-title" className="text-xl font-semibold text-[var(--foreground)]">
-              Acesso MCP somente leitura
-            </h2>
-          </div>
-          <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-            Gere um token separado para conectar um cliente MCP às consultas financeiras. O token não permite criar, editar ou excluir dados.
-          </p>
-        </div>
-
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+        <SettingsPanel
+      id="mcp-access-title"
+      title="Acesso MCP somente leitura"
+      description="Gere um token separado para conectar um cliente MCP às consultas financeiras. O token não permite criar, editar ou excluir dados."
+    >
+      <StaggerBlocks className="space-y-5 p-4 sm:p-5">
+<div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4">
           <p className="text-sm font-semibold text-[var(--foreground)]">Endpoint MCP</p>
           <code className="mt-2 block break-all text-sm text-[var(--text-muted)]">
             /api/mcp
@@ -271,8 +268,17 @@ export default function McpAccessPanel({
           </div>
         </form>
 
+                <AnimatePresence initial={false}>
         {createdToken && (
-          <div className="rounded-[var(--radius-lg)] border border-[var(--primary)]/35 bg-[var(--primary-subtle)] p-4">
+          // O token recém-criado "estoura" na tela com um anel, para ninguém deixar de copiá-lo.
+          <motion.div
+            key="created-token"
+            initial={reduce ? false : { opacity: 0, scale: 0.9, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+            className="rounded-[var(--radius-lg)] border border-[var(--primary)]/35 bg-[var(--primary-subtle)] p-4"
+          >
             <p className="text-sm font-semibold text-[var(--foreground)]">
               Copie este token agora
             </p>
@@ -291,13 +297,14 @@ export default function McpAccessPanel({
             >
               Copiar token
             </Button>
-            {copyStatus && (
+                        {copyStatus && (
               <p role="status" className="mt-2 text-xs text-[var(--text-muted)]">
                 {copyStatus}
               </p>
             )}
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {error && (
           <div role="alert" className="space-y-2">
@@ -385,10 +392,15 @@ export default function McpAccessPanel({
             </p>
           ) : (
             <div className="mt-3 divide-y divide-[var(--border)] rounded-[var(--radius-lg)] border border-[var(--border)]">
-              {visibleItems.map((item) => (
-                <div
+                            <AnimatePresence initial={false}>
+              {visibleItems.map((item, itemIndex) => (
+                <motion.div
                   key={item.id}
-                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  // Tokens entram deslizando; ao revogar a linha vai embora para a direita.
+                  initial={reduce ? false : { opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0, transition: { type: 'spring', stiffness: 240, damping: 22, delay: Math.min(itemIndex, 8) * 0.05 } }}
+                  exit={{ opacity: 0, x: 60, transition: { duration: 0.2 } }}
+                  className="flex flex-col gap-3 overflow-hidden p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -416,15 +428,16 @@ export default function McpAccessPanel({
                       disabled={revokingId === item.id}
                       onClick={() => void handleRevoke(item.id)}
                     >
-                      {revokingId === item.id ? 'Revogando...' : 'Revogar'}
+                                            {revokingId === item.id ? 'Revogando...' : 'Revogar'}
                     </Button>
                   )}
-                </div>
+                </motion.div>
               ))}
+              </AnimatePresence>
             </div>
           )}
         </div>
-      </div>
-    </section>
+      </StaggerBlocks>
+    </SettingsPanel>
   );
 }

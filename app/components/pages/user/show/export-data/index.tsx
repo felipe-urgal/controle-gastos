@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { FaDownload, FaFileAlt } from 'react-icons/fa';
+import { AnimatePresence, motion } from 'framer-motion';
 
+import { useState } from 'react';
+import { FaDownload } from 'react-icons/fa';
+
+import { SettingsPanel } from '@/app/components/pages/user/show/settings-row';
 import { Button, Select } from '@/app/components/ui';
 
 type ExportFormat = 'csv' | 'json';
@@ -85,26 +88,11 @@ export default function ExportData() {
   }
 
   return (
-    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]" aria-labelledby="export-data-title">
-      <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
-        <div className="flex items-start gap-3">
-          <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]"
-            aria-hidden="true"
-          >
-            <FaFileAlt />
-          </span>
-          <div>
-            <h2 id="export-data-title" className="text-xl font-semibold text-[var(--foreground)]">
-              Portabilidade dos dados
-            </h2>
-            <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-              Baixe seus dados para portabilidade. A exportação é somente leitura e não altera nenhum dado.
-            </p>
-          </div>
-        </div>
-      </div>
-
+        <SettingsPanel
+      id="export-data-title"
+      title="Portabilidade dos dados"
+      description="Baixe seus dados para portabilidade. A exportação é somente leitura e não altera nenhum dado."
+    >
       <div className="p-4 sm:p-5">
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
           <Select
@@ -135,8 +123,14 @@ export default function ExportData() {
           JSON é o backup lógico/portabilidade dos domínios da conta. CSV contém somente transações para análise em planilhas e não é um backup completo.
         </p>
 
+        <AnimatePresence initial={false}>
         {feedback && (
-          <div
+          <motion.div
+            key="feedback"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             role={feedback.type === 'error' ? 'alert' : 'status'}
             aria-live="polite"
             className={`mt-4 rounded-[var(--radius-md)] border p-3.5 text-sm leading-relaxed ${
@@ -146,9 +140,10 @@ export default function ExportData() {
             }`}
           >
             {feedback.message}
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
-    </section>
+    </SettingsPanel>
   );
 }

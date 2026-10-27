@@ -6,6 +6,7 @@ import { QRCodeSVG } from 'qrcode.react';
 
 import { Button, Input } from '@/app/components/ui';
 import { mfaService } from '@/app/services/mfa-service';
+import { StaggerForm } from '@/app/components/ui/motion';
 
 export default function MfaEnrollment({ onActivated }: { onActivated: () => void }) {
   const [password, setPassword] = useState('');
@@ -99,7 +100,7 @@ export default function MfaEnrollment({ onActivated }: { onActivated: () => void
 
   if (setup) {
     return (
-      <form onSubmit={confirm} className="space-y-4" noValidate>
+      <StaggerForm onSubmit={confirm} className="space-y-4" noValidate>
         {error && <p role="alert" className="text-sm text-[var(--expense)]">{error}</p>}
         <div className="grid gap-3 lg:grid-cols-[220px_1fr]">
           <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-center">
@@ -131,16 +132,16 @@ export default function MfaEnrollment({ onActivated }: { onActivated: () => void
           <Button type="button" variant="ghost" onClick={() => setSetup(null)} disabled={busy}>Cancelar</Button>
           <Button type="submit" isLoading={busy} loadingText="Ativando...">Confirmar e ativar</Button>
         </div>
-      </form>
+      </StaggerForm>
     );
   }
 
   return (
-    <form onSubmit={begin} className="space-y-4" noValidate>
+    <StaggerForm onSubmit={begin} className="space-y-4" noValidate>
       {error && <p role="alert" className="text-sm text-[var(--expense)]">{error}</p>}
       <p className="text-sm text-[var(--text-muted)]">Reconfirme sua senha. A proteção só será ativada depois do primeiro código válido.</p>
       <Input type="password" label="Senha atual" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" icon={<FaKey />} disabled={busy} required />
       <div className="flex justify-end"><Button type="submit" isLoading={busy} loadingText="Preparando...">Configurar 2FA</Button></div>
-    </form>
+    </StaggerForm>
   );
 }

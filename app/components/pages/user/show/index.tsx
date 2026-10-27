@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useState } from 'react';
 import { FaCalendarAlt, FaEnvelope, FaKey, FaSignOutAlt, FaTrash, FaUser } from 'react-icons/fa';
 
@@ -7,12 +8,13 @@ import { PageHeader } from '@/app/components/base-pages';
 import { PageEmpty, PageError, PageLoading } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { ConfirmationModal, DeleteOverlay } from '@/app/components/overlays';
-import { Button, Chip, ChipRow, Input, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Button, Input } from '@/app/components/ui';
 import ExportData from '@/app/components/pages/user/show/export-data';
 import McpAccessPanel from '@/app/components/pages/user/show/mcp-access-panel';
 import MfaSecurityPanel from '@/app/components/pages/user/show/mfa-security-panel';
 import Preferences from '@/app/components/pages/user/show/preferences';
 import { SettingsHeader } from '@/app/components/pages/user/show/settings-header';
+import { SettingsNav } from '@/app/components/pages/user/show/settings-nav';
 import { SettingsPanel, SettingsRow } from '@/app/components/pages/user/show/settings-row';
 import { formatDate, settingsSections, type SettingsSection } from '@/app/components/pages/user/show/settings-model';
 import { useAuth } from '@/app/context';
@@ -22,7 +24,23 @@ import { useUser } from '@/app/hooks/users/user-show';
 
 export default function Show() {
   const { logout } = useAuth();
+    const reduce = useReducedMotion();
   const [activeSection, setActiveSection] = useState<SettingsSection>('profile');
+  // Sentido da troca de seção (+1 desce na lista, -1 sobe): o conteúdo desliza para o lado de onde a aba escolhida está.
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const goTo = (section: SettingsSection) => {
+    if (section === activeSection) return;
+    const order = (id: SettingsSection) => settingsSections.findIndex((item) => item.id === id);
+    setDirection(order(section) > order(activeSection) ? 1 : -1);
+    setActiveSection(section);
+    // As abas ficam fixas no topo: se o painel anterior estava rolado, leva a tela para o começo do painel novo.
+    window.requestAnimationFrame(() => {
+      const content = document.getElementById('settings-content');
+      if (content && content.getBoundingClientRect().top < 120) {
+        content.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      }
+    });
+  };
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [totpCode, setTotpCode] = useState('');
@@ -98,7 +116,7 @@ export default function Show() {
     <ProtectedRoute>
       <DeleteOverlay isOpen={isDeleting} entityName="conta" title="Excluindo conta" />
 
-      <PageHeader title="Central de configurações" sidebarAligned loading={loading} />
+      <PageHeader title="Central de configurações" sidebarAligned animated="tune" loading={loading} />
 
       {loading ? (
         <PageLoading type="details" />
@@ -118,43 +136,26 @@ export default function Show() {
         />
       ) : (
         <div className="space-y-5">
-          <SettingsHeader user={user} onGo={setActiveSection} />
+          <SettingsHeader user={user} onGo={goTo} />
 
-          <div className="grid items-start gap-5 lg:grid-cols-[14rem_minmax(0,1fr)]">
-            <ShowFrom breakpoint="lg">
-            <nav aria-label="Áreas de configuração" className="sticky top-3 grid gap-1">
-              {settingsSections.map((section) => (
-                <div key={section.id} className={section.danger ? 'mt-2 border-t border-[var(--border)] pt-3' : undefined}>
-                  <Button
-                    variant={activeSection === section.id ? 'secondary' : 'ghost'}
-                    size="sm"
-                    fullWidth
-                    aria-current={activeSection === section.id ? 'page' : undefined}
-                    onClick={() => setActiveSection(section.id)}
-                    className={`[&>span]:w-full [&>span]:justify-start ${section.danger ? 'text-[var(--expense)]' : ''}`}
-                  >
-                    {section.label}
-                  </Button>
-                </div>
-              ))}
-            </nav>
-            </ShowFrom>
-            <ShowBelow breakpoint="lg">
-              <ChipRow label="Áreas de configuração">
-                {settingsSections.map((section) => (
-                  <Chip key={section.id} selected={activeSection === section.id} onClick={() => setActiveSection(section.id)}>
-                    {section.label}
-                  </Chip>
-                ))}
-              </ChipRow>
-            </ShowBelow>
+          <div className="space-y-4">
+            <SettingsNav active={activeSection} onChange={goTo} />
 
-            <div className="min-w-0 space-y-5">
+            <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={activeSection}
+              id="settings-content"
+              className="min-w-0 scroll-mt-[calc(var(--app-mobile-topbar-height)+env(safe-area-inset-top)+3.75rem)] lg:scroll-mt-[calc(var(--app-sidebar-header-height)+3.75rem)] space-y-4"
+              initial={reduce ? false : { opacity: 0, x: direction * 36 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction * -36 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            >
               {activeSection === 'profile' && (
                 <SettingsPanel id="profile-identity-title" title="Perfil" description="Dados básicos usados para identificar sua conta." busy={isDeleting}>
-                  <SettingsRow icon={<FaUser />} title="Nome" description={user.name} control={<Button as="a" href="/usuario/editar" variant="outline" size="sm">Editar</Button>} />
-                  <SettingsRow icon={<FaEnvelope />} title="E-mail" description={user.email} control={<Button as="a" href="/usuario/editar" variant="outline" size="sm">Editar</Button>} />
-                  <SettingsRow icon={<FaKey />} title="Senha" description="Altere usando sua senha atual." control={<Button as="a" href="/usuario/editar" variant="outline" size="sm">Alterar senha</Button>} />
+                  <SettingsRow inlineControl icon={<FaUser />} title="Nome" description={user.name} control={<Button as="a" href="/usuario/editar" variant="outline" size="sm">Editar</Button>} />
+                  <SettingsRow inlineControl icon={<FaEnvelope />} title="E-mail" description={user.email} control={<Button as="a" href="/usuario/editar" variant="outline" size="sm">Editar</Button>} />
+                  <SettingsRow inlineControl icon={<FaKey />} title="Senha" description="Altere usando sua senha atual." control={<Button as="a" href="/usuario/editar" variant="outline" size="sm">Alterar senha</Button>} />
                   <SettingsRow icon={<FaCalendarAlt />} title="Conta criada em" description={`${formatDate(user.createdAt)} · última atualização em ${formatDate(user.updatedAt)}`} />
                 </SettingsPanel>
               )}
@@ -177,6 +178,7 @@ export default function Show() {
                   <ExportData />
                   <SettingsPanel id="profile-session-title" title="Sessão" description="Encerre a sessão deste dispositivo. Seus dados permanecem salvos.">
                     <SettingsRow
+                      inlineControl
                       icon={<FaSignOutAlt />}
                       title="Sair da conta"
                       description="Você precisará entrar de novo neste dispositivo."
@@ -187,10 +189,22 @@ export default function Show() {
               )}
 
               {activeSection === 'risk' && (
-                <section
-                  className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--danger)]/45 bg-[var(--danger-subtle)]/35"
+                <motion.section
+                  // A zona de risco chega com um tremor curto e a borda pulsa devagar: é a seção que pede mais cuidado.
+                  initial={reduce ? false : { opacity: 0, x: -30 }}
+                  animate={{ opacity: 1, x: reduce ? 0 : [-30, 0, -6, 4, 0] }}
+                  transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
+                  className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--danger)]/45 bg-[var(--danger-subtle)]/35"
                   aria-labelledby="danger-zone-title"
                 >
+                  {!reduce && (
+                    <motion.span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[var(--expense)]"
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                  )}
                   <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                     <div className="max-w-2xl">
                       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--expense)]">Zona de risco</p>
@@ -220,9 +234,10 @@ export default function Show() {
                       {deleteError}
                     </p>
                   )}
-                </section>
+                </motion.section>
               )}
-            </div>
+            </motion.div>
+            </AnimatePresence>
           </div>
 
           <ConfirmationModal

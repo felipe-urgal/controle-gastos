@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaEnvelope, FaLock, FaUser } from 'react-icons/fa';
 
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { Button, Input } from '@/app/components/ui';
+import { CARD_EASE } from '@/app/components/ui/motion';
 import { useAuth } from '@/app/context';
 import type { UpdateUserRequest } from '@/app/services/auth-service';
 import { PASSWORD_REQUIREMENT_LABEL, getPasswordRuleError } from '@/app/lib/auth/password-rules';
@@ -36,7 +38,42 @@ const emptyFieldErrors: UserFieldErrors = {
   confirmPassword: '',
 };
 
+/** Cartão de um grupo de campos: cabeçalho com ícone (igual ao dos painéis da central) e corpo; entra com um flip em sequência. */
+function FormCard({ index, id, icon, title, description, children }: { index: number; id: string; icon: ReactNode; title: string; description: string; children: ReactNode }) {
+  const reduce = useReducedMotion();
+
+  return (
+    <motion.section
+      aria-labelledby={id}
+      initial={reduce ? false : { opacity: 0, rotateX: -14, y: 20 }}
+      animate={{ opacity: 1, rotateX: 0, y: 0 }}
+      transition={{ type: 'spring', stiffness: 170, damping: 20, delay: 0.1 + index * 0.12 }}
+      style={{ transformPerspective: 900, transformOrigin: 'top center' }}
+      className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]"
+    >
+      <header className="flex items-start gap-3 border-b border-[var(--border)] px-4 py-4 sm:px-5">
+        <motion.span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]"
+          aria-hidden="true"
+          initial={reduce ? false : { scale: 0, rotate: -90 }}
+          animate={{ scale: 1, rotate: 0 }}
+          whileHover={{ rotate: [0, -12, 10, 0], transition: { duration: 0.5 } }}
+          transition={{ type: 'spring', stiffness: 400, damping: 14, delay: 0.3 + index * 0.12 }}
+        >
+          {icon}
+        </motion.span>
+        <div className="min-w-0">
+          <h2 id={id} className="text-lg font-bold text-[var(--foreground)]">{title}</h2>
+          <p className="mt-0.5 text-sm text-[var(--text-muted)]">{description}</p>
+        </div>
+      </header>
+      <div className="p-4 sm:p-5">{children}</div>
+    </motion.section>
+  );
+}
+
 export default function UserForm({ user }: UserFormProps) {
+  const reduce = useReducedMotion();
   const router = useRouter();
   const { updateUser } = useAuth();
 
@@ -152,28 +189,20 @@ export default function UserForm({ user }: UserFormProps) {
     }
   }
 
+  // O botão principal só "respira" quando há algo a salvar.
+  const dirty = !isSubmitting && (name.trim() !== user.name || newEmail.trim() !== '' || newPassword !== '');
+
   return (
     <FormContainer
+      bare
       onSubmit={handleSubmit}
       error={submitError}
       onClearError={() => setSubmitError(null)}
-      className="mt-4"
+      className="mt-4 gap-5"
     >
-      <section aria-labelledby="personal-data-title">
-        <div className="mb-4 flex items-start gap-3 border-b border-[var(--border)] pb-4">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
-            <FaUser />
-          </span>
-          <div>
-            <h2 id="personal-data-title" className="text-xl font-semibold text-[var(--foreground)]">
-              Dados pessoais
-            </h2>
-            <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-              Atualize seu nome ou solicite a troca do e-mail da conta.
-            </p>
-          </div>
-        </div>
-
+            {/* Os dois cartões ficam lado a lado no desktop, com a mesma altura, e um sobre o outro no celular. */}
+      <div className="grid gap-4 lg:grid-cols-2">
+      <FormCard index={0} id="personal-data-title" icon={<FaUser />} title="Dados pessoais" description="Atualize seu nome ou solicite a troca do e-mail da conta.">
         <div className="grid gap-4">
           <Input
             label="Nome"
@@ -231,10 +260,16 @@ export default function UserForm({ user }: UserFormProps) {
             />
           </div>
 
+                    <AnimatePresence initial={false}>
           {pendingEmail && (
-            <div
+            <motion.div
+              key="pending-email"
+              initial={reduce ? false : { opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: CARD_EASE }}
               role="status"
-              className="rounded-[var(--radius-md)] border border-[var(--primary)]/35 bg-[var(--primary-subtle)] p-4 text-sm leading-relaxed text-[var(--foreground)]"
+              className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--primary)]/35 bg-[var(--primary-subtle)] p-4 text-sm leading-relaxed text-[var(--foreground)]"
             >
               <p className="font-semibold">Aguardando confirmação</p>
               <p className="mt-1">
@@ -253,30 +288,17 @@ export default function UserForm({ user }: UserFormProps) {
                   onClick={handleCancelPendingEmail}
                   disabled={isSubmitting}
                 >
-                  Cancelar solicitação
+                                    Cancelar solicitação
                 </Button>
               </div>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
-      </section>
+      </FormCard>
 
-      <section className="border-t border-[var(--border)] pt-5" aria-labelledby="password-title">
-        <div className="mb-4 flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--text-muted)]" aria-hidden="true">
-            <FaLock />
-          </span>
-          <div>
-            <h2 id="password-title" className="text-xl font-semibold text-[var(--foreground)]">
-              Segurança
-            </h2>
-            <p className="mt-1 text-base leading-relaxed text-[var(--text-muted)]">
-              Alterações de e-mail ou senha exigem sua senha atual.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
+      <FormCard index={1} id="password-title" icon={<FaLock />} title="Segurança" description="Alterações de e-mail ou senha exigem sua senha atual.">
+        <div className="grid gap-4">
           <Input
             label="Senha atual"
             type="password"
@@ -345,18 +367,21 @@ export default function UserForm({ user }: UserFormProps) {
             autoComplete="new-password"
             enterKeyHint="done"
             autoCapitalize="none"
-            spellCheck={false}
+                        spellCheck={false}
             disabled={isSubmitting}
           />
         </div>
-      </section>
+      </FormCard>
+      </div>
 
       <FormActions
         isEditing
         loading={isSubmitting}
         onCancel={() => router.back()}
-        submitLabel={isResend ? 'Reenviar confirmação' : 'Salvar alterações'}
+                submitLabel={isResend ? 'Reenviar confirmação' : 'Salvar alterações'}
         iconsOnMobile
+        hoverEffects
+        ready={dirty}
       />
     </FormContainer>
   );
