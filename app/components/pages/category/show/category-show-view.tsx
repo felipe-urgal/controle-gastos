@@ -2,6 +2,7 @@
 
 import { MonthBarsChart } from '@/app/components/charts/month-bars-chart';
 import { format } from 'date-fns';
+import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { FaPen, FaTrash } from 'react-icons/fa';
 
@@ -13,12 +14,16 @@ import {
   longMonthLabel,
 } from '@/app/components/pages/category/show/category-show-model';
 import { MobileAppBar } from '@/app/components/layout';
+import { blurIn, flipIn, riseInView } from '@/app/components/ui/motion-presets';
+import { DropIn, reducedTransition } from '@/app/components/ui/motion';
 import { Button, IconButton, IconLink, IconRenderer, ShowBelow } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import { typeConfig } from '@/app/lib/constants/category.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { CategoryModel } from '@/app/types/category';
+
+const MotionLink = motion.create(Link);
 
 const meterTone = { NO_LIMIT: 'bg-[var(--primary)]', OK: 'bg-[var(--primary)]', NEAR: 'bg-[var(--warning)]', OVER: 'bg-[var(--expense)]' } as const;
 const statePill = {
@@ -42,6 +47,7 @@ export default function CategoryShowView({
   onDeleteRequest: () => void;
 }) {
   const { user } = useAuth();
+    const reduce = useReducedMotion();
   const showValues = user?.showValues !== false;
   const activity = category.activity ?? null;
   const currency = activity?.currency ?? 'BRL';
@@ -65,27 +71,43 @@ export default function CategoryShowView({
     <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isDeleting ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
         <MobileAppBar
-          title={category.name}
+                    title={category.name}
+          animated="focus"
           backHref={backUrl}
           backLabel="Voltar para categorias"
           action={
-            <div className="flex">
-              <IconLink label="Editar categoria" href={editUrl} icon={<FaPen />} tone="primary" />
-              <IconButton label="Excluir categoria" title="Excluir categoria" icon={<FaTrash />} tone="danger" onClick={onDeleteRequest} disabled={isDeleting} />
+                        <div className="flex">
+              <DropIn order={0}>
+                <IconLink label="Editar categoria" href={editUrl} icon={<FaPen />} tone="primary" />
+              </DropIn>
+              <DropIn order={1} pulse>
+                <IconButton label="Excluir categoria" title="Excluir categoria" icon={<FaTrash />} tone="danger" onClick={onDeleteRequest} disabled={isDeleting} />
+              </DropIn>
             </div>
           }
         />
       </ShowBelow>
 
-      <section
+            <motion.section
         aria-label="Resumo da categoria"
+        {...flipIn(reduce)}
         className="grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--category-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--category-color)_14%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
-        style={{ ['--category-color' as string]: color }}
+                style={{ ['--category-color' as string]: color, transformPerspective: 900, transformOrigin: 'top center' }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white" style={{ backgroundColor: color }} aria-hidden="true">
+                    {/* O ícone "pinga" a cor da categoria: cai do alto, quica e balança no hover (ou toque). */}
+          <motion.span
+            className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white"
+            style={{ backgroundColor: color }}
+            aria-hidden="true"
+            initial={reduce ? false : { y: -30, opacity: 0, rotate: -20 }}
+            animate={{ y: 0, opacity: 1, rotate: 0 }}
+            whileHover={{ rotate: [0, -12, 10, 0], transition: { duration: 0.5 } }}
+            whileTap={{ rotate: [0, -12, 10, 0], scale: 0.92, transition: { duration: 0.4 } }}
+            transition={reducedTransition(reduce, { type: 'spring', stiffness: 300, damping: 12, delay: 0.3 })}
+          >
             <IconRenderer iconName={category.icon || 'tag'} size={22} />
-          </span>
+          </motion.span>
           <div className="min-w-0">
             <h2 className="break-words text-xl font-bold tracking-tight">{category.name}</h2>
             <p className="text-sm text-[var(--text-muted)]">
@@ -105,18 +127,23 @@ export default function CategoryShowView({
               <p className="text-sm font-semibold text-[var(--text-muted)]">
                 {isExpense ? 'Gasto' : 'Recebido'} em {longMonthLabel(activity.month.month)}
               </p>
-              <strong className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+                            <motion.strong {...blurIn(reduce, 0.4)} className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
                 {money(activity.month.realized)}
                 {isExpense && activity.month.limit !== null && (
-                  <span className="ml-2 text-base font-medium tracking-normal text-[var(--text-muted)] sm:text-xl">de {money(activity.month.limit)}</span>
+                                    <span className="ml-2 text-base font-medium tracking-normal text-[var(--text-muted)] sm:text-xl">de {money(activity.month.limit)}</span>
                 )}
-              </strong>
+              </motion.strong>
               {isExpense && pill && <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold sm:hidden ${pill.className}`}>{pill.label}</span>}
             </div>
 
             {isExpense && activity.month.limit !== null && (
               <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${Math.min(percent ?? 0, 100)}% do limite consumido`}>
-                <div className={`h-full rounded-full ${meterTone[state]}`} style={{ width: `${Math.min(percent ?? 0, 100)}%` }} />
+                                <motion.div
+                  className={`h-full rounded-full ${meterTone[state]}`}
+                  initial={reduce ? false : { width: 0 }}
+                  animate={{ width: `${Math.min(percent ?? 0, 100)}%` }}
+                  transition={reducedTransition(reduce, { type: 'spring', stiffness: 80, damping: 13, delay: 0.6 })}
+                />
               </div>
             )}
 
@@ -145,13 +172,13 @@ export default function CategoryShowView({
             <Button as="a" href="/categorias" variant="outline" size="xs" className="w-full">Ajustar limite</Button>
           )}
           <Button as="a" href={filterHref} variant="outline" size="xs" className="w-full">Ver transações</Button>
-        </nav>
-      </section>
-
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <div className="space-y-4">
+                </nav>
+      </motion.section>
+      {/* As colunas esticam até a mesma altura; o último cartão da esquerda cresce para fechar a coluna. */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-4">
           {history && activity && (
-            <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="category-history-heading">
+                        <motion.section {...riseInView(reduce)} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="category-history-heading">
               <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
                 <h2 id="category-history-heading" className="text-base font-bold">Últimos 6 meses</h2>
                 <p className="text-xs text-[var(--text-muted)]">{isExpense ? 'gasto por mês' : 'recebido por mês'}{history.limitPercentOfScale !== null ? ', com o limite de hoje' : ''}</p>
@@ -173,11 +200,10 @@ export default function CategoryShowView({
               </div>
               <p className="px-4 pt-3 text-sm text-[var(--text-muted)] sm:px-5">
                 Média dos 5 meses anteriores: <span className="money font-semibold text-[var(--foreground)]">{money(activity.previousAverage)}</span>.
-              </p>
-            </section>
+                            </p>
+            </motion.section>
           )}
-
-          <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="category-movements-heading">
+          <motion.section {...riseInView(reduce, 0.05)} className="flex-1 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="category-movements-heading">
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
               <h2 id="category-movements-heading" className="text-base font-bold">
                 Movimentações de {activity ? longMonthLabel(activity.month.month) : 'este mês'}
@@ -188,10 +214,17 @@ export default function CategoryShowView({
               <p className="border-t border-[var(--border)] px-4 py-6 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma movimentação nesta categoria neste mês.</p>
             ) : (
               <ul className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
-                {activity.recent.map((item) => (
-                  <li key={item.id}>
-                    <Link
+                                {activity.recent.map((item, index) => (
+                  <motion.li
+                    key={item.id}
+                    initial={reduce ? false : { opacity: 0, x: -24 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, amount: 0.2 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 22, delay: Math.min(index, 8) * 0.05 }}
+                  >
+                    <MotionLink
                       href={`/transacoes/show/${item.id}`}
+                      whileTap={{ scale: 0.98 }}
                       aria-label={`Abrir transação ${item.description || 'sem descrição'}`}
                       className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5"
                     >
@@ -208,15 +241,15 @@ export default function CategoryShowView({
                         {item.type === 'INCOME' ? '+ ' : '− '}
                         {money(item.amount, item.account.currency)}
                       </span>
-                    </Link>
-                  </li>
+                                        </MotionLink>
+                  </motion.li>
                 ))}
               </ul>
             )}
-          </section>
+          </motion.section>
         </div>
 
-        <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="category-about-heading">
+        <motion.section {...riseInView(reduce, 0.1)} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="category-about-heading">
           <h2 id="category-about-heading" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Sobre a categoria</h2>
           <dl className="grid gap-2 px-4 pb-4 text-sm sm:px-5">
             <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Tipo</dt><dd>{type.label}</dd></div>
@@ -225,9 +258,9 @@ export default function CategoryShowView({
             <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Atualizada em</dt><dd>{format(new Date(category.updatedAt), 'dd/MM/yyyy')}</dd></div>
           </dl>
           <p className="px-4 pb-4 text-sm leading-relaxed text-[var(--text-muted)] sm:px-5">
-            O tipo define se a categoria conta como receita ou despesa nas transações. Cor e ícone só ajudam a reconhecê-la.
+                        O tipo define se a categoria conta como receita ou despesa nas transações. Cor e ícone só ajudam a reconhecê-la.
           </p>
-        </section>
+        </motion.section>
       </div>
     </div>
   );

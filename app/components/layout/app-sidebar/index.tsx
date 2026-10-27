@@ -98,7 +98,7 @@ function SidebarLink({
           aria-hidden="true"
           layoutId="sidebar-hover-bg"
           transition={ACTIVE_SPRING}
-          className="absolute inset-0 -z-20 rounded-[var(--radius-md)] bg-[var(--surface-hover)]"
+          className="pointer-events-none absolute inset-0 -z-20 rounded-[var(--radius-md)] bg-[var(--surface-hover)]"
         />
       )}
       {active && (
@@ -107,13 +107,13 @@ function SidebarLink({
             aria-hidden="true"
             layoutId="sidebar-active-bg"
             transition={ACTIVE_SPRING}
-            className="absolute inset-0 -z-10 rounded-[var(--radius-md)] bg-[var(--primary-subtle)]"
+            className="pointer-events-none absolute inset-0 -z-10 rounded-[var(--radius-md)] bg-[var(--primary-subtle)]"
           />
           <motion.span
             aria-hidden="true"
             layoutId="sidebar-active-bar"
             transition={ACTIVE_SPRING}
-            className={`absolute top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--primary)] ${indented ? '-left-[9px]' : 'left-0'}`}
+            className={`pointer-events-none absolute top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[var(--primary)] ${indented ? '-left-[9px]' : 'left-0'}`}
           />
         </>
       )}

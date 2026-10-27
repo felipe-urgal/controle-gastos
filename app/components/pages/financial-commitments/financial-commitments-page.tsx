@@ -56,6 +56,7 @@ export default function FinancialCommitmentsPage() {
     <div className="flex flex-wrap items-center gap-2.5">
       <div className="min-w-0 flex-1 sm:w-[190px] sm:flex-none">
         <Select
+          animated
           ariaLabel="Horizonte"
           value={days}
           onChange={(value) => {
@@ -66,6 +67,7 @@ export default function FinancialCommitmentsPage() {
         />
       </div>
       <CurrencySelect
+        animated
         value={currency}
         onChange={(option) => {
           beginReload();
@@ -78,7 +80,7 @@ export default function FinancialCommitmentsPage() {
   return (
     <ProtectedRoute>
     <PageContainer as="section">
-      <PageTitle title="Compromissos financeiros" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+      <PageTitle title="Compromissos financeiros" sidebarAligned animated="conveyor" actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
       <ShowBelow breakpoint="lg">
         <div className="mt-4">{headerControls}</div>
       </ShowBelow>

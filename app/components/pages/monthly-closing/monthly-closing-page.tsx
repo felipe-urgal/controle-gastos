@@ -1,11 +1,13 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { PageError } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
+import { unroll } from '@/app/components/pages/monthly-closing/closing-motion';
 import MonthlyClosingView from '@/app/components/pages/monthly-closing/monthly-closing-view';
 import {
   monthName,
@@ -20,6 +22,7 @@ import type { MonthlyClosingData } from '@/app/types/monthly-closing';
 
 
 export default function MonthlyClosingPage() {
+  const reduce = useReducedMotion();
   const now = useMemo(() => new Date(), []);
   const currentYear = now.getUTCFullYear();
   const currentMonth = now.getUTCMonth() + 1;
@@ -88,8 +91,9 @@ export default function MonthlyClosingPage() {
 
   const headerControls = (
         <div className="flex flex-wrap items-center gap-2.5">
-          <CurrencySelect value={currency} onChange={setCurrency} />
+          <CurrencySelect animated value={currency} onChange={setCurrency} />
           <PeriodSwitcher
+            animated="roll"
             month={month}
             year={year}
             onPrevious={() => goTo(-1)}
@@ -105,6 +109,7 @@ export default function MonthlyClosingPage() {
         <PageTitle
           title={`Fechamento de ${monthName(month)}`}
           sidebarAligned
+          animated="stamp"
           actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>}
         />
         <ShowBelow breakpoint="lg">
@@ -128,7 +133,7 @@ export default function MonthlyClosingPage() {
           {error && <PageError message={error} buttonText="Tentar novamente" onRetry={retry} />}
 
           {data?.status === 'FUTURE' && (
-            <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-6">
+            <motion.section {...unroll(reduce)} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-6">
               <h2 className="text-lg font-bold">Este período ainda é futuro</h2>
               <p className="mt-2 text-sm text-[var(--text-muted)]">
                 Fechamento é uma retrospectiva. Use Planejamento e Compromissos para consultar projeções futuras.
@@ -136,7 +141,7 @@ export default function MonthlyClosingPage() {
               <Link href="/compromissos" className="mt-3 inline-flex min-h-11 items-center font-bold text-[var(--primary)]">
                 Ver compromissos
               </Link>
-            </section>
+            </motion.section>
           )}
 
           {data && retrospective && (

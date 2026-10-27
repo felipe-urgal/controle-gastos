@@ -1,5 +1,8 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { RiseArticle } from '@/app/components/ui/motion';
+
 import Link from 'next/link';
 import { IconRenderer } from '@/app/components/ui';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -7,6 +10,8 @@ import { SupportedCurrency } from '@/app/types/financial-summary';
 import { NetWorthAccount } from '@/app/types/net-worth';
 import { displayMoney, valuationBasisLabel } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
 import { rankAccounts } from '@/app/components/pages/net-worth/net-worth-page/net-worth-model';
+
+const MotionLink = motion.create(Link);
 
 export function DistributionCard({
   accounts,
@@ -17,10 +22,11 @@ export function DistributionCard({
   currency: SupportedCurrency;
   showValues: boolean;
 }) {
+  const reduce = useReducedMotion();
   const ranked = rankAccounts(accounts);
 
   return (
-    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <RiseArticle className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div>
         <h2 className="text-lg font-bold text-[var(--foreground)]">
           Onde está o seu dinheiro
@@ -36,22 +42,29 @@ export function DistributionCard({
         </p>
       ) : (
         <div className="mt-4 divide-y divide-[var(--border)]">
-          {ranked.map(({ account, share, barPercent }) => {
+          {ranked.map(({ account, share, barPercent }, index) => {
             const investment = account.type === 'INVESTMENT';
             const detailHref = investment
               ? '/investimentos'
               : `/contas/show/${account.id}`;
 
             return (
-              <Link
+              <MotionLink
                 key={account.id}
                 href={detailHref}
+                initial={reduce ? false : { opacity: 0, scale: 0.9, x: -24 }}
+                whileInView={{ opacity: 1, scale: 1, x: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ type: 'spring', stiffness: 240, damping: 20, delay: Math.min(index, 8) * 0.07 }}
+                whileHover="hover"
+                whileTap={{ scale: 0.98 }}
                 className="grid min-h-[72px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-3"
               >
-                <span
+                <motion.span
                   className="grid h-11 w-11 place-items-center rounded-[var(--radius-md)] text-white"
                   style={{ backgroundColor: account.color || 'var(--primary)' }}
                   aria-hidden="true"
+                  variants={{ hover: { rotate: [0, -10, 8, 0], scale: 1.1, transition: { duration: 0.5 } } }}
                 >
                   <IconRenderer
                     iconName={
@@ -60,14 +73,20 @@ export function DistributionCard({
                     }
                     size={18}
                   />
-                </span>
+                </motion.span>
 
                 <span className="min-w-0">
                   <strong className="block truncate text-sm text-[var(--foreground)]">
                     {account.name}
                   </strong>
                   <span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${share.toLocaleString('pt-BR')}% dos ativos`}>
-                    <span className={`block h-full rounded-full ${account.balance < 0 ? 'bg-[var(--expense)]' : 'bg-[var(--primary)]'}`} style={{ width: `${barPercent}%` }} />
+                    <motion.span
+                      className={`block h-full rounded-full ${account.balance < 0 ? 'bg-[var(--expense)]' : 'bg-[var(--primary)]'}`}
+                      initial={reduce ? false : { width: 0 }}
+                      whileInView={{ width: `${barPercent}%` }}
+                      viewport={{ once: true }}
+                      transition={reduce ? { duration: 0 } : { duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.3 + Math.min(index, 8) * 0.07 }}
+                    />
                   </span>
                   <span className="mt-1.5 block text-xs text-[var(--text-muted)]">
                     {investment
@@ -109,7 +128,7 @@ export function DistributionCard({
                     {share.toLocaleString('pt-BR')}%
                   </span>
                 </span>
-              </Link>
+              </MotionLink>
             );
           })}
         </div>
@@ -126,6 +145,6 @@ export function DistributionCard({
           automaticamente para evitar dupla contagem.
         </p>
       </details>
-    </article>
+    </RiseArticle>
   );
 }

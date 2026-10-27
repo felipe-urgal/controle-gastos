@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useId } from 'react';
 import { FaChevronDown } from 'react-icons/fa';
 
@@ -28,6 +29,8 @@ type SelectProps = {
   grouped?: boolean;
   icon?: React.ReactNode;
   required?: boolean;
+  /** Movimento do menu e do gatilho (ver `ListboxSelect`): seta que gira e rótulo que troca deslizando. Ligado por padrão. */
+  animated?: boolean;
 };
 
 const asOption = (option: Option) => ({ ...option, value: String(option.value) });
@@ -48,7 +51,9 @@ export default function Select({
   grouped,
   icon,
   required,
+  animated = true,
 }: SelectProps) {
+  const reduce = useReducedMotion();
   const generatedId = useId();
   const selectId = id ?? `select-${generatedId.replace(/:/g, '')}`;
   const current = value === undefined || value === null ? '' : String(value);
@@ -95,12 +100,44 @@ export default function Select({
           options={groups ? undefined : flat}
           groups={groups}
           disabled={disabled}
+          animated={animated}
           triggerClassName={`ds-control flex w-full items-center justify-between gap-2 px-3.5 text-left ${icon ? 'pl-10' : ''}`}
         >
-          <span className={`truncate ${showingPlaceholder ? 'text-[var(--text-muted)]' : ''}`}>
-            {selected?.label ?? ''}
-          </span>
-          <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
+          {(open) =>
+            animated ? (
+              <>
+                {/* Trocou a opção: o rótulo novo sobe e o antigo sai. */}
+                <span className={`relative min-w-0 flex-1 overflow-hidden ${showingPlaceholder ? 'text-[var(--text-muted)]' : ''}`}>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                      key={selected?.label ?? ''}
+                      className="block truncate"
+                      initial={reduce ? false : { opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -14 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 34 }}
+                    >
+                      {selected?.label ?? ''}
+                    </motion.span>
+                  </AnimatePresence>
+                </span>
+                <motion.span
+                  className="flex shrink-0"
+                  animate={{ rotate: open ? 180 : 0 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                >
+                  <FaChevronDown className="text-xs text-[var(--text-muted)]" aria-hidden="true" />
+                </motion.span>
+              </>
+            ) : (
+              <>
+                <span className={`truncate ${showingPlaceholder ? 'text-[var(--text-muted)]' : ''}`}>
+                  {selected?.label ?? ''}
+                </span>
+                <FaChevronDown className="shrink-0 text-xs text-[var(--text-muted)]" aria-hidden="true" />
+              </>
+            )
+          }
         </ListboxSelect>
 
         {required && (

@@ -89,7 +89,7 @@ function ActiveRowBackground() {
       aria-hidden="true"
       layoutId="global-search-active-row"
       transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-      className="absolute inset-0 -z-10 rounded-[var(--radius-md)] bg-[var(--primary-subtle)]"
+      className="pointer-events-none absolute inset-0 -z-10 rounded-[var(--radius-md)] bg-[var(--primary-subtle)]"
     />
   );
 }

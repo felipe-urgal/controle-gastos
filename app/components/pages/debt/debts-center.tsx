@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ListPageHeader, PageContainer } from '@/app/components/base-pages';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -15,6 +16,7 @@ import { ProtectedRoute } from '@/app/components/layout';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { Alert, PageEmpty } from '@/app/components/feedback';
 import { Button, IconButton, Input, MoneyInput, Select } from '@/app/components/ui';
+import { CountUp, StaggerForm } from '@/app/components/ui/motion';
 import { useAuth } from '@/app/context';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
@@ -447,6 +449,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
     <ProtectedRoute>
       <PageContainer as="section">
         <ListPageHeader
+          animated="slam"
           title="Dívidas"
           onCreate={openCreate}
           createLabel="Nova dívida"
@@ -476,7 +479,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
         {!loading && summary && (
           <div className="mt-5 grid gap-4">
             <DebtsSummaryPanel summary={summary} currencies={currencies} onCurrency={setSelectedCurrency} showValues={showValues} />
-            <div className="grid items-start gap-4 lg:grid-cols-2">
+            <div className="grid gap-4 lg:grid-cols-2">
               <DebtsDues debts={items.filter((debt) => debt.currency === summary.currency)} today={today} showValues={showValues} onPay={openPayment} />
               <InstallmentLoadPanel debts={items} currency={summary.currency} today={today} withoutInstallmentCount={summary.withoutInstallmentCount} showValues={showValues} />
             </div>
@@ -496,9 +499,11 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
             />
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {filtered.map((debt) => (
+              <AnimatePresence mode="popLayout">
+              {filtered.map((debt, index) => (
                 <DebtCard
                   key={debt.id}
+                  index={index}
                   debt={debt}
                   share={summary?.currency === debt.currency ? (summary.weights.find((weight) => weight.debt.id === debt.id)?.share ?? null) : null}
                   showValues={showValues}
@@ -511,12 +516,15 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
                   onRemove={() => setConfirming({ kind: 'REMOVE', debt })}
                 />
               ))}
+              </AnimatePresence>
             </div>
           )}
         </section>
 
+        <AnimatePresence>
         {formOpen && (
           <DebtFormModal
+            key="form"
             form={form}
             editing={Boolean(editing)}
             saving={saving}
@@ -528,7 +536,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
         )}
 
         {adjusting && (
-          <ModalShell title="Ajustar saldo devedor" onClose={() => setAdjusting(null)} closeDisabled={adjustmentSaving}>
+          <ModalShell key="adjust" title="Ajustar saldo devedor" onClose={() => setAdjusting(null)} closeDisabled={adjustmentSaving}>
             <form onSubmit={submitAdjustment} className="space-y-4">
               <div className="rounded-xl bg-[var(--surface-raised)] p-4">
                 <strong className="text-[var(--foreground)]">{adjusting.name}</strong>
@@ -547,6 +555,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
 
         {paying && (
           <ModalShell
+            key="pay"
             title={paying.installmentAmount ? 'Registrar pagamento da parcela' : 'Registrar pagamento'}
             onClose={() => setPaying(null)}
             closeDisabled={paymentSaving}
@@ -595,7 +604,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
         )}
 
         {historyDebt && (
-          <ModalShell title={`Histórico · ${historyDebt.name}`} onClose={() => setHistoryDebt(null)} closeDisabled={historyMoreLoading}>
+          <ModalShell key="history" title={`Histórico · ${historyDebt.name}`} onClose={() => setHistoryDebt(null)} closeDisabled={historyMoreLoading}>
             {historyLoading ? (
               <p className="py-6 text-sm text-[var(--text-muted)]">Carregando histórico...</p>
             ) : !historyDebt.adjustments?.length ? (
@@ -646,6 +655,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
 
         {confirming && (
           <ModalShell
+            key="confirm"
             title={confirming.kind === 'ARCHIVE' ? 'Arquivar dívida?' : 'Excluir dívida?'}
             onClose={() => setConfirming(null)}
             closeDisabled={confirmSaving}
@@ -669,12 +679,14 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
             </div>
           </ModalShell>
         )}
+        </AnimatePresence>
       </PageContainer>
     </ProtectedRoute>
   );
 }
 
 function DebtCard({
+  index = 0,
   debt,
   share,
   showValues,
@@ -686,6 +698,8 @@ function DebtCard({
   onRestore,
   onRemove,
 }: {
+  /** Posição no grid: define a ordem em que os cartões "caem". */
+  index?: number;
   debt: Debt;
   /** Participação no saldo devedor da moeda (0–100); `null` quando a dívida não entra na soma. */
   share: number | null;
@@ -698,10 +712,20 @@ function DebtCard({
   onRestore: () => void;
   onRemove: () => void;
 }) {
+  const reduce = useReducedMotion();
+
   return (
-    <article
+    // Cada dívida "pesa": cai do alto com um quique curto; ao sair da lista afunda e some. No hover o conteúdo reage.
+    <motion.article
+      layout="position"
       id={`debt-${debt.id}`}
-      className="grid min-w-0 scroll-mt-24 content-start gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+      initial={reduce ? false : { opacity: 0, y: -45 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.1 }}
+      exit={{ opacity: 0, y: 30, scale: 0.9, transition: { duration: 0.2 } }}
+      transition={{ type: 'spring', stiffness: 260, damping: 11, delay: Math.min(index, 8) * 0.08 }}
+      whileHover="hover"
+      className="flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -710,7 +734,9 @@ function DebtCard({
               {statusLabel(debt.status)}
             </span>
           )}
-          <h2 className="truncate text-lg font-extrabold text-[var(--foreground)]">{debt.name}</h2>
+          <motion.h2 className="truncate text-lg font-extrabold text-[var(--foreground)]" variants={{ hover: { x: 4, transition: { type: 'spring', stiffness: 400, damping: 22 } } }}>
+            {debt.name}
+          </motion.h2>
           {debt.institution && <p className="text-xs text-[var(--text-muted)]">{debt.institution}</p>}
         </div>
         {debt.status === 'ACTIVE' && (
@@ -724,9 +750,9 @@ function DebtCard({
       </div>
 
       <div>
-        <strong className="block break-words text-2xl font-extrabold tabular-nums text-[var(--foreground)]">
-          <span className="money">{showValues ? formatCurrency(debt.balance, debt.currency) : '••••'}</span>
-        </strong>
+        <motion.strong className="block origin-left break-words text-2xl font-extrabold tabular-nums text-[var(--foreground)]" variants={{ hover: { scale: 1.05, transition: { type: 'spring', stiffness: 400, damping: 16 } } }}>
+          <span className="money"><CountUp amount={debt.balance} format={(cents) => (showValues ? formatCurrency(cents, debt.currency) : '••••')} /></span>
+        </motion.strong>
         <span className="text-xs text-[var(--text-muted)]">
           saldo devedor{share !== null ? ` · ${share.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do total` : ''}
         </span>
@@ -748,7 +774,7 @@ function DebtCard({
         </p>
       ) : null}
 
-      <div className="-mx-1 flex flex-wrap items-center gap-1 border-t border-[var(--border)] px-1 pt-3">
+      <div className="-mx-1 mt-auto flex flex-wrap items-center gap-1 border-t border-[var(--border)] px-1 pt-3">
         {debt.status === 'ACTIVE' && (
           <Button size="sm" icon={<FaCheck aria-hidden="true" />} aria-label={`Registrar pagamento de ${debt.name}`} onClick={onPay}>
             Pagar
@@ -776,7 +802,7 @@ function DebtCard({
           <IconButton label={`Excluir ${debt.name}`} icon={<FaTrash />} tone="danger" onClick={onRemove} />
         )}
       </div>
-    </article>
+    </motion.article>
   );
 }
 
@@ -799,7 +825,7 @@ function DebtFormModal({
 }) {
   return (
     <ModalShell title={editing ? 'Editar dívida' : 'Nova dívida'} onClose={onClose} closeDisabled={saving}>
-      <form onSubmit={onSubmit} className="space-y-4">
+      <StaggerForm onSubmit={onSubmit} className="space-y-4">
         <Input label="Nome" value={form.name} onChange={(event) => onChange({ ...form, name: event.target.value })} required maxLength={100} disabled={saving} placeholder="Ex.: Financiamento do carro" />
 
         {!editing && (
@@ -832,7 +858,7 @@ function DebtFormModal({
         </p>
         {error && <Alert variant="error" message={error} />}
         <ModalActions saving={saving} onClose={onClose} submitLabel={editing ? 'Salvar' : 'Criar dívida'} />
-      </form>
+      </StaggerForm>
     </ModalShell>
   );
 }

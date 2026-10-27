@@ -1,10 +1,12 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { FaChevronDown } from 'react-icons/fa';
 
 import { displayMoney, displayPercent, logicalDateLabel, quoteDateTimeLabel, valuationBasisLabel } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
 import { liabilityShare, summarizeQuality, type NetWorthVariation } from '@/app/components/pages/net-worth/net-worth-page/net-worth-model';
+import { CARD_EASE, CountUp, PopBox, reducedTransition } from '@/app/components/ui/motion';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { NetWorthValuationQuality } from '@/app/types/net-worth';
@@ -32,6 +34,7 @@ export function NetWorthHero({
   variation: NetWorthVariation | null;
   months: number;
 }) {
+  const reduce = useReducedMotion();
   const share = liabilityShare(assetsTotal, liabilitiesTotal);
   const debtWidth = share ?? 0;
   const quality = summarizeQuality(valuation);
@@ -44,20 +47,32 @@ export function NetWorthHero({
   const up = variation ? variation.amount >= 0 : true;
 
   return (
-    <section aria-labelledby="net-worth-hero-label" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <motion.section
+      aria-labelledby="net-worth-hero-label"
+      // A visão geral "se aproxima": o cartão cresce do centro, nitidificando.
+      initial={reduce ? false : { opacity: 0, scale: 0.88, filter: 'blur(8px)' }}
+      animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+      transition={reducedTransition(reduce, { type: 'spring', stiffness: 130, damping: 18, delay: 0.1 })}
+      className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6"
+    >
       <div>
         <p id="net-worth-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">
           Patrimônio líquido em {currency}
         </p>
         <strong className="money mt-2 block break-words text-3xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
-          {displayMoney(total, showValues, currency)}
+          <CountUp amount={total} format={(cents) => displayMoney(cents, showValues, currency)} />
         </strong>
         {variation && (
           <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             {variation.percent !== null && (
-              <span className={`rounded-full px-2.5 py-0.5 text-sm font-bold ${up ? 'bg-[var(--surface-raised)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}>
+              <motion.span
+                className={`rounded-full px-2.5 py-0.5 text-sm font-bold ${up ? 'bg-[var(--surface-raised)] text-[var(--income)]' : 'bg-[var(--danger-subtle)] text-[var(--expense)]'}`}
+                initial={reduce ? false : { scale: 0.4, opacity: 0, y: up ? 12 : -12 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 14, delay: 0.8 }}
+              >
                 {up ? '▲' : '▼'} {displayPercent(Math.abs(variation.percent), showValues).replace('+', '')}
-              </span>
+              </motion.span>
             )}
             <span className="money font-semibold">
               {showValues ? `${up ? '+' : '−'}${formatCurrency(Math.abs(variation.amount), currency)}` : '••••'}
@@ -75,8 +90,19 @@ export function NetWorthHero({
               role="img"
               aria-label={`Dívidas equivalem a ${share.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% dos ativos`}
             >
-              <span className="h-full bg-[var(--primary)]" style={{ width: `${100 - debtWidth}%` }} />
-              <span className="h-full bg-[var(--expense)] opacity-85" style={{ width: `${debtWidth}%` }} />
+              {/* Ativos preenchem primeiro; a fatia das dívidas vem depois, "mordendo" o final. */}
+              <motion.span
+                className="h-full bg-[var(--primary)]"
+                initial={reduce ? false : { width: 0 }}
+                animate={{ width: `${100 - debtWidth}%` }}
+                transition={reducedTransition(reduce, { duration: 0.9, ease: CARD_EASE, delay: 0.5 })}
+              />
+              <motion.span
+                className="h-full bg-[var(--expense)] opacity-85"
+                initial={reduce ? false : { width: 0 }}
+                animate={{ width: `${debtWidth}%` }}
+                transition={reducedTransition(reduce, { duration: 0.7, ease: CARD_EASE, delay: 1.1 })}
+              />
             </div>
             <p className="text-xs text-[var(--text-muted)]">
               As dívidas equivalem a <strong className="text-[var(--foreground)]">{share.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</strong> dos ativos.
@@ -132,19 +158,23 @@ export function NetWorthHero({
           )}
         </div>
       </details>
-    </section>
+    </motion.section>
   );
 }
 
 function Stat({ label, value, detail, dot }: { label: string; value: string; detail: string; dot?: string }) {
   return (
-    <div className="grid min-w-0 content-start gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-3 sm:px-4 sm:py-3.5">
+    <PopBox whileHover="hover" className="grid min-w-0 content-start gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-3 sm:px-4 sm:py-3.5">
       <span className="flex items-center gap-2 truncate text-xs font-semibold text-[var(--text-muted)] sm:text-sm">
-        {dot && <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: dot }} aria-hidden="true" />}
+        {dot && (
+          <motion.span className="h-2 w-2 shrink-0 rounded-full" style={{ background: dot }} aria-hidden="true" variants={{ hover: { scale: [1, 2, 1], transition: { duration: 0.5 } } }} />
+        )}
         {label}
       </span>
-      <span className="money truncate text-base font-semibold sm:text-xl">{value}</span>
+      <motion.span className="money origin-left truncate text-base font-semibold sm:text-xl" variants={{ hover: { scale: 1.08, transition: { type: 'spring', stiffness: 400, damping: 16 } } }}>
+        {value}
+      </motion.span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
-    </div>
+    </PopBox>
   );
 }

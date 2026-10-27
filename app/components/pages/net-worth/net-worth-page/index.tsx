@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -399,6 +400,7 @@ export default function NetWorthPage() {
         />
       </div>
       <PeriodSwitcher
+        animated="roll"
         month={month}
         year={year}
         onPrevious={() => movePeriod(-1)}
@@ -411,7 +413,7 @@ export default function NetWorthPage() {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <PageTitle title="Patrimônio" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+        <PageTitle title="Patrimônio" sidebarAligned animated="zoom" actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
         <ShowBelow breakpoint="lg">
           <div className="mt-4">{headerControls}</div>
         </ShowBelow>
@@ -447,7 +449,14 @@ export default function NetWorthPage() {
         ) : (
           <>
 
-            <div className="mt-5 space-y-4">
+            <motion.div
+              // Trocar o mês final, a janela do histórico ou a moeda refaz a entrada do conteúdo.
+              key={`${year}-${month}-${months}-${selectedCurrency}`}
+              className="mt-5 space-y-4"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            >
               {selected && (
                 <>
                 <NetWorthHero
@@ -573,7 +582,7 @@ export default function NetWorthPage() {
               />
                 </div>
               </details>
-            </div>
+            </motion.div>
           </>
         )}
 

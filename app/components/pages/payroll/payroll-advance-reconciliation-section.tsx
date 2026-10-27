@@ -1,5 +1,6 @@
 'use client';
 
+import { RiseSection } from '@/app/components/ui/motion';
 import { useCallback, useEffect, useState } from 'react';
 import { FaLink, FaRedo, FaUnlink } from 'react-icons/fa';
 
@@ -163,7 +164,7 @@ export function PayrollAdvanceReconciliationSection({
   }
 
   return (
-    <section className="ds-panel p-4 sm:p-5">
+    <RiseSection className="ds-panel p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -318,7 +319,7 @@ export function PayrollAdvanceReconciliationSection({
         </div>
       )}
       {confirmationModal}
-    </section>
+    </RiseSection>
   );
 }
 

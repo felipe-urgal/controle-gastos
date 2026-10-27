@@ -1,5 +1,7 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { CategoryFormCard } from '@/app/components/pages/category/form/category-form-card';
 import {
@@ -8,6 +10,7 @@ import {
   categoryTypeLocked,
 } from '@/app/components/pages/category/form/category-form-model';
 import { ActiveToggle, Chip, Input } from '@/app/components/ui';
+import { CARD_EASE, reducedTransition } from '@/app/components/ui/motion';
 import { useCategoryForm } from '@/app/hooks/categories/use-category-form';
 import { CATEGORY_DESCRIPTION_MAX_LENGTH } from '@/app/lib/categories/category-limits';
 import { CategoryFormProps } from '@/app/lib/interface/category.interface';
@@ -27,6 +30,7 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
     handleSubmit,
     handleRedirect,
   } = useCategoryForm({ category, isEditing });
+  const reduce = useReducedMotion();
   const typeLocked = categoryTypeLocked(isEditing);
   const loading = isSubmitting;
 
@@ -46,9 +50,15 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
         className="gap-5"
       >
         <div role="group" aria-label="Tipo de categoria" className="grid grid-cols-2 gap-2">
-          {categoryTypeCards.map((option) => (
-            <Chip
+          {categoryTypeCards.map((option, index) => (
+            <motion.div
               key={option.value}
+              className="flex"
+              initial={reduce ? false : { opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={reducedTransition(reduce, { type: 'spring', stiffness: 380, damping: 18, delay: index * 0.08 })}
+            >
+            <Chip
               selected={formData.type === option.value}
               onClick={() => chooseType(option.value)}
               disabled={loading || typeLocked}
@@ -56,11 +66,24 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
             >
               {option.label}
             </Chip>
+            </motion.div>
           ))}
         </div>
-        <p className="-mt-2 px-1 text-sm text-[var(--text-muted)]">
-          {categoryTypeCards.find((option) => option.value === formData.type)?.description}
-        </p>
+        {/* A descrição do tipo escolhido troca deslizando para cima. */}
+        <div className="-mt-2 overflow-hidden px-1">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p
+              key={formData.type}
+              className="text-sm text-[var(--text-muted)]"
+              initial={reduce ? false : { opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.2, ease: CARD_EASE }}
+            >
+              {categoryTypeCards.find((option) => option.value === formData.type)?.description}
+            </motion.p>
+          </AnimatePresence>
+        </div>
 
         {typeLocked && (
           <div role="note" className="flex items-start gap-2.5 rounded-[var(--radius-md)] bg-[var(--warning-subtle)] px-3.5 py-3 text-sm leading-relaxed text-[var(--warning)]">
@@ -86,10 +109,19 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
         {!isEditing && (
           <div className="-mt-1 flex flex-wrap items-center gap-2" aria-label="Sugestões de nome">
             <span className="text-sm text-[var(--text-muted)]">Sugestões:</span>
-            {categoryNameSuggestions(formData.type).map((name) => (
-              <Chip key={name} onClick={() => setFormData({ ...formData, name })} disabled={loading} className="font-medium">
-                {name}
-              </Chip>
+            {categoryNameSuggestions(formData.type).map((name, index) => (
+              <motion.span
+                key={`${formData.type}-${name}`}
+                className="inline-flex"
+                initial={reduce ? false : { opacity: 0, x: -14 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileHover={reduce ? undefined : { y: [0, -5, 0, -2, 0], transition: { duration: 0.5 } }}
+                transition={reducedTransition(reduce, { type: 'spring', stiffness: 300, damping: 22, delay: 0.3 + index * 0.07 })}
+              >
+                <Chip onClick={() => setFormData({ ...formData, name })} disabled={loading} className="font-medium">
+                  {name}
+                </Chip>
+              </motion.span>
             ))}
           </div>
         )}
@@ -133,6 +165,8 @@ export default function CategoryForm({ category, isEditing }: CategoryFormProps)
           createLabel="Criar categoria"
           submitLabel="Salvar alterações"
           iconsOnMobile
+          hoverEffects
+          ready={formData.name.trim() !== '' && !isEditing}
         />
       </FormContainer>
     </div>

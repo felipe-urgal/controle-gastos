@@ -1,5 +1,7 @@
 'use client';
 
+import { RiseArticle } from '@/app/components/ui/motion';
+
 import { useEffect, useState } from 'react';
 
 import { useInvestmentFiscalYear } from '@/app/components/pages/investment/investment-fiscal-year-context';
@@ -69,7 +71,7 @@ export function AnnualIncomeReportCard({
   const years = Array.from({ length: 6 }, (_, index) => currentYear - index);
 
   return (
-    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
+    <RiseArticle className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -210,6 +212,6 @@ export function AnnualIncomeReportCard({
           </div>
         </>
       )}
-    </article>
+    </RiseArticle>
   );
 }

@@ -1,5 +1,10 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+
+import { ReadyGlow } from '@/app/components/forms/form-actions';
+import { blurIn, flipIn, riseInView } from '@/app/components/pages/account/account-motion';
+import { CARD_EASE, reducedTransition } from '@/app/components/ui/motion';
 import { ShowBelow } from '@/app/components/ui';
 import AccountAppBarActions from '@/app/components/pages/account/show/account-app-bar-actions';
 import { Button, Chip, Input, Select } from '@/app/components/ui';
@@ -45,6 +50,8 @@ function localLogicalDate() {
   return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
 }
 
+const MotionLink = motion.create(Link);
+
 type CardTab = 'current' | 'future' | 'history';
 
 function logicalIso(date: { year: number; month: number; day: number }) {
@@ -77,6 +84,7 @@ export default function CreditCardOverview({
   statusError,
 }: CreditCardOverviewProps) {
   const { user } = useAuth();
+  const reduce = useReducedMotion();
   const showValues = user?.showValues !== false;
   const [data, setData] = useState<CreditCardStatementsData | null>(null);
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
@@ -254,6 +262,7 @@ export default function CreditCardOverview({
       <ShowBelow breakpoint="lg">
         <MobileAppBar
           title={account.name}
+          animated="focus"
           backHref={backUrl}
           backLabel="Voltar para contas"
           action={
@@ -275,15 +284,26 @@ export default function CreditCardOverview({
         </p>
       )}
 
-      <section
+      <motion.section
         aria-label="Resumo do cartão"
+        {...flipIn(0, reduce)}
         className="grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
-        style={{ ['--account-color' as string]: account.color || 'var(--primary)' }}
+        style={{ ['--account-color' as string]: account.color || 'var(--primary)', transformPerspective: 900, transformOrigin: 'top center' }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white" style={{ backgroundColor: account.color || 'var(--primary)' }} aria-hidden="true">
+          {/* O cartão "desliza" para dentro da tela e, no toque ou no hover, dá uma inclinada. */}
+          <motion.span
+            className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white"
+            style={{ backgroundColor: account.color || 'var(--primary)' }}
+            aria-hidden="true"
+            initial={reduce ? false : { x: -40, opacity: 0, rotate: -25 }}
+            animate={{ x: 0, opacity: 1, rotate: 0 }}
+            whileHover={{ rotate: [0, -12, 10, 0], transition: { duration: 0.5 } }}
+            whileTap={{ rotate: [0, -12, 10, 0], scale: 0.92, transition: { duration: 0.4 } }}
+            transition={reducedTransition(reduce, { type: 'spring', stiffness: 260, damping: 16, delay: 0.3 })}
+          >
             <FaCreditCard />
-          </span>
+          </motion.span>
           <div className="min-w-0">
             <h2 className="break-words text-xl font-bold tracking-tight">{account.name}</h2>
             <p className="text-sm text-[var(--text-muted)]">
@@ -297,9 +317,12 @@ export default function CreditCardOverview({
             <p className="text-sm font-semibold text-[var(--text-muted)]">
               {toPay ? `Fatura para pagar · ${dueDistanceLabel(toPay.dueDate, today)}` : `Fatura atual · ${closingDistanceLabel(data.current.closingDate, today)}`}
             </p>
-            <strong className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl">
+            <motion.strong
+              {...blurIn(reduce, 0.4)}
+              className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl"
+            >
               {money(focus.total)}
-            </strong>
+            </motion.strong>
             <p className="mt-2 text-sm text-[var(--text-muted)]">
               Fecha {logicalLabel(focus.closingDate)} · vence {logicalLabel(focus.dueDate)}
             </p>
@@ -307,7 +330,12 @@ export default function CreditCardOverview({
 
           <div className="grid gap-2">
             <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${percent}% do limite usado`}>
-              <div className={`h-full rounded-full ${meterTone[tone]}`} style={{ width: `${percent}%` }} />
+              <motion.div
+                className={`h-full rounded-full ${meterTone[tone]}`}
+                initial={reduce ? false : { width: 0 }}
+                animate={{ width: `${percent}%` }}
+                transition={reducedTransition(reduce, { duration: 1, ease: CARD_EASE, delay: 0.6 })}
+              />
             </div>
             <dl className="grid gap-1 text-sm">
               <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Limite total</dt><dd className="money font-semibold">{money(data.card.creditLimit)}</dd></div>
@@ -321,13 +349,15 @@ export default function CreditCardOverview({
         </div>
 
         {toPay && (
-          <Button type="button" size="xs" className="w-full" onClick={() => openPayment(toPay)}>
-            Pagar fatura
-          </Button>
+          <ReadyGlow ready fullWidth>
+            <Button type="button" size="xs" className="w-full" onClick={() => openPayment(toPay)}>
+              Pagar fatura
+            </Button>
+          </ReadyGlow>
         )}
-      </section>
+      </motion.section>
 
-      <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
+      <motion.section {...riseInView(reduce)} className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
         <div className="flex flex-wrap gap-2 px-4 pb-3 pt-4 sm:px-5" role="group" aria-label="Faturas">
           {tabs.map((item) => (
             <Chip key={item.key} selected={tab === item.key} onClick={() => setTab(item.key)}>
@@ -336,6 +366,14 @@ export default function CreditCardOverview({
           ))}
         </div>
 
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={tab}
+          initial={reduce ? false : { opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -24 }}
+          transition={{ duration: 0.22, ease: CARD_EASE }}
+        >
         {tab === 'current' && (
           <CurrentStatementPanel
             statement={data.current}
@@ -366,8 +404,14 @@ export default function CreditCardOverview({
               <p className="px-5 py-6 text-sm text-[var(--text-muted)]">Nenhuma fatura anterior.</p>
             ) : (
               <div className="divide-y divide-[var(--border)]">
-                {data.history.map((statement) => (
-                  <div key={logicalIso(statement.closingDate)} className="px-4 py-4 sm:px-5">
+                {data.history.map((statement, index) => (
+                  <motion.div
+                    key={logicalIso(statement.closingDate)}
+                    className="px-4 py-4 sm:px-5"
+                    initial={reduce ? false : { opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={reducedTransition(reduce, { duration: 0.35, ease: CARD_EASE, delay: Math.min(index, 8) * 0.05 })}
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className="font-bold text-[var(--foreground)]">
@@ -394,13 +438,15 @@ export default function CreditCardOverview({
                         Pagar esta fatura
                       </Button>
                     )}
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             )}
           </div>
         )}
-      </section>
+        </motion.div>
+        </AnimatePresence>
+      </motion.section>
 
 
       {payingStatement && (
@@ -496,6 +542,7 @@ function CurrentStatementPanel({
   payable: boolean;
   onPay: (statement: CreditCardStatementItem) => void;
 }) {
+  const reduce = useReducedMotion();
   const visible = statement.transactions.slice(0, 8);
 
   return (
@@ -513,11 +560,16 @@ function CurrentStatementPanel({
         <p className="px-4 pb-5 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma compra nesta fatura ainda.</p>
       ) : (
         <ul className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
-          {visible.map((transaction) => {
+          {visible.map((transaction, index) => {
             const isCredit = transaction.type === 'INCOME';
             return (
-              <li key={transaction.id}>
-                <Link href={`/transacoes/show/${transaction.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5">
+              <motion.li
+                key={transaction.id}
+                initial={reduce ? false : { opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={reducedTransition(reduce, { type: 'spring', stiffness: 260, damping: 24, delay: 0.1 + Math.min(index, 8) * 0.05 })}
+              >
+                <MotionLink href={`/transacoes/show/${transaction.id}`} whileHover="hover" whileTap={{ scale: 0.98 }} className="flex min-h-14 items-center justify-between gap-3 px-4 py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5">
                   <span className="min-w-0">
                     <span className="block truncate font-semibold text-[var(--foreground)]">{transaction.description}</span>
                     <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
@@ -527,10 +579,12 @@ function CurrentStatementPanel({
                   </span>
                   <span className={`money flex shrink-0 items-center gap-2 font-semibold ${isCredit ? 'text-[var(--income)]' : 'text-[var(--foreground)]'}`}>
                     {showValues ? `${isCredit ? '−' : ''}${formatCurrency(transaction.amount, currency)}` : '••••'}
-                    <FaChevronRight className="text-[var(--text-muted)]" aria-hidden="true" />
+                    <motion.span className="flex" variants={{ hover: { x: 6 } }} transition={{ type: 'spring', stiffness: 400, damping: 14 }}>
+                      <FaChevronRight className="text-[var(--text-muted)]" aria-hidden="true" />
+                    </motion.span>
                   </span>
-                </Link>
-              </li>
+                </MotionLink>
+              </motion.li>
             );
           })}
         </ul>

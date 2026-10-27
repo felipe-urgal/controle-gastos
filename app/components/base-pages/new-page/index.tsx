@@ -6,6 +6,7 @@ import type { Crumb } from "@/app/components/base-pages/page-bar";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { MobileAppBar, ProtectedRoute } from "@/app/components/layout";
 import { ShowBelow } from "@/app/components/ui";
+import type { PageBarAnimation } from '@/app/components/base-pages/page-bar';
 
 interface NewPageProps {
   title?: string;
@@ -16,7 +17,7 @@ interface NewPageProps {
   sidebarAligned?: boolean;
   breadcrumb?: Crumb[];
   /** Movimento da faixa do título (ver `PageBar`); só vale com `sidebarAligned`. */
-  animated?: boolean | 'letters' | 'trail';
+  animated?: PageBarAnimation;
 };
 
 export default function NewPage({

@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ListPageHeader, PageContainer } from '@/app/components/base-pages';
 import {
   useCallback,
@@ -12,6 +13,7 @@ import Pagination from '@/app/components/navigation/pagination';
 import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Button, Input } from '@/app/components/ui';
+import { CARD_EASE } from '@/app/components/ui/motion';
 import { FaPlus, FaSearch, FaStar } from 'react-icons/fa';
 import TransactionTemplateCard from '@/app/components/pages/transaction-templates/transaction-template-card';
 import TransactionTemplateFormFields from '@/app/components/pages/transaction-templates/transaction-template-form-fields';
@@ -412,11 +414,15 @@ export default function TransactionTemplatesPage({
   });
   const { favorites, others } = groupTemplates(items);
 
+  const reduce = useReducedMotion();
+
   const renderCards = (list: TransactionTemplateDTO[]) => (
     <div className="grid gap-3 md:grid-cols-2">
-      {list.map((item) => (
+      <AnimatePresence mode="popLayout">
+      {list.map((item, index) => (
         <TransactionTemplateCard
           key={item.id}
+          index={index}
           item={item}
           showValues={showValues}
           favoriteBusy={favoriteBusyIds.includes(item.id)}
@@ -426,6 +432,7 @@ export default function TransactionTemplatesPage({
           onDelete={() => setDeleteCandidate(item)}
         />
       ))}
+      </AnimatePresence>
     </div>
   );
 
@@ -446,6 +453,7 @@ export default function TransactionTemplatesPage({
     <ProtectedRoute>
     <PageContainer>
       <ListPageHeader
+        animated="deal"
         title="Modelos de lançamento"
         createLabel="Novo modelo"
         onCreate={() => {
@@ -487,9 +495,15 @@ export default function TransactionTemplatesPage({
               }}
             />
           </div>
-          <span className="hidden text-sm text-[var(--text-muted)] sm:inline">
+          <motion.span
+            key={templateTotal}
+            className="hidden text-sm text-[var(--text-muted)] sm:inline"
+            initial={reduce ? false : { scale: 1.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 14 }}
+          >
             {templateTotal} {templateTotal === 1 ? 'modelo' : 'modelos'}
-          </span>
+          </motion.span>
           {templateError && (
             <Button variant="outline" size="sm" onClick={() => void loadTemplates()}>
               Tentar novamente
@@ -502,7 +516,21 @@ export default function TransactionTemplatesPage({
         ) : templatesLoading ? (
           <p className="text-sm text-[var(--text-muted)]">Carregando…</p>
         ) : items.length === 0 ? (
-          <div className="grid justify-items-center gap-2.5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center">
+          <motion.div
+            initial={reduce ? false : { opacity: 0, scale: 0.92, rotate: -2 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 16 }}
+            className="grid justify-items-center gap-2.5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center"
+          >
+            {/* Sem modelos: uma carta em branco balança de leve, esperando ser preenchida. */}
+            <motion.span
+              aria-hidden="true"
+              className="text-3xl"
+              animate={reduce ? undefined : { rotate: [-6, 6, -6], y: [0, -6, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              🃏
+            </motion.span>
             <h3 className="text-lg font-bold">
               {debouncedTemplateSearch ? 'Nenhum modelo encontrado' : 'Nenhum modelo criado'}
             </h3>
@@ -522,14 +550,27 @@ export default function TransactionTemplatesPage({
                 Criar primeiro modelo
               </Button>
             )}
-          </div>
+          </motion.div>
         ) : (
           <>
             {favorites.length > 0 && (
               <div className="grid gap-3">
-                <h3 className="flex items-center gap-2 text-sm font-bold">
-                  <FaStar className="text-[var(--primary)]" aria-hidden="true" /> Favoritos <span className="text-xs font-normal text-[var(--text-muted)]">{favorites.length}</span>
-                </h3>
+                <motion.h3
+                  className="flex items-center gap-2 text-sm font-bold"
+                  initial={reduce ? false : { opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, ease: CARD_EASE }}
+                >
+                  {/* A estrela dos favoritos "respira": cresce e volta, devagar e sem parar. */}
+                  <motion.span
+                    className="flex"
+                    animate={reduce ? undefined : { scale: [1, 1.25, 1], rotate: [0, 12, 0] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <FaStar className="text-[var(--primary)]" aria-hidden="true" />
+                  </motion.span>{' '}
+                  Favoritos <span className="text-xs font-normal text-[var(--text-muted)]">{favorites.length}</span>
+                </motion.h3>
                 {renderCards(favorites)}
               </div>
             )}

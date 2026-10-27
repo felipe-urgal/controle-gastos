@@ -1,5 +1,6 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import { ListPageHeader } from '@/app/components/base-pages';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import Link from 'next/link';
@@ -11,6 +12,7 @@ import { AccountsOverview } from '@/app/components/pages/account/index/accounts-
 import { ProtectedRoute } from '@/app/components/layout';
 import { Pagination } from '@/app/components/navigation';
 import { Button, Chip, ChipRow, IconRenderer, Input } from '@/app/components/ui';
+import { CARD_EASE, reducedTransition } from '@/app/components/ui/motion';
 import { useAuth } from '@/app/context';
 import { useAccounts } from '@/app/hooks/accounts/account-index';
 import {
@@ -103,6 +105,7 @@ export default function OrbitAccounts() {
   } = useAccounts();
 
   const accountSummary = summary as AccountListSummary | undefined;
+  const reduce = useReducedMotion();
   const grouped = useMemo(() => groupAccounts(accounts, accountSummary), [accounts, accountSummary]);
 
   const accountFilter = (filters.type ?? '') as '' | AccountType;
@@ -140,7 +143,7 @@ export default function OrbitAccounts() {
 
       {(!error || accounts.length > 0) && (
         <div className="space-y-6 pb-3">
-          <ListPageHeader title="Contas" createHref="/contas/nova" createLabel="Nova conta" />
+          <ListPageHeader animated="focus" title="Contas" createHref="/contas/nova" createLabel="Nova conta" />
 
           <AccountsOverview summary={accountSummary} loading={loading} showValues={showValues} ariaLabel="Resumo das contas" />
 
@@ -196,9 +199,13 @@ export default function OrbitAccounts() {
                 )}
               </div>
             ) : (
-              grouped.map((group) => (
+              grouped.map((group, groupIndex) => (
                 <section key={group.key} aria-label={group.title}>
-                  <h2 className="flex items-baseline justify-between gap-3 px-3.5 pb-2 pt-4 text-sm font-bold text-[var(--text-muted)] sm:px-[18px]">
+                  <motion.h2
+                    initial={reduce ? false : { opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={reducedTransition(reduce, { duration: 0.4, ease: CARD_EASE, delay: 0.5 + groupIndex * 0.15 })}
+                    className="flex items-baseline justify-between gap-3 px-3.5 pb-2 pt-4 text-sm font-bold text-[var(--text-muted)] sm:px-[18px]">
                     {group.title}
                     {group.total && (
                       <span className="money text-xs font-medium">
@@ -206,9 +213,14 @@ export default function OrbitAccounts() {
                         {group.totalLabel ? ` ${group.totalLabel}` : ''}
                       </span>
                     )}
-                  </h2>
-                  {group.items.map((account) => (
-                    <AccountRow key={account.id} account={account} showValues={showValues} />
+                  </motion.h2>
+                  {group.items.map((account, index) => (
+                    <AccountRow
+                      key={account.id}
+                      account={account}
+                      showValues={showValues}
+                      order={groupIndex * 3 + index}
+                    />
                   ))}
                 </section>
               ))
@@ -232,13 +244,19 @@ function dueShortLabel(date: { month: number; day: number }) {
 
 const rowMeterTone = { ok: 'bg-[var(--primary)]', near: 'bg-[var(--warning)]', over: 'bg-[var(--expense)]' } as const;
 
+const MotionLink = motion.create(Link);
+
 function AccountRow({
   account,
   showValues,
+  order,
 }: {
   account: AccountModel;
   showValues: boolean;
+  /** Posição na lista: define o atraso da entrada (limitado, para listas longas não demorarem). */
+  order: number;
 }) {
+  const reduce = useReducedMotion();
   const latest = latestAccountTransaction(account);
   const card = creditCardRowSummary(account);
   const displayedValue = card ? card.statementAmount ?? 0 : getAccountPrimaryValue(account);
@@ -257,13 +275,14 @@ function AccountRow({
   const content = (
     <>
       <div className="flex min-w-0 items-center gap-3">
-        <span
+        <motion.span
           className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[var(--radius-md)] text-white"
           style={{ backgroundColor: account.color || 'var(--text-muted)' }}
           aria-hidden="true"
+          variants={{ hover: { rotate: [0, -10, 8, 0], scale: 1.12, transition: { duration: 0.5 } } }}
         >
           <IconRenderer iconName={account.icon || 'wallet'} size={18} />
-        </span>
+        </motion.span>
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 break-words text-sm font-bold sm:text-base">
             {account.name}
@@ -286,7 +305,12 @@ function AccountRow({
                   role="img"
                   aria-label={`${card.usedPercent}% do limite usado`}
                 >
-                  <span className={`block h-full rounded-full ${rowMeterTone[card.tone]}`} style={{ width: `${Math.min(100, card.usedPercent)}%` }} />
+                  <motion.span
+                    className={`block h-full rounded-full ${rowMeterTone[card.tone]}`}
+                    initial={reduce ? false : { width: 0 }}
+                    animate={{ width: `${Math.min(100, card.usedPercent)}%` }}
+                    transition={reducedTransition(reduce, { duration: 0.9, ease: CARD_EASE, delay: 0.5 + Math.min(order, 8) * 0.06 })}
+                  />
                 </div>
               )}
             </>
@@ -329,13 +353,23 @@ function AccountRow({
           <span className="money">{latest ? transactionMoney(latest, account.currency, showValues) : '—'}</span>
         </p>
       </div>
-      <FaChevronRight className="justify-self-end text-[var(--text-muted)]" aria-hidden="true" />
+      <motion.span className="flex justify-self-end" variants={{ hover: { x: 6 } }} transition={{ type: 'spring', stiffness: 400, damping: 14 }}>
+        <FaChevronRight className="text-[var(--text-muted)]" aria-hidden="true" />
+      </motion.span>
     </>
   );
 
   return (
-    <Link href={`/contas/show/${encodeURIComponent(account.id)}`} className={rowClass}>
+    <MotionLink
+      href={`/contas/show/${encodeURIComponent(account.id)}`}
+      className={rowClass}
+      whileHover="hover"
+      whileTap={{ scale: 0.99 }}
+      initial={reduce ? false : { opacity: 0, x: -28, scale: 0.97 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      transition={reducedTransition(reduce, { type: 'spring', stiffness: 230, damping: 22, delay: 0.35 + Math.min(order, 8) * 0.06 })}
+    >
       {content}
-    </Link>
+    </MotionLink>
   );
 }

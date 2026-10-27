@@ -10,6 +10,7 @@ import type { Crumb } from "@/app/components/base-pages/page-bar";
 import { PageLoading, PageEmpty } from "@/app/components/feedback";
 import { ProtectedRoute } from "@/app/components/layout";
 import { DeleteOverlay, ConfirmationModal } from "@/app/components/overlays";
+import type { PageBarAnimation } from '@/app/components/base-pages/page-bar';
 
 interface ShowPageProps<T> {
   entity: T | null | undefined;
@@ -40,6 +41,8 @@ interface ShowPageProps<T> {
   loadingSkeleton?: React.ReactNode;
   /** Movimento da página de detalhe: os botões do cabeçalho caem e a confirmação de exclusão voa do botão Excluir. */
   animatedActions?: boolean;
+  /** Preset de movimento da faixa do título (ver `PageBar`). */
+  animated?: PageBarAnimation;
 
   emptyRedirectTo?: string;
   mobileContent?: React.ReactNode;
@@ -70,6 +73,7 @@ export default function ShowPage<T>({
   breadcrumb,
   loadingSkeleton,
   animatedActions = false,
+  animated = false,
   emptyRedirectTo,
   mobileContent,
   children,
@@ -100,6 +104,7 @@ export default function ShowPage<T>({
             setIsDeleteModalOpen(true);
           } : undefined}
           dropActions={animatedActions}
+          animated={animated}
           deleteDisabled={deleteDisabled}
           deleteHint={deleteHint}
           sidebarAligned={sidebarAligned}

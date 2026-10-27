@@ -1,5 +1,6 @@
 'use client';
 
+import { RiseSection } from '@/app/components/ui/motion';
 import { FaChevronRight, FaFileImport, FaRedo } from 'react-icons/fa';
 
 import { Metric, typeLabel } from '@/app/components/pages/payroll/payroll-shared';
@@ -51,7 +52,7 @@ export function PayrollImportPanel({
   onClose: () => void;
 }) {
   return (
-    <section aria-labelledby="payroll-import-title" className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <RiseSection aria-labelledby="payroll-import-title" className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 id="payroll-import-title" className="text-lg font-bold text-[var(--foreground)]">
@@ -356,6 +357,6 @@ export function PayrollImportPanel({
         </div>
       </div>
     ) : null}
-  </section>
+  </RiseSection>
   );
 }

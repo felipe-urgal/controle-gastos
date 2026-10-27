@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { FaExchangeAlt } from 'react-icons/fa';
@@ -7,6 +8,7 @@ import { FaExchangeAlt } from 'react-icons/fa';
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { PageError } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
+import { CARD_EASE } from '@/app/components/pages/financial-comparison/comparison-motion';
 import FinancialComparisonView from '@/app/components/pages/financial-comparison/financial-comparison-view';
 import {
   activePreset,
@@ -125,6 +127,7 @@ function monthsLabel(months: number) {
 }
 
 export default function FinancialComparisonPage() {
+  const reduce = useReducedMotion();
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const router = useRouter();
@@ -147,6 +150,8 @@ export default function FinancialComparisonPage() {
   const [retryNonce, setRetryNonce] = useState(0);
   const [basisOverride, setBasisOverride] = useState<ComparisonBasis | null>(null);
   const [editing, setEditing] = useState(false);
+  // Quantas vezes A e B foram trocados: o ícone gira meia volta a cada troca.
+  const [swaps, setSwaps] = useState(0);
 
   const queryKey = useMemo(() => serializeFilters(filters), [filters]);
   useEffect(() => {
@@ -213,6 +218,7 @@ export default function FinancialComparisonPage() {
   }
 
   function swapPeriods() {
+    setSwaps((count) => count + 1);
     applyFilters({
       ...filters,
       aFrom: filters.bFrom,
@@ -238,25 +244,32 @@ export default function FinancialComparisonPage() {
     <div className="flex flex-wrap items-center gap-2.5">
       <div className="min-w-0 flex-1 sm:w-[230px] sm:flex-none">
         <Select
+          animated
           ariaLabel="Tipo de comparação"
           value={preset ?? 'custom'}
           onChange={choosePreset}
           options={[...PRESETS.map((item) => ({ value: item.key, label: item.label })), { value: 'custom', label: 'Personalizado' }]}
         />
       </div>
-      <CurrencySelect value={filters.currency} onChange={(item) => updateFilter('currency', item)} />
+      <CurrencySelect animated value={filters.currency} onChange={(item) => updateFilter('currency', item)} />
     </div>
   );
 
   return (
     <ProtectedRoute>
       <PageContainer>
-        <PageTitle title="Comparar períodos" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+        <PageTitle title="Comparar períodos" sidebarAligned animated="collide" actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
         <ShowBelow breakpoint="lg">
           <div className="mt-4">{headerControls}</div>
         </ShowBelow>
 
-        <section aria-label="Períodos comparados" className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4">
+        <motion.section
+          aria-label="Períodos comparados"
+          initial={reduce ? false : { opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: CARD_EASE, delay: 0.2 }}
+          className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4"
+        >
           <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] sm:gap-4">
             <PeriodLabel
               side="A"
@@ -264,12 +277,31 @@ export default function FinancialComparisonPage() {
               range={rangeA ? formatRange(rangeA) : 'Período inválido'}
               months={data ? monthsLabel(data.a.months) : null}
             />
-            <IconButton
-              label="Inverter períodos A e B"
-              icon={<FaExchangeAlt />}
-              onClick={swapPeriods}
-              className="rounded-full border border-[var(--border-strong)] bg-[var(--surface)]"
-            />
+            {/* O botão "versus" salta para o meio depois dos dois lados; ao trocar A e B ele gira meia volta e um anel pulsa. */}
+            <motion.span
+              className="relative flex"
+              initial={reduce ? false : { scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: swaps * 180, transition: { type: 'spring', stiffness: 260, damping: 14, delay: swaps === 0 ? 0.55 : 0 } }}
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.85 }}
+            >
+              {!reduce && (
+                <motion.span
+                  key={swaps}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-full border-2 border-[var(--primary)]"
+                  initial={{ scale: 1, opacity: swaps === 0 ? 0 : 0.7 }}
+                  animate={{ scale: 1.9, opacity: 0 }}
+                  transition={{ duration: 0.7, ease: 'easeOut', delay: swaps === 0 ? 0.75 : 0 }}
+                />
+              )}
+              <IconButton
+                label="Inverter períodos A e B"
+                icon={<FaExchangeAlt />}
+                onClick={swapPeriods}
+                className="rounded-full border border-[var(--border-strong)] bg-[var(--surface)]"
+              />
+            </motion.span>
             <PeriodLabel
               side="B"
               title="B · comparado"
@@ -287,15 +319,43 @@ export default function FinancialComparisonPage() {
               {editOpen ? 'Fechar' : 'Alterar períodos'}
             </Button>
           </div>
-          {editOpen && (
-            <div className="grid gap-2 border-t border-[var(--border)] pt-3 mt-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Input aria-label="Início período A" type="month" max={maxMonth} value={filters.aFrom} onChange={(event) => updateFilter('aFrom', event.target.value)} />
-              <Input aria-label="Fim período A" type="month" max={maxMonth} value={filters.aTo} onChange={(event) => updateFilter('aTo', event.target.value)} />
-              <Input aria-label="Início período B" type="month" max={maxMonth} value={filters.bFrom} onChange={(event) => updateFilter('bFrom', event.target.value)} />
-              <Input aria-label="Fim período B" type="month" max={maxMonth} value={filters.bTo} onChange={(event) => updateFilter('bTo', event.target.value)} />
-            </div>
-          )}
-        </section>
+          <AnimatePresence initial={false}>
+            {editOpen && (
+              <motion.div
+                key="edit"
+                className="overflow-hidden"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1, transitionEnd: { overflow: 'visible' } }}
+                exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
+                transition={{ duration: 0.3, ease: CARD_EASE }}
+              >
+                {/* Os quatro campos entram em sequência: A de um lado, B do outro. */}
+                <div className="mt-3 grid gap-2 border-t border-[var(--border)] pt-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    { label: 'Início período A', key: 'aFrom' },
+                    { label: 'Fim período A', key: 'aTo' },
+                    { label: 'Início período B', key: 'bFrom' },
+                    { label: 'Fim período B', key: 'bTo' },
+                  ].map((field, index) => (
+                    <motion.div
+                      key={field.key}
+                      initial={reduce ? false : { opacity: 0, x: index < 2 ? -24 : 24 }}
+                      animate={{ opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 22, delay: 0.1 + index * 0.06 } }}
+                    >
+                      <Input
+                        aria-label={field.label}
+                        type="month"
+                        max={maxMonth}
+                        value={filters[field.key as 'aFrom' | 'aTo' | 'bFrom' | 'bTo']}
+                        onChange={(event) => updateFilter(field.key as 'aFrom' | 'aTo' | 'bFrom' | 'bTo', event.target.value)}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.section>
 
         <div className="mt-4">
           {showLoading && (
@@ -353,14 +413,43 @@ function PeriodLabel({
   range: string;
   months: string | null;
 }) {
+  const reduce = useReducedMotion();
+  // A vem da esquerda e B da direita; ao inverter, o texto de cada lado sai para o lado do outro e o novo entra de lá.
+  const dir = side === 'A' ? -1 : 1;
+
   return (
-    <div className="grid min-w-0 gap-0.5">
+    <motion.div
+      className="grid min-w-0 gap-0.5"
+      initial={reduce ? false : { opacity: 0, x: dir * 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 240, damping: 20, delay: 0.3 }}
+    >
       <span className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
-        <span className={`h-2 w-2 rounded-full ${side === 'A' ? 'bg-[var(--border-strong)]' : 'bg-[var(--primary)]'}`} aria-hidden="true" />
+        <motion.span
+          className={`h-2 w-2 rounded-full ${side === 'A' ? 'bg-[var(--border-strong)]' : 'bg-[var(--primary)]'}`}
+          aria-hidden="true"
+          initial={reduce ? false : { scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 12, delay: 0.6 }}
+        />
         {title}
       </span>
-      <span className="break-words text-sm font-bold leading-snug tracking-tight sm:text-lg">{range}</span>
+      <span className="relative block overflow-hidden">
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={range}
+            className="block break-words text-sm font-bold leading-snug tracking-tight sm:text-lg"
+            initial={{ opacity: 0, x: -dir * 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: dir * 30 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+          >
+            {range}
+          </motion.span>
+        </AnimatePresence>
+      </span>
       <span className="min-h-4 text-xs text-[var(--text-muted)]">{months ?? ' '}</span>
-    </div>
+    </motion.div>
   );
 }

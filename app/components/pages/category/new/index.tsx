@@ -7,6 +7,7 @@ export default function NewCategoryPage() {
       backUrl="/categorias"
       title="Nova categoria"
       sidebarAligned
+      animated="focus"
       breadcrumb={[{ label: 'Categorias', href: '/categorias' }, { label: 'Nova categoria' }]}
     >
       <CategoryForm isEditing={false} />

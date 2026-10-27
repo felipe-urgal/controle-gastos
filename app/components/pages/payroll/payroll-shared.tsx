@@ -1,6 +1,9 @@
 'use client';
 
+import { motion } from 'framer-motion';
+
 import { Button } from '@/app/components/ui';
+import { PopBox } from '@/app/components/ui/motion';
 
 export function typeLabel(type: 'PAYROLL_ADVANCE' | 'MONTHLY_PAYSLIP') {
   return type === 'PAYROLL_ADVANCE'
@@ -34,11 +37,11 @@ export function Pagination({
 
 export function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
+    <PopBox whileHover="hover" className="min-w-0 rounded-[var(--radius-md)] bg-[var(--surface-raised)] p-3">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
-      <strong className="mt-1 block break-words text-sm text-[var(--foreground)]">
+      <motion.strong className="mt-1 block origin-left break-words text-sm text-[var(--foreground)]" variants={{ hover: { scale: 1.07, transition: { type: 'spring', stiffness: 400, damping: 16 } } }}>
         {value}
-      </strong>
-    </div>
+      </motion.strong>
+    </PopBox>
   );
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import { RiseArticle } from '@/app/components/ui/motion';
+
 import { useEffect, useState } from 'react';
 import { FaSyncAlt, FaTrash } from 'react-icons/fa';
 
@@ -193,7 +195,7 @@ export function ForeignInvestmentAnnualTaxCard({
   ).filter((item) => item >= 2024);
 
   return (
-    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
+    <RiseArticle className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -498,7 +500,7 @@ export function ForeignInvestmentAnnualTaxCard({
           </p>
         </>
       )}
-    </article>
+    </RiseArticle>
   );
 }
 

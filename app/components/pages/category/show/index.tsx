@@ -33,6 +33,8 @@ export default function Show({ id }: { id: string }) {
       entityName="categoria"
       titleFallback="Detalhes da categoria"
       sidebarAligned
+      animatedActions
+      animated="fan"
       breadcrumb={[{ label: 'Categorias', href: '/categorias' }, { label: category?.name ?? 'Categoria' }]}
       loadingSkeleton={<CategoryShowSkeleton backUrl={handleBack} />}
       loading={loading}

@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ListPageHeader, PageContainer } from '@/app/components/base-pages';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -16,6 +17,8 @@ import { Alert } from '@/app/components/feedback';
 import TagReportPanel from '@/app/components/pages/tags/tag-report-panel';
 import { monthExpenseLabel, statusFilterParam, type TagStatusFilter } from '@/app/components/pages/tags/tags-model';
 import { Button, IconButton, Input, Select } from '@/app/components/ui';
+import { StaggerForm } from '@/app/components/ui/motion';
+import { riseInView } from '@/app/components/ui/motion-presets';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import ConfirmationModal from '@/app/components/overlays/confirmation-modal';
 import { useAuth } from '@/app/context';
@@ -43,6 +46,7 @@ function sortTags(tags: TagDTO[]) {
 }
 
 export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
+  const reduce = useReducedMotion();
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
 
@@ -342,8 +346,9 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
 
   return (
     <ProtectedRoute>
-      <PageContainer>
+            <PageContainer>
         <ListPageHeader
+          animated="dangle"
           title="Tags"
           createLabel="Nova tag"
           onCreate={() => {
@@ -367,8 +372,9 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
         {notice && actionFeedbackTagId === null ? <div className="mt-4"><Alert variant="info" message={notice} /></div> : null}
         {actionError && actionFeedbackTagId === null && !createOpen ? <div className="mt-4"><Alert variant="error" message={actionError} /></div> : null}
 
-        <section className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)]" aria-labelledby="tag-list-title">
+                {/* A lista e o relatório têm a mesma altura (o grid estica os dois cartões). */}
+        <section className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          <motion.section {...riseInView(reduce)} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)]" aria-labelledby="tag-list-title">
             <h2 id="tag-list-title" className="sr-only">Suas tags</h2>
             <div role="search">
               <Input
@@ -403,12 +409,31 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                 {search || statusFilter !== 'all' ? 'Nenhuma tag encontrada para esta busca.' : 'Nenhuma tag cadastrada. Use “Nova tag” para criar a primeira.'}
               </p>
             ) : (
-              <ul className="mt-3 divide-y divide-[var(--border)] border-t border-[var(--border)]">
-                {tags.map((tag) => {
+                            <ul className="mt-3 divide-y divide-[var(--border)] overflow-hidden border-t border-[var(--border)]">
+                <AnimatePresence mode="popLayout" initial={false}>
+                {tags.map((tag, tagIndex) => {
                   const spent = monthExpenseLabel(tag.monthExpenses, (cents, currency) => (showValues ? formatCurrency(cents, currency) : '••••'));
                   const selected = selectedReportTagId === tag.id;
                   return (
-                    <li key={tag.id} className={`flex flex-col gap-2 py-2 ${selected ? 'bg-[var(--primary-subtle)]' : ''}`}>
+                                        <motion.li
+                      key={tag.id}
+                      layout="position"
+                      // Cada tag "pendura" ao entrar: balança preso pela ponta esquerda e se acalma. Arquivada fica mais apagada.
+                      style={{ transformOrigin: '0% 0%' }}
+                      initial={reduce ? false : { opacity: 0, rotate: -6, y: -10 }}
+                      animate={{ opacity: tag.isActive ? 1 : 0.7, rotate: 0, y: 0, transition: { type: 'spring', stiffness: 160, damping: 8, delay: Math.min(tagIndex, 8) * 0.06 } }}
+                      exit={{ opacity: 0, x: 60, transition: { duration: 0.2 } }}
+                      className="relative flex flex-col gap-2 py-2"
+                    >
+                      {/* O destaque da tag escolhida desliza de uma linha para a outra. */}
+                      {selected && (
+                        <motion.span
+                          aria-hidden="true"
+                          layoutId="tag-selected"
+                          transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                          className="pointer-events-none absolute inset-0 -z-10 bg-[var(--primary-subtle)]"
+                        />
+                      )}
                       {editing?.id === tag.id ? (
                         <form onSubmit={saveRename} className="flex min-w-0 flex-1 flex-col gap-2 px-2 sm:flex-row">
                           <div className="min-w-0 flex-1">
@@ -474,9 +499,10 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                       {actionFeedbackTagId === tag.id && (notice || actionError) ? (
                         <Alert variant={actionError ? 'error' : 'info'} message={actionError || notice} />
                       ) : null}
-                    </li>
+                                        </motion.li>
                   );
                 })}
+                </AnimatePresence>
               </ul>
             )}
 
@@ -486,8 +512,8 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                 <span className="text-xs font-semibold text-[var(--text-muted)]">Página {page} de {totalPages}</span>
                 <Button variant="outline" size="sm" onClick={() => changePage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>Próxima</Button>
               </nav>
-            ) : null}
-          </section>
+                        ) : null}
+          </motion.section>
 
           <TagReportPanel
             tag={selectedReportTag}
@@ -503,7 +529,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
 
         {createOpen && (
           <ModalShell title="Nova tag" onClose={() => setCreateOpen(false)} closeDisabled={creating} maxWidthClass="max-w-md">
-            <form onSubmit={createTag} className="grid gap-4">
+                        <StaggerForm onSubmit={createTag} className="grid gap-4">
               <Input
                 label="Nome da tag"
                 value={name}
@@ -521,8 +547,8 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
                 <Button type="submit" disabled={creating || !normalizeTagDisplayName(name)}>
                   {creating ? 'Criando…' : 'Criar tag'}
                 </Button>
-              </div>
-            </form>
+                            </div>
+            </StaggerForm>
           </ModalShell>
         )}
 

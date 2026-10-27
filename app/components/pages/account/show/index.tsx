@@ -52,6 +52,8 @@ export default function Show({ id }: { id: string }) {
       entityName="conta"
       titleFallback="Detalhes da conta"
       sidebarAligned
+      animatedActions
+      animated="focus"
       loadingSkeleton={<AccountShowSkeleton backUrl={handleBack} />}
       breadcrumb={[{ label: 'Contas', href: '/contas' }, { label: account?.name ?? 'Conta' }]}
       loading={loading}

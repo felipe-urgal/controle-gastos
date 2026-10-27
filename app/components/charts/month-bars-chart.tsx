@@ -1,5 +1,6 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
 
 export type MonthBarDatum = {
@@ -31,6 +32,7 @@ export function MonthBarsChart({
   /** Camada sobre as colunas (ex.: linha de limite), posicionada em relação à área das barras. */
   overlay?: ReactNode;
 }) {
+  const reduce = useReducedMotion();
   const [active, setActive] = useState<number | null>(null);
   const currentIndex = Math.max(0, bars.findIndex((bar) => bar.current));
   const shownIndex = active ?? currentIndex;
@@ -76,10 +78,14 @@ export function MonthBarsChart({
               onPointerEnter={(event) => event.pointerType === 'mouse' && setActive(index)}
               onPointerDown={() => setActive(index)}
             >
-              <div
+              {/* As colunas crescem de baixo para cima, uma depois da outra, com uma mola que passa e volta; mudar o valor as move. */}
+              <motion.div
                 className={`w-full max-w-10 rounded-t-md transition-opacity ${dim ? 'opacity-45' : ''}`}
+                initial={reduce ? false : { height: 0 }}
+                whileInView={{ height: `${bar.heightPercent}%` }}
+                viewport={{ once: true }}
+                transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 140, damping: 13, delay: index * 0.05 }}
                 style={{
-                  height: `${bar.heightPercent}%`,
                   backgroundColor: bar.color ?? (bar.current ? accentColor : `color-mix(in srgb, ${accentColor} 50%, var(--surface-subtle))`),
                   outline: active === index ? `2px solid ${accentColor}` : undefined,
                   outlineOffset: 1,

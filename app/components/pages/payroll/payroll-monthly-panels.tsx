@@ -1,5 +1,7 @@
 'use client';
 
+import { motion } from 'framer-motion';
+import { RiseDetails } from '@/app/components/ui/motion';
 import { FaChevronDown, FaRedo } from 'react-icons/fa';
 
 import { Button } from '@/app/components/ui';
@@ -41,7 +43,7 @@ export function DocumentHistoryPanel({
   onNext: () => void;
 }) {
   return (
-    <details className="group overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
+    <RiseDetails className="group overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
       <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
         <span>
           <span className="block text-lg font-bold text-[var(--foreground)]">Documentos importados</span>
@@ -86,10 +88,14 @@ export function DocumentHistoryPanel({
         </p>
       ) : (
         <div className="divide-y divide-[var(--border)]">
-          {result.items.map((document) => (
-            <article
+          {result.items.map((document, index) => (
+            <motion.article
               key={document.id}
-              className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 22, delay: Math.min(index, 8) * 0.06 }}
+              className="grid gap-3 overflow-hidden p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -143,7 +149,7 @@ export function DocumentHistoryPanel({
                   </Button>
                 )}
               </div>
-            </article>
+            </motion.article>
           ))}
         </div>
       )}
@@ -158,6 +164,6 @@ export function DocumentHistoryPanel({
           />
         </div>
       )}
-    </details>
+    </RiseDetails>
   );
 }

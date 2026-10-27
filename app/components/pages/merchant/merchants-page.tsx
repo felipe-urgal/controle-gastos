@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import {
@@ -19,6 +20,7 @@ import { Alert } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import Pagination from '@/app/components/navigation/pagination';
 import { Button, Input, Select } from '@/app/components/ui';
+import { CARD_EASE, CountUp, RiseDetails, reducedTransition } from '@/app/components/ui/motion';
 import Link from 'next/link';
 import { useAuth } from '@/app/context';
 import { useDebounce } from '@/app/hooks/use-debounce';
@@ -50,6 +52,7 @@ function operatorLabel(operator: MerchantAliasOperator) {
 }
 
 export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: string }) {
+  const reduce = useReducedMotion();
   const [items, setItems] = useState<MerchantDTO[]>([]);
   const [summary, setSummary] = useState<MerchantMonthSummary | null>(null);
   const [merchantPage, setMerchantPage] = useState(1);
@@ -499,18 +502,22 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
   return (
     <ProtectedRoute>
       <PageContainer>
-        <PageTitle title="Estabelecimentos" sidebarAligned />
+        <PageTitle title="Estabelecimentos" sidebarAligned animated="neon" />
 
         {heroCurrency || summaryLoaded ? (
-          <section
+                    <motion.section
             aria-label="Gasto do mês em estabelecimentos"
+            // O resumo desce como um toldo de loja sendo aberto, de cima para baixo.
+            initial={reduce ? false : { clipPath: 'inset(0 0 100% 0 round 16px)', opacity: 0.4 }}
+            animate={{ clipPath: 'inset(0 0 0% 0 round 16px)', opacity: 1, transitionEnd: { clipPath: 'none' } }}
+            transition={reducedTransition(reduce, { duration: 0.8, ease: CARD_EASE, delay: 0.1 })}
             className="mt-4 grid gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
           >
             {heroCurrency ? (
               <>
                 <p className="text-sm font-semibold text-[var(--text-muted)]">Gasto do mês em estabelecimentos reconhecidos</p>
                 <strong className="money block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
-                  {formatMoney(heroCurrency.assigned, heroCurrency.currency)}
+                                    <CountUp amount={heroCurrency.assigned} format={(cents) => formatMoney(cents, heroCurrency.currency)} />
                 </strong>
                 <p className="text-sm text-[var(--text-muted)]">
                   {heroShare !== null && heroCurrency.top.length > 1 ? (
@@ -535,24 +542,50 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                 ) : null}
               </>
             ) : (
-              <p className="text-sm text-[var(--text-muted)]">Nenhuma despesa concluída neste mês. Os gastos por estabelecimento aparecem aqui assim que houver movimentação.</p>
+                            <p className="text-sm text-[var(--text-muted)]">Nenhuma despesa concluída neste mês. Os gastos por estabelecimento aparecem aqui assim que houver movimentação.</p>
             )}
-          </section>
+          </motion.section>
         ) : null}
 
-        <section
+                <motion.section
+          initial={reduce ? false : { opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={reducedTransition(reduce, { type: 'spring', stiffness: 150, damping: 20, delay: 0.25 })}
           className="ds-panel mt-4 overflow-hidden"
           aria-labelledby="merchant-list-heading"
         >
           <div className="grid gap-3 border-b border-[var(--border)] p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <FaStore className="text-[var(--primary)]" aria-hidden="true" />
-                <h2 id="merchant-list-heading" className="font-semibold text-[var(--foreground)]">
-                  {editing ? 'Editar estabelecimento' : 'Onde você gasta'}
-                </h2>
+                                <motion.span className="flex" whileHover={{ rotate: [0, -14, 12, 0], transition: { duration: 0.5 } }} whileTap={{ scale: 0.85 }}>
+                  <FaStore className="text-[var(--primary)]" aria-hidden="true" />
+                </motion.span>
+                {/* Entrar e sair do modo de edição troca o título deslizando. */}
+                <span className="relative block overflow-hidden">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.h2
+                      key={editing ? 'edit' : 'list'}
+                      id="merchant-list-heading"
+                      className="font-semibold text-[var(--foreground)]"
+                      initial={reduce ? false : { opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -14 }}
+                      transition={{ duration: 0.2, ease: CARD_EASE }}
+                    >
+                      {editing ? 'Editar estabelecimento' : 'Onde você gasta'}
+                    </motion.h2>
+                  </AnimatePresence>
+                </span>
               </div>
-              <span className="text-sm text-[var(--text-muted)]">{merchantTotal} cadastrado(s)</span>
+                            <motion.span
+                key={merchantTotal}
+                className="text-sm text-[var(--text-muted)]"
+                initial={reduce ? false : { scale: 1.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 14 }}
+              >
+                {merchantTotal} cadastrado(s)
+              </motion.span>
             </div>
 
             {merchantError ? <Alert variant="error" message={merchantError} /> : null}
@@ -584,7 +617,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
               <Input
                 aria-label="Buscar estabelecimentos"
                 placeholder="Buscar por nome"
@@ -620,12 +653,22 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
           ) : items.length === 0 ? (
             <p className="p-5 text-sm text-[var(--text-muted)]">Nenhum estabelecimento encontrado.</p>
           ) : (
-            <div className="divide-y divide-[var(--border)]">
-              {items.map((item) => {
+                        <div className="divide-y divide-[var(--border)]">
+              <AnimatePresence mode="popLayout" initial={false}>
+              {items.map((item, itemIndex) => {
                 const spend = pickSpend(item.monthSpend, heroCurrency?.currency);
                 const delta = spendDelta(spend);
                 return (
-                  <article key={item.id} className="grid gap-3 p-4 sm:p-5">
+                  <motion.article
+                    key={item.id}
+                    layout="position"
+                    // Cada estabelecimento "acende" ao entrar (de baixo, com um brilho curto); ao sair a linha encolhe e some.
+                    initial={reduce ? false : { opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 22, delay: Math.min(itemIndex, 8) * 0.05 } }}
+                    exit={{ opacity: 0, x: 60, transition: { duration: 0.2 } }}
+                    whileHover="hover"
+                    className="grid gap-3 p-4 sm:p-5"
+                  >
                     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -636,7 +679,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                             {item.isActive ? 'Ativo' : 'Inativo'}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm text-[var(--text-muted)]">
+                                                <p className="mt-1 text-sm text-[var(--text-muted)]">
                           {spend ? `${spend.count} ${spend.count === 1 ? 'compra' : 'compras'} no mês · ` : 'Sem compras no mês · '}
                           {item.transactionsCount} transação(ões) · {item.aliasesCount} alias(es)
                         </p>
@@ -655,7 +698,12 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
 
                     {spend && spend.expense > 0 ? (
                       <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`Participação de ${item.name} no gasto da página`}>
-                        <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${shareWidth(spend.expense, maxSpend)}%` }} />
+                                                <motion.div
+                          className="h-full rounded-full bg-[var(--primary)]"
+                          initial={reduce ? false : { width: 0 }}
+                          animate={{ width: `${shareWidth(spend.expense, maxSpend)}%`, transition: { duration: 0.9, ease: CARD_EASE, delay: 0.3 + Math.min(itemIndex, 8) * 0.05 } }}
+                          variants={{ hover: { scaleY: 1.8, transition: { type: 'spring', stiffness: 400, damping: 18 } } }}
+                        />
                       </div>
                     ) : null}
 
@@ -670,9 +718,10 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                         Excluir
                       </Button>
                     </div>
-                  </article>
+                                    </motion.article>
                 );
               })}
+              </AnimatePresence>
             </div>
           )}
 
@@ -696,9 +745,9 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
               loading={merchantLoading}
             />
           </div>
-        </section>
+                </motion.section>
 
-        <details className="group mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
+        <RiseDetails className="group mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-semibold text-[var(--foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
             <span>Reconhecimento automático</span>
             <span className="text-sm font-normal text-[var(--text-muted)]">{aliasTotal} alias(es)</span>
@@ -1019,10 +1068,15 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
             </p>
           ) : (
             <div className="mt-4 divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
-              {aliases.map((alias) => (
-                <div
+                            <AnimatePresence initial={false}>
+              {aliases.map((alias, aliasIndex) => (
+                <motion.div
                   key={alias.id}
-                  className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  // Aliases entram deslizando da direita; ao remover, vão embora para o mesmo lado.
+                  initial={reduce ? false : { opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0, transition: { type: 'spring', stiffness: 240, damping: 22, delay: Math.min(aliasIndex, 8) * 0.05 } }}
+                  exit={{ opacity: 0, x: 60, transition: { duration: 0.2 } }}
+                  className="flex flex-col gap-3 overflow-hidden p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
                     <p className="break-words text-sm font-semibold text-[var(--foreground)]">
@@ -1055,10 +1109,11 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                       onClick={() => void removeAlias(alias.id)}
                     >
                       Remover
-                    </Button>
+                                        </Button>
                   </div>
-                </div>
+                </motion.div>
               ))}
+              </AnimatePresence>
             </div>
           )}
 
@@ -1082,9 +1137,9 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
               loading={aliasesLoading}
             />
           </div>
-        </section>
+                </section>
 
-        </details>
+        </RiseDetails>
       </PageContainer>
 
       {deleteCandidate ? (

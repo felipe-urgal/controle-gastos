@@ -1,9 +1,12 @@
 'use client';
 
+import { RiseSection } from '@/app/components/ui/motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { FaChevronDown, FaRedo } from 'react-icons/fa';
 
 import { recentFirst, reviewQueue } from '@/app/components/pages/payroll/payroll-year-model';
 import { Button } from '@/app/components/ui';
+import { PopBox } from '@/app/components/ui/motion';
 import { payrollSummaryMoney } from '@/app/lib/payroll/payroll-presentation';
 import type { PayrollSummary } from '@/app/types/payroll';
 
@@ -14,7 +17,7 @@ export function PayrollReviewQueue({ items }: { items: PayrollSummary[] }) {
   if (queue.length === 0) return null;
 
   return (
-    <section aria-labelledby="payroll-review-title" className="grid gap-2.5 rounded-[var(--radius-lg)] border border-[var(--warning)]/45 bg-[var(--warning-subtle)] p-4">
+    <RiseSection aria-labelledby="payroll-review-title" className="grid gap-2.5 rounded-[var(--radius-lg)] border border-[var(--warning)]/45 bg-[var(--warning-subtle)] p-4">
       <h2 id="payroll-review-title" className="text-sm font-bold">Para revisar</h2>
       <ul className="grid gap-2">
         {queue.map((summary) => (
@@ -24,7 +27,7 @@ export function PayrollReviewQueue({ items }: { items: PayrollSummary[] }) {
           </li>
         ))}
       </ul>
-    </section>
+    </RiseSection>
   );
 }
 
@@ -51,10 +54,11 @@ export function PayrollCompetencies({
   showValues: boolean;
   onRetry: () => void;
 }) {
+  const reduce = useReducedMotion();
   const sorted = recentFirst(items);
 
   return (
-    <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <RiseSection className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold">Competências</h2>
@@ -78,8 +82,17 @@ export function PayrollCompetencies({
         <p className="mt-4 text-sm text-[var(--text-muted)]">Nenhuma competência encontrada neste ano.</p>
       ) : (
         <ul className="mt-2">
-          {sorted.map((summary) => (
-            <li key={`${summary.employerCnpj}-${summary.year}-${summary.month}`} className="border-t border-[var(--border)] first:border-t-0">
+          {sorted.map((summary, index) => (
+            <motion.li
+              key={`${summary.employerCnpj}-${summary.year}-${summary.month}`}
+              // As competências entram em onda, de cima para baixo, deslizando da direita.
+              initial={reduce ? false : { opacity: 0, x: 36 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 22, delay: Math.min(index, 8) * 0.06 }}
+              whileTap={{ scale: 0.985 }}
+              className="overflow-hidden border-t border-[var(--border)] first:border-t-0"
+            >
               <details className="group">
                 <summary className="grid min-h-14 cursor-pointer list-none grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:grid-cols-[4.5rem_minmax(0,1fr)_auto_auto] sm:gap-x-4 [&::-webkit-details-marker]:hidden">
                   <span className="money text-sm font-bold">{String(summary.month).padStart(2, '0')}/{String(summary.year).slice(2)}</span>
@@ -108,19 +121,21 @@ export function PayrollCompetencies({
                   )}
                 </div>
               </details>
-            </li>
+            </motion.li>
           ))}
         </ul>
       )}
-    </section>
+    </RiseSection>
   );
 }
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2.5">
+    <PopBox whileHover="hover" className="min-w-0 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2.5">
       <span className="block text-xs text-[var(--text-muted)]">{label}</span>
-      <strong className="money mt-0.5 block break-words text-sm">{value}</strong>
-    </div>
+      <motion.strong className="money mt-0.5 block origin-left break-words text-sm" variants={{ hover: { scale: 1.07, transition: { type: 'spring', stiffness: 400, damping: 16 } } }}>
+        {value}
+      </motion.strong>
+    </PopBox>
   );
 }

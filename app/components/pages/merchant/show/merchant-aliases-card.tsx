@@ -1,10 +1,12 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
 
 import { Alert } from '@/app/components/feedback';
 import { aliasOperatorLabel } from '@/app/components/pages/merchant/show/merchant-show-model';
 import { Button, Input, Select } from '@/app/components/ui';
+import { RiseSection } from '@/app/components/ui/motion';
 import { merchantAliasService } from '@/app/services/merchant-alias-service';
 import type { MerchantAliasDTO, MerchantAliasOperator, MerchantAliasPreviewDTO } from '@/app/types/merchant-alias';
 
@@ -15,6 +17,7 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 export default function MerchantAliasesCard({ merchantId, merchantName }: { merchantId: string; merchantName: string }) {
+  const reduce = useReducedMotion();
   const [aliases, setAliases] = useState<MerchantAliasDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -126,7 +129,7 @@ export default function MerchantAliasesCard({ merchantId, merchantName }: { merc
   }
 
   return (
-    <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="merchant-recognition-heading">
+        <RiseSection className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="merchant-recognition-heading">
       <div className="px-4 pb-2 pt-4 sm:px-5">
         <h2 id="merchant-recognition-heading" className="text-base font-bold">Como reconhecemos</h2>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -141,18 +144,27 @@ export default function MerchantAliasesCard({ merchantId, merchantName }: { merc
       ) : aliases.length === 0 ? (
         <p className="px-4 text-sm text-[var(--text-muted)] sm:px-5">Nenhum alias. Adicione um padrão abaixo para reconhecer este lugar automaticamente.</p>
       ) : (
-        <ul className="border-t border-[var(--border)]">
-          {aliases.map((alias) => (
-            <li key={alias.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-2 sm:px-5">
+                <ul className="overflow-hidden border-t border-[var(--border)]">
+          <AnimatePresence initial={false}>
+          {aliases.map((alias, aliasIndex) => (
+            <motion.li
+              key={alias.id}
+              // O alias novo entra deslizando e o removido vai embora para o mesmo lado.
+              initial={reduce ? false : { opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0, transition: { type: 'spring', stiffness: 240, damping: 22, delay: Math.min(aliasIndex, 8) * 0.05 } }}
+              exit={{ opacity: 0, x: 60, transition: { duration: 0.2 } }}
+              className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-2 sm:px-5"
+            >
               <span className="min-w-0 break-words text-sm">
                 <code className="rounded-md bg-[var(--surface-subtle)] px-1.5 py-0.5 font-mono text-sm">{alias.pattern}</code>
                 <span className="ml-2 text-xs text-[var(--text-muted)]">{aliasOperatorLabel(alias.operator)} · prioridade {alias.priority}</span>
               </span>
               <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => void remove(alias.id)} aria-label={`Remover alias ${alias.pattern}`}>
-                Remover
+                                Remover
               </Button>
-            </li>
+            </motion.li>
           ))}
+          </AnimatePresence>
         </ul>
       )}
 
@@ -208,6 +220,6 @@ export default function MerchantAliasesCard({ merchantId, merchantName }: { merc
           </div>
         ) : null}
       </div>
-    </section>
+    </RiseSection>
   );
 }

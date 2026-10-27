@@ -49,10 +49,11 @@ export default function Show({ id }: { id: string }) {
 
       <ShowFrom breakpoint="lg">
         <PageHeader
-          title="Detalhes do estabelecimento"
+                    title="Detalhes do estabelecimento"
           backUrl={BACK_URL}
           sidebarAligned
-          breadcrumb={[{ label: 'Estabelecimentos', href: BACK_URL }, { label: entity?.name ?? 'Estabelecimento' }]}
+          animated="neon"
+breadcrumb={[{ label: 'Estabelecimentos', href: BACK_URL }, { label: entity?.name ?? 'Estabelecimento' }]}
           actions={
             entity ? (
               <Button variant="outline" {...pageBarButtonProps} icon={<FaPowerOff />} onClick={toggleActive} disabled={isDeleting}>

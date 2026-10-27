@@ -5,6 +5,7 @@ import { FaKey } from 'react-icons/fa';
 
 import { Button, Input } from '@/app/components/ui';
 import { mfaService } from '@/app/services/mfa-service';
+import { StaggerForm } from '@/app/components/ui/motion';
 
 type FactorMode = 'totp' | 'recovery';
 
@@ -190,7 +191,7 @@ export default function MfaRecoveryCodes() {
   }
 
   return (
-    <form onSubmit={regenerate} className="space-y-4" noValidate>
+    <StaggerForm onSubmit={regenerate} className="space-y-4" noValidate>
       {error && (
         <p role="alert" className="text-sm text-[var(--expense)]">
           {error}
@@ -248,6 +249,6 @@ export default function MfaRecoveryCodes() {
           </Button>
         </div>
       </div>
-    </form>
+    </StaggerForm>
   );
 }

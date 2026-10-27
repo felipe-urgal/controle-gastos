@@ -1,5 +1,8 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { RiseArticle } from '@/app/components/ui/motion';
+
 import { ChartCursor } from '@/app/components/charts/chart-cursor';
 import { useChartWidth } from '@/app/components/charts/use-chart-width';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
@@ -24,6 +27,7 @@ export function HistoryCard({
   valuation: NetWorthValuationQuality;
   historyValuation: NetWorthData['historyValuation'];
 }) {
+  const reduce = useReducedMotion();
   // O gráfico desenha na largura real do contêiner: altura fixa e rótulos no tamanho do texto.
   const { ref: chartRef, width: WIDTH } = useChartWidth(760);
   const narrow = WIDTH < 520;
@@ -58,7 +62,7 @@ export function HistoryCard({
       : 'Sem histórico no período.';
 
   return (
-    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <RiseArticle className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[56ch]">
           <h2 className="text-lg font-bold text-[var(--foreground)]">Evolução mês a mês</h2>
@@ -110,8 +114,30 @@ export function HistoryCard({
             )}
           </g>
         ))}
-        {area && <path d={area} fill="url(#net-worth-area)" />}
-        {line && <path d={line} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
+        {area && (
+          <motion.path
+            d={area}
+            fill="url(#net-worth-area)"
+            initial={reduce ? false : { opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 1 }}
+          />
+        )}
+        {line && (
+          <motion.path
+            d={line}
+            fill="none"
+            stroke="var(--primary)"
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            initial={reduce ? false : { pathLength: 0 }}
+            whileInView={{ pathLength: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.3, ease: 'easeInOut', delay: 0.3 }}
+          />
+        )}
         {points.map((point, index) =>
           index % labelStep === 0 || index === points.length - 1 ? (
             <text key={`${point.year}-${point.month}`} x={point.x} y={HEIGHT - 8} textAnchor="middle" fontSize="11" fill="var(--text-muted)">
@@ -148,6 +174,6 @@ export function HistoryCard({
       <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
         {historyValuation.description} O ponto mais recente usa dados até {logicalDateLabel(historyValuation.currentPointAsOf)}.
       </p>
-    </article>
+    </RiseArticle>
   );
 }

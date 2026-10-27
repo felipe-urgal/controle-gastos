@@ -1,10 +1,12 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useState } from 'react';
 import { FaPen } from 'react-icons/fa';
 
 import { describeCardCycle } from '@/app/components/pages/account/form/account-form-model';
 import { Button, Chip, ColorIconSelector, IconButton, IconRenderer, InlineInput, MoneyInlineInput, Select } from '@/app/components/ui';
+import { CARD_EASE, reducedTransition } from '@/app/components/ui/motion';
 import { ACCOUNT_NAME_MAX_LENGTH, accountTypeOptions, currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { AccountType } from '@/app/types/account';
@@ -46,16 +48,21 @@ export function AccountFormCard({
   /** Saldo atual da conta (centavos); só faz sentido na edição. */
   currentBalance?: number | null;
 }) {
+  const reduce = useReducedMotion();
   const [lookOpen, setLookOpen] = useState(false);
   const isCard = values.type === 'CREDIT_CARD';
   const symbol = currencySymbols[values.currency] ?? values.currency;
   const typeLabel = accountTypeOptions.find((option) => option.value === values.type)?.label ?? '';
 
   return (
-    <section
+    <motion.section
       aria-label="Conta"
+      // O cartão abre como uma página virando, igual aos cartões da lista de Contas.
+      initial={reduce ? false : { opacity: 0, rotateX: -14, y: 18 }}
+      animate={{ opacity: 1, rotateX: 0, y: 0 }}
+      transition={reducedTransition(reduce, { type: 'spring', stiffness: 170, damping: 20, delay: 0.1 })}
       className="relative grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--account-color)_40%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_16%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
-      style={{ ['--account-color' as string]: values.color }}
+      style={{ ['--account-color' as string]: values.color, transformPerspective: 900, transformOrigin: 'top center' }}
     >
       <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
         <IconButton
@@ -69,7 +76,17 @@ export function AccountFormCard({
           style={{ backgroundColor: values.color }}
           icon={
             <>
-              <IconRenderer iconName={values.icon || 'wallet'} size={24} />
+              {/* Trocou o ícone: o novo entra girando. */}
+              <motion.span
+                key={values.icon}
+                className="flex"
+                initial={reduce ? false : { rotate: -90, scale: 0.4, opacity: 0 }}
+                animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                whileHover={{ rotate: [0, -14, 12, 0], transition: { duration: 0.5 } }}
+                transition={{ type: 'spring', stiffness: 420, damping: 16 }}
+              >
+                <IconRenderer iconName={values.icon || 'wallet'} size={24} />
+              </motion.span>
               <span className="absolute -bottom-1.5 -right-1.5 grid h-6 w-6 place-items-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text-muted)]">
                 <FaPen />
               </span>
@@ -104,8 +121,16 @@ export function AccountFormCard({
         </div>
       </div>
 
+      <AnimatePresence initial={false}>
       {lookOpen && (
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3.5">
+        <motion.div
+          key="look"
+          className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3.5"
+          initial={reduce ? false : { opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3, ease: CARD_EASE }}
+        >
           <ColorIconSelector
             color={values.color}
             icon={values.icon}
@@ -116,9 +141,17 @@ export function AccountFormCard({
           <Button type="button" size="xs" variant="ghost" className="mt-2" onClick={() => setLookOpen(false)}>
             Fechar
           </Button>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
+      {/* Trocar o tipo troca o bloco de baixo: o novo sobe de leve e aparece. */}
+      <motion.div
+        key={isCard ? 'card' : 'balance'}
+        initial={reduce ? false : { opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={reducedTransition(reduce, { duration: 0.35, ease: CARD_EASE })}
+      >
       {isCard ? (
         <div className="grid gap-4">
           <div>
@@ -176,12 +209,17 @@ export function AccountFormCard({
             </div>
           </div>
 
-          <p
+          <motion.p
+            // O texto do ciclo muda a cada dia digitado: cada versão entra com um fade curto.
+            key={describeCardCycle(values.statementClosingDay, values.statementDueDay)}
             aria-live="polite"
+            initial={reduce ? false : { opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, ease: CARD_EASE }}
             className="rounded-[var(--radius-md)] bg-[color-mix(in_srgb,var(--account-color)_10%,var(--surface-raised))] px-3 py-2.5 text-sm leading-relaxed text-[var(--text-muted)]"
           >
             {describeCardCycle(values.statementClosingDay, values.statementDueDay)}
-          </p>
+          </motion.p>
         </div>
       ) : (
         <div className="grid gap-1">
@@ -227,6 +265,7 @@ export function AccountFormCard({
           )}
         </div>
       )}
-    </section>
+      </motion.div>
+    </motion.section>
   );
 }

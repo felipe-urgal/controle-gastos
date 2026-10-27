@@ -26,7 +26,7 @@ function ActiveBackground() {
       aria-hidden="true"
       layoutId="bottom-nav-active"
       transition={ACTIVE_SPRING}
-      className="absolute inset-0 -z-10 rounded-full bg-[var(--primary-subtle)]"
+      className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-[var(--primary-subtle)]"
     />
   );
 }

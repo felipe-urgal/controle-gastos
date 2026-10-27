@@ -1,5 +1,7 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+
 import { FormActions, FormContainer } from '@/app/components/forms';
 import { AccountFormCard } from '@/app/components/pages/account/form/account-form-card';
 import {
@@ -9,6 +11,7 @@ import {
 } from '@/app/components/pages/account/form/account-form-model';
 import { ActiveToggle, Chip, Input } from '@/app/components/ui';
 import { useAccountForm } from '@/app/hooks/accounts/use-account-form';
+import { CARD_EASE, reducedTransition } from '@/app/components/ui/motion';
 import { ACCOUNT_DESCRIPTION_MAX_LENGTH } from '@/app/lib/constants/account.constants';
 import { AccountFormProps } from '@/app/lib/interface/accounts.interface';
 import type { AccountType } from '@/app/types/account';
@@ -18,6 +21,12 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
     useAccountForm({ account, isEditing });
   const lock = accountStructureLock(isEditing, account);
   const loading = isSubmitting;
+  const reduce = useReducedMotion();
+  const isCard = formData.type === 'CREDIT_CARD';
+  // O botão principal só "respira" quando o necessário para criar está preenchido.
+  const ready =
+    formData.name.trim() !== '' &&
+    (!isCard || (formData.creditLimit !== '' && formData.statementClosingDay !== '' && formData.statementDueDay !== ''));
 
   function chooseType(type: AccountType) {
     if (lock.typeAndCurrency || type === formData.type) return;
@@ -41,7 +50,14 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         {!lock.typeAndCurrency && (
         <>
         <div role="group" aria-label="Tipo de conta" className="grid grid-cols-3 gap-2">
-          {accountTypeCards.map((option) => (
+          {accountTypeCards.map((option, index) => (
+            <motion.div
+              key={option.value}
+              className="flex"
+              initial={reduce ? false : { opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={reducedTransition(reduce, { type: 'spring', stiffness: 380, damping: 18, delay: index * 0.08 })}
+            >
             <Chip
               key={option.value}
               selected={formData.type === option.value}
@@ -53,11 +69,24 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
             >
               {option.short}
             </Chip>
+            </motion.div>
           ))}
         </div>
-        <p className="-mt-2 px-1 text-sm text-[var(--text-muted)]">
-          {accountTypeCards.find((option) => option.value === formData.type)?.description}
-        </p>
+        {/* A descrição do tipo escolhido troca deslizando para cima. */}
+        <div className="-mt-2 overflow-hidden px-1">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p
+              key={formData.type}
+              className="text-sm text-[var(--text-muted)]"
+              initial={reduce ? false : { opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.2, ease: CARD_EASE }}
+            >
+              {accountTypeCards.find((option) => option.value === formData.type)?.description}
+            </motion.p>
+          </AnimatePresence>
+        </div>
         </>
         )}
 
@@ -82,12 +111,21 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
         />
 
         {!isEditing && (
-          <div className="-mt-1 flex flex-wrap items-center gap-2" aria-label="Sugestões de nome">
+          <div key={formData.type} className="-mt-1 flex flex-wrap items-center gap-2" aria-label="Sugestões de nome">
             <span className="text-sm text-[var(--text-muted)]">Sugestões:</span>
-            {accountNameSuggestions(formData.type).map((name) => (
-              <Chip key={name} onClick={() => setFormData({ ...formData, name })} disabled={loading} className="font-medium">
-                {name}
-              </Chip>
+            {accountNameSuggestions(formData.type).map((name, index) => (
+              <motion.span
+                key={name}
+                className="inline-flex"
+                initial={reduce ? false : { opacity: 0, x: -14 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileHover={reduce ? undefined : { y: [0, -5, 0, -2, 0], transition: { duration: 0.5 } }}
+                transition={reducedTransition(reduce, { type: 'spring', stiffness: 300, damping: 22, delay: 0.3 + index * 0.07 })}
+              >
+                <Chip onClick={() => setFormData({ ...formData, name })} disabled={loading} className="font-medium">
+                  {name}
+                </Chip>
+              </motion.span>
             ))}
           </div>
         )}
@@ -137,6 +175,8 @@ export default function AccountForm({ account, isEditing }: AccountFormProps) {
           createLabel="Criar conta"
           submitLabel="Salvar alterações"
           iconsOnMobile
+          hoverEffects
+          ready={ready && !isEditing}
         />
       </FormContainer>
     </div>

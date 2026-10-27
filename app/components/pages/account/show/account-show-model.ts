@@ -52,31 +52,6 @@ export function groupMovementsByDay(transactions: readonly AccountRecentTransact
   return groups;
 }
 
-export type SparklineShape = { line: string; area: string; endX: number; endY: number; points: Array<{ x: number; y: number }> };
-
-/** Curva do saldo em coordenadas de uma caixa `width` x `height`; null com menos de dois pontos. */
-export function buildSparkline(series: readonly number[], width: number, height: number, padding = 4): SparklineShape | null {
-  if (series.length < 2) return null;
-
-  const min = Math.min(...series);
-  const max = Math.max(...series);
-  const span = max - min;
-  const x = (index: number) => padding + (index / (series.length - 1)) * (width - padding * 2);
-  // Série constante: uma linha reta no meio, em vez de dividir por zero.
-  const y = (value: number) =>
-    span === 0 ? height / 2 : padding + (1 - (value - min) / span) * (height - padding * 2);
-
-  const line = series.map((value, index) => `${index === 0 ? 'M' : 'L'} ${x(index).toFixed(1)} ${y(value).toFixed(1)}`).join(' ');
-  const lastIndex = series.length - 1;
-  return {
-    line,
-    area: `${line} L ${x(lastIndex).toFixed(1)} ${height} L ${x(0).toFixed(1)} ${height} Z`,
-    endX: x(lastIndex),
-    endY: y(series[lastIndex]),
-    points: series.map((value, index) => ({ x: x(index), y: y(value) })),
-  };
-}
-
 const valueSourceLabels = { MARKET: 'mercado', COST: 'custo', MIXED: 'misto' } as const;
 
 export function investmentValueSourceLabel(source: AccountModel['investmentValueSource']) {

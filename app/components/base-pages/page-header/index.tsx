@@ -8,6 +8,7 @@ import { pageTitleClassName } from '@/app/components/base-pages/page-title-class
 import { Button } from '@/app/components/ui';
 import { motion } from 'framer-motion';
 import { DropIn } from '@/app/components/ui/motion';
+import type { PageBarAnimation } from '@/app/components/base-pages/page-bar';
 
 interface PageHeaderProps {
   title?: string;
@@ -30,7 +31,7 @@ interface PageHeaderProps {
   /** Níveis do breadcrumb (o último é a página atual); sem isso, só o título. */
   breadcrumb?: Crumb[];
   /** Só com `sidebarAligned`: movimento da faixa (ver `PageBar`). */
-  animated?: boolean | 'letters' | 'trail';
+  animated?: PageBarAnimation;
   /** Os botões de ação (Editar e Excluir) caem de cima, em sequência; as `actions` próprias usam `DropIn` por conta própria. */
   dropActions?: boolean;
 }

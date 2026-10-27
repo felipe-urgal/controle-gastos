@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -543,7 +544,7 @@ export default function InvestmentsCenter() {
     <ProtectedRoute>
       <InvestmentFiscalYearProvider>
       <PageContainer as="section">
-        <PageTitle title="Investimentos" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+        <PageTitle title="Investimentos" sidebarAligned animated="swing" actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
         <ShowBelow breakpoint="lg">
           <div className="mt-4">{headerControls}</div>
         </ShowBelow>
@@ -587,12 +588,22 @@ export default function InvestmentsCenter() {
                 ['MOVEMENTS', 'Movimentações'],
                 ['FISCAL', 'Fiscal e IR'],
               ] as const).map(([value, label]) => (
-                <Chip key={value} selected={tab === value} onClick={() => setTab(value)}>
+                <Chip key={value} layoutId="investments-tab" selected={tab === value} onClick={() => setTab(value)}>
                   {label}
                 </Chip>
               ))}
             </ChipRow>
 
+            {/* Trocar de aba desliza o conteúdo de lado: o antigo sai para a esquerda e o novo entra pela direita. */}
+            <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={tab}
+              className="space-y-4"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            >
             {tab === 'PORTFOLIO' && (
               <>
                 {summary && (
@@ -643,10 +654,19 @@ export default function InvestmentsCenter() {
             {tab === 'FISCAL' && (
               <>
                 <ChipRow label="Visão fiscal">
-                  <Chip selected={fiscalView === 'FISCAL'} onClick={() => setFiscalView('FISCAL')}>Apuração e custo</Chip>
-                  <Chip selected={fiscalView === 'STATEMENTS'} onClick={() => setFiscalView('STATEMENTS')}>Informes e IR</Chip>
+                  <Chip layoutId="investments-fiscal-view" selected={fiscalView === 'FISCAL'} onClick={() => setFiscalView('FISCAL')}>Apuração e custo</Chip>
+                  <Chip layoutId="investments-fiscal-view" selected={fiscalView === 'STATEMENTS'} onClick={() => setFiscalView('STATEMENTS')}>Informes e IR</Chip>
                 </ChipRow>
 
+                <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={fiscalView}
+                  className="space-y-4"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                >
                 {fiscalView === 'FISCAL' && (
                   <>
                     <FiscalCostCard
@@ -675,8 +695,12 @@ export default function InvestmentsCenter() {
                     <FiscalYearEndSnapshotCard showValues={showValues} />
                   </>
                 )}
+                </motion.div>
+                </AnimatePresence>
               </>
             )}
+            </motion.div>
+            </AnimatePresence>
           </div>
         )}
 

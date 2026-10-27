@@ -1,6 +1,9 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+
 import { CalendarDaysSkeleton } from '@/app/components/pages/calendar';
+import { reducedTransition } from '@/app/components/ui/motion';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { CalendarDay, CalendarEvent } from '@/app/types/calendar';
 
@@ -102,6 +105,32 @@ function dayAriaLabel(day: CalendarDay, showValues: boolean) {
   return `${date.getDate()}${isToday ? ' Hoje' : ''}. ${dateLabel}. ${parts.join('. ')}.`;
 }
 
+/** Dia de hoje: um anel que se expande e some, em loop, para o olho achar o dia logo de cara. */
+function TodayPulse({ reduce }: { reduce: boolean | null }) {
+  if (reduce) return null;
+  return (
+    <motion.span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 rounded-full border-2 border-[var(--primary)]"
+      initial={{ scale: 1, opacity: 0.6 }}
+      animate={{ scale: 1.7, opacity: 0 }}
+      transition={{ duration: 1.8, ease: 'easeOut', repeat: Infinity, repeatDelay: 0.4 }}
+    />
+  );
+}
+
+/** Destaque do dia escolhido: um só elemento que desliza de um dia para o outro (`layoutId`). */
+function SelectedMark({ layoutId, className }: { layoutId: string; className: string }) {
+  return (
+    <motion.span
+      aria-hidden="true"
+      layoutId={layoutId}
+      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+      className={`pointer-events-none absolute inset-0 ${className}`}
+    />
+  );
+}
+
 export default function CalendarGrid({
   isLoading,
   calendarDays,
@@ -110,6 +139,8 @@ export default function CalendarGrid({
   compact = false,
   showValues = true,
 }: CalendarGridProps) {
+  const reduce = useReducedMotion();
+
   if (isLoading) {
     if (!compact) return <CalendarDaysSkeleton />;
 
@@ -126,6 +157,9 @@ export default function CalendarGrid({
   }
 
   const emptyCells = calendarDays[0]?.date.getDay() ?? 0;
+  // Completa a última semana com quadrados vazios, como os do começo do mês (só no grid grande, que tem bordas).
+  const trailingCells = compact ? 0 : (7 - ((emptyCells + calendarDays.length) % 7)) % 7;
+  const blankCell = 'border-b border-r border-[var(--border)] bg-[var(--surface-raised)]';
 
   return (
     <div
@@ -137,17 +171,23 @@ export default function CalendarGrid({
       aria-label="Dias do mês"
     >
       {Array.from({ length: emptyCells }).map((_, index) => (
-        <div
+        <motion.div
           key={`empty-${index}`}
           aria-hidden="true"
-          className={compact ? 'min-h-12' : 'border-b border-r border-[var(--border)] bg-[var(--surface-raised)]'}
+          className={compact ? 'min-h-12' : blankCell}
+          initial={reduce || compact ? false : { opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.4, delay: 0.1 + index * 0.03 } }}
         />
       ))}
 
-      {calendarDays.map((day) => {
+      {calendarDays.map((day, index) => {
         const { date, events, isToday } = day;
         const selected = isSameDay(date, selectedDate);
         const state = dayState(events);
+        // Onda diagonal: o atraso cresce com coluna + linha, então o mês "escorre" do canto de cima à esquerda.
+        const cell = index + emptyCells;
+        const wave = (cell % 7) + Math.floor(cell / 7);
+        const enter = reducedTransition(reduce, { type: 'spring', stiffness: 240, damping: 18, delay: 0.1 + wave * 0.03 });
         const common = {
           type: 'button' as const,
           onClick: () => onDayClick(day),
@@ -158,24 +198,47 @@ export default function CalendarGrid({
 
         if (compact) {
           return (
-            <button
+            <motion.button
               key={date.toISOString()}
               {...common}
-              className={`relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border text-center transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
-                selected
-                  ? 'border-[var(--primary)] bg-[var(--primary-subtle)]'
-                  : 'border-transparent hover:bg-[var(--surface-hover)]'
+              initial={reduce ? false : { opacity: 0, scale: 0.4, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0, transition: enter }}
+              whileTap={{ scale: 0.82, transition: { type: 'spring', stiffness: 500, damping: 20 } }}
+              className={`relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border border-transparent text-center transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+                selected ? '' : 'hover:bg-[var(--surface-hover)]'
               }`}
             >
+              {selected && (
+                <SelectedMark
+                  layoutId="calendar-selected-compact"
+                  className="rounded-[var(--radius-md)] border border-[var(--primary)] bg-[var(--primary-subtle)]"
+                />
+              )}
               <span
-                className={`grid h-7 w-7 place-items-center rounded-full text-sm font-bold leading-none ${
+                className={`relative grid h-7 w-7 place-items-center rounded-full text-sm font-bold leading-none ${
                   isToday ? 'bg-[var(--primary)] text-[var(--on-primary)]' : 'text-[var(--foreground)]'
                 }`}
               >
+                {isToday && <TodayPulse reduce={reduce} />}
                 {date.getDate()}
               </span>
-              <span className={`h-1.5 w-1.5 rounded-full ${dotTone[state]}`} aria-hidden="true" />
-            </button>
+              {state === 'empty' ? (
+                <span className="relative h-1.5 w-1.5" aria-hidden="true" />
+              ) : (
+                <motion.span
+                  key={state}
+                  className={`relative h-1.5 w-1.5 rounded-full ${dotTone[state]}`}
+                  aria-hidden="true"
+                  initial={reduce ? false : { scale: 0 }}
+                  // Vencido pulsa sem parar: é o que pede ação.
+                  animate={
+                    state === 'overdue' && !reduce
+                      ? { scale: [1, 1.7, 1], transition: { duration: 1.2, repeat: Infinity, ease: 'easeInOut' } }
+                      : { scale: 1, transition: { type: 'spring', stiffness: 500, damping: 12, delay: 0.4 + wave * 0.03 } }
+                  }
+                />
+              )}
+            </motion.button>
           );
         }
 
@@ -183,36 +246,73 @@ export default function CalendarGrid({
         const hidden = sorted.length - VISIBLE_CHIPS;
 
         return (
-          <button
+          <motion.button
             key={date.toISOString()}
             {...common}
-            className={`flex min-w-0 flex-col gap-1 overflow-hidden border-b border-r border-[var(--border)] p-2 text-left transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] ${
-              selected
-                ? 'bg-[var(--primary-subtle)] shadow-[inset_0_0_0_2px_var(--primary)]'
-                : 'bg-[var(--surface)] hover:bg-[var(--surface-raised)]'
+            initial={reduce ? false : { opacity: 0, scale: 0.7, y: 14 }}
+            animate={{ opacity: 1, scale: 1, y: 0, transition: enter }}
+            whileHover="hover"
+            whileTap={{ scale: 0.97, transition: { type: 'spring', stiffness: 500, damping: 20 } }}
+            className={`relative flex min-w-0 flex-col gap-1 overflow-hidden border-b border-r border-[var(--border)] p-2 text-left transition-colors focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] ${
+              selected ? 'bg-[var(--surface)]' : 'bg-[var(--surface)] hover:bg-[var(--surface-raised)]'
             }`}
           >
-            <span
-              className={`grid h-7 min-w-7 place-items-center self-start rounded-full px-1 text-sm font-bold ${
+            {selected && (
+              <SelectedMark
+                layoutId="calendar-selected"
+                className="bg-[var(--primary-subtle)] shadow-[inset_0_0_0_2px_var(--primary)]"
+              />
+            )}
+            {/* No hover o número gira e cresce, e os chips deslizam de lado. */}
+            <motion.span
+              className={`relative grid h-7 min-w-7 place-items-center self-start rounded-full px-1 text-sm font-bold ${
                 isToday ? 'bg-[var(--primary)] text-[var(--on-primary)]' : 'text-[var(--foreground)]'
               }`}
+              variants={{ hover: { scale: 1.2, rotate: [0, -10, 8, 0], transition: { duration: 0.5 } } }}
             >
+              {isToday && <TodayPulse reduce={reduce} />}
               {date.getDate()}
-            </span>
-            <span className="flex min-w-0 flex-col gap-1" aria-hidden="true">
-              {sorted.slice(0, VISIBLE_CHIPS).map((event) => (
-                <span
+            </motion.span>
+            <span className="relative flex min-w-0 flex-col gap-1" aria-hidden="true">
+              {sorted.slice(0, VISIBLE_CHIPS).map((event, chipIndex) => (
+                <motion.span
                   key={event.id}
                   className={`block truncate rounded-[var(--radius-sm)] px-1.5 py-0.5 text-xs ${chipTone(event)}`}
+                  initial={reduce ? false : { opacity: 0, x: -14 }}
+                  animate={{
+                    opacity: 1,
+                    x: 0,
+                    transition: reducedTransition(reduce, { type: 'spring', stiffness: 300, damping: 22, delay: 0.3 + wave * 0.03 + chipIndex * 0.08 }),
+                  }}
+                  variants={{ hover: { x: 4 + chipIndex * 2, transition: { type: 'spring', stiffness: 400, damping: 20 } } }}
                 >
                   {event.title}
-                </span>
+                </motion.span>
               ))}
               {hidden > 0 && (
-                <span className="px-1.5 text-xs font-semibold text-[var(--text-muted)]">+{hidden} mais</span>
+                <motion.span
+                  className="px-1.5 text-xs font-semibold text-[var(--text-muted)]"
+                  variants={{ hover: { scale: [1, 1.15, 1], transition: { duration: 0.4 } } }}
+                >
+                  +{hidden} mais
+                </motion.span>
               )}
             </span>
-          </button>
+          </motion.button>
+        );
+      })}
+
+      {Array.from({ length: trailingCells }).map((_, index) => {
+        const cell = emptyCells + calendarDays.length + index;
+        const wave = (cell % 7) + Math.floor(cell / 7);
+        return (
+          <motion.div
+            key={`trailing-${index}`}
+            aria-hidden="true"
+            className={blankCell}
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.4, delay: 0.1 + wave * 0.03 } }}
+          />
         );
       })}
     </div>
