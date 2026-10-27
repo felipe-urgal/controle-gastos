@@ -5,11 +5,13 @@ import {
   type ReactNode,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { FaCheck } from 'react-icons/fa';
 
 import IconRenderer from '@/app/components/ui/icon-renderer';
@@ -67,6 +69,8 @@ export default function ListboxSelect({
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  // Posição do menu na janela: ele é desenhado fora do contêiner (portal) para não ser cortado por modais ou áreas com rolagem.
+  const [place, setPlace] = useState<{ top?: number; bottom?: number; left: number; width: number; maxHeight: number; above: boolean } | null>(null);
 
   const flatOptions = useMemo(
     () => (groups.length ? groups.flatMap((group) => group.options) : options),
@@ -77,13 +81,44 @@ export default function ListboxSelect({
     if (!open) return;
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) {
         setOpen(false);
       }
     };
 
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [open]);
+
+  // Mede o gatilho e posiciona o menu abaixo dele; sem espaço embaixo (e com mais em cima) o menu abre para cima.
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    const measure = () => {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const gap = 4;
+      const margin = 12;
+      const below = window.innerHeight - rect.bottom - gap - margin;
+      const above = rect.top - gap - margin;
+      const above_ = below < 220 && above > below;
+      const maxHeight = Math.max(120, Math.min(280, above_ ? above : below));
+      setPlace(
+        above_
+          ? { bottom: window.innerHeight - (rect.top - gap), left: rect.left, width: rect.width, maxHeight, above: true }
+          : { top: rect.bottom + gap, left: rect.left, width: rect.width, maxHeight, above: false },
+      );
+    };
+
+    measure();
+    window.addEventListener('resize', measure);
+    // `true`: acompanha também a rolagem de contêineres internos (o corpo do modal), não só a da página.
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -255,8 +290,10 @@ export default function ListboxSelect({
         {typeof children === 'function' ? children(open) : children}
       </button>
 
+      {typeof document !== 'undefined' &&
+        createPortal(
       <AnimatePresence>
-      {open && (
+      {open && place && (
         <motion.div
           ref={menuRef}
           {...(animated
@@ -265,14 +302,23 @@ export default function ListboxSelect({
                 animate: { opacity: 1, scaleY: 1, y: 0 },
                 exit: { opacity: 0, scaleY: 0.85, y: -6, transition: { duration: 0.12 } },
                 transition: { type: 'spring' as const, stiffness: 420, damping: 30 },
-                style: { transformOrigin: 'top' },
               }
             : {})}
+          style={{
+            top: place.top,
+            bottom: place.bottom,
+            left: place.left,
+            width: place.width,
+            maxHeight: place.maxHeight,
+            transformOrigin: place.above ? 'bottom' : 'top',
+            // Acima do modal (que fica em --z-modal): o menu sai do contêiner e não pode ficar por baixo dele.
+            zIndex: 'calc(var(--z-modal) + 10)',
+          }}
           id={`listbox-select-${id}`}
           role="listbox"
           aria-label={ariaLabel}
           onKeyDown={handleMenuKeyDown}
-          className={`absolute left-0 right-0 z-[var(--z-popover)] mt-1 max-h-[280px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] p-1.5 shadow-[var(--shadow-surface)] [scrollbar-width:thin] ${menuClassName}`}
+          className={`fixed overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-raised)] p-1.5 shadow-[var(--shadow-surface)] [scrollbar-width:thin] ${menuClassName}`}
         >
           {groups.length
             ? groups.map((group) => (
@@ -293,6 +339,7 @@ export default function ListboxSelect({
         </motion.div>
       )}
       </AnimatePresence>
+        , document.body)}
     </div>
   );
 }
