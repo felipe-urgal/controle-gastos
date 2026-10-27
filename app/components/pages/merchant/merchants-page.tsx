@@ -617,7 +617,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
               <Input
                 aria-label="Buscar estabelecimentos"
                 placeholder="Buscar por nome"
