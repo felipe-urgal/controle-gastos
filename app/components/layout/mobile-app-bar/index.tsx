@@ -30,10 +30,11 @@ export default function MobileAppBar({
   backDisabled?: boolean;
   /** Ação à direita (ex.: editar); sem ela o título continua centralizado. */
   action?: ReactNode;
-  animated?: boolean | 'trail';
+  animated?: boolean | 'trail' | 'focus';
 }) {
   const reduce = useReducedMotion();
   const trail = animated === 'trail';
+  const focus = animated === 'focus';
   const backIcon = <FaArrowLeft />;
   const backClassName = 'rounded-full text-lg text-[var(--foreground)]';
 
@@ -72,6 +73,16 @@ export default function MobileAppBar({
             />
           )}
         </span>
+      ) : focus ? (
+        // O título entra desfocado e as letras se fecham até ficarem nítidas.
+        <motion.h1
+          className={`text-center ${appBarTitleClassName}`}
+          initial={reduce ? false : { opacity: 0, filter: 'blur(8px)', letterSpacing: '0.12em' }}
+          animate={{ opacity: 1, filter: 'blur(0px)', letterSpacing: '-0.025em' }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+        >
+          {title}
+        </motion.h1>
       ) : (
         <h1 className={`text-center ${appBarTitleClassName}`}>{title}</h1>
       )}

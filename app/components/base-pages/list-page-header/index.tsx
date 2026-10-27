@@ -33,7 +33,7 @@ export default function ListPageHeader({
   /** Filtros de uma linha (ex.: um select): na barra a partir de `lg`, abaixo dela no mobile. */
   controls?: ReactNode;
   /** Liga o movimento da faixa (ver `PageBar`): o preset escolhido anima o título e os botões entram com mola. */
-  animated?: boolean | 'letters';
+  animated?: boolean | 'letters' | 'focus';
   /** Com `animated`, mostra o indicador de carregamento da faixa. */
   loading?: boolean;
 }) {

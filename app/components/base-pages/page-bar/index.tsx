@@ -22,7 +22,8 @@ export const pageBarButtonProps = { size: 'sm', className: 'sm:min-h-10' } as co
  * uma máscara, sombra e título que reagem à rolagem e linha de progresso na borda de baixo. `'letters'`
  * (Transações): letras do título que caem em sequência, linha de acento que se expande do centro ao rolar e
  * três pontos pulsando ao lado do título enquanto `loading`. `'trail'` (telas de criação): o breadcrumb se
- * constrói: os níveis deslizam, os chevrons encaixam e o título é digitado com um cursor. Sem `animated` a faixa é estática.
+ * constrói: os níveis deslizam, os chevrons encaixam e o título é digitado com um cursor. `'focus'` (Contas): o título
+ * entra desfocado e as letras se fecham até ficarem nítidas, e um feixe de luz cruza a borda de baixo uma vez. Sem `animated` a faixa é estática.
  */
 export default function PageBar({
   crumbs,
@@ -32,7 +33,7 @@ export default function PageBar({
 }: {
   crumbs: Crumb[];
   actions?: ReactNode;
-  animated?: boolean | 'letters' | 'trail';
+  animated?: boolean | 'letters' | 'trail' | 'focus';
   loading?: boolean;
 }) {
   const current = crumbs[crumbs.length - 1];
@@ -44,6 +45,7 @@ export default function PageBar({
   const accentScale = useTransform(scrollY, [0, 60], [0, 1]);
   const letters = animated === 'letters';
   const trail = animated === 'trail';
+  const focus = animated === 'focus';
 
   return (
     <header
@@ -101,6 +103,15 @@ export default function PageBar({
                   />
                 )}
               </span>
+            ) : focus ? (
+              <motion.h1
+                className={`truncate ${pageTitleClassName} lg:text-xl`}
+                initial={reduceMotion ? false : { opacity: 0, x: -16, filter: 'blur(8px)', letterSpacing: '0.18em' }}
+                animate={{ opacity: 1, x: 0, filter: 'blur(0px)', letterSpacing: '-0.025em' }}
+                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+              >
+                {current.label}
+              </motion.h1>
             ) : letters ? (
               <h1 aria-label={current.label} className={`truncate ${pageTitleClassName} lg:text-xl`}>
                 {[...current.label].map((char, index) => (
@@ -163,6 +174,15 @@ export default function PageBar({
           aria-hidden="true"
           style={{ scaleX: accentScale }}
           className="pointer-events-none absolute inset-x-0 bottom-0 h-px origin-center bg-gradient-to-r from-transparent via-[var(--primary)] to-transparent"
+        />
+      )}
+      {focus && !reduceMotion && (
+        <motion.span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 left-0 h-px w-1/4 bg-gradient-to-r from-transparent via-[var(--primary)] to-transparent"
+          initial={{ x: '-100%', opacity: 1 }}
+          animate={{ x: '400%', opacity: [1, 1, 0] }}
+          transition={{ duration: 1.1, ease: 'easeInOut', delay: 0.3 }}
         />
       )}
       {animated === true && (

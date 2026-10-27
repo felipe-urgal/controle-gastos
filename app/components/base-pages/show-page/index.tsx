@@ -40,6 +40,8 @@ interface ShowPageProps<T> {
   loadingSkeleton?: React.ReactNode;
   /** Movimento da página de detalhe: os botões do cabeçalho caem e a confirmação de exclusão voa do botão Excluir. */
   animatedActions?: boolean;
+  /** Preset de movimento da faixa do título (ver `PageBar`). */
+  animated?: boolean | 'letters' | 'trail' | 'focus';
 
   emptyRedirectTo?: string;
   mobileContent?: React.ReactNode;
@@ -70,6 +72,7 @@ export default function ShowPage<T>({
   breadcrumb,
   loadingSkeleton,
   animatedActions = false,
+  animated = false,
   emptyRedirectTo,
   mobileContent,
   children,
@@ -100,6 +103,7 @@ export default function ShowPage<T>({
             setIsDeleteModalOpen(true);
           } : undefined}
           dropActions={animatedActions}
+          animated={animated}
           deleteDisabled={deleteDisabled}
           deleteHint={deleteHint}
           sidebarAligned={sidebarAligned}

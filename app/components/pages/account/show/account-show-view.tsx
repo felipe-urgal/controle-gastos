@@ -1,26 +1,28 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useState } from 'react';
 import { FaArrowDown, FaArrowUp, FaExchangeAlt } from 'react-icons/fa';
 
 import { MobileAppBar } from '@/app/components/layout';
+import { blurIn, flipIn, riseInView } from '@/app/components/pages/account/account-motion';
 import AccountAppBarActions from '@/app/components/pages/account/show/account-app-bar-actions';
 import {
-  buildSparkline,
   filterMovements,
   groupMovementsByDay,
   investmentValueSourceLabel,
   type MovementFilter,
 } from '@/app/components/pages/account/show/account-show-model';
-import { ChartCursor } from '@/app/components/charts/chart-cursor';
-import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
 import { Chip, IconRenderer, ShowBelow } from '@/app/components/ui';
+import { CARD_EASE, reducedTransition } from '@/app/components/ui/motion';
 import { useAuth } from '@/app/context';
 import { getAccountPrimaryValue } from '@/app/lib/accounts/account-presentation';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import type { AccountModel, AccountRecentTransaction } from '@/app/types/account';
+
+const MotionLink = motion.create(Link);
 
 const monthNames = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
@@ -29,44 +31,8 @@ function todayLogical() {
   return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
 }
 
-function Sparkline({ series, label, currency, showValues }: { series: number[]; label: string; currency: string; showValues: boolean }) {
-  const shape = buildSparkline(series, 300, 64);
-  const { activeIndex, handlers } = useChartScrub(shape?.points.map((point) => point.x) ?? [], 300);
-  if (!shape) return null;
-
-  const active = activeIndex === null ? null : shape.points[activeIndex];
-  // A série cobre os últimos dias e termina hoje.
-  const daysAgo = activeIndex === null ? 0 : series.length - 1 - activeIndex;
-  const dayLabel = daysAgo === 0 ? 'Hoje' : daysAgo === 1 ? 'Ontem' : `Há ${daysAgo} dias`;
-
-  return (
-    <div>
-      <p className="mb-1 min-h-5 text-xs text-[var(--text-muted)]" aria-live="polite">
-        {activeIndex !== null ? (
-          <>
-            {dayLabel}: <strong className="money text-[var(--foreground)]">{showValues ? formatCurrency(series[activeIndex], currency) : '••••'}</strong>
-          </>
-        ) : (
-          <>
-            Saldo dos últimos {series.length} dias
-            <span className="money">
-              {' · '}
-              {showValues ? `${formatCurrency(Math.min(...series), currency)} a ${formatCurrency(Math.max(...series), currency)}` : '••••'}
-            </span>
-          </>
-        )}
-      </p>
-      <svg viewBox="0 0 300 64" className="h-16 w-full touch-pan-y" role="img" aria-label={label} {...handlers}>
-        <path d={shape.area} fill="var(--account-color)" fillOpacity="0.12" />
-        <path d={shape.line} fill="none" stroke="var(--account-color)" strokeWidth="2" strokeLinejoin="round" />
-        <circle cx={shape.endX} cy={shape.endY} r="3.5" fill="var(--account-color)" />
-        {active && <ChartCursor x={active.x} y={active.y} top={0} bottom={64} color="var(--account-color)" />}
-      </svg>
-    </div>
-  );
-}
-
-function MovementRow({ transaction, account, showValues }: { transaction: AccountRecentTransaction; account: AccountModel; showValues: boolean }) {
+function MovementRow({ transaction, account, showValues, order }: { transaction: AccountRecentTransaction; account: AccountModel; showValues: boolean; order: number }) {
+  const reduce = useReducedMotion();
   const isTransfer = isTransferTransaction(transaction);
   const isOpening = transaction.kind === 'OPENING_BALANCE';
   const isIncome = transaction.type === 'INCOME';
@@ -79,15 +45,26 @@ function MovementRow({ transaction, account, showValues }: { transaction: Accoun
   const amount = showValues ? formatCurrency(transaction.amount, account.currency) : '••••';
 
   return (
-    <li>
-      <Link
+    <motion.li
+      initial={reduce ? false : { opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={reducedTransition(reduce, { type: 'spring', stiffness: 260, damping: 24, delay: Math.min(order, 8) * 0.05 })}
+    >
+      <MotionLink
+        whileHover="hover"
+        whileTap={{ scale: 0.98 }}
         href={`/transacoes/show/${transaction.id}`}
         aria-label={`Abrir transação ${transaction.description || 'sem descrição'}`}
         className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5"
       >
-        <span className={`grid h-9 w-9 place-items-center rounded-[var(--radius-md)] text-sm ${tone}`} aria-hidden="true">
+        {/* O ícone da seta se move no sentido do dinheiro: entrada sobe, saída desce, transferência balança. */}
+        <motion.span
+          className={`grid h-9 w-9 place-items-center overflow-hidden rounded-[var(--radius-md)] text-sm ${tone}`}
+          aria-hidden="true"
+          variants={{ hover: isTransfer ? { x: [0, 4, -4, 0], transition: { duration: 0.5 } } : { y: isIncome ? [0, -5, 0] : [0, 5, 0], transition: { duration: 0.45 } } }}
+        >
           {isTransfer ? <FaExchangeAlt /> : isIncome ? <FaArrowUp /> : <FaArrowDown />}
-        </span>
+        </motion.span>
         <span className="min-w-0">
           <span className="block break-words text-sm font-semibold text-[var(--foreground)]">
             {transaction.description || 'Sem descrição'}
@@ -101,12 +78,13 @@ function MovementRow({ transaction, account, showValues }: { transaction: Accoun
           {isIncome ? '+ ' : '− '}
           {amount}
         </span>
-      </Link>
-    </li>
+      </MotionLink>
+    </motion.li>
   );
 }
 
 function Movements({ account, showValues }: { account: AccountModel; showValues: boolean }) {
+  const reduce = useReducedMotion();
   const [filter, setFilter] = useState<MovementFilter>('all');
   const transactions = account.transactions ?? [];
   const pendingCount = account.activity?.pendingCount ?? filterMovements(transactions, 'pending').length;
@@ -119,7 +97,11 @@ function Movements({ account, showValues }: { account: AccountModel; showValues:
   ];
 
   return (
-    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="account-movements-heading">
+    <motion.section
+      {...riseInView(reduce)}
+      className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]"
+      aria-labelledby="account-movements-heading"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
         <h2 id="account-movements-heading" className="text-base font-bold">Movimentações</h2>
         <Link
@@ -137,23 +119,33 @@ function Movements({ account, showValues }: { account: AccountModel; showValues:
         ))}
       </div>
 
+      <AnimatePresence mode="wait" initial={false}>
       {groups.length === 0 ? (
-        <p className="border-t border-[var(--border)] px-4 py-6 text-sm text-[var(--text-muted)] sm:px-5">
+        <motion.p
+          key={`empty-${filter}`}
+          initial={reduce ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25, ease: CARD_EASE }}
+          className="border-t border-[var(--border)] px-4 py-6 text-sm text-[var(--text-muted)] sm:px-5">
           {transactions.length === 0 ? 'Nenhuma movimentação nesta conta ainda.' : 'Nenhuma movimentação neste filtro.'}
-        </p>
+        </motion.p>
       ) : (
-        groups.map((group) => (
-          <div key={group.key} className="border-t border-[var(--border)]">
-            <h3 className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)] sm:px-5">{group.label}</h3>
-            <ul>
-              {group.items.map((transaction) => (
-                <MovementRow key={transaction.id} transaction={transaction} account={account} showValues={showValues} />
-              ))}
-            </ul>
-          </div>
-        ))
+        <motion.div key={filter} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+          {groups.map((group, groupIndex) => (
+            <div key={group.key} className="border-t border-[var(--border)]">
+              <h3 className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)] sm:px-5">{group.label}</h3>
+              <ul>
+                {group.items.map((transaction, index) => (
+                  <MovementRow key={transaction.id} transaction={transaction} account={account} showValues={showValues} order={groupIndex * 3 + index} />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </motion.div>
       )}
-    </section>
+      </AnimatePresence>
+    </motion.section>
   );
 }
 
@@ -179,6 +171,7 @@ export default function AccountShowView({
   statusError: string | null;
 }) {
   const { user } = useAuth();
+  const reduce = useReducedMotion();
   const showValues = user?.showValues !== false;
   const money = (cents: number) => (showValues ? formatCurrency(cents, account.currency) : '••••');
   const signed = (cents: number) => `${cents > 0 ? '+ ' : cents < 0 ? '− ' : ''}${money(Math.abs(cents))}`;
@@ -186,10 +179,6 @@ export default function AccountShowView({
   const value = getAccountPrimaryValue(account);
   const activity = account.activity ?? null;
   const monthName = monthNames[new Date().getMonth()];
-  const series = activity?.balanceSeries ?? [];
-  const sparkLabel = showValues && series.length > 1
-    ? `Saldo dos últimos 30 dias: de ${formatCurrency(series[0], account.currency)} a ${formatCurrency(series[series.length - 1], account.currency)}`
-    : 'Evolução do saldo nos últimos 30 dias';
 
   const stats = isInvestment
     ? [
@@ -210,6 +199,7 @@ export default function AccountShowView({
       <ShowBelow breakpoint="lg">
         <MobileAppBar
           title={account.name}
+          animated="focus"
           backHref={backUrl}
           backLabel="Voltar para contas"
           action={
@@ -231,15 +221,26 @@ export default function AccountShowView({
         </p>
       )}
 
-      <section
+      <motion.section
         aria-label="Resumo da conta"
+        {...flipIn(0, reduce)}
         className="grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--account-color)_38%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--account-color)_15%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
-        style={{ ['--account-color' as string]: account.color || 'var(--primary)' }}
+        style={{ ['--account-color' as string]: account.color || 'var(--primary)', transformPerspective: 900, transformOrigin: 'top center' }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white" style={{ backgroundColor: account.color || 'var(--text-muted)' }} aria-hidden="true">
+          {/* O ícone cai com um quique; no toque (celular) e no hover ele dá uma balançada. */}
+          <motion.span
+            className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] text-white"
+            style={{ backgroundColor: account.color || 'var(--text-muted)' }}
+            aria-hidden="true"
+            initial={reduce ? false : { y: -30, opacity: 0, rotate: -20 }}
+            animate={{ y: 0, opacity: 1, rotate: 0 }}
+            whileHover={{ rotate: [0, -12, 10, 0], transition: { duration: 0.5 } }}
+            whileTap={{ rotate: [0, -12, 10, 0], scale: 0.92, transition: { duration: 0.4 } }}
+            transition={reducedTransition(reduce, { type: 'spring', stiffness: 300, damping: 12, delay: 0.3 })}
+          >
             <IconRenderer iconName={account.icon || 'wallet'} size={22} />
-          </span>
+          </motion.span>
           <div className="min-w-0">
             <h2 className="break-words text-xl font-bold tracking-tight">{account.name}</h2>
             <p className="text-sm text-[var(--text-muted)]">
@@ -251,11 +252,14 @@ export default function AccountShowView({
           </div>
         </div>
 
-        <div className="grid items-end gap-4 md:grid-cols-2">
+        <div className="grid gap-4">
           <div className="min-w-0">
-            <strong className={`money block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${value < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+            <motion.strong
+              {...blurIn(reduce, 0.4)}
+              className={`money block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl ${value < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}
+            >
               {money(value)}
-            </strong>
+            </motion.strong>
             <p className="mt-2 text-sm text-[var(--text-muted)]">
               {isInvestment
                 ? account.investmentValueSource === 'MARKET'
@@ -271,15 +275,21 @@ export default function AccountShowView({
             {account.description && <p className="mt-2 text-sm text-[var(--text-muted)]">{account.description}</p>}
             {!showValues && <p className="mt-1 text-sm text-[var(--text-subtle)]">Valores ocultos pelas suas preferências.</p>}
           </div>
-          {series.length > 1 && <Sparkline series={series} label={sparkLabel} currency={account.currency} showValues={showValues} />}
         </div>
 
         <dl className="grid grid-cols-3 gap-2">
-          {stats.map((stat) => (
-            <div key={stat.label} className="min-w-0 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 sm:px-3">
+          {stats.map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              className="min-w-0 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 sm:px-3"
+              initial={reduce ? false : { opacity: 0, y: 18, scale: 0.92 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              whileTap={{ scale: 0.95 }}
+              transition={reducedTransition(reduce, { type: 'spring', stiffness: 330, damping: 20, delay: 0.55 + index * 0.1 })}
+            >
               <dt className="text-xs text-[var(--text-muted)] sm:text-sm">{stat.label}</dt>
               <dd className={`money break-words text-xs font-semibold sm:text-base ${stat.tone}`}>{stat.value}</dd>
-            </div>
+            </motion.div>
           ))}
         </dl>
 
@@ -288,7 +298,7 @@ export default function AccountShowView({
             Conta inativa: não recebe novos lançamentos e o histórico continua guardado.
           </p>
         )}
-      </section>
+      </motion.section>
 
       <Movements account={account} showValues={showValues} />
 

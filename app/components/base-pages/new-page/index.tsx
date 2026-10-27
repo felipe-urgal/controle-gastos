@@ -16,7 +16,7 @@ interface NewPageProps {
   sidebarAligned?: boolean;
   breadcrumb?: Crumb[];
   /** Movimento da faixa do título (ver `PageBar`); só vale com `sidebarAligned`. */
-  animated?: boolean | 'letters' | 'trail';
+  animated?: boolean | 'letters' | 'trail' | 'focus';
 };
 
 export default function NewPage({

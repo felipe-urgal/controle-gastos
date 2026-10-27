@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildSparkline,
   filterMovements,
   groupMovementsByDay,
   investmentValueSourceLabel,
@@ -77,31 +76,6 @@ describe('groupMovementsByDay', () => {
 
   it('devolve vazio sem movimentos', () => {
     expect(groupMovementsByDay([], today)).toEqual([]);
-  });
-});
-
-describe('buildSparkline', () => {
-  it('expõe as coordenadas de cada ponto para a interação', () => {
-    const shape = buildSparkline([0, 50, 100], 100, 40, 0)!;
-    expect(shape.points).toEqual([{ x: 0, y: 40 }, { x: 50, y: 20 }, { x: 100, y: 0 }]);
-  });
-
-  it('cobre a caixa e termina no último ponto', () => {
-    const shape = buildSparkline([0, 50, 100], 100, 40, 0)!;
-
-    expect(shape.line).toBe('M 0.0 40.0 L 50.0 20.0 L 100.0 0.0');
-    expect(shape.endX).toBe(100);
-    expect(shape.endY).toBe(0);
-    expect(shape.area.endsWith('L 100.0 40 L 0.0 40 Z')).toBe(true);
-  });
-
-  it('desenha reta no meio quando o saldo não muda', () => {
-    expect(buildSparkline([5, 5, 5], 100, 40, 0)!.endY).toBe(20);
-  });
-
-  it('não desenha com menos de dois pontos', () => {
-    expect(buildSparkline([], 100, 40)).toBeNull();
-    expect(buildSparkline([1], 100, 40)).toBeNull();
   });
 });
 

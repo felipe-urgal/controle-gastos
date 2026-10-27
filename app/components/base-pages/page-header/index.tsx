@@ -30,7 +30,7 @@ interface PageHeaderProps {
   /** Níveis do breadcrumb (o último é a página atual); sem isso, só o título. */
   breadcrumb?: Crumb[];
   /** Só com `sidebarAligned`: movimento da faixa (ver `PageBar`). */
-  animated?: boolean | 'letters' | 'trail';
+  animated?: boolean | 'letters' | 'trail' | 'focus';
   /** Os botões de ação (Editar e Excluir) caem de cima, em sequência; as `actions` próprias usam `DropIn` por conta própria. */
   dropActions?: boolean;
 }

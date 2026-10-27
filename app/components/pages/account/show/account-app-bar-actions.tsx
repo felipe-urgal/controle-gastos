@@ -3,6 +3,7 @@
 import { FaPen, FaPowerOff, FaTrash } from 'react-icons/fa';
 
 import { IconButton, IconLink } from '@/app/components/ui';
+import { DropIn } from '@/app/components/ui/motion';
 
 export const DELETE_BLOCKED_HINT = 'Conta com histórico não pode ser excluída. Inative para guardá-la.';
 
@@ -24,7 +25,10 @@ export default function AccountAppBarActions({
 }) {
   return (
     <div className="flex">
-      <IconLink label="Editar conta" href={editUrl} icon={<FaPen />} tone="primary" />
+      <DropIn order={0}>
+        <IconLink label="Editar conta" href={editUrl} icon={<FaPen />} tone="primary" />
+      </DropIn>
+      <DropIn order={1}>
       <IconButton
         label={isActive ? 'Inativar conta' : 'Reativar conta'}
         title={isActive ? 'Inativar conta' : 'Reativar conta'}
@@ -32,6 +36,8 @@ export default function AccountAppBarActions({
         onClick={onToggleActive}
         disabled={busy}
       />
+      </DropIn>
+      <DropIn order={2} pulse>
       <IconButton
         label="Excluir conta"
         title={isDeletable ? 'Excluir conta' : DELETE_BLOCKED_HINT}
@@ -40,6 +46,7 @@ export default function AccountAppBarActions({
         onClick={onDeleteRequest}
         disabled={busy || !isDeletable}
       />
+      </DropIn>
     </div>
   );
 }

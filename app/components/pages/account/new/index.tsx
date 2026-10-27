@@ -7,6 +7,7 @@ export default function New() {
       backUrl="/contas"
       title="Nova conta"
       sidebarAligned
+      animated="focus"
       breadcrumb={[{ label: 'Contas', href: '/contas' }, { label: 'Nova conta' }]}
     >
       <AccountForm isEditing={false} />
