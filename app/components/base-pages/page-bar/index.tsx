@@ -24,7 +24,8 @@ export const pageBarButtonProps = { size: 'sm', className: 'sm:min-h-10' } as co
  * três pontos pulsando ao lado do título enquanto `loading`. `'trail'` (telas de criação): o breadcrumb se
  * constrói: os níveis deslizam, os chevrons encaixam e o título é digitado com um cursor. `'focus'` (Contas): o título
  * entra desfocado e as letras se fecham até ficarem nítidas, e um feixe de luz cruza a borda de baixo uma vez. `'flip'` (Calendário): as letras do título viram como folhas de um calendário,
- * uma depois da outra, e três pontos pulsam ao lado do título enquanto `loading`. Sem `animated` a faixa é estática.
+ * uma depois da outra, e três pontos pulsam ao lado do título enquanto `loading`. `'stamp'` (Fechamento): o título "carimba" a página (entra grande e desfocado e assenta com um
+ * tranco) e um traço de tinta o sublinha; troca de título carimba de novo. Sem `animated` a faixa é estática.
  */
 export default function PageBar({
   crumbs,
@@ -34,7 +35,7 @@ export default function PageBar({
 }: {
   crumbs: Crumb[];
   actions?: ReactNode;
-  animated?: boolean | 'letters' | 'trail' | 'focus' | 'flip';
+  animated?: boolean | 'letters' | 'trail' | 'focus' | 'flip' | 'stamp';
   loading?: boolean;
 }) {
   const current = crumbs[crumbs.length - 1];
@@ -48,6 +49,7 @@ export default function PageBar({
   const trail = animated === 'trail';
   const focus = animated === 'focus';
   const flip = animated === 'flip';
+  const stamp = animated === 'stamp';
 
   return (
     <header
@@ -114,6 +116,29 @@ export default function PageBar({
               >
                 {current.label}
               </motion.h1>
+            ) : stamp ? (
+              <span className="relative inline-block max-w-full align-middle">
+                <motion.h1
+                  key={current.label}
+                  className={`truncate ${pageTitleClassName} lg:text-xl`}
+                  style={{ transformOrigin: 'left center' }}
+                  initial={reduceMotion ? false : { scale: 1.7, opacity: 0, rotate: -4, filter: 'blur(6px)' }}
+                  animate={{ scale: 1, opacity: 1, rotate: 0, filter: 'blur(0px)' }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 15 }}
+                >
+                  {current.label}
+                </motion.h1>
+                {!reduceMotion && (
+                  <motion.span
+                    key={`ink-${current.label}`}
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-0.5 left-0 right-0 h-0.5 origin-left rounded-full bg-[var(--primary)]"
+                    initial={{ scaleX: 0, opacity: 1 }}
+                    animate={{ scaleX: 1, opacity: [1, 1, 0] }}
+                    transition={{ duration: 0.8, delay: 0.25, ease: 'easeOut', times: [0, 0.6, 1] }}
+                  />
+                )}
+              </span>
             ) : flip ? (
               <h1 aria-label={current.label} className={`truncate ${pageTitleClassName} lg:text-xl`} style={{ perspective: 500 }}>
                 {[...current.label].map((char, index) => (

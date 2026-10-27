@@ -18,6 +18,7 @@ export default function CurrencySelect({
   disabled = false,
   ariaLabel = 'Moeda',
   className = 'w-[116px] sm:w-[145px]',
+  animated = false,
 }: {
   value: SupportedCurrency;
   onChange: (value: SupportedCurrency) => void;
@@ -26,6 +27,8 @@ export default function CurrencySelect({
   ariaLabel?: string;
   /** Largura do seletor (ele ocupa 100% do contêiner). */
   className?: string;
+  /** Menu animado (ver `ListboxSelect`). */
+  animated?: boolean;
 }) {
   const labelOf = (code: string) => currencyOptions.find((option) => option.value === code)?.label ?? code;
   const items = (options ?? currencyOptions.map((option) => option.value as SupportedCurrency)).map((code) => ({
@@ -41,6 +44,7 @@ export default function CurrencySelect({
         options={items}
         onChange={(next) => onChange(next as SupportedCurrency)}
         disabled={disabled}
+        animated={animated}
         triggerClassName="flex min-h-11 w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
         menuClassName="min-w-[9rem]"
       >
