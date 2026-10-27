@@ -26,7 +26,8 @@ export const pageBarButtonProps = { size: 'sm', className: 'sm:min-h-10' } as co
  * entra desfocado e as letras se fecham até ficarem nítidas, e um feixe de luz cruza a borda de baixo uma vez. `'flip'` (Calendário): as letras do título viram como folhas de um calendário,
  * uma depois da outra, e três pontos pulsam ao lado do título enquanto `loading`. `'stamp'` (Fechamento): o título "carimba" a página (entra grande e desfocado e assenta com um
  * tranco) e um traço de tinta o sublinha; troca de título carimba de novo. `'collide'` (Comparar): as palavras do título vêm de lados opostos e se encontram no meio, com um
- * tranco de mola no encontro. Sem `animated` a faixa é estática.
+ * tranco de mola no encontro. `'conveyor'` (Compromissos): o título chega pela direita como numa esteira, inclinado, e endireita ao
+ * parar, enquanto uma barra de "prazo" se esgota por baixo. Sem `animated` a faixa é estática.
  */
 export default function PageBar({
   crumbs,
@@ -36,7 +37,7 @@ export default function PageBar({
 }: {
   crumbs: Crumb[];
   actions?: ReactNode;
-  animated?: boolean | 'letters' | 'trail' | 'focus' | 'flip' | 'stamp' | 'collide';
+  animated?: boolean | 'letters' | 'trail' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor';
   loading?: boolean;
 }) {
   const current = crumbs[crumbs.length - 1];
@@ -52,6 +53,7 @@ export default function PageBar({
   const flip = animated === 'flip';
   const stamp = animated === 'stamp';
   const collide = animated === 'collide';
+  const conveyor = animated === 'conveyor';
 
   return (
     <header
@@ -118,6 +120,27 @@ export default function PageBar({
               >
                 {current.label}
               </motion.h1>
+            ) : conveyor ? (
+              <span className="relative inline-block max-w-full align-middle">
+                <motion.h1
+                  className={`truncate ${pageTitleClassName} lg:text-xl`}
+                  style={{ transformOrigin: 'left center' }}
+                  initial={reduceMotion ? false : { x: 120, skewX: -18, opacity: 0 }}
+                  animate={{ x: 0, skewX: 0, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 180, damping: 18 }}
+                >
+                  {current.label}
+                </motion.h1>
+                {!reduceMotion && (
+                  <motion.span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-0.5 left-0 right-0 h-0.5 origin-left rounded-full bg-[var(--warning)]"
+                    initial={{ scaleX: 1, opacity: 1 }}
+                    animate={{ scaleX: 0, opacity: [1, 1, 0] }}
+                    transition={{ duration: 1.4, delay: 0.3, ease: 'linear', times: [0, 0.85, 1] }}
+                  />
+                )}
+              </span>
             ) : collide ? (
               <h1 aria-label={current.label} className={`truncate ${pageTitleClassName} lg:text-xl`}>
                 {current.label.split(' ').map((word, index, words) => (
