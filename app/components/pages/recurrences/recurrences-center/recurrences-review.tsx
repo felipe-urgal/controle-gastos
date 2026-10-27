@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useState } from 'react';
 import { FaCheck, FaClock, FaQuestion, FaSyncAlt, FaArrowUp } from 'react-icons/fa';
 
@@ -10,6 +11,8 @@ import {
 } from '@/app/components/pages/recurrences/recurrences-center/recurrences-model';
 import { Alert } from '@/app/components/feedback';
 import { Button, MoneyText } from '@/app/components/ui';
+import { CARD_EASE } from '@/app/components/ui/motion';
+import { riseInView } from '@/app/components/ui/motion-presets';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { RecurrenceCandidate } from '@/app/types/recurrence';
 import type { SubscriptionReviewStatus } from '@/app/types/subscription';
@@ -44,11 +47,13 @@ export default function RecurrencesReview({
   window: { months: number; limit: number };
 } & Actions) {
   const money = (cents: number, currency: string) => (showValues ? formatCurrency(cents, currency) : '••••');
+  const reduce = useReducedMotion();
   const [showAll, setShowAll] = useState(false);
   const visible = showAll ? entries : entries.slice(0, REVIEW_PREVIEW);
 
   return (
-    <section
+    <motion.section
+      {...riseInView(reduce)}
       id="recurrencias-revisar"
       className={`scroll-mt-20 rounded-[var(--radius-lg)] border bg-[var(--surface)] ${entries.length > 0 ? 'border-[var(--primary)]' : 'border-[var(--border)]'}`}
       aria-labelledby="recurrences-review-heading"
@@ -57,7 +62,16 @@ export default function RecurrencesReview({
         <h2 id="recurrences-review-heading" className="flex items-center gap-2 text-base font-bold">
           Para revisar
           {entries.length > 0 && (
-            <span className="rounded-full bg-[var(--primary-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--primary)]">{entries.length}</span>
+            // O contador "estoura" a cada mudança (ao revisar um item ele diminui com um pulo).
+            <motion.span
+              key={entries.length}
+              className="rounded-full bg-[var(--primary-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--primary)]"
+              initial={reduce ? false : { scale: 1.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 14 }}
+            >
+              {entries.length}
+            </motion.span>
           )}
         </h2>
         <p className="text-xs text-[var(--text-muted)]">
@@ -71,9 +85,15 @@ export default function RecurrencesReview({
       )}
       {entries.length === 0 ? (
         <div className="grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 border-t border-[var(--border)] px-4 py-4 sm:px-5">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--primary-subtle)] text-[var(--income)]" aria-hidden="true">
+          <motion.span
+            className="grid h-8 w-8 place-items-center rounded-full bg-[var(--primary-subtle)] text-[var(--income)]"
+            aria-hidden="true"
+            initial={reduce ? false : { scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 12, delay: 0.2 }}
+          >
             <FaCheck />
-          </span>
+          </motion.span>
           <span>
             <strong className="block text-sm">Nada para revisar</strong>
             <span className="text-sm text-[var(--text-muted)]">Sem sugestões novas, preços alterados ou assinaturas paradas.</span>
@@ -81,15 +101,25 @@ export default function RecurrencesReview({
         </div>
       ) : (
         <ul>
-          {visible.map((entry) => (
-            <li key={entry.key} className="border-t border-[var(--border)]">
-              {entry.kind === 'subscription' ? (
-                <SubscriptionRow entry={entry} money={money} {...actions} />
-              ) : (
-                <CandidateRow candidate={entry.candidate} money={money} {...actions} />
-              )}
-            </li>
-          ))}
+          {/* Revisar um item o faz sair para a direita e a lista fecha o buraco (layout). */}
+          <AnimatePresence initial={false} mode="popLayout">
+            {visible.map((entry, index) => (
+              <motion.li
+                key={entry.key}
+                layout="position"
+                initial={reduce ? false : { opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 0.4, ease: CARD_EASE, delay: Math.min(index, 6) * 0.06 } }}
+                exit={{ opacity: 0, x: 80, transition: { duration: 0.25 } }}
+                className="border-t border-[var(--border)]"
+              >
+                {entry.kind === 'subscription' ? (
+                  <SubscriptionRow entry={entry} money={money} {...actions} />
+                ) : (
+                  <CandidateRow candidate={entry.candidate} money={money} {...actions} />
+                )}
+              </motion.li>
+            ))}
+          </AnimatePresence>
         </ul>
       )}
       {entries.length > REVIEW_PREVIEW && (
@@ -99,7 +129,7 @@ export default function RecurrencesReview({
           </Button>
         </div>
       )}
-    </section>
+    </motion.section>
   );
 }
 
@@ -129,10 +159,16 @@ function RowShell({
   actions: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 px-4 py-3 sm:px-5">
-      <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]" aria-hidden="true">
+    <motion.div whileHover="hover" className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 px-4 py-3 sm:px-5">
+      {/* O ícone dá uma volta completa no hover (ou toque): é um ciclo, afinal. */}
+      <motion.span
+        className="grid h-10 w-10 place-items-center rounded-[var(--radius-md)] bg-[var(--primary-subtle)] text-[var(--primary)]"
+        aria-hidden="true"
+        variants={{ hover: { rotate: 360, scale: 1.1, transition: { duration: 0.7, ease: 'easeInOut' } } }}
+        whileTap={{ rotate: 360, scale: 1.1, transition: { duration: 0.7, ease: 'easeInOut' } }}
+      >
         {icon}
-      </span>
+      </motion.span>
       <div className="min-w-0">
         <strong className="block break-words text-sm">{title}</strong>
         <span className={`mt-0.5 inline-block rounded-full px-2.5 py-0.5 text-xs font-bold ${badgeTone}`}>{badge}</span>
@@ -145,7 +181,7 @@ function RowShell({
       </div>
       <div className="col-span-3 flex flex-wrap items-center gap-2 sm:col-span-2 sm:col-start-2">{actions}</div>
       {details && <div className="col-span-3 sm:col-span-2 sm:col-start-2">{details}</div>}
-    </div>
+    </motion.div>
   );
 }
 

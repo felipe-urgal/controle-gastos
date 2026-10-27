@@ -1,5 +1,6 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ListPageHeader, PageContainer } from '@/app/components/base-pages';
@@ -15,6 +16,7 @@ import {
 } from '@/app/components/pages/recurrences/recurrences-center/recurrences-model';
 import RecurrencesReview from '@/app/components/pages/recurrences/recurrences-center/recurrences-review';
 import { Button } from '@/app/components/ui';
+import { riseInView } from '@/app/components/ui/motion-presets';
 import { useAuth } from '@/app/context';
 import { recurrenceService } from '@/app/services/recurrence-service';
 import { subscriptionService } from '@/app/services/subscription-service';
@@ -31,6 +33,7 @@ function messageOf(caught: unknown, fallback: string) {
 }
 
 export default function RecurrencesCenter() {
+  const reduce = useReducedMotion();
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const today = useMemo(() => logicalToday(), []);
@@ -105,7 +108,7 @@ export default function RecurrencesCenter() {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <ListPageHeader title="Recorrências e assinaturas" createHref="/transacoes/nova" createLabel="Nova transação" />
+        <ListPageHeader animated="spin" title="Recorrências e assinaturas" createHref="/transacoes/nova" createLabel="Nova transação" />
 
         {error && !data && (
           <div className="mt-4">
@@ -166,7 +169,7 @@ export default function RecurrencesCenter() {
               onIgnore={ignore}
             />
 
-            <details className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
+            <motion.details {...riseInView(reduce)} className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
               <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between px-4 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5 [&::-webkit-details-marker]:hidden">
                 Qual a diferença entre recorrência e assinatura?
                 <span className="text-lg text-[var(--text-muted)] group-open:hidden" aria-hidden="true">+</span>
@@ -177,7 +180,7 @@ export default function RecurrencesCenter() {
                 <p><strong className="text-[var(--foreground)]">Assinatura</strong> é uma classificação detectada do histórico. Serve para acompanhar preços e cobranças; não cria lançamentos sozinha.</p>
                 <p><strong className="text-[var(--foreground)]">Cada moeda é calculada separada.</strong> Candidatos não entram nos totais até serem confirmados.</p>
               </div>
-            </details>
+            </motion.details>
           </div>
         )}
 

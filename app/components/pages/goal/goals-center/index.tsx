@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ListPageHeader, PageContainer } from '@/app/components/base-pages';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaPlus } from 'react-icons/fa';
@@ -23,6 +24,7 @@ import GoalsHero from '@/app/components/pages/goal/goals-center/goals-hero';
 import { activeCurrencies, countByStatus, goalPace, sortGoals } from '@/app/components/pages/goal/goals-center/goals-model';
 
 export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
+  const reduce = useReducedMotion();
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
 
@@ -370,7 +372,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <ListPageHeader title="Metas" onCreate={() => openCreate()} createLabel="Nova meta" />
+        <ListPageHeader animated="climb" title="Metas" onCreate={() => openCreate()} createLabel="Nova meta" />
 
         {error && (
           <div className="mt-4">
@@ -407,7 +409,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
               ['COMPLETED', 'Concluídas'],
               ['ARCHIVED', 'Arquivadas'],
             ].map(([value, label]) => (
-              <Chip key={value} selected={filter === value} onClick={() => setFilter(value as GoalFilter)}>
+              <Chip key={value} layoutId="goals-filter" selected={filter === value} onClick={() => setFilter(value as GoalFilter)}>
                 {label} <span className="text-xs opacity-80">{counts[value as keyof typeof counts]}</span>
               </Chip>
             ))}
@@ -422,31 +424,53 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
               <GoalSkeleton />
             </div>
           ) : goals.length === 0 ? (
-            <section className="grid justify-items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center">
+            <motion.section
+              initial={reduce ? false : { opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 160, damping: 18 }}
+              className="grid justify-items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-11 text-center"
+            >
+              {/* Sem metas: o alvo sobe e desce devagar, como quem aponta para o primeiro objetivo. */}
+              <motion.span
+                aria-hidden="true"
+                className="text-3xl"
+                animate={reduce ? undefined : { y: [0, -10, 0], scale: [1, 1.1, 1] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                🎯
+              </motion.span>
               <h2 className="text-lg font-bold">Nenhuma meta ainda</h2>
               <p className="max-w-[52ch] text-sm text-[var(--text-muted)]">
                 Metas guardam um objetivo e o progresso até ele, sem mexer no saldo das suas contas. Comece por uma destas ou crie a sua.
               </p>
               <div className="flex flex-wrap justify-center gap-2">
-                {['Reserva de emergência', 'Viagem', 'Entrada de imóvel'].map((name) => (
-                  <Chip key={name} onClick={() => openCreate(name)}>
-                    {name}
-                  </Chip>
+                {['Reserva de emergência', 'Viagem', 'Entrada de imóvel'].map((name, index) => (
+                  <motion.span
+                    key={name}
+                    className="inline-flex"
+                    initial={reduce ? false : { opacity: 0, y: 20, scale: 0.8 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 16, delay: 0.3 + index * 0.1 }}
+                  >
+                    <Chip onClick={() => openCreate(name)}>{name}</Chip>
+                  </motion.span>
                 ))}
               </div>
               <Button icon={<FaPlus aria-hidden="true" />} onClick={() => openCreate()}>
                 Criar meta
               </Button>
-            </section>
+            </motion.section>
           ) : filteredGoals.length === 0 ? (
             <p className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--text-muted)]">
               Nenhuma meta nesta visão. Altere o filtro para acompanhar outros objetivos.
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {filteredGoals.map((goal) => (
+              <AnimatePresence mode="popLayout">
+              {filteredGoals.map((goal, index) => (
                 <GoalCard
                   key={goal.id}
+                  index={index}
                   goal={goal}
                   pace={goalPace(goal, now)}
                   now={now}
@@ -460,6 +484,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
                   onDelete={() => setDeleteGoal(goal)}
                 />
               ))}
+              </AnimatePresence>
             </div>
           )}
         </div>

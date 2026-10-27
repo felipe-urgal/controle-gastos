@@ -27,7 +27,10 @@ export const pageBarButtonProps = { size: 'sm', className: 'sm:min-h-10' } as co
  * uma depois da outra, e três pontos pulsam ao lado do título enquanto `loading`. `'stamp'` (Fechamento): o título "carimba" a página (entra grande e desfocado e assenta com um
  * tranco) e um traço de tinta o sublinha; troca de título carimba de novo. `'collide'` (Comparar): as palavras do título vêm de lados opostos e se encontram no meio, com um
  * tranco de mola no encontro. `'conveyor'` (Compromissos): o título chega pela direita como numa esteira, inclinado, e endireita ao
- * parar, enquanto uma barra de "prazo" se esgota por baixo. Sem `animated` a faixa é estática.
+ * parar, enquanto uma barra de "prazo" se esgota por baixo. `'deal'` (Modelos): o título é "dado" como uma carta de baralho, girando e caindo no lugar.
+ * `'spin'` (Recorrências): as letras giram uma volta completa, em sequência, como um ciclo que se repete.
+ * `'climb'` (Metas): as letras sobem como degraus, uma mais alta que a outra, e uma barra de progresso se enche por baixo.
+ * Sem `animated` a faixa é estática.
  */
 export default function PageBar({
   crumbs,
@@ -37,7 +40,7 @@ export default function PageBar({
 }: {
   crumbs: Crumb[];
   actions?: ReactNode;
-  animated?: boolean | 'letters' | 'trail' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor';
+  animated?: boolean | 'letters' | 'trail' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor' | 'deal' | 'spin' | 'climb';
   loading?: boolean;
 }) {
   const current = crumbs[crumbs.length - 1];
@@ -54,6 +57,9 @@ export default function PageBar({
   const stamp = animated === 'stamp';
   const collide = animated === 'collide';
   const conveyor = animated === 'conveyor';
+  const deal = animated === 'deal';
+  const spin = animated === 'spin';
+  const climb = animated === 'climb';
 
   return (
     <header
@@ -120,6 +126,42 @@ export default function PageBar({
               >
                 {current.label}
               </motion.h1>
+            ) : deal ? (
+              <motion.h1
+                className={`truncate ${pageTitleClassName} lg:text-xl`}
+                style={{ transformOrigin: '0% 100%' }}
+                initial={reduceMotion ? false : { x: -60, y: -40, rotate: -14, opacity: 0, scale: 0.8 }}
+                animate={{ x: 0, y: 0, rotate: 0, opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 220, damping: 13 }}
+              >
+                {current.label}
+              </motion.h1>
+            ) : spin || climb ? (
+              <span className="relative inline-block max-w-full align-middle">
+                <h1 aria-label={current.label} className={`truncate ${pageTitleClassName} lg:text-xl`}>
+                  {[...current.label].map((char, index) => (
+                    <motion.span
+                      key={index}
+                      aria-hidden="true"
+                      className="inline-block whitespace-pre"
+                      initial={reduceMotion ? false : spin ? { rotate: 360, scale: 0, opacity: 0 } : { y: 22 + index * 1.5, opacity: 0 }}
+                      animate={{ rotate: 0, scale: 1, y: 0, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: spin ? 200 : 260, damping: spin ? 14 : 16, delay: 0.05 + index * (spin ? 0.045 : 0.035) }}
+                    >
+                      {char}
+                    </motion.span>
+                  ))}
+                </h1>
+                {climb && !reduceMotion && (
+                  <motion.span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-0.5 left-0 right-0 h-0.5 origin-left rounded-full bg-[var(--primary)]"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 0.9, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                )}
+              </span>
             ) : conveyor ? (
               <span className="relative inline-block max-w-full align-middle">
                 <motion.h1

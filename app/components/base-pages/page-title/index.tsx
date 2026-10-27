@@ -19,7 +19,7 @@ export default function PageTitle({
   /** Faixa fixa encostada na sidebar (`PageBar`); ignora a descrição. */
   sidebarAligned?: boolean;
   /** Só com `sidebarAligned`: liga o movimento da faixa (ver `PageBar`). */
-  animated?: boolean | 'letters' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor';
+  animated?: boolean | 'letters' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor' | 'deal' | 'spin' | 'climb';
   /** Só com `sidebarAligned` e `animated`: indicador de carregamento da faixa (linha ou pontos, conforme o preset). */
   loading?: boolean;
 }) {
