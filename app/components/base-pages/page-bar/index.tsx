@@ -12,6 +12,9 @@ export type Crumb = { label: string; href?: string };
 /** Botões da faixa: um pouco mais baixos (40px no desktop; no toque seguem 44px). */
 export const pageBarButtonProps = { size: 'sm', className: 'sm:min-h-10' } as const;
 
+/** Presets de movimento da faixa do título (cada página escolhe o seu). */
+export type PageBarAnimation = boolean | 'letters' | 'trail' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor' | 'deal' | 'spin' | 'climb' | 'zoom' | 'swing' | 'wave' | 'slam' | 'fan' | 'neon' | 'dangle';
+
 /**
  * Faixa do título da página. Com sidebar (`lg`), encosta nela, usa a mesma cor e altura do bloco
  * do logo (a linha de baixo é uma só) e fica fixa no topo ao rolar. O título é um breadcrumb: os
@@ -34,6 +37,9 @@ export const pageBarButtonProps = { size: 'sm', className: 'sm:min-h-10' } as co
  * `'swing'` (Investimentos): o título balança como um pêndulo preso pelo canto de cima e se acalma.
  * `'wave'` (Rendimentos): as letras sobem e descem em onda, uma depois da outra, até assentar.
  * `'slam'` (Dívidas): o título despenca pesado do alto e amassa ao bater, com um tremor curto.
+ * `'fan'` (Categorias): o título se abre como um leque, girando a partir do canto de baixo à esquerda, e uma faixa de cores varre a base.
+ * `'neon'` (Estabelecimentos): o título acende como um letreiro, piscando até firmar, com um brilho que se apaga.
+ * `'dangle'` (Tags): o título balança preso pela ponta esquerda, como uma etiqueta pendurada, e se acalma.
  * Sem `animated` a faixa é estática.
  */
 export default function PageBar({
@@ -44,7 +50,7 @@ export default function PageBar({
 }: {
   crumbs: Crumb[];
   actions?: ReactNode;
-  animated?: boolean | 'letters' | 'trail' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor' | 'deal' | 'spin' | 'climb' | 'zoom' | 'swing' | 'wave' | 'slam';
+  animated?: PageBarAnimation;
   loading?: boolean;
 }) {
   const current = crumbs[crumbs.length - 1];
@@ -68,6 +74,9 @@ export default function PageBar({
   const swing = animated === 'swing';
   const wave = animated === 'wave';
   const slam = animated === 'slam';
+  const fan = animated === 'fan';
+  const neon = animated === 'neon';
+  const dangle = animated === 'dangle';
 
   return (
     <header
@@ -131,6 +140,54 @@ export default function PageBar({
                 initial={reduceMotion ? false : { opacity: 0, x: -16, filter: 'blur(8px)', letterSpacing: '0.18em' }}
                 animate={{ opacity: 1, x: 0, filter: 'blur(0px)', letterSpacing: '-0.025em' }}
                 transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+              >
+                {current.label}
+              </motion.h1>
+            ) : fan ? (
+              <span className="relative inline-block max-w-full align-middle">
+                <motion.h1
+                  className={`truncate ${pageTitleClassName} lg:text-xl`}
+                  style={{ transformOrigin: '0% 100%' }}
+                  initial={reduceMotion ? false : { rotate: -35, opacity: 0, scale: 0.9 }}
+                  animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 160, damping: 14 }}
+                >
+                  {current.label}
+                </motion.h1>
+                {!reduceMotion && (
+                  <motion.span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-0.5 left-0 right-0 h-0.5 origin-left rounded-full"
+                    style={{ background: 'linear-gradient(90deg, var(--expense), var(--warning), var(--income), var(--primary))' }}
+                    initial={{ scaleX: 0, opacity: 1 }}
+                    animate={{ scaleX: 1, opacity: [1, 1, 0] }}
+                    transition={{ duration: 1.1, delay: 0.3, ease: 'easeOut', times: [0, 0.7, 1] }}
+                  />
+                )}
+              </span>
+            ) : neon ? (
+              <motion.h1
+                className={`truncate ${pageTitleClassName} lg:text-xl`}
+                initial={reduceMotion ? false : { opacity: 0, textShadow: '0 0 0 transparent' }}
+                animate={
+                  reduceMotion
+                    ? { opacity: 1 }
+                    : {
+                        opacity: [0, 1, 0.2, 1, 0.4, 1, 1],
+                        textShadow: ['0 0 0px transparent', '0 0 14px var(--primary)', '0 0 2px transparent', '0 0 16px var(--primary)', '0 0 2px transparent', '0 0 18px var(--primary)', '0 0 0px transparent'],
+                      }
+                }
+                transition={{ duration: 1.3, times: [0, 0.12, 0.2, 0.4, 0.5, 0.65, 1], ease: 'linear' }}
+              >
+                {current.label}
+              </motion.h1>
+            ) : dangle ? (
+              <motion.h1
+                className={`truncate ${pageTitleClassName} lg:text-xl`}
+                style={{ transformOrigin: '0% 50%' }}
+                initial={reduceMotion ? false : { rotate: 24, y: 10, opacity: 0 }}
+                animate={{ rotate: 0, y: 0, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 120, damping: 5, mass: 0.9 }}
               >
                 {current.label}
               </motion.h1>

@@ -7,6 +7,7 @@ import { FaPlus } from 'react-icons/fa';
 import PageTitle from '@/app/components/base-pages/page-title';
 import { pageBarButtonProps } from '@/app/components/base-pages/page-bar';
 import { Button, ShowBelow, ShowFrom } from '@/app/components/ui';
+import type { PageBarAnimation } from '@/app/components/base-pages/page-bar';
 
 /**
  * Cabeçalho padrão das listas (referência: Contas): `PageBar` com a ação de criar. No celular as
@@ -33,7 +34,7 @@ export default function ListPageHeader({
   /** Filtros de uma linha (ex.: um select): na barra a partir de `lg`, abaixo dela no mobile. */
   controls?: ReactNode;
   /** Liga o movimento da faixa (ver `PageBar`): o preset escolhido anima o título e os botões entram com mola. */
-  animated?: boolean | 'letters' | 'focus' | 'deal' | 'spin' | 'climb' | 'zoom' | 'swing' | 'wave' | 'slam';
+  animated?: PageBarAnimation;
   /** Com `animated`, mostra o indicador de carregamento da faixa. */
   loading?: boolean;
 }) {

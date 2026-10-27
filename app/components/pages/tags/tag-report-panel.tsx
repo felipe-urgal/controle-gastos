@@ -1,6 +1,7 @@
 'use client';
 
 import { MonthBarsChart } from '@/app/components/charts/month-bars-chart';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { FaRedo } from 'react-icons/fa';
 
@@ -10,6 +11,8 @@ import {
   reportPeriodOptions,
 } from '@/app/components/pages/tags/tags-model';
 import { Button, Chip } from '@/app/components/ui';
+import { CountUp, PopBox } from '@/app/components/ui/motion';
+import { riseInView } from '@/app/components/ui/motion-presets';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { TagDTO, TagReport, TagReportPeriod } from '@/app/types/tag';
 
@@ -32,17 +35,36 @@ export default function TagReportPanel({
   onPeriodChange: (period: TagReportPeriod) => void;
   onRetry: () => void;
 }) {
+  const reduce = useReducedMotion();
   const money = (cents: number, currency: string) => (showValues ? formatCurrency(cents, currency) : '••••');
   const history = report?.history[0] ?? null;
   const bars = history && hasHistory(history.points) ? buildTagHistoryBars(history.points) : null;
 
   return (
-    <aside id="tag-report" className="h-fit scroll-mt-20 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4 shadow-[var(--shadow-surface)] lg:sticky lg:top-[calc(var(--app-sidebar-header-height)+1rem)]" aria-labelledby="tag-report-title">
+        <motion.aside
+      id="tag-report"
+      {...riseInView(reduce, 0.1)}
+      className="scroll-mt-20 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4 shadow-[var(--shadow-surface)]"
+      aria-labelledby="tag-report-title"
+    >
       <div className="flex items-start justify-between gap-3 px-4 pt-4">
         <div className="min-w-0">
-          <h2 id="tag-report-title" className="break-words font-bold [overflow-wrap:anywhere]">
-            {tag ? `#${tag.name}` : 'Relatório por tag'}
-          </h2>
+                    <span className="block overflow-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.h2
+                key={tag?.id ?? 'none'}
+                id="tag-report-title"
+                className="break-words font-bold [overflow-wrap:anywhere]"
+                style={{ transformOrigin: '0% 0%' }}
+                initial={reduce ? false : { opacity: 0, rotate: -5, y: -8 }}
+                animate={{ opacity: 1, rotate: 0, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ type: 'spring', stiffness: 220, damping: 11 }}
+              >
+                {tag ? `#${tag.name}` : 'Relatório por tag'}
+              </motion.h2>
+            </AnimatePresence>
+          </span>
           <p className="mt-1 text-xs font-semibold text-[var(--text-muted)]">Receitas e despesas concluídas</p>
         </div>
         {tag && report && !loading ? (
@@ -58,7 +80,7 @@ export default function TagReportPanel({
       {tag ? (
         <div className="mt-3 flex flex-wrap gap-2 px-4" role="group" aria-label="Período do relatório">
           {reportPeriodOptions.map((option) => (
-            <Chip key={option.value} selected={period === option.value} onClick={() => onPeriodChange(option.value)} disabled={loading}>
+                        <Chip key={option.value} layoutId="tag-report-period" selected={period === option.value} onClick={() => onPeriodChange(option.value)} disabled={loading}>
               {option.label}
             </Chip>
           ))}
@@ -82,8 +104,13 @@ export default function TagReportPanel({
             {period === 'all' ? 'Sem transações concluídas nesta tag.' : 'Sem transações concluídas neste período.'}
           </p>
         ) : (
-          report.currencies.map((item) => (
-            <div key={item.currency} className="grid gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-4">
+                    report.currencies.map((item, index) => (
+            <motion.div
+              key={item.currency}
+              className="grid gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-4"
+              initial={reduce ? false : { opacity: 0, y: 18, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 220, damping: 18, delay: index * 0.1 } }}
+            >
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-xs font-semibold text-[var(--text-muted)]">
                   Resultado{report.currencies.length > 1 ? ` em ${item.currency}` : ''}
@@ -92,20 +119,20 @@ export default function TagReportPanel({
                   {item.transactionCount} {item.transactionCount === 1 ? 'transação' : 'transações'}
                 </span>
               </div>
-              <strong className={`money text-2xl font-semibold ${item.balance < 0 ? 'text-[var(--expense)]' : item.balance > 0 ? 'text-[var(--income)]' : ''}`}>
-                {item.balance > 0 ? '+ ' : item.balance < 0 ? '− ' : ''}{money(Math.abs(item.balance), item.currency)}
+                            <strong className={`money text-2xl font-semibold ${item.balance < 0 ? 'text-[var(--expense)]' : item.balance > 0 ? 'text-[var(--income)]' : ''}`}>
+                <CountUp amount={item.balance} format={(cents) => `${cents > 0 ? '+ ' : cents < 0 ? '− ' : ''}${money(Math.abs(cents), item.currency)}`} />
               </strong>
               <dl className="grid grid-cols-2 gap-2 text-sm">
-                <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2">
+                                <PopBox index={0} whileHover="hover" className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2">
                   <dt className="text-xs text-[var(--text-muted)]">Receitas</dt>
-                  <dd className="money font-semibold text-[var(--income)]">{money(item.income, item.currency)}</dd>
-                </div>
-                <div className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2">
+                  <motion.dd className="money origin-left font-semibold text-[var(--income)]" variants={{ hover: { scale: 1.08, transition: { type: 'spring', stiffness: 400, damping: 16 } } }}>{money(item.income, item.currency)}</motion.dd>
+                </PopBox>
+                <PopBox index={1} whileHover="hover" className="rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-2">
                   <dt className="text-xs text-[var(--text-muted)]">Despesas</dt>
-                  <dd className="money font-semibold text-[var(--expense)]">{money(item.expense, item.currency)}</dd>
-                </div>
-              </dl>
-            </div>
+                  <motion.dd className="money origin-left font-semibold text-[var(--expense)]" variants={{ hover: { scale: 1.08, transition: { type: 'spring', stiffness: 400, damping: 16 } } }}>{money(item.expense, item.currency)}</motion.dd>
+                </PopBox>
+                            </dl>
+            </motion.div>
           ))
         )}
 
@@ -124,8 +151,8 @@ export default function TagReportPanel({
       </div>
 
       <p className="mt-4 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
-        Tags podem se sobrepor na mesma transação: não some os totais de tags diferentes.
+                Tags podem se sobrepor na mesma transação: não some os totais de tags diferentes.
       </p>
-    </aside>
+    </motion.aside>
   );
 }

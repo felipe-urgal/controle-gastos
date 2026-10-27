@@ -20,3 +20,19 @@ export const spinPop = (index: number, reduce: boolean | null, base = 0.5) => ({
   initial: reduce ? false : { opacity: 0, scale: 0.6, rotate: -12 },
   animate: { opacity: 1, scale: 1, rotate: 0, transition: reducedTransition(reduce, { type: 'spring', stiffness: 300, damping: 15, delay: base + index * 0.1 }) },
 });
+
+/** Cartão de resumo de um registro (conta, categoria, estabelecimento…): abre como uma página virando (rotateX). */
+export const flipIn = (reduce: boolean | null, order = 0) => ({
+  initial: reduce ? false : { opacity: 0, rotateX: -16, y: 18 },
+  animate: { opacity: 1, rotateX: 0, y: 0 },
+  transition: reducedTransition(reduce, { type: 'spring' as const, stiffness: 170, damping: 20, delay: 0.1 + order * 0.12 }),
+  style: { transformPerspective: 900, transformOrigin: 'top center' },
+});
+
+/** Valor principal: entra desfocado e cresce até ficar nítido. */
+export const blurIn = (reduce: boolean | null, delay = 0.3) => ({
+  initial: reduce ? false : { opacity: 0, scale: 0.88, filter: 'blur(10px)' },
+  animate: { opacity: 1, scale: 1, filter: 'blur(0px)' },
+  transition: reducedTransition(reduce, { duration: 0.8, ease: CARD_EASE, delay }),
+  style: { transformOrigin: 'left center' },
+});

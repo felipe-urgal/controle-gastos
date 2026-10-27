@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useState } from 'react';
 import { FaPen } from 'react-icons/fa';
 
@@ -42,15 +43,20 @@ export function CategoryFormCard({
   limitCurrency: SupportedCurrency;
   onLimitCurrencyChange: (currency: SupportedCurrency) => void;
 }) {
+  const reduce = useReducedMotion();
   const [lookOpen, setLookOpen] = useState(false);
   const showLimit = !isEditing && values.type === 'EXPENSE';
   const limitInvalid = isMonthlyLimitInvalid(monthlyLimit);
 
   return (
-    <section
+    <motion.section
       aria-label="Categoria"
+      // O cartão abre como uma página virando.
+      initial={reduce ? false : { opacity: 0, rotateX: -14, y: 18 }}
+      animate={{ opacity: 1, rotateX: 0, y: 0 }}
+      transition={{ type: 'spring', stiffness: 170, damping: 20, delay: 0.1 }}
       className="relative grid gap-5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--category-color)_40%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--category-color)_16%,var(--surface)),var(--surface)_70%)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
-      style={{ ['--category-color' as string]: values.color }}
+      style={{ ['--category-color' as string]: values.color, transformPerspective: 900, transformOrigin: 'top center' }}
     >
       <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
         <IconButton
@@ -64,7 +70,17 @@ export function CategoryFormCard({
           style={{ backgroundColor: values.color }}
           icon={
             <>
-              <IconRenderer iconName={values.icon || 'tag'} size={24} />
+              {/* Trocou o ícone: o novo entra girando; no hover ele balança. */}
+              <motion.span
+                key={values.icon}
+                className="flex"
+                initial={reduce ? false : { rotate: -90, scale: 0.4, opacity: 0 }}
+                animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                whileHover={{ rotate: [0, -14, 12, 0], transition: { duration: 0.5 } }}
+                transition={{ type: 'spring', stiffness: 420, damping: 16 }}
+              >
+                <IconRenderer iconName={values.icon || 'tag'} size={24} />
+              </motion.span>
               <span className="absolute -bottom-1.5 -right-1.5 grid h-6 w-6 place-items-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text-muted)]">
                 <FaPen />
               </span>
@@ -90,8 +106,16 @@ export function CategoryFormCard({
         </div>
       </div>
 
+      <AnimatePresence initial={false}>
       {lookOpen && (
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3.5">
+        <motion.div
+          key="look"
+          className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-3.5"
+          initial={reduce ? false : { opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        >
           <ColorIconSelector
             color={values.color}
             icon={values.icon}
@@ -102,11 +126,21 @@ export function CategoryFormCard({
           <Button type="button" size="xs" variant="ghost" className="mt-2" onClick={() => setLookOpen(false)}>
             Fechar
           </Button>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
+      <AnimatePresence initial={false}>
       {showLimit && (
-        <div className="grid gap-2 rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-3.5">
+        // O limite mensal só existe para despesa: ao trocar o tipo ele abre ou fecha com altura animada.
+        <motion.div
+          key="limit"
+          className="grid gap-2 overflow-hidden rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-3.5"
+          initial={reduce ? false : { opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        >
           <label htmlFor="category-monthly-limit" className="text-sm text-[var(--text-muted)]">
             Limite mensal (opcional)
           </label>
@@ -134,8 +168,9 @@ export function CategoryFormCard({
               ? 'Informe um valor maior que zero, como 350,00.'
               : 'Cria o limite deste mês para a categoria. Dá para mudar depois, na lista de categorias.'}
           </p>
-        </div>
+        </motion.div>
       )}
-    </section>
+      </AnimatePresence>
+    </motion.section>
   );
 }

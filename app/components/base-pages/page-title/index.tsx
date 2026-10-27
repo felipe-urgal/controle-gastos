@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import PageBar from '@/app/components/base-pages/page-bar';
 import { pageTitleClassName } from '@/app/components/base-pages/page-title-classes';
+import type { PageBarAnimation } from '@/app/components/base-pages/page-bar';
 
 export { pageTitleClassName, appBarTitleClassName } from '@/app/components/base-pages/page-title-classes';
 
@@ -19,7 +20,7 @@ export default function PageTitle({
   /** Faixa fixa encostada na sidebar (`PageBar`); ignora a descrição. */
   sidebarAligned?: boolean;
   /** Só com `sidebarAligned`: liga o movimento da faixa (ver `PageBar`). */
-  animated?: boolean | 'letters' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor' | 'deal' | 'spin' | 'climb' | 'zoom' | 'swing' | 'wave' | 'slam';
+  animated?: PageBarAnimation;
   /** Só com `sidebarAligned` e `animated`: indicador de carregamento da faixa (linha ou pontos, conforme o preset). */
   loading?: boolean;
 }) {

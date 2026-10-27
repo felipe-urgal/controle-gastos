@@ -1,5 +1,6 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 
 import { ListPageHeader } from '@/app/components/base-pages';
@@ -21,10 +22,14 @@ import {
   stateTextClass,
 } from '@/app/components/pages/category/index/monthly-limits/monthly-limits-helpers';
 import { ActionsMenu, Button, Chip, CurrencySelect, IconRenderer, Input, PeriodSwitcher } from '@/app/components/ui';
+import { CARD_EASE, CountUp, PopBox, reducedTransition } from '@/app/components/ui/motion';
+import { riseInView } from '@/app/components/ui/motion-presets';
 import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import type { CategoryModel } from '@/app/types/category';
 import type { CategoryMonthlyLimitItem, CategoryMonthlyLimitListResponse } from '@/app/types/category-monthly-limit';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+
+const MotionLink = motion.create(Link);
 
 const paceText: Record<string, { text: string; className: string }> = {
   OVER: { text: 'O gasto já passou do orçamento do mês.', className: 'text-[var(--expense)]' },
@@ -35,7 +40,8 @@ const paceText: Record<string, { text: string; className: string }> = {
   NO_BUDGET: { text: 'Defina limites nas categorias para acompanhar o orçamento.', className: 'text-[var(--text-muted)]' },
 };
 
-function BudgetRow({ item, currency, showValues, disabled, onEditLimit }: {
+function BudgetRow({ index, item, currency, showValues, disabled, onEditLimit }: {
+  index: number;
   item: CategoryMonthlyLimitItem;
   currency: SupportedCurrency;
   showValues: boolean;
@@ -44,6 +50,7 @@ function BudgetRow({ item, currency, showValues, disabled, onEditLimit }: {
 }) {
   const state = categoryState(item);
   const percent = Math.min(100, categoryUsagePercentage(item));
+  const reduce = useReducedMotion();
   const money = (value: number | null) => displayMoney(value, showValues, currency);
   const detail = !item.limit
     ? 'Sem limite definido'
@@ -52,10 +59,28 @@ function BudgetRow({ item, currency, showValues, disabled, onEditLimit }: {
       : `Faltam ${money(item.limit.amount - item.consumption)}`;
 
   return (
-    <li className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-[var(--border)] px-4 py-3 sm:grid-cols-[auto_minmax(0,1.1fr)_minmax(0,1fr)_auto] sm:px-5">
-      <span className="grid h-9 w-9 place-items-center rounded-[var(--radius-md)] text-white" style={{ backgroundColor: item.category.color || DEFAULT_CATEGORY_COLOR }} aria-hidden="true">
+    <motion.li
+      layout="position"
+      // As linhas entram em sequência, de baixo para cima; a cor da categoria "pinga" no ícone.
+      initial={reduce ? false : { opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={reducedTransition(reduce, { type: 'spring', stiffness: 260, damping: 22, delay: Math.min(index, 8) * 0.05 })}
+      whileHover="hover"
+      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-[var(--border)] px-4 py-3 sm:grid-cols-[auto_minmax(0,1.1fr)_minmax(0,1fr)_auto] sm:px-5"
+    >
+      <motion.span
+        className="grid h-9 w-9 place-items-center rounded-[var(--radius-md)] text-white"
+        style={{ backgroundColor: item.category.color || DEFAULT_CATEGORY_COLOR }}
+        aria-hidden="true"
+        initial={reduce ? false : { scale: 0, rotate: -90 }}
+        whileInView={{ scale: 1, rotate: 0 }}
+        viewport={{ once: true }}
+        transition={{ type: 'spring', stiffness: 400, damping: 14, delay: 0.15 + Math.min(index, 8) * 0.05 }}
+        variants={{ hover: { rotate: [0, -12, 10, 0], scale: 1.12, transition: { duration: 0.5 } } }}
+      >
         <IconRenderer iconName={item.category.icon || 'tag'} size={16} />
-      </span>
+      </motion.span>
       <div className="min-w-0">
         <Link href={`/categorias/show/${encodeURIComponent(item.category.id)}`} className="flex min-h-11 items-center text-sm font-semibold text-[var(--foreground)] hover:underline">
           <span className="truncate">{item.category.name}</span>
@@ -69,7 +94,13 @@ function BudgetRow({ item, currency, showValues, disabled, onEditLimit }: {
       <div className="col-span-3 order-last sm:order-none sm:col-span-1">
         {item.limit ? (
           <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${Math.round(percent)}% do limite de ${item.category.name} consumido`}>
-            <div className={`h-full rounded-full ${stateBarClass(state)}`} style={{ width: `${percent}%` }} />
+            <motion.div
+              className={`h-full rounded-full ${stateBarClass(state)}`}
+              initial={reduce ? false : { width: 0 }}
+              whileInView={{ width: `${percent}%` }}
+              viewport={{ once: true }}
+              transition={reducedTransition(reduce, { duration: 0.9, ease: CARD_EASE, delay: 0.25 + Math.min(index, 8) * 0.05 })}
+            />
           </div>
         ) : (
           <span className="text-xs text-[var(--text-muted)] sm:block">—</span>
@@ -89,7 +120,7 @@ function BudgetRow({ item, currency, showValues, disabled, onEditLimit }: {
           {item.limit ? <>de <span className="money ml-1">{money(item.limit.amount)}</span></> : 'Definir limite'}
         </Button>
       </div>
-    </li>
+    </motion.li>
   );
 }
 
@@ -140,6 +171,7 @@ export default function CategoriesBudgetView({
   onCopyPreviousMonth: () => void;
   onEditLimit: (item: CategoryMonthlyLimitItem) => void;
 }) {
+  const reduce = useReducedMotion();
   const money = (value: number | null) => displayMoney(value, showValues, currency);
   const today = new Date();
   const elapsed = monthElapsedFraction(periodValue, { year: today.getFullYear(), month: today.getMonth() + 1, day: today.getDate() });
@@ -165,6 +197,7 @@ export default function CategoriesBudgetView({
   return (
     <section aria-labelledby="categories-title" className="grid gap-4">
       <ListPageHeader
+        animated="fan"
         title="Categorias"
         createHref="/categorias/nova"
         createLabel="Nova categoria"
@@ -172,6 +205,7 @@ export default function CategoriesBudgetView({
           <div className="flex flex-wrap items-center gap-2">
             <CurrencySelect value={currency} onChange={onCurrencyChange} disabled={controlsDisabled} />
             <PeriodSwitcher
+              animated
               month={Number(periodValue.slice(5, 7))}
               year={Number(periodValue.slice(0, 4))}
               onPrevious={() => onPeriodChange(shiftMonth(periodValue, -1))}
@@ -195,7 +229,15 @@ export default function CategoriesBudgetView({
         <p role="alert" className="rounded-[var(--radius-md)] border border-[var(--expense)]/35 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]">{error}</p>
       )}
 
-      <section aria-label="Orçamento do mês" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+      <motion.section
+        aria-label="Orçamento do mês"
+        // Trocar o mês ou a moeda refaz a entrada do orçamento (a chave muda).
+        key={`${periodValue}-${currency}`}
+        initial={reduce ? false : { opacity: 0, scale: 0.96, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={reducedTransition(reduce, { type: 'spring', stiffness: 170, damping: 18, delay: 0.1 })}
+        className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
+      >
         {loading ? (
           <div className="h-32 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando orçamento" />
         ) : (
@@ -203,7 +245,7 @@ export default function CategoriesBudgetView({
             <div>
               <p className="text-sm font-semibold text-[var(--text-muted)]">Orçamento do mês</p>
               <strong className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
-                {money(summary.realized)}
+                <CountUp amount={summary.realized} format={money} />
                 {summary.budget > 0 && <span className="ml-2 text-base font-medium tracking-normal text-[var(--text-muted)] sm:text-xl">de {money(summary.budget)}</span>}
               </strong>
               <p className="mt-2 text-sm text-[var(--text-muted)]">
@@ -219,9 +261,22 @@ export default function CategoriesBudgetView({
 
             {summary.budget > 0 && (
               <div className="relative h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]" role="img" aria-label={`${usedPercent}% do orçamento consumido`}>
-                <div className={`h-full rounded-full ${pace === 'OVER' ? 'bg-[var(--expense)]' : pace === 'AHEAD' ? 'bg-[var(--warning)]' : 'bg-[var(--primary)]'}`} style={{ width: `${Math.min(100, usedPercent)}%` }} />
+                {/* O gasto sobe com uma mola; a marca do dia de hoje aparece depois, mostrando se o ritmo está adiantado. */}
+                <motion.div
+                  className={`h-full rounded-full ${pace === 'OVER' ? 'bg-[var(--expense)]' : pace === 'AHEAD' ? 'bg-[var(--warning)]' : 'bg-[var(--primary)]'}`}
+                  initial={reduce ? false : { width: 0 }}
+                  animate={{ width: `${Math.min(100, usedPercent)}%` }}
+                  transition={reducedTransition(reduce, { type: 'spring', stiffness: 80, damping: 13, delay: 0.4 })}
+                />
                 {elapsed !== null && elapsed > 0 && elapsed < 1 && (
-                  <span className="absolute inset-y-0 w-0.5 bg-[var(--foreground)] opacity-60" style={{ left: `${Math.round(elapsed * 100)}%` }} aria-hidden="true" />
+                  <motion.span
+                    className="absolute inset-y-0 w-0.5 bg-[var(--foreground)] opacity-60"
+                    style={{ left: `${Math.round(elapsed * 100)}%` }}
+                    aria-hidden="true"
+                    initial={reduce ? false : { scaleY: 0 }}
+                    animate={{ scaleY: 1 }}
+                    transition={{ duration: 0.3, delay: 1.1 }}
+                  />
                 )}
               </div>
             )}
@@ -232,11 +287,13 @@ export default function CategoriesBudgetView({
                 { label: 'Perto do limite', value: counts.near, tone: 'text-[var(--warning)]' },
                 { label: 'Estourou', value: counts.over, tone: 'text-[var(--expense)]' },
                 { label: 'Sem limite', value: counts.noLimit, tone: '' },
-              ].map((entry) => (
-                <div key={entry.label} className="rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2">
+              ].map((entry, entryIndex) => (
+                <PopBox key={entry.label} index={entryIndex} whileHover="hover" className="rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2">
                   <dt className="text-xs text-[var(--text-muted)] sm:text-sm">{entry.label}</dt>
-                  <dd className={`money text-lg font-semibold ${entry.tone}`}>{entry.value}</dd>
-                </div>
+                  <motion.dd className={`money origin-left text-lg font-semibold ${entry.tone}`} variants={{ hover: { scale: 1.12, transition: { type: 'spring', stiffness: 400, damping: 16 } } }}>
+                    <CountUp amount={entry.value} format={(value) => String(value)} />
+                  </motion.dd>
+                </PopBox>
               ))}
             </dl>
 
@@ -248,10 +305,11 @@ export default function CategoriesBudgetView({
             )}
           </>
         )}
-      </section>
+      </motion.section>
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="categories-expenses-title">
+      {/* As duas colunas esticam até a mesma altura; o último cartão da direita cresce para fechar a coluna. */}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <motion.section {...riseInView(reduce, 0.05)} className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="categories-expenses-title">
           <div className="grid gap-3 px-4 pb-3 pt-4 sm:px-5">
             <h2 id="categories-expenses-title" className="text-base font-bold">Despesas por categoria</h2>
             <Input
@@ -264,7 +322,7 @@ export default function CategoriesBudgetView({
             />
             <div className="flex flex-wrap gap-2" role="group" aria-label="Filtro de categorias">
               {filters.map((entry) => (
-                <Chip key={entry.key} selected={filter === entry.key} onClick={() => onFilterChange(entry.key)}>{entry.label}</Chip>
+                <Chip key={entry.key} layoutId="categories-filter" selected={filter === entry.key} onClick={() => onFilterChange(entry.key)}>{entry.label}</Chip>
               ))}
             </div>
           </div>
@@ -280,15 +338,15 @@ export default function CategoriesBudgetView({
             <p className="border-t border-[var(--border)] px-5 py-6 text-sm text-[var(--text-muted)]">Nenhuma categoria neste filtro.</p>
           ) : (
             <ul>
-              {rows.map((item) => (
-                <BudgetRow key={item.category.id} item={item} currency={currency} showValues={showValues} disabled={controlsDisabled} onEditLimit={onEditLimit} />
+              {rows.map((item, rowIndex) => (
+                <BudgetRow key={item.category.id} index={rowIndex} item={item} currency={currency} showValues={showValues} disabled={controlsDisabled} onEditLimit={onEditLimit} />
               ))}
             </ul>
           )}
-        </section>
+        </motion.section>
 
-        <div className="grid gap-4">
-          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="categories-attention-title">
+        <div className="flex flex-col gap-4">
+          <motion.section {...riseInView(reduce, 0.1)} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="categories-attention-title">
             <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-4 sm:px-5">
               <h2 id="categories-attention-title" className="text-base font-bold">Precisa de atenção</h2>
               {attention.length > 0 && <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">{attention.length}</span>}
@@ -297,10 +355,18 @@ export default function CategoriesBudgetView({
               <p className="px-4 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma categoria estourou ou está perto do limite.</p>
             ) : (
               <ul className="grid gap-2 px-4 sm:px-5">
-                {attention.map((item) => (
-                  <li key={item.category.id}>
-                    <Link
+                {attention.map((item, attentionIndex) => (
+                  <motion.li
+                    key={item.category.id}
+                    initial={reduce ? false : { opacity: 0, x: 30 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 22, delay: attentionIndex * 0.08 }}
+                  >
+                    <MotionLink
                       href={`/categorias/show/${encodeURIComponent(item.category.id)}`}
+                      whileHover={{ x: -4 }}
+                      whileTap={{ scale: 0.98 }}
                       className="flex min-h-14 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
                     >
                       <span className="min-w-0">
@@ -310,62 +376,87 @@ export default function CategoriesBudgetView({
                         </span>
                       </span>
                       <span className="money shrink-0 text-sm font-semibold">{categoryUsageLabel(item)}</span>
-                    </Link>
-                  </li>
+                    </MotionLink>
+                  </motion.li>
                 ))}
               </ul>
             )}
-          </section>
+          </motion.section>
 
-          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="categories-distribution-title">
+          <motion.section {...riseInView(reduce, 0.15)} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="categories-distribution-title">
             <h2 id="categories-distribution-title" className="px-4 pb-3 pt-4 text-base font-bold sm:px-5">Para onde foi o dinheiro</h2>
             {distribution.entries.length === 0 ? (
               <p className="px-4 text-sm text-[var(--text-muted)] sm:px-5">Nenhum gasto neste mês.</p>
             ) : (
               <>
                 <div className="mx-4 flex h-3 gap-0.5 overflow-hidden rounded-full sm:mx-5" role="img" aria-label="Distribuição dos gastos por categoria">
-                  {distribution.entries.map((entry) => (
-                    <span key={entry.id} className="block min-w-[4px]" style={{ flex: entry.amount, backgroundColor: entry.color }} />
+                  {/* As fatias coloridas se "abrem" uma depois da outra, como um leque de cores. */}
+                  {distribution.entries.map((entry, entryIndex) => (
+                    <motion.span
+                      key={entry.id}
+                      className="block min-w-[4px]"
+                      style={{ flex: entry.amount, backgroundColor: entry.color, transformOrigin: 'left' }}
+                      initial={reduce ? false : { scaleX: 0 }}
+                      whileInView={{ scaleX: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, ease: CARD_EASE, delay: 0.2 + entryIndex * 0.1 }}
+                    />
                   ))}
                 </div>
                 <ul className="mt-3 grid gap-1.5 px-4 text-sm sm:px-5">
-                  {distribution.entries.map((entry) => (
-                    <li key={entry.id} className="flex items-center justify-between gap-3">
+                  {distribution.entries.map((entry, entryIndex) => (
+                    <motion.li
+                      key={entry.id}
+                      initial={reduce ? false : { opacity: 0, x: -16 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.35, ease: CARD_EASE, delay: 0.3 + entryIndex * 0.06 }}
+                      whileHover="hover"
+                      className="flex items-center justify-between gap-3"
+                    >
                       <span className="flex min-w-0 items-center gap-2 text-[var(--text-muted)]">
-                        <span className="h-2 w-2 shrink-0 rounded-sm" style={{ backgroundColor: entry.color }} aria-hidden="true" />
+                        <motion.span className="h-2 w-2 shrink-0 rounded-sm" style={{ backgroundColor: entry.color }} aria-hidden="true" variants={{ hover: { rotate: 135, scale: 1.6 } }} transition={{ type: 'spring', stiffness: 400, damping: 14 }} />
                         <span className="truncate">{entry.name}</span>
                       </span>
                       <span className="money text-sm font-medium">{entry.percentage.toLocaleString('pt-BR')}%</span>
-                    </li>
+                    </motion.li>
                   ))}
                 </ul>
               </>
             )}
-          </section>
+          </motion.section>
 
-          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-3" aria-labelledby="categories-income-title">
+          <motion.section {...riseInView(reduce, 0.2)} className="flex-1 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-3" aria-labelledby="categories-income-title">
             <h2 id="categories-income-title" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Receitas</h2>
             {incomeRows.length === 0 ? (
               <p className="px-4 pb-1 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma categoria de receita{query ? ' neste filtro' : ''}.</p>
             ) : (
               <ul>
-                {incomeRows.map((category) => (
-                  <li key={category.id}>
-                    <Link
+                {incomeRows.map((category, incomeIndex) => (
+                  <motion.li
+                    key={category.id}
+                    initial={reduce ? false : { opacity: 0, y: 12 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 22, delay: Math.min(incomeIndex, 8) * 0.05 }}
+                  >
+                    <MotionLink
                       href={`/categorias/show/${encodeURIComponent(category.id)}`}
+                      whileHover="hover"
+                      whileTap={{ scale: 0.98 }}
                       className="flex min-h-11 items-center gap-3 px-4 py-1.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5"
                     >
-                      <span className="grid h-8 w-8 place-items-center rounded-[var(--radius-md)] text-white" style={{ backgroundColor: category.color || DEFAULT_CATEGORY_COLOR }} aria-hidden="true">
+                      <motion.span className="grid h-8 w-8 place-items-center rounded-[var(--radius-md)] text-white" style={{ backgroundColor: category.color || DEFAULT_CATEGORY_COLOR }} aria-hidden="true" variants={{ hover: { rotate: [0, -12, 10, 0], scale: 1.12, transition: { duration: 0.5 } } }}>
                         <IconRenderer iconName={category.icon || 'tag'} size={14} />
-                      </span>
+                      </motion.span>
                       <span className="truncate">{category.name}</span>
                       {!category.isActive && <span className="ml-auto text-xs font-normal text-[var(--text-muted)]">Inativa</span>}
-                    </Link>
-                  </li>
+                    </MotionLink>
+                  </motion.li>
                 ))}
               </ul>
             )}
-          </section>
+          </motion.section>
         </div>
       </div>
     </section>

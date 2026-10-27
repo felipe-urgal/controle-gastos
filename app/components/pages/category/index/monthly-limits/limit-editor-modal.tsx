@@ -5,6 +5,7 @@ import { FaCheck } from 'react-icons/fa';
 
 import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { Button, MoneyInput } from '@/app/components/ui';
+import { StaggerForm } from '@/app/components/ui/motion';
 import type { CategoryMonthlyLimitItem } from '@/app/types/category-monthly-limit';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
@@ -45,7 +46,7 @@ export function LimitEditorModal({
       closeDisabled={busy}
       maxWidthClass="max-w-[520px]"
     >
-      <form className="mt-4" onSubmit={onSubmit}>
+      <StaggerForm className="mt-4" onSubmit={onSubmit}>
         <MoneyInput
           label={`Valor do limite em ${currency}`}
           currency={currency}
@@ -75,7 +76,7 @@ export function LimitEditorModal({
           <Button type="button" variant="secondary" onClick={close} disabled={busy}>Cancelar</Button>
           <Button type="submit" icon={<FaCheck />} isLoading={saving} loadingText="Salvando" disabled={removing}>Salvar limite</Button>
         </div>
-      </form>
+      </StaggerForm>
     </ModalShell>
   );
 }

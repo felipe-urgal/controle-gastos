@@ -2,6 +2,7 @@
 
 import { MonthBarsChart } from '@/app/components/charts/month-bars-chart';
 import { format } from 'date-fns';
+import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useState } from 'react';
 import { FaPowerOff, FaTrash } from 'react-icons/fa';
@@ -15,9 +16,13 @@ import {
   longMonthLabel,
 } from '@/app/components/pages/merchant/show/merchant-show-model';
 import { Button, IconButton, Input, ShowBelow } from '@/app/components/ui';
+import { DropIn, reducedTransition } from '@/app/components/ui/motion';
+import { blurIn, riseInView } from '@/app/components/ui/motion-presets';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { MerchantDTO } from '@/app/types/merchant';
+
+const MotionLink = motion.create(Link);
 
 export default function MerchantShowView({
   merchant,
@@ -37,6 +42,7 @@ export default function MerchantShowView({
   onDeleteRequest: () => void;
 }) {
   const { user } = useAuth();
+    const reduce = useReducedMotion();
   const showValues = user?.showValues !== false;
   const activity = merchant.activity ?? null;
   const currency = activity?.currency ?? 'BRL';
@@ -75,18 +81,23 @@ export default function MerchantShowView({
     <div className={`w-full space-y-4 pb-5 transition-opacity duration-150 ${isBusy ? 'pointer-events-none opacity-50' : ''}`}>
       <ShowBelow breakpoint="lg">
         <MobileAppBar
-          title={merchant.name}
+                    title={merchant.name}
+          animated="focus"
           backHref={backUrl}
           backLabel="Voltar para estabelecimentos"
           action={
-            <div className="flex">
-              <IconButton
-                label={merchant.isActive ? 'Inativar estabelecimento' : 'Reativar estabelecimento'}
-                icon={<FaPowerOff />}
-                onClick={onToggleActive}
-                disabled={disabled}
-              />
-              <IconButton label="Excluir estabelecimento" icon={<FaTrash />} tone="danger" onClick={onDeleteRequest} disabled={disabled} />
+                        <div className="flex">
+              <DropIn order={0}>
+                <IconButton
+                  label={merchant.isActive ? 'Inativar estabelecimento' : 'Reativar estabelecimento'}
+                  icon={<FaPowerOff />}
+                  onClick={onToggleActive}
+                  disabled={disabled}
+                />
+              </DropIn>
+              <DropIn order={1} pulse>
+                <IconButton label="Excluir estabelecimento" icon={<FaTrash />} tone="danger" onClick={onDeleteRequest} disabled={disabled} />
+              </DropIn>
             </div>
           }
         />
@@ -94,14 +105,27 @@ export default function MerchantShowView({
 
       {error ? <Alert variant="error" message={error} /> : null}
 
-      <section
+            <motion.section
         aria-label="Resumo do estabelecimento"
+        // O resumo desce como um toldo de loja, de cima para baixo.
+        initial={reduce ? false : { clipPath: 'inset(0 0 100% 0 round 16px)', opacity: 0.4 }}
+        animate={{ clipPath: 'inset(0 0 0% 0 round 16px)', opacity: 1, transitionEnd: { clipPath: 'none' } }}
+        transition={reducedTransition(reduce, { duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.1 })}
         className="grid gap-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5"
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--primary)] text-lg font-bold text-[var(--on-primary)]" aria-hidden="true">
+                    {/* A inicial "acende" como o letreiro da loja: pisca duas vezes e firma. */}
+          <motion.span
+            className="grid h-12 w-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--primary)] text-lg font-bold text-[var(--on-primary)]"
+            aria-hidden="true"
+            initial={reduce ? false : { opacity: 0, scale: 0.7 }}
+            animate={reduce ? { opacity: 1 } : { opacity: [0, 1, 0.3, 1, 0.5, 1], scale: [0.7, 1.1, 1, 1.05, 1, 1] }}
+            whileHover={{ rotate: [0, -10, 8, 0], transition: { duration: 0.5 } }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ duration: 1, delay: 0.4 }}
+          >
             {merchant.name.charAt(0).toUpperCase()}
-          </span>
+          </motion.span>
           <div className="min-w-0">
             {renaming ? (
               <form
@@ -133,9 +157,9 @@ export default function MerchantShowView({
           <div className="grid gap-3">
             <div>
               <p className="text-sm font-semibold text-[var(--text-muted)]">Gasto em {longMonthLabel(activity.month.month)}</p>
-              <strong className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
+                            <motion.strong {...blurIn(reduce, 0.5)} className="money mt-1 block break-words text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-5xl">
                 {money(activity.month.expense)}
-              </strong>
+              </motion.strong>
             </div>
             <p className="text-sm text-[var(--text-muted)]">
               {activity.month.count > 0 ? `${activity.month.count} ${activity.month.count === 1 ? 'compra' : 'compras'} neste mês. ` : 'Nenhuma compra neste mês. '}
@@ -162,13 +186,13 @@ export default function MerchantShowView({
           <Button type="button" variant="outline" size="xs" className="w-full" disabled={disabled || renaming} onClick={() => { setDraft(merchant.name); setRenaming(true); }}>
             Renomear
           </Button>
-        </nav>
-      </section>
-
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <div className="space-y-4">
+                </nav>
+      </motion.section>
+      {/* As colunas esticam até a mesma altura; o último cartão de cada uma cresce para fechar a coluna. */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-4">
           {bars && activity ? (
-            <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="merchant-history-heading">
+                        <motion.section {...riseInView(reduce)} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] pb-4" aria-labelledby="merchant-history-heading">
               <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
                 <h2 id="merchant-history-heading" className="text-base font-bold">Últimos 6 meses</h2>
                 <p className="text-xs text-[var(--text-muted)]">gasto por mês</p>
@@ -182,11 +206,11 @@ export default function MerchantShowView({
               </div>
               <p className="px-4 pt-3 text-sm text-[var(--text-muted)] sm:px-5">
                 Média dos 5 meses anteriores: <span className="money font-semibold text-[var(--foreground)]">{money(activity.previousAverage)}</span>.
-              </p>
-            </section>
+                            </p>
+            </motion.section>
           ) : null}
 
-          <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="merchant-movements-heading">
+          <motion.section {...riseInView(reduce, 0.05)} className="flex-1 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="merchant-movements-heading">
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
               <h2 id="merchant-movements-heading" className="text-base font-bold">
                 Movimentações de {activity ? longMonthLabel(activity.month.month) : 'este mês'}
@@ -197,10 +221,17 @@ export default function MerchantShowView({
               <p className="border-t border-[var(--border)] px-4 py-6 text-sm text-[var(--text-muted)] sm:px-5">Nenhuma movimentação neste estabelecimento neste mês.</p>
             ) : (
               <ul className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
-                {activity.recent.map((item) => (
-                  <li key={item.id}>
-                    <Link
+                                {activity.recent.map((item, index) => (
+                  <motion.li
+                    key={item.id}
+                    initial={reduce ? false : { opacity: 0, x: -24 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, amount: 0.2 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 22, delay: Math.min(index, 8) * 0.05 }}
+                  >
+                    <MotionLink
                       href={`/transacoes/show/${item.id}`}
+                      whileTap={{ scale: 0.98 }}
                       aria-label={`Abrir transação ${item.description || 'sem descrição'}`}
                       className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus)] sm:px-5"
                     >
@@ -217,25 +248,25 @@ export default function MerchantShowView({
                         {item.type === 'INCOME' ? '+ ' : '− '}
                         {money(item.amount, item.account.currency)}
                       </span>
-                    </Link>
-                  </li>
+                                        </MotionLink>
+                  </motion.li>
                 ))}
               </ul>
             )}
-          </section>
+          </motion.section>
         </div>
 
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <MerchantAliasesCard merchantId={merchant.id} merchantName={merchant.name} />
 
-          <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="merchant-about-heading">
+          <motion.section {...riseInView(reduce, 0.1)} className="flex-1 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]" aria-labelledby="merchant-about-heading">
             <h2 id="merchant-about-heading" className="px-4 pb-2 pt-4 text-base font-bold sm:px-5">Sobre</h2>
             <dl className="grid gap-2 px-4 pb-4 text-sm sm:px-5">
               <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Transações</dt><dd className="money">{merchant.transactionsCount}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Criado em</dt><dd>{format(new Date(merchant.createdAt), 'dd/MM/yyyy')}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Atualizado em</dt><dd>{format(new Date(merchant.updatedAt), 'dd/MM/yyyy')}</dd></div>
+                            <div className="flex justify-between gap-3"><dt className="text-[var(--text-muted)]">Atualizado em</dt><dd>{format(new Date(merchant.updatedAt), 'dd/MM/yyyy')}</dd></div>
             </dl>
-          </section>
+          </motion.section>
         </div>
       </div>
     </div>
