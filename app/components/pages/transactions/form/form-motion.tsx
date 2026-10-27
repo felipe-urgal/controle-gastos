@@ -36,7 +36,7 @@ export function SegmentPill({ layoutId, tone }: { layoutId: string; tone: string
       aria-hidden="true"
       layoutId={layoutId}
       transition={PILL_SPRING}
-      className="absolute inset-0 -z-10"
+      className="pointer-events-none absolute inset-0 -z-10"
       style={{
         borderRadius: 9999,
         backgroundColor: `color-mix(in srgb, ${tone} 16%, transparent)`,

@@ -39,7 +39,7 @@ export function Chip({ selected = false, layoutId, className = '', children, ...
           aria-hidden="true"
           layoutId={layoutId}
           transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-          className="absolute inset-0 -z-10 rounded-full border border-[var(--primary)] bg-[var(--primary-subtle)]"
+          className="pointer-events-none absolute inset-0 -z-10 rounded-full border border-[var(--primary)] bg-[var(--primary-subtle)]"
         />
       )}
       {children}
