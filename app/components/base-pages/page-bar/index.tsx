@@ -23,7 +23,8 @@ export const pageBarButtonProps = { size: 'sm', className: 'sm:min-h-10' } as co
  * (Transações): letras do título que caem em sequência, linha de acento que se expande do centro ao rolar e
  * três pontos pulsando ao lado do título enquanto `loading`. `'trail'` (telas de criação): o breadcrumb se
  * constrói: os níveis deslizam, os chevrons encaixam e o título é digitado com um cursor. `'focus'` (Contas): o título
- * entra desfocado e as letras se fecham até ficarem nítidas, e um feixe de luz cruza a borda de baixo uma vez. Sem `animated` a faixa é estática.
+ * entra desfocado e as letras se fecham até ficarem nítidas, e um feixe de luz cruza a borda de baixo uma vez. `'flip'` (Calendário): as letras do título viram como folhas de um calendário,
+ * uma depois da outra, e três pontos pulsam ao lado do título enquanto `loading`. Sem `animated` a faixa é estática.
  */
 export default function PageBar({
   crumbs,
@@ -33,7 +34,7 @@ export default function PageBar({
 }: {
   crumbs: Crumb[];
   actions?: ReactNode;
-  animated?: boolean | 'letters' | 'trail' | 'focus';
+  animated?: boolean | 'letters' | 'trail' | 'focus' | 'flip';
   loading?: boolean;
 }) {
   const current = crumbs[crumbs.length - 1];
@@ -46,6 +47,7 @@ export default function PageBar({
   const letters = animated === 'letters';
   const trail = animated === 'trail';
   const focus = animated === 'focus';
+  const flip = animated === 'flip';
 
   return (
     <header
@@ -81,7 +83,7 @@ export default function PageBar({
               </motion.span>
             </motion.li>
           ))}
-          <li aria-current="page" className={letters ? 'flex min-w-0 items-center gap-3' : 'min-w-0'}>
+          <li aria-current="page" className={letters || flip ? 'flex min-w-0 items-center gap-3' : 'min-w-0'}>
             {trail ? (
               // O título é revelado da esquerda para a direita, com o cursor acompanhando a borda da revelação.
               <span className="relative inline-block max-w-full align-middle">
@@ -112,6 +114,22 @@ export default function PageBar({
               >
                 {current.label}
               </motion.h1>
+            ) : flip ? (
+              <h1 aria-label={current.label} className={`truncate ${pageTitleClassName} lg:text-xl`} style={{ perspective: 500 }}>
+                {[...current.label].map((char, index) => (
+                  <motion.span
+                    key={index}
+                    aria-hidden="true"
+                    className="inline-block whitespace-pre"
+                    style={{ transformOrigin: '50% 0%' }}
+                    initial={reduceMotion ? false : { rotateX: -100, opacity: 0, y: -6 }}
+                    animate={{ rotateX: 0, opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.05 + index * 0.05 }}
+                  >
+                    {char}
+                  </motion.span>
+                ))}
+              </h1>
             ) : letters ? (
               <h1 aria-label={current.label} className={`truncate ${pageTitleClassName} lg:text-xl`}>
                 {[...current.label].map((char, index) => (
@@ -142,7 +160,7 @@ export default function PageBar({
             ) : (
               <h1 className={`truncate ${pageTitleClassName} lg:text-xl`}>{current.label}</h1>
             )}
-            {letters && (
+            {(letters || flip) && (
               <AnimatePresence>
                 {loading && (
                   <motion.span

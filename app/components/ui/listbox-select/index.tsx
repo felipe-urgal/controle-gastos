@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { FaCheck } from 'react-icons/fa';
 
 import IconRenderer from '@/app/components/ui/icon-renderer';
@@ -35,9 +36,12 @@ type ListboxSelectProps = {
   options?: ListboxSelectOption[];
   groups?: ListboxSelectGroup[];
   disabled?: boolean;
-  children: ReactNode;
+  /** O gatilho pode ler se o menu está aberto (ex.: girar a seta). */
+  children: ReactNode | ((open: boolean) => ReactNode);
   triggerClassName: string;
   menuClassName?: string;
+  /** Movimento: o menu se abre do gatilho, as opções entram em sequência e a marca de selecionada "estoura". */
+  animated?: boolean;
 };
 
 /**
@@ -55,7 +59,9 @@ export default function ListboxSelect({
   children,
   triggerClassName,
   menuClassName = '',
+  animated = false,
 }: ListboxSelectProps) {
+  const reduce = useReducedMotion();
   const id = useId().replace(/:/g, '');
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -176,7 +182,7 @@ export default function ListboxSelect({
     const selected = option.value === value;
 
     return (
-      <button
+      <motion.button
         key={option.value}
         type="button"
         role="option"
@@ -185,6 +191,14 @@ export default function ListboxSelect({
         data-option-index={index}
         tabIndex={activeIndex === index ? 0 : -1}
         onClick={() => selectOption(option)}
+        {...(animated
+          ? {
+              initial: reduce ? false : { opacity: 0, x: -14 },
+              animate: { opacity: 1, x: 0, transition: { type: 'spring' as const, stiffness: 380, damping: 26, delay: 0.04 + Math.min(index, 8) * 0.035 } },
+              whileHover: option.disabled ? undefined : { x: 4, transition: { type: 'spring' as const, stiffness: 400, damping: 22 } },
+              whileTap: option.disabled ? undefined : { scale: 0.97 },
+            }
+          : {})}
         className={`flex min-h-10 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm transition-colors focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 ${
           selected
             ? 'bg-[var(--primary-subtle)] text-[var(--foreground)]'
@@ -201,8 +215,20 @@ export default function ListboxSelect({
           </span>
         )}
         <span className="min-w-0 flex-1 truncate">{option.label}</span>
-        {selected && <FaCheck className="shrink-0 text-xs text-[var(--primary)]" aria-hidden="true" />}
-      </button>
+        {selected &&
+          (animated ? (
+            <motion.span
+              className="flex shrink-0"
+              initial={reduce ? false : { scale: 0, rotate: -90 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 12, delay: 0.15 }}
+            >
+              <FaCheck className="text-xs text-[var(--primary)]" aria-hidden="true" />
+            </motion.span>
+          ) : (
+            <FaCheck className="shrink-0 text-xs text-[var(--primary)]" aria-hidden="true" />
+          ))}
+      </motion.button>
     );
   };
 
@@ -226,12 +252,22 @@ export default function ListboxSelect({
         onKeyDown={handleTriggerKeyDown}
         className={triggerClassName}
       >
-        {children}
+        {typeof children === 'function' ? children(open) : children}
       </button>
 
+      <AnimatePresence>
       {open && (
-        <div
+        <motion.div
           ref={menuRef}
+          {...(animated
+            ? {
+                initial: reduce ? false : { opacity: 0, scaleY: 0.7, y: -10 },
+                animate: { opacity: 1, scaleY: 1, y: 0 },
+                exit: { opacity: 0, scaleY: 0.85, y: -6, transition: { duration: 0.12 } },
+                transition: { type: 'spring' as const, stiffness: 420, damping: 30 },
+                style: { transformOrigin: 'top' },
+              }
+            : {})}
           id={`listbox-select-${id}`}
           role="listbox"
           aria-label={ariaLabel}
@@ -254,8 +290,9 @@ export default function ListboxSelect({
                 </div>
               ))
             : options.map((option, index) => renderOption(option, index))}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
