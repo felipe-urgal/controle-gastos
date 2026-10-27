@@ -1,5 +1,7 @@
 'use client';
 
+import { RiseArticle } from '@/app/components/ui/motion';
+
 import { Select } from '@/app/components/ui';
 import { FaExchangeAlt } from 'react-icons/fa';
 import { SupportedCurrency } from '@/app/types/financial-summary';
@@ -18,7 +20,7 @@ export function ConsolidationCard({
   showValues: boolean;
 }) {
   return (
-    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <RiseArticle className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -166,6 +168,6 @@ export function ConsolidationCard({
           </div>
         </div>
       ) : null}
-    </article>
+    </RiseArticle>
   );
 }

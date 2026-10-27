@@ -1,5 +1,8 @@
 'use client';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { RiseArticle, StaggerForm } from '@/app/components/ui/motion';
+
 import { FormEvent } from 'react';
 import { FaTrash } from 'react-icons/fa';
 import { Button, Chip, ChipRow, IconButton, Input, Select } from '@/app/components/ui';
@@ -68,10 +71,11 @@ export function ExchangeRatesCard({
   onLoadMore: () => void;
   onRemove: (rate: ExchangeRateModel) => void;
 }) {
+  const reduce = useReducedMotion();
   const futureReference = referenceDate > currentIsoDate();
 
   return (
-    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+    <RiseArticle className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div>
         <h2 className="text-lg font-bold text-[var(--foreground)]">
           Taxas de câmbio
@@ -85,7 +89,7 @@ export function ExchangeRatesCard({
         </p>
       </div>
 
-      <form
+      <StaggerForm
         onSubmit={onSave}
         noValidate
         className="mt-4 grid gap-3 rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-3 md:grid-cols-[minmax(0,7.5rem)_minmax(0,7.5rem)_minmax(0,1fr)_minmax(0,10.5rem)_auto] md:items-end"
@@ -138,7 +142,7 @@ export function ExchangeRatesCard({
             {fetchingPtax ? 'Consultando…' : 'Buscar PTAX'}
           </Button>
         </div>
-      </form>
+      </StaggerForm>
 
       {futureReference && (
         <p className="mt-2 text-xs text-[var(--expense)]">
@@ -168,7 +172,7 @@ export function ExchangeRatesCard({
             ['BCB_PTAX', 'PTAX'],
           ] as const
         ).map(([source, label]) => (
-          <Chip key={source} selected={sourceTab === source} onClick={() => onSourceTabChange(source)}>
+          <Chip key={source} layoutId="exchange-source" selected={sourceTab === source} onClick={() => onSourceTabChange(source)}>
             {label}
           </Chip>
         ))}
@@ -221,12 +225,18 @@ export function ExchangeRatesCard({
         ) : (
           <>
             <div className="divide-y divide-[var(--border)] rounded-[var(--radius-md)] border border-[var(--border)] px-3">
-              {rates.map((rate) => (
-                <div
+              <AnimatePresence initial={false}>
+              {rates.map((rate, index) => (
+                <motion.div
                   key={rate.id}
-                  className="grid min-h-[64px] grid-cols-[minmax(0,1fr)_44px] items-center gap-3 py-2"
+                  // Cada taxa entra deslizando da direita; ao ser excluída ela vai embora para o mesmo lado.
+                  initial={reduce ? false : { opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0, transition: { type: 'spring', stiffness: 240, damping: 22, delay: Math.min(index, 8) * 0.05 } }}
+                  exit={{ opacity: 0, x: 60, transition: { duration: 0.2 } }}
+                  whileHover="hover"
+                  className="grid min-h-[64px] grid-cols-[minmax(0,1fr)_44px] items-center gap-3 overflow-hidden py-2"
                 >
-                  <div className="min-w-0">
+                  <motion.div className="min-w-0" variants={{ hover: { x: 4, transition: { type: 'spring', stiffness: 400, damping: 22 } } }}>
                     <div className="flex flex-wrap items-center gap-2">
                       <strong className="block text-sm text-[var(--foreground)]">
                         {rate.from} → {rate.to}
@@ -254,7 +264,7 @@ export function ExchangeRatesCard({
                         {rateProvenanceLabel(rate.provenance, rate.from, rate.to)}
                       </span>
                     )}
-                  </div>
+                  </motion.div>
                   {rate.source === 'MANUAL' ? (
                     <IconButton
                       label={`Excluir taxa ${rate.from} para ${rate.to}`}
@@ -271,8 +281,9 @@ export function ExchangeRatesCard({
                       BCB
                     </span>
                   )}
-                </div>
+                </motion.div>
               ))}
+              </AnimatePresence>
             </div>
 
             {hasMore && (
@@ -283,6 +294,6 @@ export function ExchangeRatesCard({
           </>
         )}
       </div>
-    </article>
+    </RiseArticle>
   );
 }

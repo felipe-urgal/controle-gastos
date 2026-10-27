@@ -1,5 +1,8 @@
 'use client';
 
+import { motion } from 'framer-motion';
+import { RiseArticle, RiseDetails } from '@/app/components/ui/motion';
+
 import { useState, type ReactNode } from 'react';
 import { FaChevronDown, FaHistory, FaTrash } from 'react-icons/fa';
 import { Button, IconButton, Select } from '@/app/components/ui';
@@ -21,7 +24,7 @@ export function CollapsibleCard({ header, children }: { header: ReactNode; child
   const open = override ?? wide;
 
   return (
-    <details
+    <RiseDetails
       open={open}
       onToggle={(event) => setOverride(event.currentTarget.open)}
       className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]"
@@ -34,7 +37,7 @@ export function CollapsibleCard({ header, children }: { header: ReactNode; child
         />
       </summary>
       <div className="px-4 pb-4 sm:px-5 sm:pb-5">{children}</div>
-    </details>
+    </RiseDetails>
   );
 }
 
@@ -48,7 +51,7 @@ export function FiscalCostCard({
   onAdjust: (assetId: string) => void;
 }) {
   return (
-    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
+    <RiseArticle className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -180,7 +183,7 @@ export function FiscalCostCard({
           ))}
         </div>
       )}
-    </article>
+    </RiseArticle>
   );
 }
 
@@ -274,9 +277,13 @@ export function AssetsCard({
       ) : (
         <div className="mt-3 divide-y divide-[var(--border)]">
           {assets.map((asset) => (
-            <div
+            <motion.div
               key={asset.id}
-              className="flex min-h-[64px] items-center justify-between gap-3 py-2"
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 22 }}
+              className="flex min-h-[64px] items-center justify-between gap-3 overflow-hidden py-2"
             >
               <button
                 type="button"
@@ -304,7 +311,7 @@ export function AssetsCard({
                   onClick={() => onRemove(asset)}
                 />
               )}
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
@@ -365,7 +372,13 @@ export function OperationRow({
   onClassify: () => void;
 }) {
   return (
-    <div className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 py-2">
+    <motion.div
+      initial={{ opacity: 0, x: -30 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ type: 'spring', stiffness: 240, damping: 22 }}
+      className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 overflow-hidden py-2"
+    >
       <span className="min-w-0">
         <strong className="block truncate text-sm text-[var(--foreground)]">
           {operationLabel(operation.type)} · {operation.asset.symbol}
@@ -406,7 +419,7 @@ export function OperationRow({
           onClick={onRemove}
         />
       </span>
-    </div>
+    </motion.div>
   );
 }
 
@@ -418,7 +431,13 @@ export function IncomeRow({
   showValues: boolean;
 }) {
   return (
-    <div className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2">
+    <motion.div
+      initial={{ opacity: 0, x: -30 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ type: 'spring', stiffness: 240, damping: 22 }}
+      className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 overflow-hidden py-2"
+    >
       <span className="min-w-0">
         <strong className="block truncate text-sm text-[var(--foreground)]">
           {income.type === 'DIVIDEND'
@@ -448,7 +467,7 @@ export function IncomeRow({
             : 'por unidade'}
         </span>
       </span>
-    </div>
+    </motion.div>
   );
 }
 

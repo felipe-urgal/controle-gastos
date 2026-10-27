@@ -1,9 +1,14 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { RiseArticle } from '@/app/components/ui/motion';
+
 import Link from 'next/link';
 import { SupportedCurrency } from '@/app/types/financial-summary';
 import { NetWorthDebt } from '@/app/types/net-worth';
 import { displayMoney } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
+
+const MotionLink = motion.create(Link);
 
 export function LiabilitiesCard({
   debts,
@@ -14,8 +19,10 @@ export function LiabilitiesCard({
   currency: SupportedCurrency;
   showValues: boolean;
 }) {
+  const reduce = useReducedMotion();
+
   return (
-    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <RiseArticle className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">Dívidas</h2>
@@ -34,10 +41,17 @@ export function LiabilitiesCard({
         </p>
       ) : (
         <div className="mt-4 divide-y divide-[var(--border)]">
-          {debts.map((debt) => (
-            <Link
+          {debts.map((debt, index) => (
+            <MotionLink
               key={debt.id}
               href={`/dividas#debt-${encodeURIComponent(debt.id)}`}
+              // As dívidas "pesam": caem de leve e assentam; no hover o saldo se destaca.
+              initial={reduce ? false : { opacity: 0, y: -22 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 13, delay: Math.min(index, 8) * 0.08 }}
+              whileHover="hover"
+              whileTap={{ scale: 0.98 }}
               className="flex min-h-[64px] items-center justify-between gap-4 py-2.5"
             >
               <span className="min-w-0">
@@ -46,13 +60,13 @@ export function LiabilitiesCard({
                   {debt.institution || 'Passivo manual'}
                 </span>
               </span>
-              <strong className="money shrink-0 text-sm font-semibold text-[var(--expense)]">
+              <motion.strong className="money shrink-0 origin-right text-sm font-semibold text-[var(--expense)]" variants={{ hover: { scale: 1.1, transition: { type: 'spring', stiffness: 400, damping: 16 } } }}>
                 {showValues ? '−' : ''}{displayMoney(debt.balance, showValues, currency)}
-              </strong>
-            </Link>
+              </motion.strong>
+            </MotionLink>
           ))}
         </div>
       )}
-    </article>
+    </RiseArticle>
   );
 }

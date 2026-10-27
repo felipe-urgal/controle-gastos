@@ -1,5 +1,7 @@
 'use client';
 
+import { RiseArticle } from '@/app/components/ui/motion';
+
 import { useState } from 'react';
 import { FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 
@@ -45,7 +47,7 @@ export function CustodyStatementCard({ showValues }: { showValues: boolean }) {
   const differences = result?.comparison.filter((row) => row.status !== 'MATCH').length ?? 0;
 
   return (
-    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <RiseArticle className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <h2 className="text-lg font-bold text-[var(--foreground)]">Conferir extrato de custódia</h2>
       <p className="mt-1 text-xs text-[var(--text-muted)]">
         Compare o Extrato de Custódia do Nubank com a sua carteira. Nada é importado nem gravado: o documento só aponta diferenças de posição.
@@ -176,6 +178,6 @@ export function CustodyStatementCard({ showValues }: { showValues: boolean }) {
           )}
         </div>
       )}
-    </article>
+    </RiseArticle>
   );
 }

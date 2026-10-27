@@ -1,7 +1,7 @@
 'use client';
 
 import { animate, motion, useMotionValue, useReducedMotion, useTransform, type Transition } from 'framer-motion';
-import { useEffect, type ReactNode } from 'react';
+import { Children, useEffect, type ComponentProps, type FormHTMLAttributes, type ReactNode } from 'react';
 
 /** Entrada dos cards: toca uma vez, quando o card aparece na tela. */
 export const CARD_VIEWPORT = { once: true, amount: 0.3 } as const;
@@ -129,4 +129,72 @@ export function HoverSheen({ children }: { children: ReactNode }) {
       />
     </motion.span>
   );
+}
+
+/**
+ * `<form>` cujos blocos (campos, grupos, avisos, ações) entram em sequência, de baixo para cima. Cada filho direto vira um
+ * `div`, então o espaçamento (`space-y-*`, `grid gap-*`) do formulário continua valendo para os blocos; classes de
+ * posição nos filhos (ex.: `col-span-2`) não valem mais, por isso use em formulários de uma coluna.
+ */
+export function StaggerForm({ children, ...props }: FormHTMLAttributes<HTMLFormElement>) {
+  const reduce = useReducedMotion();
+
+  return (
+    <form {...props}>
+      {Children.toArray(children).map((child, index) =>
+        reduce ? (
+          child
+        ) : (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: CARD_EASE, delay: 0.2 + Math.min(index, 8) * 0.05 }}
+          >
+            {child}
+          </motion.div>
+        ),
+      )}
+    </form>
+  );
+}
+
+type RiseProps = { delay?: number };
+
+/** Entrada padrão dos blocos grandes: sobem e aparecem quando entram na tela (vale na rolagem do celular). */
+function useRise(delay: number) {
+  const reduce = useReducedMotion();
+  return {
+    initial: reduce ? (false as const) : { opacity: 0, y: 30 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, amount: 0.1 },
+    transition: reducedTransition(reduce, { type: 'spring' as const, stiffness: 140, damping: 20, delay }),
+  };
+}
+
+export function RiseSection({ delay = 0, ...props }: ComponentProps<typeof motion.section> & RiseProps) {
+  return <motion.section {...useRise(delay)} {...props} />;
+}
+
+export function RiseDetails({ delay = 0, ...props }: ComponentProps<typeof motion.details> & RiseProps) {
+  return <motion.details {...useRise(delay)} {...props} />;
+}
+
+/** Caixinha de indicador: entra com um "pop" ao aparecer e o conteúdo reage ao hover (ou toque). */
+export function PopBox({ index = 0, ...props }: ComponentProps<typeof motion.div> & { index?: number }) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, scale: 0.85, y: 12 }}
+      whileInView={{ opacity: 1, scale: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={reducedTransition(reduce, { type: 'spring', stiffness: 320, damping: 18, delay: Math.min(index, 8) * 0.07 })}
+      whileTap={{ scale: 0.96 }}
+      {...props}
+    />
+  );
+}
+
+export function RiseArticle({ delay = 0, ...props }: ComponentProps<typeof motion.article> & RiseProps) {
+  return <motion.article {...useRise(delay)} {...props} />;
 }

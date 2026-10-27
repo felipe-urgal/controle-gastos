@@ -29,7 +29,7 @@ type SelectProps = {
   grouped?: boolean;
   icon?: React.ReactNode;
   required?: boolean;
-  /** Movimento do menu e do gatilho (ver `ListboxSelect`): seta que gira e rótulo que troca deslizando. */
+  /** Movimento do menu e do gatilho (ver `ListboxSelect`): seta que gira e rótulo que troca deslizando. Ligado por padrão. */
   animated?: boolean;
 };
 
@@ -51,7 +51,7 @@ export default function Select({
   grouped,
   icon,
   required,
-  animated = false,
+  animated = true,
 }: SelectProps) {
   const reduce = useReducedMotion();
   const generatedId = useId();

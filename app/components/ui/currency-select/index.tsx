@@ -18,7 +18,7 @@ export default function CurrencySelect({
   disabled = false,
   ariaLabel = 'Moeda',
   className = 'w-[116px] sm:w-[145px]',
-  animated = false,
+  animated = true,
 }: {
   value: SupportedCurrency;
   onChange: (value: SupportedCurrency) => void;
@@ -27,7 +27,7 @@ export default function CurrencySelect({
   ariaLabel?: string;
   /** Largura do seletor (ele ocupa 100% do contêiner). */
   className?: string;
-  /** Menu animado (ver `ListboxSelect`). */
+  /** Menu animado (ver `ListboxSelect`); ligado por padrão. */
   animated?: boolean;
 }) {
   const labelOf = (code: string) => currencyOptions.find((option) => option.value === code)?.label ?? code;

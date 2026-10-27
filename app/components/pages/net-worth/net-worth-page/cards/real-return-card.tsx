@@ -1,5 +1,7 @@
 'use client';
 
+import { RiseArticle } from '@/app/components/ui/motion';
+
 import { NetWorthRealReturnData } from '@/app/types/net-worth';
 import { displayMoney, displayPercent, monthShort } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
 
@@ -23,7 +25,7 @@ export function RealReturnCard({
           : null;
 
   return (
-    <article className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
+    <RiseArticle className="min-w-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -108,6 +110,6 @@ export function RealReturnCard({
           )}
         </div>
       </details>
-    </article>
+    </RiseArticle>
   );
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import { RiseSection } from '@/app/components/ui/motion';
+
 import { useEffect, useState } from 'react';
 
 import { economicIndicatorService } from '@/app/services/economic-indicator-service';
@@ -71,7 +73,7 @@ export function EconomicIndicatorsCard() {
   const updatedAt = updatedAtLabel(snapshot?.updatedAt ?? null);
 
   return (
-    <section aria-label="Contexto econômico" className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+    <RiseSection aria-label="Contexto econômico" className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
       {loading ? (
         <p className="text-sm text-[var(--text-muted)]">Carregando indicadores...</p>
       ) : failed || !snapshot ? (
@@ -102,6 +104,6 @@ export function EconomicIndicatorsCard() {
           </ul>
         </details>
       )}
-    </section>
+    </RiseSection>
   );
 }

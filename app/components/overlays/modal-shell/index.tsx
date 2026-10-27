@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Children, useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { FaTimes } from 'react-icons/fa';
 
 import { useModalFocus } from '@/app/hooks/use-modal-focus';
@@ -39,7 +39,7 @@ export function ModalShell({
   variant = 'sheet',
   sectionClassName = '',
   icon,
-  animated = false,
+  animated = true,
   origin = null,
 }: {
   title: string;
@@ -69,7 +69,7 @@ export function ModalShell({
   /** Ícone ao lado do título (decorativo). */
   icon?: ReactNode;
   /**
-   * Liga o movimento do diálogo (o chamador precisa envolvê-lo em `AnimatePresence` para a saída): fundo com
+   * Movimento do diálogo (ligado por padrão; para a animação de saída o chamador precisa envolvê-lo em `AnimatePresence`): fundo com
    * fade e blur, cabeçalho e rodapé que entram em sequência. Em ≥ sm ele voa do `origin` (centro do botão que
    * o abriu) e volta para lá ao fechar; no celular a folha sobe de baixo.
    */
@@ -80,7 +80,8 @@ export function ModalShell({
   const reduce = useReducedMotion();
   // De onde o diálogo parte (e para onde volta): calculado uma vez, na abertura.
   const [flight] = useState(() => {
-    if (!animated) return null;
+    // Sem `window` (renderização no servidor, testes) não há de onde voar: o diálogo só aparece.
+    if (!animated || typeof window === 'undefined') return null;
     const small = window.matchMedia('(max-width: 639px)').matches;
     if (small) return { y: '100%', opacity: 1 };
     if (!origin) return { y: 24, scale: 0.96, opacity: 0 };
@@ -179,7 +180,19 @@ export function ModalShell({
         <div
           className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 ${footer ? 'pb-5' : 'pb-[calc(1.25rem+env(safe-area-inset-bottom))]'}`}
         >
-          {children}
+          {/* Os blocos do corpo entram em sequência, um depois do outro (um corpo de bloco único sobe de uma vez). */}
+          {animated && !reduce
+            ? Children.toArray(children).map((child, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.15 + Math.min(index, 6) * 0.06 }}
+                >
+                  {child}
+                </motion.div>
+              ))
+            : children}
         </div>
         {footer && (
           <motion.footer

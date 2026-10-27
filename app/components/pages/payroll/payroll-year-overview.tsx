@@ -1,8 +1,12 @@
 'use client';
 
+import { RiseSection } from '@/app/components/ui/motion';
+import { motion, useReducedMotion } from 'framer-motion';
+
 import { useChartWidth } from '@/app/components/charts/use-chart-width';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
 import { monthlySeries, summarizeYear, visibleMonths } from '@/app/components/pages/payroll/payroll-year-model';
+import { PopBox } from '@/app/components/ui/motion';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { payrollMoney } from '@/app/lib/payroll/payroll-presentation';
 import type { PayrollSummary } from '@/app/types/payroll';
@@ -26,7 +30,7 @@ export function PayrollYearOverview({
   const money = (cents: number | null) => payrollMoney(cents, showValues);
 
   return (
-    <section aria-labelledby="payroll-hero-label" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
+    <RiseSection aria-labelledby="payroll-hero-label" className="grid gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-surface)] sm:p-6">
       <div>
         <p id="payroll-hero-label" className="text-sm font-semibold text-[var(--text-muted)]">
           Líquido recebido em {year}
@@ -57,17 +61,19 @@ export function PayrollYearOverview({
       )}
 
       <MonthlyChart items={items} year={year} showValues={showValues} monthsToShow={compactChart ? 6 : null} compact={compactChart} />
-    </section>
+    </RiseSection>
   );
 }
 
 function Stat({ label, value, detail, className = '' }: { label: string; value: string; detail: string; className?: string }) {
   return (
-    <div className={`grid min-w-0 content-start gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-3 sm:px-3.5 ${className}`}>
+    <PopBox whileHover="hover" className={`grid min-w-0 content-start gap-0.5 rounded-[var(--radius-md)] bg-[var(--surface-raised)] px-3 py-3 sm:px-3.5 ${className}`}>
       <span className="truncate text-xs font-semibold text-[var(--text-muted)] sm:text-sm">{label}</span>
-      <span className="money truncate text-base font-semibold sm:text-xl">{value}</span>
+      <motion.span className="money origin-left truncate text-base font-semibold sm:text-xl" variants={{ hover: { scale: 1.08, transition: { type: 'spring', stiffness: 400, damping: 16 } } }}>
+        {value}
+      </motion.span>
       <span className="text-xs text-[var(--text-muted)]">{detail}</span>
-    </div>
+    </PopBox>
   );
 }
 
@@ -84,6 +90,7 @@ function MonthlyChart({
   monthsToShow: number | null;
   compact: boolean;
 }) {
+  const reduce = useReducedMotion();
   const series = visibleMonths(monthlySeries(items, year), monthsToShow);
   // Largura lógica próxima da real: no celular os rótulos mantêm tamanho legível.
   const { ref: chartRef, width } = useChartWidth(isCompact ? 360 : 760);
@@ -150,12 +157,15 @@ function MonthlyChart({
           const barWidth = Math.min(slot * 0.62, 44);
           const dim = activeIndex !== null && activeIndex !== index;
           return (
-            <rect
+            <motion.rect
               key={point.month}
               x={x(index) - barWidth / 2}
-              y={y(point.barCents)}
+              // As barras sobem do chão, uma depois da outra, com uma mola que passa e volta.
+              initial={reduce ? false : { y: height - pad.bottom, height: 0 }}
+              whileInView={{ y: y(point.barCents), height: Math.max(2, height - pad.bottom - y(point.barCents)) }}
+              viewport={{ once: true }}
+              transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 130, damping: 13, delay: index * 0.05 }}
               width={barWidth}
-              height={Math.max(2, height - pad.bottom - y(point.barCents))}
               rx="5"
               fill={point.status === 'COMPLETE' ? 'var(--primary)' : 'url(#payroll-incomplete)'}
               stroke={point.status === 'COMPLETE' ? undefined : 'var(--warning)'}

@@ -1,5 +1,8 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
+import { RiseArticle } from '@/app/components/ui/motion';
+
 import { Button } from '@/app/components/ui';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { typeLabel, quantityLabel, quoteDateLabel } from '@/app/components/pages/investment/investments-helpers';
@@ -20,11 +23,12 @@ export function PositionsList({
   showValues: boolean;
   onHistory: (assetId: string) => void;
 }) {
+  const reduce = useReducedMotion();
   const isWide = useMediaQuery('(min-width: 768px)');
   const columns = isWide ? COLUMNS_WIDE : COLUMNS_NARROW;
 
   return (
-    <article className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
+    <RiseArticle className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-surface)]">
       <div className="px-4 pb-2 pt-4 sm:px-5">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Posições</h2>
         <p className="mt-1 text-xs text-[var(--text-muted)]">Ordenadas pelo valor. Toque no código para ver o histórico do ativo.</p>
@@ -44,7 +48,7 @@ export function PositionsList({
             </div>
           )}
           <ul>
-            {ranked.map(({ position, value, priced, gain, gainPercent, sharePercent }) => {
+            {ranked.map(({ position, value, priced, gain, gainPercent, sharePercent }, index) => {
               const money = (cents: number) => (showValues ? formatCurrency(cents, position.currency) : '••••');
               const up = (gain ?? 0) >= 0;
               const old = priced && position.quote ? isOldQuote(position.quote.referenceAt) : false;
@@ -57,7 +61,16 @@ export function PositionsList({
                   </span>
                 );
               return (
-                <li key={`${position.accountId}-${position.assetId}`} className="border-t border-[var(--border)]">
+                <motion.li
+                  key={`${position.accountId}-${position.assetId}`}
+                  // As posições "sobem" ao entrar, uma depois da outra; no toque a linha encolhe de leve.
+                  initial={reduce ? false : { opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 22, delay: Math.min(index, 8) * 0.06 }}
+                  whileTap={{ scale: 0.985 }}
+                  className="border-t border-[var(--border)]"
+                >
                   <div className={`grid items-center gap-x-3 gap-y-1 px-4 py-3 sm:px-5 ${columns}`}>
                     <span className="min-w-0">
                       <span className="flex flex-wrap items-center gap-x-2">
@@ -96,12 +109,12 @@ export function PositionsList({
                     <span className={isWide ? 'text-right' : 'col-span-2 text-left'}>{result}</span>
                     {isWide && <span className="text-right text-sm font-semibold">{percent(sharePercent)}</span>}
                   </div>
-                </li>
+                </motion.li>
               );
             })}
           </ul>
         </>
       )}
-    </article>
+    </RiseArticle>
   );
 }

@@ -86,7 +86,7 @@ export default function GoalCard({
       exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.2 } }}
       transition={{ type: 'spring', stiffness: 170, damping: 17, delay: Math.min(index, 8) * 0.07 }}
       whileHover="hover"
-      className="grid min-w-0 scroll-mt-24 content-start gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4"
+      className="flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -167,7 +167,7 @@ export default function GoalCard({
         </p>
       )}
 
-      <div className="-mx-1 flex flex-wrap items-center gap-1 border-t border-[var(--border)] px-1 pt-2.5">
+      <div className="-mx-1 mt-auto flex flex-wrap items-center gap-1 border-t border-[var(--border)] px-1 pt-2.5">
         {goal.status === 'ACTIVE' && (
           <>
             <Button size="sm" onClick={onContribution}>

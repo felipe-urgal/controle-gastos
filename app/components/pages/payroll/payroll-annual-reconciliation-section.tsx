@@ -1,5 +1,6 @@
 'use client';
 
+import { RiseSection } from '@/app/components/ui/motion';
 import { useEffect, useState } from 'react';
 import { FaRedo } from 'react-icons/fa';
 
@@ -83,7 +84,7 @@ export function PayrollAnnualReconciliationSection({
   const years = Array.from({ length: 8 }, (_, index) => lastClosedYear - index);
 
   return (
-    <section className="ds-panel p-4 sm:p-5">
+    <RiseSection className="ds-panel p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">
@@ -300,7 +301,7 @@ export function PayrollAnnualReconciliationSection({
           </div>
         </>
       )}
-    </section>
+    </RiseSection>
   );
 }
 

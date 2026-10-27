@@ -30,6 +30,10 @@ export const pageBarButtonProps = { size: 'sm', className: 'sm:min-h-10' } as co
  * parar, enquanto uma barra de "prazo" se esgota por baixo. `'deal'` (Modelos): o título é "dado" como uma carta de baralho, girando e caindo no lugar.
  * `'spin'` (Recorrências): as letras giram uma volta completa, em sequência, como um ciclo que se repete.
  * `'climb'` (Metas): as letras sobem como degraus, uma mais alta que a outra, e uma barra de progresso se enche por baixo.
+ * `'zoom'` (Patrimônio): o título vem de longe, crescendo e se nitidificando, como uma visão geral que se aproxima.
+ * `'swing'` (Investimentos): o título balança como um pêndulo preso pelo canto de cima e se acalma.
+ * `'wave'` (Rendimentos): as letras sobem e descem em onda, uma depois da outra, até assentar.
+ * `'slam'` (Dívidas): o título despenca pesado do alto e amassa ao bater, com um tremor curto.
  * Sem `animated` a faixa é estática.
  */
 export default function PageBar({
@@ -40,7 +44,7 @@ export default function PageBar({
 }: {
   crumbs: Crumb[];
   actions?: ReactNode;
-  animated?: boolean | 'letters' | 'trail' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor' | 'deal' | 'spin' | 'climb';
+  animated?: boolean | 'letters' | 'trail' | 'focus' | 'flip' | 'stamp' | 'collide' | 'conveyor' | 'deal' | 'spin' | 'climb' | 'zoom' | 'swing' | 'wave' | 'slam';
   loading?: boolean;
 }) {
   const current = crumbs[crumbs.length - 1];
@@ -60,6 +64,10 @@ export default function PageBar({
   const deal = animated === 'deal';
   const spin = animated === 'spin';
   const climb = animated === 'climb';
+  const zoom = animated === 'zoom';
+  const swing = animated === 'swing';
+  const wave = animated === 'wave';
+  const slam = animated === 'slam';
 
   return (
     <header
@@ -123,6 +131,51 @@ export default function PageBar({
                 initial={reduceMotion ? false : { opacity: 0, x: -16, filter: 'blur(8px)', letterSpacing: '0.18em' }}
                 animate={{ opacity: 1, x: 0, filter: 'blur(0px)', letterSpacing: '-0.025em' }}
                 transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+              >
+                {current.label}
+              </motion.h1>
+            ) : zoom ? (
+              <motion.h1
+                className={`truncate ${pageTitleClassName} lg:text-xl`}
+                style={{ transformOrigin: 'left center' }}
+                initial={reduceMotion ? false : { scale: 0.3, opacity: 0, filter: 'blur(10px)' }}
+                animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
+                transition={{ type: 'spring', stiffness: 140, damping: 16 }}
+              >
+                {current.label}
+              </motion.h1>
+            ) : swing ? (
+              <motion.h1
+                className={`truncate ${pageTitleClassName} lg:text-xl`}
+                style={{ transformOrigin: '12% 0%' }}
+                initial={reduceMotion ? false : { rotate: -28, opacity: 0 }}
+                animate={{ rotate: 0, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 90, damping: 6, mass: 1.2 }}
+              >
+                {current.label}
+              </motion.h1>
+            ) : wave ? (
+              <h1 aria-label={current.label} className={`truncate ${pageTitleClassName} lg:text-xl`}>
+                {[...current.label].map((char, index) => (
+                  <motion.span
+                    key={index}
+                    aria-hidden="true"
+                    className="inline-block whitespace-pre"
+                    initial={reduceMotion ? false : { y: 0, opacity: 0 }}
+                    animate={reduceMotion ? { opacity: 1 } : { y: [0, -12, 6, -3, 0], opacity: 1 }}
+                    transition={{ duration: 0.9, delay: 0.05 + index * 0.04, ease: 'easeOut' }}
+                  >
+                    {char}
+                  </motion.span>
+                ))}
+              </h1>
+            ) : slam ? (
+              <motion.h1
+                className={`truncate ${pageTitleClassName} lg:text-xl`}
+                style={{ transformOrigin: '50% 100%' }}
+                initial={reduceMotion ? false : { y: -90, opacity: 0, scaleY: 1.4 }}
+                animate={reduceMotion ? { opacity: 1 } : { y: [-90, 0, -8, 0], scaleY: [1.4, 0.7, 1.05, 1], opacity: 1, x: [0, 0, -4, 3, 0] }}
+                transition={{ duration: 0.7, ease: 'easeIn', times: [0, 0.5, 0.75, 1] }}
               >
                 {current.label}
               </motion.h1>

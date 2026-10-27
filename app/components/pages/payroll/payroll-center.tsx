@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence, motion } from 'framer-motion';
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -341,7 +342,7 @@ export default function PayrollCenter() {
   return (
     <ProtectedRoute>
       <PageContainer as="section">
-        <PageTitle title="Rendimentos do trabalho" sidebarAligned actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
+        <PageTitle title="Rendimentos do trabalho" sidebarAligned animated="wave" actions={<ShowFrom breakpoint="lg">{headerControls}</ShowFrom>} />
         <ShowBelow breakpoint="lg">
           <div className="mt-4">{headerControls}</div>
         </ShowBelow>
@@ -352,13 +353,22 @@ export default function PayrollCenter() {
             ['BANK', 'Conciliação bancária'],
             ['ANNUAL', 'Anual / IR'],
           ] as const).map(([value, label]) => (
-            <Chip key={value} selected={activeTab === value} onClick={() => setActiveTab(value)}>
+            <Chip key={value} layoutId="payroll-tab" selected={activeTab === value} onClick={() => setActiveTab(value)}>
               {label}
             </Chip>
           ))}
         </ChipRow>
 
-        <div className="mt-4 space-y-5">
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={activeTab === 'MONTHLY' ? `${activeTab}-${monthlyYear}` : activeTab}
+          className="mt-4 space-y-5"
+          // Trocar de área desliza o conteúdo de lado: sai para a esquerda e o novo entra pela direita.
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -40 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        >
           {activeTab === 'MONTHLY' && (
             <div className="space-y-5">
               {feedback && !showImporter && (
@@ -458,7 +468,8 @@ export default function PayrollCenter() {
               />
             </div>
           )}
-        </div>
+        </motion.div>
+        </AnimatePresence>
         {confirmationModal}
       </PageContainer>
     </ProtectedRoute>
