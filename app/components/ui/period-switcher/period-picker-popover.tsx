@@ -85,7 +85,7 @@ export function PeriodPickerPopover({
           initial={reduce ? false : { opacity: 0, y: -6, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.15 }}
-          className="absolute left-1/2 top-full z-30 mt-2 w-[17rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-3 shadow-[var(--shadow-surface)]"
+          className="absolute left-1/2 top-full z-[var(--z-popover)] mt-2 w-[17rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-raised)] p-3 shadow-[var(--shadow-surface)]"
         >
           <div className="mb-2 flex items-center justify-between">
             <button
