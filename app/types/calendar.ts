@@ -18,7 +18,10 @@ export type CalendarEventSourceKind =
   | 'CARD_PAYMENT'
   | 'CARD_STATEMENT'
   | 'DEBT_INSTALLMENT'
-  | 'GOAL_DEADLINE';
+  | 'GOAL_DEADLINE'
+  | 'INVESTMENT_BUY'
+  | 'INVESTMENT_SELL'
+  | 'INVESTMENT_INCOME';
 
 export type CalendarEventDirection =
   | 'INCOME'
@@ -64,6 +67,24 @@ export type CalendarApiDay = {
   events: CalendarEvent[];
 };
 
+/** Eventos de investimento são informativos: ficam fora dos totais financeiros do dia e do mês. */
+export const INVESTMENT_EVENT_KINDS: readonly CalendarEventSourceKind[] = [
+  'INVESTMENT_BUY',
+  'INVESTMENT_SELL',
+  'INVESTMENT_INCOME',
+];
+
+export function isInvestmentEvent(event: Pick<CalendarEvent, 'sourceKind'>) {
+  return INVESTMENT_EVENT_KINDS.includes(event.sourceKind);
+}
+
+export type CalendarInvestmentIncome = {
+  currency: SupportedCurrency;
+  /** Soma dos rendimentos líquidos recebidos no mês, em centavos. */
+  amount: number;
+  count: number;
+};
+
 export type CalendarReadModel = {
   period: {
     year: number;
@@ -73,6 +94,8 @@ export type CalendarReadModel = {
   accountId: string | null;
   days: CalendarApiDay[];
   summary: CurrencyFinancialSummary[];
+  /** Proventos do mês por moeda; nunca soma moedas diferentes. */
+  investmentIncome: CalendarInvestmentIncome[];
   commitments: CalendarEvent[];
   commitmentCount: number;
   overdueCount: number;

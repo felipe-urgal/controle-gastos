@@ -265,4 +265,42 @@ describe('calendar read model integration', () => {
     expect(data.days.flatMap((day) => day.events)).toHaveLength(1001);
     expect(data.summary).toEqual([]);
   });
+
+  it('shows investment events and monthly proceeds without touching financial totals', async () => {
+    const owner = await fixtures.user({ name: 'Calendar Investor' });
+    const [broker, other] = await Promise.all([
+      fixtures.account(owner.id, { name: 'Corretora', type: 'INVESTMENT', currency: 'BRL' }),
+      fixtures.account(owner.id, { name: 'Outra corretora', type: 'INVESTMENT', currency: 'BRL' }),
+    ]);
+    const asset = await prisma.investmentAsset.create({
+      data: { symbol: 'MXRF11', type: 'FII', currency: 'BRL', market: 'B3', userId: owner.id },
+    });
+    const base = { userId: owner.id, assetId: asset.id, year: 2028, month: 5 };
+    await prisma.investmentOperation.create({
+      data: { ...base, accountId: broker.id, type: 'BUY', quantityUnits: BigInt(100) * BigInt(100_000_000), unitPriceCents: 1000, feesCents: 50, day: 3 },
+    });
+    await prisma.investmentIncome.createMany({
+      data: [
+        { ...base, accountId: broker.id, type: 'DIVIDEND', quantityUnits: BigInt(100), unitValueCents: 10, netAmountCents: 1_000, day: 10 },
+        { ...base, accountId: other.id, type: 'INTEREST', quantityUnits: BigInt(50), unitValueCents: 10, netAmountCents: 500, day: 12 },
+        { ...base, month: 6, accountId: broker.id, type: 'DIVIDEND', quantityUnits: BigInt(100), unitValueCents: 10, netAmountCents: 9_999, day: 1 },
+      ],
+    });
+
+    const all = await getCalendarForUser(owner.id, { year: 2028, month: 5 }, new Date('2028-05-01T12:00:00Z'));
+    const kinds = all.days.flatMap((day) => day.events.map((event) => event.sourceKind));
+    expect(kinds.sort()).toEqual(['INVESTMENT_BUY', 'INVESTMENT_INCOME', 'INVESTMENT_INCOME']);
+    const buy = all.days.flatMap((day) => day.events).find((event) => event.sourceKind === 'INVESTMENT_BUY');
+    // 100 cotas x R$ 10,00 + R$ 0,50 de taxas, exibido como saída.
+    expect(buy).toMatchObject({ amount: 100_050, direction: 'EXPENSE' });
+    expect(all.investmentIncome).toEqual([{ currency: 'BRL', amount: 1_500, count: 2 }]);
+    // Informativo: não entra nos totais realizados nem na agenda de compromissos.
+    expect(all.summary).toEqual([]);
+    expect(all.days.every((day) => day.summaries.length === 0)).toBe(true);
+    expect(all.commitments).toEqual([]);
+
+    const filtered = await getCalendarForUser(owner.id, { year: 2028, month: 5, accountId: other.id }, new Date('2028-05-01T12:00:00Z'));
+    expect(filtered.investmentIncome).toEqual([{ currency: 'BRL', amount: 500, count: 1 }]);
+    expect(filtered.days.flatMap((day) => day.events)).toHaveLength(1);
+  });
 });

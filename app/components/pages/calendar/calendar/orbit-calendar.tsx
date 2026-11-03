@@ -23,9 +23,11 @@ import { useCalendar } from '@/app/hooks/calendar/use-calendar';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { summarizeCommitments, type CommitmentTotals } from '@/app/lib/calendar/commitment-totals';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import type {
-  CalendarDay,
-  CalendarEvent,
+import {
+  isInvestmentEvent,
+  type CalendarDay,
+  type CalendarEvent,
+  type CalendarInvestmentIncome,
 } from '@/app/types/calendar';
 import type { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 
@@ -72,6 +74,9 @@ function eventKindLabel(event: CalendarEvent) {
   if (event.sourceKind === 'CARD_STATEMENT') return 'Fatura do cartão';
   if (event.sourceKind === 'DEBT_INSTALLMENT') return 'Parcela de dívida';
   if (event.sourceKind === 'GOAL_DEADLINE') return 'Marco de meta';
+  if (event.sourceKind === 'INVESTMENT_BUY') return 'Compra de ativo';
+  if (event.sourceKind === 'INVESTMENT_SELL') return 'Venda de ativo';
+  if (event.sourceKind === 'INVESTMENT_INCOME') return 'Provento recebido';
   if (event.seriesType === 'RECURRING') return 'Recorrência';
   if (event.seriesType === 'INSTALLMENT') return 'Parcela';
   return event.direction === 'INCOME' ? 'Receita' : 'Despesa';
@@ -79,6 +84,7 @@ function eventKindLabel(event: CalendarEvent) {
 
 function eventStatusLabel(event: CalendarEvent) {
   if (event.commitmentState === 'OVERDUE') return 'Vencido';
+  if (isInvestmentEvent(event)) return 'Realizado';
   if (event.direction === 'MILESTONE') return 'Marco';
   if (event.status === 'CANCELLED') return 'Cancelado';
   if (event.status === 'PENDING') return 'Pendente';
@@ -122,6 +128,7 @@ export default function OrbitCalendar() {
     calendarDays,
     isLoading,
     summary,
+    investmentIncome,
     commitments,
     commitmentCount,
     overdueCount,
@@ -143,10 +150,24 @@ export default function OrbitCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
+  // Investimentos são informativos; o chip só aparece quando o mês tem algum.
+  const [showInvestments, setShowInvestments] = useState(true);
+  const hasInvestmentEvents = useMemo(
+    () => calendarDays.some((day) => day.events.some(isInvestmentEvent)),
+    [calendarDays],
+  );
+  const visibleDays = useMemo(
+    () =>
+      showInvestments
+        ? calendarDays
+        : calendarDays.map((day) => ({ ...day, events: day.events.filter((event) => !isInvestmentEvent(event)) })),
+    [calendarDays, showInvestments],
+  );
+
   const displayDate = selectedDate ?? currentDate;
   const selectedDay = useMemo(
-    () => dayForDate(calendarDays, displayDate),
-    [calendarDays, displayDate],
+    () => dayForDate(visibleDays, displayDate),
+    [visibleDays, displayDate],
   );
   const totals = useMemo(() => summarizeCommitments(commitments), [commitments]);
 
@@ -208,6 +229,20 @@ export default function OrbitCalendar() {
           />
         </div>
       )}
+      {hasInvestmentEvents && (
+        <button
+          type="button"
+          aria-pressed={showInvestments}
+          onClick={() => setShowInvestments((value) => !value)}
+          className={`inline-flex h-10 items-center rounded-[var(--radius-md)] border px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+            showInvestments
+              ? 'border-[var(--primary)] bg-[var(--primary-subtle)] text-[var(--primary)]'
+              : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
+          }`}
+        >
+          Investimentos
+        </button>
+      )}
     </motion.div>
   );
 
@@ -233,6 +268,7 @@ export default function OrbitCalendar() {
       <CalendarSummary
         isLoading={isLoading}
         balances={summary}
+        investmentIncome={investmentIncome}
         totals={totals}
         overdueCount={overdueCount}
         showValues={showValues}
@@ -253,7 +289,7 @@ export default function OrbitCalendar() {
         transition={{ type: 'spring', stiffness: 100, damping: 18, mass: 1.1, delay: 0.15 }}
       >
         <MonthGrid
-          calendarDays={calendarDays}
+          calendarDays={visibleDays}
           selectedDate={displayDate}
           isLoading={isLoading}
           isDesktop={isDesktop}
@@ -299,12 +335,14 @@ function money(value: number, currency: CommitmentTotals['currency'], showValues
 function CalendarSummary({
   isLoading,
   balances,
+  investmentIncome,
   totals,
   overdueCount,
   showValues,
 }: {
   isLoading: boolean;
   balances: CurrencyFinancialSummary[];
+  investmentIncome: CalendarInvestmentIncome[];
   totals: CommitmentTotals[];
   overdueCount: number;
   showValues: boolean;
@@ -344,12 +382,21 @@ function CalendarSummary({
           tone: 'text-[var(--income)]',
         })),
     },
+    {
+      label: 'Proventos do mês',
+      rows: investmentIncome.map((item) => ({
+        key: item.currency,
+        amount: item.amount,
+        currency: item.currency,
+        tone: 'text-[var(--income)]',
+      })),
+    },
   ];
   const withoutAmount = totals.reduce((sum, total) => sum + total.withoutAmount, 0);
 
   return (
     <section className="my-4 grid gap-2 lg:my-5" aria-label="Resumo do calendário">
-      <div className="grid grid-cols-3 gap-2 lg:gap-3">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3">
         {metrics.map((metric, index) => (
           <motion.article
             key={metric.label}
