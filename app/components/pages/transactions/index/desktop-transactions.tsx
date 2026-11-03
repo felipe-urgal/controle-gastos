@@ -10,7 +10,7 @@ import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/tr
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
 import { MonthBar, TimelineGroup, TimelineOrder, compactMonth, displayMoney, formatTransactionAmount, formatTransactionTime, monthTitle, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
-import { CompleteTransactionButton, canCompleteFromList } from '@/app/components/pages/transactions/index/complete-transaction-button';
+import { TransactionStatusMenu, canChangeStatusFromList } from '@/app/components/pages/transactions/index/transaction-status-menu';
 import { StatusPill } from '@/app/components/pages/transactions/index/transaction-dialogs';
 
 type SummaryTone = 'income' | 'expense' | 'primary' | 'scheduled';
@@ -372,8 +372,8 @@ export function TimelineTransactionRow({
         <span className="text-xs text-[var(--text-muted)]">{formatTransactionTime(transaction)}</span>
       </span>
       <span className="col-start-2 row-start-3 justify-self-start sm:col-start-auto sm:row-start-auto sm:justify-self-center">
-        {canCompleteFromList(transaction)
-          ? <CompleteTransactionButton transaction={transaction} onCompleted={onCompleted} />
+        {canChangeStatusFromList(transaction)
+          ? <TransactionStatusMenu transaction={transaction} onChanged={onCompleted} />
           : transaction.status !== 'COMPLETED' && <StatusPill status={transaction.status} />}
       </span>
       <FaChevronRight className="col-start-3 row-start-1 justify-self-center text-xs text-[var(--text-muted)] sm:col-start-auto sm:row-start-auto" aria-hidden="true" />

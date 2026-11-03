@@ -1,6 +1,6 @@
 'use client';
 
-import { CompleteTransactionButton, canCompleteFromList } from '@/app/components/pages/transactions/index/complete-transaction-button';
+import { TransactionStatusMenu, canChangeStatusFromList } from '@/app/components/pages/transactions/index/transaction-status-menu';
 import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaFilter } from 'react-icons/fa';
@@ -439,9 +439,12 @@ export function MobileTransactionRow({
 
       <span className="min-w-[86px] text-right">
         <strong className={`money block text-xs ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
-        {canCompleteFromList(transaction) ? (
-          <span className="mt-1 flex justify-end">
-            <CompleteTransactionButton transaction={transaction} onCompleted={onCompleted} />
+        {canChangeStatusFromList(transaction) ? (
+          <span className="mt-1 flex items-center justify-end gap-2">
+            {transaction.status === 'COMPLETED' && (
+              <span className="text-xs text-[var(--text-muted)]">{formatTransactionTime(transaction)}</span>
+            )}
+            <TransactionStatusMenu transaction={transaction} onChanged={onCompleted} compact />
           </span>
         ) : (
           <span className="mt-1 block text-xs text-[var(--text-muted)]">
