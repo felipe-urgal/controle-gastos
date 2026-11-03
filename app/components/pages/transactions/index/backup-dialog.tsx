@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { ModalShell } from '@/app/components/overlays/modal-shell';
-import { Button } from '@/app/components/ui';
+import { Button, Input } from '@/app/components/ui';
 import { PeriodPicker, formatBrDate, usePeriodRange } from '@/app/components/pages/transactions/index/period-picker';
 import { transactionService, type BackupRestoreSummary } from '@/app/services/transaction-service';
 
@@ -31,7 +31,6 @@ export function BackupDialog({
   onRestored: () => void;
 }) {
   const picker = usePeriodRange(month, year);
-  const fileInput = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
   const [exported, setExported] = useState(false);
   const [backup, setBackup] = useState<unknown>(null);
@@ -124,17 +123,13 @@ export function BackupDialog({
           <p className="text-xs text-[var(--text-muted)]">
             O período é lido do arquivo. Contas e categorias que não existirem são criadas, e o que já foi restaurado antes não é duplicado.
           </p>
-          <input
-            ref={fileInput}
+          <Input
+            label="Arquivo de backup"
             type="file"
             accept="application/json,.json"
-            className="sr-only"
-            aria-label="Arquivo de backup"
+            disabled={busy}
             onChange={(event) => { void handleFile(event.target.files?.[0]); event.target.value = ''; }}
           />
-          <Button variant="outline" onClick={() => fileInput.current?.click()} disabled={busy} isLoading={analyzing}>
-            {fileName ? 'Escolher outro arquivo' : 'Escolher arquivo de backup'}
-          </Button>
 
           {summary && (
             <div className="space-y-3">
