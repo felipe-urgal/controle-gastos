@@ -6,7 +6,7 @@ import { ListPageHeader } from '@/app/components/base-pages';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaFileImport, FaFilter, FaWallet } from 'react-icons/fa';
+import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaFileImport, FaDatabase, FaFilter, FaTrash, FaWallet } from 'react-icons/fa';
 
 import { Button, Chip, ChipRow, CurrencySelect, PeriodSwitcher } from '@/app/components/ui';
 import { ProtectedRoute } from '@/app/components/layout';
@@ -24,6 +24,8 @@ import type { CurrencyFinancialSummary, SupportedCurrency } from '@/app/types/fi
 import type { MerchantDTO } from '@/app/types/merchant';
 
 import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilter, REFINEMENT_FILTER_KEYS, TIMELINE_INCREMENT, TimelineOrder, buildMonthBars, buildTimelineGroups, displayMoney, formatTrend, percentageChange, selectSummary, shiftPeriod, todayDateKey, transactionDateKey, usePreviousSummary } from '@/app/components/pages/transactions/index/transactions-view-helpers';
+import { BackupDialog } from '@/app/components/pages/transactions/index/backup-dialog';
+import { ClearPeriodDialog } from '@/app/components/pages/transactions/index/clear-period-dialog';
 import { FilterDialog, TagFilterField } from '@/app/components/pages/transactions/index/transaction-dialogs';
 import { MobileTransactionsPrototype2 } from '@/app/components/pages/transactions/index/mobile-transactions';
 import { MonthOverview, MonthSummaryCard, MovementTimeline, UpcomingTransactions } from '@/app/components/pages/transactions/index/desktop-transactions';
@@ -53,6 +55,7 @@ export default function OrbitTransactions() {
     total,
     hasMore,
     loadMore,
+    refetch,
   } = useTransactions({
     pagination: true,
     appendPagination: true,
@@ -66,6 +69,8 @@ export default function OrbitTransactions() {
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
   const isTabletUp = useMediaQuery('(min-width: 640px)');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [clearPeriodOpen, setClearPeriodOpen] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
   const [filtersOrigin, setFiltersOrigin] = useState<{ x: number; y: number } | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<TimelineOrder>('newest');
   const [mobileQuickFilter, setMobileQuickFilter] = useState<MobileQuickFilter>('all');
@@ -304,7 +309,11 @@ export default function OrbitTransactions() {
   return (
     <ProtectedRoute>
       <ListPageHeader animated="letters" loading={loading} title="Transações" createHref="/transacoes/nova" createLabel="Nova transação"
-        secondary={{ href: '/transacoes/importar', label: 'Importar', icon: <FaFileImport aria-hidden="true" /> }} />
+        secondary={{ href: '/transacoes/importar', label: 'Importar', icon: <FaFileImport aria-hidden="true" /> }}
+        actions={[
+          { label: 'Backup', icon: <FaDatabase aria-hidden="true" />, onClick: () => setBackupOpen(true) },
+          { label: 'Limpar período', icon: <FaTrash aria-hidden="true" />, onClick: () => setClearPeriodOpen(true), destructive: true },
+        ]} />
       {error && (
         <div role="alert" className="mb-4 rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm font-semibold text-[var(--expense)]">
           {error}. Tente novamente ou altere o período/filtros.
@@ -502,6 +511,31 @@ export default function OrbitTransactions() {
           />
         )}
       </AnimatePresence>
+
+      {backupOpen && (
+        <BackupDialog
+          month={month}
+          year={year}
+          accountId={filters.accountId || undefined}
+          accountName={accounts.find((account) => account.id === filters.accountId)?.name}
+          onClose={() => setBackupOpen(false)}
+          onRestored={() => void refetch()}
+        />
+      )}
+
+      {clearPeriodOpen && (
+        <ClearPeriodDialog
+          month={month}
+          year={year}
+          accountId={filters.accountId || undefined}
+          accountName={accounts.find((account) => account.id === filters.accountId)?.name}
+          onClose={() => setClearPeriodOpen(false)}
+          onCleared={() => {
+            setClearPeriodOpen(false);
+            void refetch();
+          }}
+        />
+      )}
 
     </ProtectedRoute>
   );

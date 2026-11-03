@@ -8,7 +8,7 @@ export type ReconciliationStatus = "UNCLEARED" | "CLEARED" | "RECONCILED";
 
 export type TransactionKind = "NORMAL" | "TRANSFER" | "CARD_PAYMENT" | "OPENING_BALANCE";
 
-export type TransactionImportSource = "CSV" | "OFX" | "QIF" | "XLSX";
+export type TransactionImportSource = "CSV" | "OFX" | "QIF" | "XLSX" | "BACKUP";
 
 export type TransferRole = "SOURCE" | "DESTINATION";
 

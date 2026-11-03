@@ -1,7 +1,7 @@
 import type { MerchantAliasOperator } from "@/app/types/merchant-alias";
 
 export type TransactionImportType = "INCOME" | "EXPENSE";
-export type TransactionImportSource = "CSV" | "OFX" | "QIF" | "XLSX";
+export type TransactionImportSource = "CSV" | "OFX" | "QIF" | "XLSX" | "BACKUP";
 export type TransactionImportQifDateOrder = "MDY" | "DMY";
 
 export type TransactionImportPreviewItem = {
