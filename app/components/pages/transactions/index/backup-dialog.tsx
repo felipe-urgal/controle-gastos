@@ -114,7 +114,10 @@ export function BackupDialog({
             {formatBrDate(picker.range.from)} a {formatBrDate(picker.range.to)} · {accountName ?? 'Todas as contas'}.
             Inclui transferências, pagamentos de fatura, tags e rateios.
           </p>
-          <Button onClick={handleExport} disabled={!picker.valid || busy} isLoading={exporting}>Exportar backup</Button>
+          <Button onClick={handleExport} disabled={!picker.valid || busy} isLoading={exporting}>Exportar backup (ZIP)</Button>
+          <p className="text-xs text-[var(--text-muted)]">
+            O ZIP traz o JSON (backup completo, restaurável) e o CSV (para abrir em planilha, não restaurável).
+          </p>
           {exported && <p role="status" className="text-sm text-[var(--income)]">Backup exportado.</p>}
         </section>
 

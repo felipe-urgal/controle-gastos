@@ -1,3 +1,4 @@
+import { inflateRawSync } from "node:zlib";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
@@ -104,8 +105,30 @@ async function exportPeriod(accountId?: string) {
   const qs = new URLSearchParams({ from: "2026-09-01", to: "2026-09-30", ...(accountId ? { accountId } : {}) });
   const response = await exportBackup(new Request(`http://localhost/api/transactions/backup?${qs}`));
   expect(response.status).toBe(200);
-  expect(response.headers.get("content-disposition")).toContain("backup-transacoes-2026-09-01_a_2026-09-30.json");
-  return response.text();
+  expect(response.headers.get("content-disposition")).toContain("backup-transacoes-2026-09-01_a_2026-09-30.zip");
+  const entries = readZipTexts(Buffer.from(await response.arrayBuffer()));
+  expect([...entries.keys()]).toEqual([
+    "backup-transacoes-2026-09-01_a_2026-09-30.json",
+    "backup-transacoes-2026-09-01_a_2026-09-30.csv",
+  ]);
+  const csv = entries.get("backup-transacoes-2026-09-01_a_2026-09-30.csv")!;
+  expect(csv.startsWith("\uFEFF\"ref\",\"date\",\"amountCents\"")).toBe(true);
+  return entries.get("backup-transacoes-2026-09-01_a_2026-09-30.json")!;
+}
+
+/** Lê os arquivos de um ZIP gerado por `createZip` (entradas sequenciais, deflate). */
+function readZipTexts(zip: Buffer) {
+  const entries = new Map<string, string>();
+  let offset = 0;
+  while (zip.readUInt32LE(offset) === 0x04034b50) {
+    const packedSize = zip.readUInt32LE(offset + 18);
+    const nameLength = zip.readUInt16LE(offset + 26);
+    const start = offset + 30 + nameLength;
+    const name = zip.subarray(offset + 30, start).toString("utf8");
+    entries.set(name, inflateRawSync(zip.subarray(start, start + packedSize)).toString("utf8"));
+    offset = start + packedSize;
+  }
+  return entries;
 }
 
 async function snapshot(userId: string) {

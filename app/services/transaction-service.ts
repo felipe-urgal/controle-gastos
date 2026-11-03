@@ -133,7 +133,7 @@ export const transactionService = {
     });
   },
 
-  /** Baixa o backup JSON do período (o servidor define o nome do arquivo). */
+  /** Baixa o ZIP do período com o backup JSON (restaurável) e o CSV (planilha). */
   async downloadBackup(query: { from: string; to: string; accountId?: string }): Promise<void> {
     const params = new URLSearchParams({ from: query.from, to: query.to });
     if (query.accountId) params.set("accountId", query.accountId);
@@ -157,7 +157,7 @@ export const transactionService = {
     const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = objectUrl;
-    link.download = `backup-transacoes-${query.from}_a_${query.to}.json`;
+    link.download = `backup-transacoes-${query.from}_a_${query.to}.zip`;
     document.body.appendChild(link);
     link.click();
     link.remove();
