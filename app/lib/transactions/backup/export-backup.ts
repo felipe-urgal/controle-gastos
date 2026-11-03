@@ -2,6 +2,7 @@ import { failure } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
+import { escapeCsvField, formatExportDate } from "@/app/lib/export/user-data-export";
 import { prisma } from "@/app/lib/prisma";
 import {
   BACKUP_FORMAT,
@@ -9,6 +10,7 @@ import {
   BACKUP_VERSION,
   type Backup,
 } from "@/app/lib/transactions/backup/backup-format";
+import { createZip } from "@/app/lib/transactions/backup/zip";
 import { periodRangeSchema, periodRangeWhere } from "@/app/lib/transactions/period-range";
 
 const transactionSelect = {
@@ -166,6 +168,51 @@ export async function buildBackup(userId: string, input: unknown): Promise<Backu
   });
 }
 
+const BACKUP_CSV_HEADERS = [
+  "ref",
+  "date",
+  "amountCents",
+  "currency",
+  "type",
+  "kind",
+  "status",
+  "account",
+  "category",
+  "merchant",
+  "tags",
+  "allocations",
+  "transferRef",
+  "transferRole",
+  "description",
+] as const;
+
+/** Planilha somente leitura: não é restaurável (use o JSON para isso). */
+export function serializeBackupCsv(backup: Backup) {
+  const currencyByAccount = new Map(backup.accounts.map((account) => [account.name, account.currency]));
+  const rows = backup.transactions.map((transaction) =>
+    [
+      transaction.ref,
+      formatExportDate(transaction.year, transaction.month, transaction.day),
+      transaction.amount,
+      currencyByAccount.get(transaction.account) ?? null,
+      transaction.type,
+      transaction.kind,
+      transaction.status,
+      transaction.account,
+      transaction.category?.name ?? null,
+      transaction.merchant,
+      transaction.tags.map((tag) => "#" + tag).join(" "),
+      transaction.allocations.map((item) => `${item.category.name}: ${item.amount}`).join("; "),
+      transaction.transferRef,
+      transaction.transferRole,
+      transaction.description,
+    ]
+      .map((value) => escapeCsvField(value))
+      .join(","),
+  );
+  return [BACKUP_CSV_HEADERS.map((value) => escapeCsvField(value)).join(","), ...rows].join("\r\n");
+}
+
 export async function exportBackup(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
@@ -176,11 +223,19 @@ export async function exportBackup(request: Request) {
       accountId: params.get("accountId") || undefined,
     });
 
-    return new Response(JSON.stringify(backup), {
+    const fileName = `backup-transacoes-${backup.period.from}_a_${backup.period.to}`;
+
+    // ZIP com o JSON (restaurável) e o CSV (planilha, somente leitura).
+    const zip = createZip([
+      { name: `${fileName}.json`, content: JSON.stringify(backup) },
+      { name: `${fileName}.csv`, content: "\uFEFF" + serializeBackupCsv(backup) },
+    ]);
+
+    return new Response(new Uint8Array(zip), {
       status: 200,
       headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Content-Disposition": `attachment; filename="backup-transacoes-${backup.period.from}_a_${backup.period.to}.json"`,
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${fileName}.zip"`,
         "Cache-Control": "private, no-store, max-age=0",
       },
     });
