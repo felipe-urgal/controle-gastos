@@ -28,6 +28,7 @@ export function MobileTransactionsPrototype2({
   onMovePeriod,
   onSelectPeriod,
   onTransactionCompleted,
+  pending,
   onOpenFilters,
   onQuickFilterChange,
   onShowPending,
@@ -48,6 +49,8 @@ export function MobileTransactionsPrototype2({
   onMovePeriod: (offset: number) => void;
   onSelectPeriod: (month: number, year: number) => void;
   onTransactionCompleted: () => void;
+  /** Lançamentos pendentes do mês (qualquer data), na moeda do resumo. `partial`: ainda há páginas por carregar. */
+  pending: { income: number; expense: number; count: number; partial: boolean };
   onOpenFilters: () => void;
   onQuickFilterChange: (filter: MobileQuickFilter) => void;
   onShowPending: () => void;
@@ -191,6 +194,24 @@ export function MobileTransactionsPrototype2({
             </div>
           </div>
         </div>
+
+        {pending.count > 0 && !summaryLoading && (
+          <div className={`mt-4 border-t border-[var(--border)] pt-3 transition-opacity duration-150 ${dim}`}>
+            <p className="text-xs text-[var(--text-muted)]">
+              Pendentes · {pending.count}{pending.partial ? '+' : ''} {pending.count === 1 && !pending.partial ? 'lançamento' : 'lançamentos'} · fora do saldo
+            </p>
+            <div className="mt-1 grid grid-cols-2 gap-3 text-sm">
+              <span className="min-w-0">
+                <span className="text-xs text-[var(--text-muted)]">A receber </span>
+                <strong className="money tabular-nums text-[var(--income)]">{displayMoney(pending.income, showValues, summary.currency)}</strong>
+              </span>
+              <span className="min-w-0">
+                <span className="text-xs text-[var(--text-muted)]">A pagar </span>
+                <strong className="money tabular-nums text-[var(--expense)]">{displayMoney(pending.expense, showValues, summary.currency)}</strong>
+              </span>
+            </div>
+          </div>
+        )}
       </section>
 
       <div>

@@ -219,6 +219,22 @@ export default function OrbitTransactions() {
     0,
   );
 
+  // Todos os pendentes carregados do mês (inclusive vencidos), sem somar moedas diferentes.
+  const pendingTotals = useMemo(() => {
+    const pending = transactions.filter(
+      (transaction) =>
+        transaction.status === 'PENDING' &&
+        transaction.kind === 'NORMAL' &&
+        transaction.account.currency === currentSummary.currency,
+    );
+    return {
+      count: pending.length,
+      income: pending.filter((item) => item.type === 'INCOME').reduce((sum, item) => sum + item.amount, 0),
+      expense: pending.filter((item) => item.type === 'EXPENSE').reduce((sum, item) => sum + item.amount, 0),
+      partial: hasMore,
+    };
+  }, [currentSummary.currency, hasMore, transactions]);
+
   const quickScoped = useMemo(() => {
     const source = filters.status
       ? transactions
@@ -348,6 +364,7 @@ export default function OrbitTransactions() {
           onMovePeriod={movePeriod}
           onSelectPeriod={applyPeriod}
           onTransactionCompleted={() => void refetch()}
+          pending={pendingTotals}
           onOpenFilters={() => {
             setFiltersOrigin(null);
             setFiltersOpen(true);
