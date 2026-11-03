@@ -7,16 +7,24 @@ export type SafeToSpendAccount = {
   name: string;
   realizedBalance: number;
   pendingExpenses: number;
+  /** Receitas pendentes normais: só entram no saldo previsto, nunca no "livre para gastar". */
+  pendingIncome: number;
   transferNet: number;
   safeToSpend: number;
+  projectedBalance: number;
 };
 
 export type SafeToSpendResult = {
   realizedBalance: number;
   pendingExpenses: number;
+  pendingIncome: number;
+  /** Parte de `pendingIncome` que já venceu e ainda não foi recebida. */
+  overdueIncome: number;
   cardCommitments: number;
   transferNet: number;
   safeToSpend: number;
+  /** Saldo realizado com tudo o que está pendente acontecendo (receitas, despesas, faturas e transferências). */
+  projectedBalance: number;
   accounts: SafeToSpendAccount[];
 };
 
@@ -36,12 +44,16 @@ export function buildSafeToSpend(args: {
       name: account.name,
       realizedBalance: account.realizedBalance,
       pendingExpenses: 0,
+      pendingIncome: 0,
       transferNet: 0,
       safeToSpend: account.realizedBalance,
+      projectedBalance: account.realizedBalance,
     }));
 
   const byAccount = new Map(accounts.map((account) => [account.id, account]));
+  const overdueIds = new Set(args.forecast.overdue.map((item) => item.id));
   const pendingItems = [...args.forecast.overdue, ...args.forecast.upcoming];
+  let overdueIncome = 0;
 
   for (const item of pendingItems) {
     if (item.status !== "PENDING") continue;
@@ -55,6 +67,12 @@ export function buildSafeToSpend(args: {
       continue;
     }
 
+    if (kind === "NORMAL" && item.type === "INCOME") {
+      account.pendingIncome += item.amount;
+      if (overdueIds.has(item.id)) overdueIncome += item.amount;
+      continue;
+    }
+
     if (kind === "TRANSFER") {
       account.transferNet += signedAmount(item.type, item.amount);
     }
@@ -63,6 +81,7 @@ export function buildSafeToSpend(args: {
   for (const account of accounts) {
     account.safeToSpend =
       account.realizedBalance - account.pendingExpenses + account.transferNet;
+    account.projectedBalance = account.safeToSpend + account.pendingIncome;
   }
 
   const realizedBalance = accounts.reduce(
@@ -71,6 +90,10 @@ export function buildSafeToSpend(args: {
   );
   const pendingExpenses = accounts.reduce(
     (sum, account) => sum + account.pendingExpenses,
+    0,
+  );
+  const pendingIncome = accounts.reduce(
+    (sum, account) => sum + account.pendingIncome,
     0,
   );
   const transferNet = accounts.reduce(
@@ -85,10 +108,18 @@ export function buildSafeToSpend(args: {
   return {
     realizedBalance,
     pendingExpenses,
+    pendingIncome,
+    overdueIncome,
     cardCommitments,
     transferNet,
     safeToSpend:
       realizedBalance - pendingExpenses - cardCommitments + transferNet,
+    projectedBalance:
+      realizedBalance +
+      pendingIncome -
+      pendingExpenses -
+      cardCommitments +
+      transferNet,
     accounts,
   };
 }
