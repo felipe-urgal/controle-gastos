@@ -270,7 +270,7 @@ function SafeToSpendCard({
         </strong>
       </div>
 
-      <dl className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <dl className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
           <dt className="text-xs text-[var(--text-muted)]">Saldo realizado</dt>
           <dd className="mt-1 font-semibold text-[var(--foreground)]">
@@ -278,7 +278,7 @@ function SafeToSpendCard({
           </dd>
         </div>
         <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
-          <dt className="text-xs text-[var(--text-muted)]">Pendências</dt>
+          <dt className="text-xs text-[var(--text-muted)]">Despesas pendentes</dt>
           <dd className="mt-1 font-semibold text-[var(--expense)]">
             {safeToSpend.pendingExpenses > 0 ? '- ' : ''}
             <span className="money">{displayMoney(safeToSpend.pendingExpenses, showValues, currency)}</span>
@@ -305,6 +305,24 @@ function SafeToSpendCard({
             {transferLabel}
           </dd>
         </div>
+        <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
+          <dt className="text-xs text-[var(--text-muted)]">A receber (pendente)</dt>
+          <dd className="mt-1 font-semibold text-[var(--income)]">
+            {safeToSpend.pendingIncome > 0 ? '+ ' : ''}
+            <span className="money">{displayMoney(safeToSpend.pendingIncome, showValues, currency)}</span>
+            {safeToSpend.overdueIncome > 0 && (
+              <span className="block text-xs font-normal text-[var(--text-muted)]">
+                <span className="money">{displayMoney(safeToSpend.overdueIncome, showValues, currency)}</span> já vencido
+              </span>
+            )}
+          </dd>
+        </div>
+        <div className="rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3">
+          <dt className="text-xs text-[var(--text-muted)]">Saldo previsto</dt>
+          <dd className={`mt-1 font-semibold ${safeToSpend.projectedBalance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+            <span className="money">{displayMoney(safeToSpend.projectedBalance, showValues, currency)}</span>
+          </dd>
+        </div>
       </dl>
 
       {safeToSpend.accounts.length > 0 ? (
@@ -326,7 +344,7 @@ function SafeToSpendCard({
       ) : null}
 
       <p className="mt-3 text-xs leading-relaxed text-[var(--text-subtle)]">
-        Receitas futuras não são antecipadas. Metas, dívidas e contas de investimento só afetam este valor quando já existe um lançamento financeiro concreto.
+        O disponível para gastar não antecipa receitas; elas entram só no saldo previsto. Metas, dívidas e contas de investimento só afetam este valor quando já existe um lançamento financeiro concreto.
       </p>
     </article>
   );

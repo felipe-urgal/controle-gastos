@@ -1,14 +1,17 @@
 'use client';
 
 import type { MouseEvent, ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FaChevronDown } from 'react-icons/fa';
 
 export type ChipMenuItem = { key: string; label: string; onSelect: () => void };
 
 /**
  * Chip que abre um menu pequeno de opções. Feito para viver dentro de uma linha clicável (link):
- * os cliques não propagam e não navegam. Fecha ao escolher, ao clicar fora e com Esc.
+ * os cliques não propagam e não navegam. Fecha ao escolher, ao clicar fora, ao rolar e com Esc.
+ * O menu vai para o `body` (posição fixa): as linhas animadas criam contextos de empilhamento próprios
+ * e um menu absoluto ficaria por baixo das linhas seguintes.
  */
 export function ChipMenu({
   content,
@@ -27,21 +30,43 @@ export function ChipMenu({
   error?: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
   const rootRef = useRef<HTMLSpanElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLSpanElement>(null);
+
+  const place = useCallback(() => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const right = Math.max(8, window.innerWidth - rect.right);
+    // Perto do rodapé o menu abre para cima.
+    const opensUp = window.innerHeight - rect.bottom < items.length * 40 + 24 && rect.top > window.innerHeight / 2;
+    setPosition(
+      opensUp
+        ? { bottom: window.innerHeight - rect.top + 4, right }
+        : { top: rect.bottom + 4, right },
+    );
+  }, [items.length]);
 
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
     };
+    const close = () => setOpen(false);
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
     return () => {
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
     };
   }, [open]);
 
@@ -53,6 +78,7 @@ export function ChipMenu({
   return (
     <span ref={rootRef} className="relative inline-flex flex-col items-end" onClick={swallow}>
       <button
+        ref={triggerRef}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -60,6 +86,7 @@ export function ChipMenu({
         disabled={disabled}
         onClick={(event) => {
           swallow(event);
+          if (!open) place();
           setOpen((value) => !value);
         }}
         className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:cursor-wait disabled:opacity-60 ${
@@ -69,10 +96,12 @@ export function ChipMenu({
         {content}
         <FaChevronDown aria-hidden="true" className="text-xs" />
       </button>
-      {open && (
+      {open && position && createPortal(
         <span
+          ref={menuRef}
           role="menu"
-          className="absolute right-0 top-[calc(100%+4px)] z-[var(--z-popover)] grid min-w-[10.5rem] rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-1 text-left shadow-[var(--shadow-surface)]"
+          style={position}
+          className="fixed z-[var(--z-popover)] grid min-w-[10.5rem] rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-1 text-left shadow-[var(--shadow-surface)]"
         >
           {items.map((item) => (
             <button
@@ -90,6 +119,8 @@ export function ChipMenu({
             </button>
           ))}
         </span>
+      ,
+        document.body,
       )}
       {error && <span role="alert" className="mt-1 max-w-[12rem] text-right text-xs text-[var(--expense)]">{error}</span>}
     </span>

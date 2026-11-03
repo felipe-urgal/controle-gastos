@@ -145,11 +145,14 @@ export function SafeToSpendHero({
   const breakdown = safeToSpend
     ? [
         { label: 'Saldo realizado', value: money(safeToSpend.realizedBalance), sign: '', color: 'var(--text-subtle)' },
-        { label: 'Pendências conhecidas', value: money(safeToSpend.pendingExpenses), sign: safeToSpend.pendingExpenses > 0 ? '− ' : '', color: 'var(--warning)' },
+        { label: 'Despesas pendentes', value: money(safeToSpend.pendingExpenses), sign: safeToSpend.pendingExpenses > 0 ? '− ' : '', color: 'var(--warning)' },
         { label: 'Faturas em aberto', value: money(safeToSpend.cardCommitments), sign: safeToSpend.cardCommitments > 0 ? '− ' : '', color: 'var(--primary)' },
         ...(safeToSpend.transferNet !== 0
           ? [{ label: 'Transferências', value: money(Math.abs(safeToSpend.transferNet)), sign: safeToSpend.transferNet > 0 ? '+ ' : '− ', color: 'var(--info)' }]
           : []),
+        // Só entra no saldo previsto; o "disponível para gastar" não conta receita que ainda não chegou.
+        { label: 'A receber (pendente)', value: money(safeToSpend.pendingIncome), sign: safeToSpend.pendingIncome > 0 ? '+ ' : '', color: 'var(--income)' },
+        { label: 'Saldo previsto', value: money(safeToSpend.projectedBalance), sign: '= ', color: 'var(--foreground)' },
       ]
     : [];
   const barBase = safeToSpend ? safeToSpend.realizedBalance : 0;
@@ -217,6 +220,17 @@ export function SafeToSpendHero({
 
           {barParts.length > 0 && <SegmentedBar parts={barParts} money={money} />}
 
+          <p className="text-sm" aria-label="Saldo previsto">
+            <span className="text-[var(--text-muted)]">Saldo previsto até {horizonLabel}: </span>
+            <strong className={`money tabular-nums ${safeToSpend.projectedBalance < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>{money(safeToSpend.projectedBalance)}</strong>
+            {safeToSpend.pendingIncome > 0 && (
+              <span className="text-[var(--text-muted)]">
+                {' '}· com <span className="money">{money(safeToSpend.pendingIncome)}</span> a receber
+                {safeToSpend.overdueIncome > 0 && <> (<span className="money">{money(safeToSpend.overdueIncome)}</span> vencido)</>}
+              </span>
+            )}
+          </p>
+
           <details className="group">
             <motion.summary
               whileHover="hover"
@@ -249,7 +263,7 @@ export function SafeToSpendHero({
               ))}
             </dl>
             <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-              Receitas futuras não entram na conta; metas e dívidas só contam quando já viraram compromisso. Saldo de {cashAccounts.length} {cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}.
+              Receitas pendentes não entram no disponível para gastar, só no saldo previsto; metas e dívidas só contam quando já viraram compromisso. Saldo de {cashAccounts.length} {cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}.
             </p>
             <div className="flex flex-wrap gap-x-5">
               <SweepFill>

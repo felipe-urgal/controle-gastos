@@ -4,7 +4,7 @@ import { safeToSpendMargin, safeToSpendPerDay } from '@/app/components/pages/das
 import type { ForecastData } from '@/app/types/forecast';
 
 function result(realizedBalance: number, safeToSpend: number): ForecastData['safeToSpend'] {
-  return { realizedBalance, pendingExpenses: 0, cardCommitments: 0, transferNet: 0, safeToSpend, accounts: [] };
+  return { realizedBalance, pendingExpenses: 0, pendingIncome: 0, overdueIncome: 0, cardCommitments: 0, transferNet: 0, safeToSpend, projectedBalance: safeToSpend, accounts: [] };
 }
 
 describe('safeToSpendMargin', () => {

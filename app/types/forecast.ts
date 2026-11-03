@@ -54,16 +54,23 @@ export type ForecastSafeToSpendAccount = {
   name: string;
   realizedBalance: number;
   pendingExpenses: number;
+  pendingIncome: number;
   transferNet: number;
   safeToSpend: number;
+  projectedBalance: number;
 };
 
 export type ForecastSafeToSpend = {
   realizedBalance: number;
   pendingExpenses: number;
+  pendingIncome: number;
+  /** Parte de `pendingIncome` já vencida e não recebida. */
+  overdueIncome: number;
   cardCommitments: number;
   transferNet: number;
   safeToSpend: number;
+  /** Saldo previsto: realizado com receitas e despesas pendentes, faturas e transferências. */
+  projectedBalance: number;
   accounts: ForecastSafeToSpendAccount[];
   /** Último dia considerado no cálculo (fim do horizonte ou fim do mês no dashboard). */
   through?: ForecastLogicalDate;

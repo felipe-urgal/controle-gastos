@@ -168,13 +168,19 @@ describe("safe-to-spend", () => {
       cardCommitments: 30_00,
       transferNet: -5_00,
       safeToSpend: 85_00,
+      // A receita pendente só entra no saldo previsto; o "livre para gastar" não muda.
+      pendingIncome: 80_00,
+      overdueIncome: 0,
+      projectedBalance: 165_00,
     });
     expect(result.accounts).toEqual([
       expect.objectContaining({
         id: "cash-a",
         pendingExpenses: 30_00,
+        pendingIncome: 80_00,
         transferNet: -15_00,
         safeToSpend: 55_00,
+        projectedBalance: 135_00,
       }),
       expect.objectContaining({
         id: "cash-b",
@@ -259,10 +265,58 @@ describe("safe-to-spend", () => {
     expect(result).toEqual({
       realizedBalance: 0,
       pendingExpenses: 0,
+      pendingIncome: 0,
+      overdueIncome: 0,
       cardCommitments: 0,
       transferNet: 0,
       safeToSpend: 0,
+      projectedBalance: 0,
       accounts: [],
     });
+  });
+
+  it("separa a receita pendente vencida e ignora receita de outro tipo de conta", () => {
+    const result = buildSafeToSpend({
+      forecast: forecast({
+        overdue: [
+          {
+            id: "late-income",
+            accountId: "cash-a",
+            amount: 40_00,
+            type: "INCOME",
+            kind: "NORMAL",
+            status: "PENDING",
+            description: "Atrasada",
+            year: 2026,
+            month: 9,
+            day: 20,
+          },
+        ],
+        upcoming: [
+          {
+            id: "investment-income",
+            accountId: "investment",
+            amount: 70_00,
+            type: "INCOME",
+            kind: "NORMAL",
+            status: "PENDING",
+            description: "Em conta de investimento",
+            year: 2026,
+            month: 10,
+            day: 5,
+          },
+        ],
+      }),
+      accountTypes: new Map([
+        ["cash-a", "CREDIT_DEBIT"],
+        ["investment", "INVESTMENT"],
+      ]),
+      cardCommitments: [],
+    });
+
+    expect(result.pendingIncome).toBe(40_00);
+    expect(result.overdueIncome).toBe(40_00);
+    expect(result.projectedBalance).toBe(result.realizedBalance + 40_00);
+    expect(result.safeToSpend).toBe(result.realizedBalance);
   });
 });
