@@ -19,6 +19,7 @@ export default function ListPageHeader({
   onCreate,
   createLabel,
   secondary,
+  actions,
   controls,
   animated = false,
   loading = false,
@@ -31,6 +32,8 @@ export default function ListPageHeader({
   createLabel: string;
   /** Ação secundária opcional, antes da principal (ex.: Importar). */
   secondary?: { href: string; label: string; icon: ReactNode };
+  /** Ações extras que abrem diálogos (ex.: Backup, Limpar período), antes das demais. */
+  actions?: Array<{ label: string; icon: ReactNode; onClick: () => void; destructive?: boolean }>;
   /** Filtros de uma linha (ex.: um select): na barra a partir de `lg`, abaixo dela no mobile. */
   controls?: ReactNode;
   /** Liga o movimento da faixa (ver `PageBar`): o preset escolhido anima o título e os botões entram com mola. */
@@ -62,9 +65,10 @@ export default function ListPageHeader({
     </motion.span>
   ) : secondary?.icon;
   // Botões da faixa: entram crescendo, um depois do outro.
-  const pop = (order: number, node: ReactNode, grow = false) =>
+  const pop = (order: number, node: ReactNode, grow = false, key?: string) =>
     animated ? (
       <motion.span
+        key={key}
         className="inline-flex"
         whileHover="hover"
         variants={grow ? { hover: { scale: 1.05 } } : undefined}
@@ -89,10 +93,16 @@ export default function ListPageHeader({
         <>
           {controls && <ShowFrom breakpoint="lg">{controls}</ShowFrom>}
           <ShowBelow breakpoint="sm">
+            {actions?.map((action, index) => pop(index * 0.5, <Button key={action.label} variant="outline" size="compact" className={action.destructive ? 'text-[var(--expense)]' : undefined} aria-label={action.label} icon={action.icon} onClick={action.onClick} />, false, action.label))}
             {secondary && pop(0, <Button as="a" href={secondary.href} variant="outline" size="compact" aria-label={secondary.label} icon={secondaryIcon} />)}
             {pop(1, <Button {...createProps} size="compact" aria-label={createLabel} icon={plusIcon} />, true)}
           </ShowBelow>
           <ShowFrom breakpoint="sm">
+            {actions?.map((action, index) => pop(index * 0.5, (
+              <Button key={action.label} variant="outline" {...pageBarButtonProps} className={action.destructive ? `${pageBarButtonProps.className} text-[var(--expense)]` : pageBarButtonProps.className} icon={action.icon} onClick={action.onClick}>
+                {action.label}
+              </Button>
+            ), false, action.label))}
             {secondary && pop(0, (
               <Button as="a" href={secondary.href} variant="outline" {...pageBarButtonProps} icon={secondaryIcon}>
                 {secondary.label}
