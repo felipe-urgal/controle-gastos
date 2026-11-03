@@ -16,6 +16,8 @@ export type TransactionListResponse = {
   summary: CurrencyFinancialSummary[];
 };
 
+export type TransactionStatusValue = "COMPLETED" | "PENDING" | "CANCELLED";
+
 export type TransactionCompletionResponse = {
   id: string;
   status: "COMPLETED";
@@ -61,6 +63,17 @@ export const transactionService = {
         "Idempotency-Key": idempotencyKey,
       },
     });
+  },
+
+  /** Troca só o status (concluída, pendente ou cancelada) de um lançamento normal. */
+  async updateStatus(
+    id: string,
+    status: TransactionStatusValue,
+  ): Promise<ApiResponse<{ id: string; status: TransactionStatusValue }>> {
+    return apiClient<ApiResponse<{ id: string; status: TransactionStatusValue }>, { status: TransactionStatusValue }>(
+      `/api/transactions/${id}/status`,
+      { method: "PATCH", body: { status } },
+    );
   },
 
   async complete(id: string): Promise<ApiResponse<TransactionCompletionResponse>> {

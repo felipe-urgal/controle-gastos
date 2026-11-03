@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import { IconButton } from '@/app/components/ui/icon-button';
+import { PeriodPickerPopover, type PeriodLimit } from '@/app/components/ui/period-switcher/period-picker-popover';
 import { monthNames } from '@/app/lib/date/constants';
 
 const surface = 'border border-[var(--border)] bg-[var(--surface)]';
@@ -24,8 +25,8 @@ function ArrowTrail({ direction }: { direction: -1 | 1 }) {
 }
 
 /**
- * Seletor de período padrão: anterior, "Mês / Ano" e próximo, tudo com 44px de altura. O período
- * muda só pelos botões; o rótulo é texto, sem clique. Com `animated`, o rótulo desliza na horizontal na
+ * Seletor de período padrão: anterior, "Mês / Ano" e próximo, tudo com 44px de altura. Sem `onSelect`
+ * o período muda só pelos botões e o rótulo é texto; com `onSelect` o rótulo abre um seletor de mês e ano. Com `animated`, o rótulo desliza na horizontal na
  * direção do clique (`true`), rola na vertical, como um odômetro (`'roll'`), ou vira como a folha de um calendário (`'flip'`).
  */
 export default function PeriodSwitcher({
@@ -35,6 +36,8 @@ export default function PeriodSwitcher({
   onNext,
   previousDisabled = false,
   nextDisabled = false,
+  onSelect,
+  maxPeriod,
   disabled = false,
   className = '',
   animated = false,
@@ -46,6 +49,10 @@ export default function PeriodSwitcher({
   onNext: () => void;
   previousDisabled?: boolean;
   nextDisabled?: boolean;
+  /** Escolha direta de mês (1 a 12) e ano; sem ela o rótulo não é clicável. */
+  onSelect?: (month: number, year: number) => void;
+  /** Último período escolhível (ex.: o mês atual); os seguintes ficam desabilitados. */
+  maxPeriod?: PeriodLimit;
   disabled?: boolean;
   className?: string;
   animated?: boolean | 'roll' | 'flip';
@@ -61,6 +68,15 @@ export default function PeriodSwitcher({
     setDirection(1);
     onNext();
   };
+  const select = onSelect
+    ? (nextMonth: number, nextYear: number) => {
+        setDirection(nextYear * 12 + nextMonth > year * 12 + month ? 1 : -1);
+        onSelect(nextMonth, nextYear);
+      }
+    : null;
+  const picker = select ? (
+    <PeriodPickerPopover month={month} year={year} maxPeriod={maxPeriod} disabled={disabled} onSelect={select} />
+  ) : null;
 
   if (animated) {
     const roll = animated === 'roll';
@@ -94,6 +110,7 @@ export default function PeriodSwitcher({
           />
         </motion.div>
 
+        <div className="relative flex min-w-0 flex-1 sm:flex-none">
         <output
           style={flip ? { perspective: 400 } : undefined}
           className={`relative inline-flex min-h-11 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-[var(--radius-md)] px-3 text-center text-sm font-semibold text-[var(--foreground)] sm:min-w-[11rem] sm:flex-none ${surface}`}
@@ -114,6 +131,8 @@ export default function PeriodSwitcher({
             </motion.span>
           </AnimatePresence>
         </output>
+        {picker}
+        </div>
 
         <motion.div whileHover="hover" whileTap={roll || flip ? { scale: 0.88 } : { x: 3 }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} className="relative flex">
           <ArrowTrail direction={1} />
@@ -139,6 +158,7 @@ export default function PeriodSwitcher({
         className={surface}
       />
 
+      <div className="relative flex min-w-0 flex-1 sm:flex-none">
       <output
         className={`inline-flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-md)] px-3 text-center text-sm font-semibold text-[var(--foreground)] sm:min-w-[11rem] sm:flex-none ${surface}`}
       >
@@ -146,6 +166,8 @@ export default function PeriodSwitcher({
           {monthNames[month - 1] ?? ''} / {year}
         </span>
       </output>
+      {picker}
+      </div>
 
       <IconButton
         label="Próximo mês"

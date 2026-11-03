@@ -406,6 +406,12 @@ export default function NetWorthPage() {
         onPrevious={() => movePeriod(-1)}
         onNext={() => movePeriod(1)}
         nextDisabled={atCurrentPeriod}
+        maxPeriod={currentPeriod()}
+        onSelect={(nextMonth, nextYear) => {
+          if (nextMonth === month && nextYear === year) return;
+          setLoading(true);
+          setEndPeriod({ year: nextYear, month: nextMonth });
+        }}
       />
     </div>
   );

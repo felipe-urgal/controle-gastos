@@ -19,6 +19,7 @@ import { AttentionCard } from '@/app/components/pages/dashboard/dashboard/cards/
 import { SafeToSpendHero } from '@/app/components/pages/dashboard/dashboard/cards/safe-to-spend-hero';
 import { buildAttentionItems } from '@/app/components/pages/dashboard/dashboard/dashboard-attention';
 import { GettingStartedCard, gettingStartedSteps } from '@/app/components/pages/dashboard/dashboard/cards/getting-started-card';
+import { PendingSummaryCard } from '@/app/components/pages/dashboard/dashboard/cards/pending-summary-card';
 import { UpcomingCard } from '@/app/components/pages/dashboard/dashboard/cards/upcoming-card';
 
 // Cards abaixo da dobra e o diálogo de projeção carregam sob demanda; os dois cards
@@ -73,6 +74,7 @@ export default function OrbitDashboardV2() {
           year={Number(periodValue.slice(0, 4))}
           onPrevious={() => setPeriodValue(periodOffset(periodValue, -1))}
           onNext={() => setPeriodValue(periodOffset(periodValue, 1))}
+          onSelect={(month, year) => setPeriodValue(`${year}-${String(month).padStart(2, '0')}`)}
           disabled={loading}
         />
       </motion.div>
@@ -236,6 +238,18 @@ function DashboardHome({
           relation={home.scope.selectedPeriodRelation}
           showValues={showValues}
           currency={data.currency}
+        />
+      </section>
+
+      <section className="mt-[14px]">
+        <PendingSummaryCard
+          totals={commitments.data?.totals ?? null}
+          days={commitments.data?.days ?? null}
+          showValues={showValues}
+          currency={data.currency}
+          loading={commitments.loading}
+          error={commitments.error}
+          onRetry={onRetry}
         />
       </section>
 

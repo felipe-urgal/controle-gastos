@@ -210,6 +210,7 @@ export default function CategoriesBudgetView({
               year={Number(periodValue.slice(0, 4))}
               onPrevious={() => onPeriodChange(shiftMonth(periodValue, -1))}
               onNext={() => onPeriodChange(shiftMonth(periodValue, 1))}
+              onSelect={(month, year) => onPeriodChange(`${year}-${String(month).padStart(2, '0')}`)}
               disabled={controlsDisabled}
             />
             <ActionsMenu

@@ -44,6 +44,9 @@ const controlRise = (order: number) => ({
   transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const, delay: 0.25 + order * 0.07 },
 });
 
+/** Itens mínimos que um filtro rápido deve mostrar antes de parar de buscar mais páginas. */
+const MIN_FILTERED_ITEMS = 20;
+
 export default function OrbitTransactions() {
   const {
     loading,
@@ -216,6 +219,22 @@ export default function OrbitTransactions() {
     0,
   );
 
+  // Todos os pendentes carregados do mês (inclusive vencidos), sem somar moedas diferentes.
+  const pendingTotals = useMemo(() => {
+    const pending = transactions.filter(
+      (transaction) =>
+        transaction.status === 'PENDING' &&
+        transaction.kind === 'NORMAL' &&
+        transaction.account.currency === currentSummary.currency,
+    );
+    return {
+      count: pending.length,
+      income: pending.filter((item) => item.type === 'INCOME').reduce((sum, item) => sum + item.amount, 0),
+      expense: pending.filter((item) => item.type === 'EXPENSE').reduce((sum, item) => sum + item.amount, 0),
+      partial: hasMore,
+    };
+  }, [currentSummary.currency, hasMore, transactions]);
+
   const quickScoped = useMemo(() => {
     const source = filters.status
       ? transactions
@@ -234,6 +253,13 @@ export default function OrbitTransactions() {
     });
     return timelineOrder === 'newest' ? result : result.reverse();
   }, [quickScoped, timelineOrder]);
+
+  // Os filtros rápidos recortam só o que já foi carregado (a API devolve 100 por vez e o resumo do
+  // mês depende de todos os status). Se o recorte ficou curto e ainda há páginas, busca a próxima
+  // até haver itens suficientes ou acabar, para não mostrar "nada" com dados fora da primeira página.
+  useEffect(() => {
+    if (hasMore && !loading && !error && sortedTransactions.length < MIN_FILTERED_ITEMS) loadMore();
+  }, [error, hasMore, loading, loadMore, sortedTransactions.length]);
 
   const timelineContextKey = [
     month,
@@ -336,6 +362,9 @@ export default function OrbitTransactions() {
           loading={loading}
           summaryStatus={summaryStatus}
           onMovePeriod={movePeriod}
+          onSelectPeriod={applyPeriod}
+          onTransactionCompleted={() => void refetch()}
+          pending={pendingTotals}
           onOpenFilters={() => {
             setFiltersOrigin(null);
             setFiltersOpen(true);
@@ -360,6 +389,7 @@ export default function OrbitTransactions() {
                     year={year}
                     onPrevious={() => movePeriod(-1)}
                     onNext={() => movePeriod(1)}
+                    onSelect={applyPeriod}
                     disabled={loading}
                   />
                 </motion.div>
@@ -460,6 +490,7 @@ export default function OrbitTransactions() {
                   onOrderChange={setTimelineOrder}
                   showValues={showValues}
                   loading={loading}
+                  onTransactionCompleted={() => void refetch()}
                   hasMore={visibleCount < sortedTransactions.length || hasMore}
                   onLoadMore={() => {
                     if (visibleCount < sortedTransactions.length) {

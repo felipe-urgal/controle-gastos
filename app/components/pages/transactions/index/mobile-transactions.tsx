@@ -1,5 +1,6 @@
 'use client';
 
+import { TransactionStatusMenu, canChangeStatusFromList } from '@/app/components/pages/transactions/index/transaction-status-menu';
 import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaFilter } from 'react-icons/fa';
@@ -25,6 +26,9 @@ export function MobileTransactionsPrototype2({
   loading,
   summaryStatus,
   onMovePeriod,
+  onSelectPeriod,
+  onTransactionCompleted,
+  pending,
   onOpenFilters,
   onQuickFilterChange,
   onShowPending,
@@ -43,6 +47,10 @@ export function MobileTransactionsPrototype2({
   /** `loading`: primeira carga (esqueleto); `refreshing`: troca de período (valores esmaecidos). */
   summaryStatus: 'ready' | 'loading' | 'refreshing';
   onMovePeriod: (offset: number) => void;
+  onSelectPeriod: (month: number, year: number) => void;
+  onTransactionCompleted: () => void;
+  /** Lançamentos pendentes do mês (qualquer data), na moeda do resumo. `partial`: ainda há páginas por carregar. */
+  pending: { income: number; expense: number; count: number; partial: boolean };
   onOpenFilters: () => void;
   onQuickFilterChange: (filter: MobileQuickFilter) => void;
   onShowPending: () => void;
@@ -69,6 +77,7 @@ export function MobileTransactionsPrototype2({
         year={year}
         onPrevious={() => onMovePeriod(-1)}
         onNext={() => onMovePeriod(1)}
+        onSelect={onSelectPeriod}
         disabled={loading}
       />
 
@@ -185,6 +194,24 @@ export function MobileTransactionsPrototype2({
             </div>
           </div>
         </div>
+
+        {pending.count > 0 && !summaryLoading && (
+          <div className={`mt-4 border-t border-[var(--border)] pt-3 transition-opacity duration-150 ${dim}`}>
+            <p className="text-xs text-[var(--text-muted)]">
+              Pendentes · {pending.count}{pending.partial ? '+' : ''} {pending.count === 1 && !pending.partial ? 'lançamento' : 'lançamentos'} · fora do saldo
+            </p>
+            <div className="mt-1 grid grid-cols-2 gap-3 text-sm">
+              <span className="min-w-0">
+                <span className="text-xs text-[var(--text-muted)]">A receber </span>
+                <strong className="money tabular-nums text-[var(--income)]">{displayMoney(pending.income, showValues, summary.currency)}</strong>
+              </span>
+              <span className="min-w-0">
+                <span className="text-xs text-[var(--text-muted)]">A pagar </span>
+                <strong className="money tabular-nums text-[var(--expense)]">{displayMoney(pending.expense, showValues, summary.currency)}</strong>
+              </span>
+            </div>
+          </div>
+        )}
       </section>
 
       <div>
@@ -241,6 +268,7 @@ export function MobileTransactionsPrototype2({
         quickFilter={quickFilter}
         hasMore={hasMore}
         onLoadMore={onLoadMore}
+        onTransactionCompleted={onTransactionCompleted}
       />
     </div>
   );
@@ -306,6 +334,7 @@ export function MobileActivityFeed({
   quickFilter,
   hasMore,
   onLoadMore,
+  onTransactionCompleted,
 }: {
   groups: TimelineGroup[];
   loading: boolean;
@@ -313,6 +342,7 @@ export function MobileActivityFeed({
   quickFilter: MobileQuickFilter;
   hasMore: boolean;
   onLoadMore: () => void;
+  onTransactionCompleted: () => void;
 }) {
   const reduce = useReducedMotion();
 
@@ -366,7 +396,7 @@ export function MobileActivityFeed({
                   key={transaction.id}
                   variants={{ hidden: { opacity: 0, y: 12 }, shown: { opacity: 1, y: 0, transition: { duration: 0.35, ease: CARD_EASE } } }}
                 >
-                  <MobileTransactionRow transaction={transaction} showValues={showValues} />
+                  <MobileTransactionRow transaction={transaction} showValues={showValues} onCompleted={onTransactionCompleted} />
                 </motion.div>
               ))}
             </motion.div>
@@ -385,9 +415,11 @@ export function MobileActivityFeed({
 export function MobileTransactionRow({
   transaction,
   showValues,
+  onCompleted,
 }: {
   transaction: TransactionDTO;
   showValues: boolean;
+  onCompleted: () => void;
 }) {
   const isTransfer = isTransferTransaction(transaction);
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
@@ -428,9 +460,18 @@ export function MobileTransactionRow({
 
       <span className="min-w-[86px] text-right">
         <strong className={`money block text-xs ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
-        <span className="mt-1 block text-xs text-[var(--text-muted)]">
-          {transaction.status === 'PENDING' ? 'Pendente' : formatTransactionTime(transaction)}
-        </span>
+        {canChangeStatusFromList(transaction) ? (
+          <span className="mt-1 flex items-center justify-end gap-2">
+            {transaction.status === 'COMPLETED' && (
+              <span className="text-xs text-[var(--text-muted)]">{formatTransactionTime(transaction)}</span>
+            )}
+            <TransactionStatusMenu transaction={transaction} onChanged={onCompleted} compact />
+          </span>
+        ) : (
+          <span className="mt-1 block text-xs text-[var(--text-muted)]">
+            {transaction.status === 'PENDING' ? 'Pendente' : formatTransactionTime(transaction)}
+          </span>
+        )}
       </span>
     </MotionLink>
   );
