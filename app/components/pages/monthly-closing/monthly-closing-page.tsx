@@ -99,6 +99,11 @@ export default function MonthlyClosingPage() {
             onPrevious={() => goTo(-1)}
             onNext={() => goTo(1)}
             nextDisabled={atCurrentMonth}
+            maxPeriod={{ month: currentMonth, year: currentYear }}
+            onSelect={(nextMonth, nextYear) => {
+              setYear(nextYear);
+              setMonth(nextMonth);
+            }}
           />
         </div>
   );

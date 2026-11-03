@@ -336,6 +336,8 @@ export default function OrbitTransactions() {
           loading={loading}
           summaryStatus={summaryStatus}
           onMovePeriod={movePeriod}
+          onSelectPeriod={applyPeriod}
+          onTransactionCompleted={() => void refetch()}
           onOpenFilters={() => {
             setFiltersOrigin(null);
             setFiltersOpen(true);
@@ -360,6 +362,7 @@ export default function OrbitTransactions() {
                     year={year}
                     onPrevious={() => movePeriod(-1)}
                     onNext={() => movePeriod(1)}
+                    onSelect={applyPeriod}
                     disabled={loading}
                   />
                 </motion.div>
@@ -460,6 +463,7 @@ export default function OrbitTransactions() {
                   onOrderChange={setTimelineOrder}
                   showValues={showValues}
                   loading={loading}
+                  onTransactionCompleted={() => void refetch()}
                   hasMore={visibleCount < sortedTransactions.length || hasMore}
                   onLoadMore={() => {
                     if (visibleCount < sortedTransactions.length) {

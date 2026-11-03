@@ -1,5 +1,6 @@
 'use client';
 
+import { CompleteTransactionButton, canCompleteFromList } from '@/app/components/pages/transactions/index/complete-transaction-button';
 import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaChevronRight, FaCreditCard, FaExchangeAlt, FaFilter } from 'react-icons/fa';
@@ -25,6 +26,8 @@ export function MobileTransactionsPrototype2({
   loading,
   summaryStatus,
   onMovePeriod,
+  onSelectPeriod,
+  onTransactionCompleted,
   onOpenFilters,
   onQuickFilterChange,
   onShowPending,
@@ -43,6 +46,8 @@ export function MobileTransactionsPrototype2({
   /** `loading`: primeira carga (esqueleto); `refreshing`: troca de período (valores esmaecidos). */
   summaryStatus: 'ready' | 'loading' | 'refreshing';
   onMovePeriod: (offset: number) => void;
+  onSelectPeriod: (month: number, year: number) => void;
+  onTransactionCompleted: () => void;
   onOpenFilters: () => void;
   onQuickFilterChange: (filter: MobileQuickFilter) => void;
   onShowPending: () => void;
@@ -69,6 +74,7 @@ export function MobileTransactionsPrototype2({
         year={year}
         onPrevious={() => onMovePeriod(-1)}
         onNext={() => onMovePeriod(1)}
+        onSelect={onSelectPeriod}
         disabled={loading}
       />
 
@@ -241,6 +247,7 @@ export function MobileTransactionsPrototype2({
         quickFilter={quickFilter}
         hasMore={hasMore}
         onLoadMore={onLoadMore}
+        onTransactionCompleted={onTransactionCompleted}
       />
     </div>
   );
@@ -306,6 +313,7 @@ export function MobileActivityFeed({
   quickFilter,
   hasMore,
   onLoadMore,
+  onTransactionCompleted,
 }: {
   groups: TimelineGroup[];
   loading: boolean;
@@ -313,6 +321,7 @@ export function MobileActivityFeed({
   quickFilter: MobileQuickFilter;
   hasMore: boolean;
   onLoadMore: () => void;
+  onTransactionCompleted: () => void;
 }) {
   const reduce = useReducedMotion();
 
@@ -366,7 +375,7 @@ export function MobileActivityFeed({
                   key={transaction.id}
                   variants={{ hidden: { opacity: 0, y: 12 }, shown: { opacity: 1, y: 0, transition: { duration: 0.35, ease: CARD_EASE } } }}
                 >
-                  <MobileTransactionRow transaction={transaction} showValues={showValues} />
+                  <MobileTransactionRow transaction={transaction} showValues={showValues} onCompleted={onTransactionCompleted} />
                 </motion.div>
               ))}
             </motion.div>
@@ -385,9 +394,11 @@ export function MobileActivityFeed({
 export function MobileTransactionRow({
   transaction,
   showValues,
+  onCompleted,
 }: {
   transaction: TransactionDTO;
   showValues: boolean;
+  onCompleted: () => void;
 }) {
   const isTransfer = isTransferTransaction(transaction);
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
@@ -428,9 +439,15 @@ export function MobileTransactionRow({
 
       <span className="min-w-[86px] text-right">
         <strong className={`money block text-xs ${amountTone}`}>{formatTransactionAmount(transaction, showValues)}</strong>
-        <span className="mt-1 block text-xs text-[var(--text-muted)]">
-          {transaction.status === 'PENDING' ? 'Pendente' : formatTransactionTime(transaction)}
-        </span>
+        {canCompleteFromList(transaction) ? (
+          <span className="mt-1 flex justify-end">
+            <CompleteTransactionButton transaction={transaction} onCompleted={onCompleted} />
+          </span>
+        ) : (
+          <span className="mt-1 block text-xs text-[var(--text-muted)]">
+            {transaction.status === 'PENDING' ? 'Pendente' : formatTransactionTime(transaction)}
+          </span>
+        )}
       </span>
     </MotionLink>
   );

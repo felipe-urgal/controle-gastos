@@ -191,6 +191,13 @@ export default function OrbitCalendar() {
     goToNextMonth();
   };
 
+  const selectMonth = (month: number, year: number) => {
+    const target = new Date(year, month - 1, 1);
+    setSwap({ axis: 'x', dir: target > currentDate ? 1 : -1 });
+    setSelectedDate(null);
+    goToDate(target);
+  };
+
   const accountOptions = [
     { value: 'all', label: 'Todas as contas' },
     ...accounts.map((account) => ({
@@ -214,6 +221,7 @@ export default function OrbitCalendar() {
         year={currentDate.getFullYear()}
         onPrevious={previousMonth}
         onNext={nextMonth}
+        onSelect={selectMonth}
       />
       {accounts.length > 1 && (
         <div className="w-full sm:w-[190px]">

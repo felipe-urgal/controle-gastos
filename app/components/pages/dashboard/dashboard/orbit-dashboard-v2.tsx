@@ -73,6 +73,7 @@ export default function OrbitDashboardV2() {
           year={Number(periodValue.slice(0, 4))}
           onPrevious={() => setPeriodValue(periodOffset(periodValue, -1))}
           onNext={() => setPeriodValue(periodOffset(periodValue, 1))}
+          onSelect={(month, year) => setPeriodValue(`${year}-${String(month).padStart(2, '0')}`)}
           disabled={loading}
         />
       </motion.div>

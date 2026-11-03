@@ -10,6 +10,7 @@ import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/tr
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
 import { MonthBar, TimelineGroup, TimelineOrder, compactMonth, displayMoney, formatTransactionAmount, formatTransactionTime, monthTitle, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
+import { CompleteTransactionButton, canCompleteFromList } from '@/app/components/pages/transactions/index/complete-transaction-button';
 import { StatusPill } from '@/app/components/pages/transactions/index/transaction-dialogs';
 
 type SummaryTone = 'income' | 'expense' | 'primary' | 'scheduled';
@@ -196,6 +197,7 @@ export function MovementTimeline({
   loading,
   hasMore,
   onLoadMore,
+  onTransactionCompleted,
 }: {
   month: number;
   year: number;
@@ -206,6 +208,7 @@ export function MovementTimeline({
   loading: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
+  onTransactionCompleted: () => void;
 }) {
   const reduce = useReducedMotion();
 
@@ -285,6 +288,7 @@ export function MovementTimeline({
                       key={transaction.id}
                       transaction={transaction}
                       showValues={showValues}
+                      onCompleted={onTransactionCompleted}
                     />
                   ))}
                 </motion.div>
@@ -319,9 +323,11 @@ export function MovementTimeline({
 export function TimelineTransactionRow({
   transaction,
   showValues,
+  onCompleted,
 }: {
   transaction: TransactionDTO;
   showValues: boolean;
+  onCompleted: () => void;
 }) {
   const isTransfer = isTransferTransaction(transaction);
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
@@ -366,7 +372,9 @@ export function TimelineTransactionRow({
         <span className="text-xs text-[var(--text-muted)]">{formatTransactionTime(transaction)}</span>
       </span>
       <span className="col-start-2 row-start-3 justify-self-start sm:col-start-auto sm:row-start-auto sm:justify-self-center">
-        {transaction.status !== 'COMPLETED' && <StatusPill status={transaction.status} />}
+        {canCompleteFromList(transaction)
+          ? <CompleteTransactionButton transaction={transaction} onCompleted={onCompleted} />
+          : transaction.status !== 'COMPLETED' && <StatusPill status={transaction.status} />}
       </span>
       <FaChevronRight className="col-start-3 row-start-1 justify-self-center text-xs text-[var(--text-muted)] sm:col-start-auto sm:row-start-auto" aria-hidden="true" />
     </MotionLink>
