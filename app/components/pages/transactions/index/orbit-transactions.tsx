@@ -44,6 +44,9 @@ const controlRise = (order: number) => ({
   transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const, delay: 0.25 + order * 0.07 },
 });
 
+/** Itens mínimos que um filtro rápido deve mostrar antes de parar de buscar mais páginas. */
+const MIN_FILTERED_ITEMS = 20;
+
 export default function OrbitTransactions() {
   const {
     loading,
@@ -234,6 +237,13 @@ export default function OrbitTransactions() {
     });
     return timelineOrder === 'newest' ? result : result.reverse();
   }, [quickScoped, timelineOrder]);
+
+  // Os filtros rápidos recortam só o que já foi carregado (a API devolve 100 por vez e o resumo do
+  // mês depende de todos os status). Se o recorte ficou curto e ainda há páginas, busca a próxima
+  // até haver itens suficientes ou acabar, para não mostrar "nada" com dados fora da primeira página.
+  useEffect(() => {
+    if (hasMore && !loading && !error && sortedTransactions.length < MIN_FILTERED_ITEMS) loadMore();
+  }, [error, hasMore, loading, loadMore, sortedTransactions.length]);
 
   const timelineContextKey = [
     month,
