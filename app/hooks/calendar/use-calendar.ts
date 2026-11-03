@@ -9,6 +9,7 @@ import type {
   CalendarDate,
   CalendarDay,
   CalendarEvent,
+  CalendarInvestmentIncome,
   CalendarReadModel,
 } from "@/app/types/calendar";
 import type { CurrencyFinancialSummary } from "@/app/types/financial-summary";
@@ -51,6 +52,7 @@ export const useCalendar = () => {
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [summary, setSummary] = useState<CurrencyFinancialSummary[]>([]);
+  const [investmentIncome, setInvestmentIncome] = useState<CalendarInvestmentIncome[]>([]);
   const [commitments, setCommitments] = useState<CalendarEvent[]>([]);
   const [commitmentCount, setCommitmentCount] = useState(0);
   const [overdueCount, setOverdueCount] = useState(0);
@@ -97,6 +99,7 @@ export const useCalendar = () => {
       setCalendarError("");
       setCalendarDays([]);
       setSummary([]);
+      setInvestmentIncome([]);
       setCommitments([]);
       setCommitmentCount(0);
       setOverdueCount(0);
@@ -115,6 +118,7 @@ export const useCalendar = () => {
         if (sequence !== requestSequence.current) return;
         setCalendarDays(toCalendarDays(response.data));
         setSummary(response.data.summary);
+        setInvestmentIncome(response.data.investmentIncome ?? []);
         setCommitments(response.data.commitments);
         setCommitmentCount(response.data.commitmentCount);
         setOverdueCount(response.data.overdueCount);
@@ -173,6 +177,7 @@ export const useCalendar = () => {
     calendarDays,
     isLoading,
     summary,
+    investmentIncome,
     commitments,
     commitmentCount,
     overdueCount,

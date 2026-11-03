@@ -22,6 +22,7 @@ import {
   logicalDateFromUtcInstant,
   type LogicalDate,
 } from '@/app/lib/date/logical-date';
+import { INVESTMENT_QUANTITY_SCALE } from '@/app/lib/investments/investment-domain';
 import { HttpError } from '@/app/lib/http-error';
 import { prisma } from '@/app/lib/prisma';
 import type { CalendarQueryInput } from '@/app/lib/calendar/calendar-schema';
@@ -299,6 +300,99 @@ function derivedCommitmentEvent(
   };
 }
 
+const investmentAccountSelect = { account: { select: accountSelect }, asset: { select: { symbol: true, currency: true } } } as const;
+
+async function loadInvestmentRows(userId: string, input: CalendarQueryInput) {
+  const where = {
+    userId,
+    year: input.year,
+    month: input.month,
+    ...(input.accountId ? { accountId: input.accountId } : {}),
+  };
+  const [operations, incomes] = await Promise.all([
+    prisma.investmentOperation.findMany({
+      where,
+      select: { id: true, type: true, quantityUnits: true, unitPriceCents: true, feesCents: true, day: true, year: true, month: true, ...investmentAccountSelect },
+      orderBy: [{ day: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+    }),
+    prisma.investmentIncome.findMany({
+      where,
+      select: { id: true, type: true, netAmountCents: true, day: true, year: true, month: true, ...investmentAccountSelect },
+      orderBy: [{ day: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+    }),
+  ]);
+  return { operations, incomes };
+}
+
+type InvestmentRows = Awaited<ReturnType<typeof loadInvestmentRows>>;
+
+const INCOME_LABEL = {
+  INCOME: 'Rendimento',
+  DIVIDEND: 'Dividendo',
+  INTEREST: 'JCP/Juros',
+  OTHER: 'Provento',
+} as const;
+
+/** Valor em dinheiro da operação: compra paga bruto + taxas; venda recebe bruto - taxas. */
+function operationCashCents(row: InvestmentRows['operations'][number]) {
+  const gross = Number(
+    (row.quantityUnits * BigInt(row.unitPriceCents) + INVESTMENT_QUANTITY_SCALE / BigInt(2)) /
+      INVESTMENT_QUANTITY_SCALE,
+  );
+  return Math.max(0, row.type === 'BUY' ? gross + row.feesCents : gross - row.feesCents);
+}
+
+function buildInvestmentEvents({ operations, incomes }: InvestmentRows): CalendarEvent[] {
+  const base = { status: null, commitmentState: null, counterpartAccount: null, category: null, transferRole: null, seriesType: null } as const;
+  const currencyOf = (value: string) => {
+    if (!isSupportedCurrency(value)) throw new Error('Moeda inválida no calendário');
+    return value;
+  };
+
+  return [
+    ...operations.map((row): CalendarEvent => ({
+      ...base,
+      id: `investment-operation:${row.id}`,
+      sourceId: row.id,
+      sourceKind: row.type === 'BUY' ? 'INVESTMENT_BUY' : 'INVESTMENT_SELL',
+      title: `${row.type === 'BUY' ? 'Compra' : 'Venda'} ${row.asset.symbol}`,
+      // Só exibição (compra sai, venda entra); nunca entra nos totais do calendário.
+      amount: operationCashCents(row),
+      currency: currencyOf(row.asset.currency),
+      date: dateOf(row),
+      direction: row.type === 'BUY' ? 'EXPENSE' : 'INCOME',
+      account: toCalendarAccount(row.account),
+      href: '/investimentos',
+    })),
+    ...incomes.map((row): CalendarEvent => ({
+      ...base,
+      id: `investment-income:${row.id}`,
+      sourceId: row.id,
+      sourceKind: 'INVESTMENT_INCOME',
+      title: `${INCOME_LABEL[row.type]} ${row.asset.symbol}`,
+      amount: row.netAmountCents,
+      currency: currencyOf(row.asset.currency),
+      date: dateOf(row),
+      direction: 'INCOME',
+      account: toCalendarAccount(row.account),
+      href: '/investimentos',
+    })),
+  ];
+}
+
+function summarizeInvestmentIncome(events: readonly CalendarEvent[]) {
+  const byCurrency = new Map<SupportedCurrency, { amount: number; count: number }>();
+  for (const event of events) {
+    if (event.sourceKind !== 'INVESTMENT_INCOME' || event.amount === null) continue;
+    const current = byCurrency.get(event.currency) ?? { amount: 0, count: 0 };
+    byCurrency.set(event.currency, { amount: current.amount + event.amount, count: current.count + 1 });
+  }
+  return SUPPORTED_CURRENCIES.flatMap((currency) => {
+    const total = byCurrency.get(currency);
+    return total ? [{ currency, ...total }] : [];
+  });
+}
+
 function compareEvents(left: CalendarEvent, right: CalendarEvent) {
   const byDate = dateKey(left.date) - dateKey(right.date);
   if (byDate !== 0) return byDate;
@@ -413,10 +507,12 @@ export async function getCalendarForUser(
     ? [selectedAccount.currency as SupportedCurrency]
     : SUPPORTED_CURRENCIES;
 
-  const [rows, commitmentItems] = await Promise.all([
+  const [rows, commitmentItems, investmentRows] = await Promise.all([
     loadCalendarTransactions(userId, input),
     loadPeriodCommitments(userId, input, commitmentCurrencies),
+    loadInvestmentRows(userId, input),
   ]);
+  const investmentEvents = buildInvestmentEvents(investmentRows);
 
   const transactionEvents = buildTransactionEvents(
     rows,
@@ -453,6 +549,7 @@ export async function getCalendarForUser(
   const events = [
     ...transactionEvents,
     ...derivedCommitments,
+    ...investmentEvents,
   ].sort(compareEvents);
 
   const eventsByDay = new Map<number, CalendarEvent[]>();
@@ -487,6 +584,7 @@ export async function getCalendarForUser(
     accountId: input.accountId ?? null,
     days,
     summary: calculateCompletedTransactionTotals(totalsInput(rows)),
+    investmentIncome: summarizeInvestmentIncome(investmentEvents),
     commitments,
     commitmentCount: commitments.length,
     overdueCount: commitments.filter(
