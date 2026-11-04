@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { todayLogicalDate } from "@/app/lib/date/logical-date";
 import { accountService } from "@/app/services/account-service";
 import { calendarService } from "@/app/services/calendar-service";
 import type { AccountModel } from "@/app/types/account";
@@ -33,7 +34,8 @@ function isAbortError(error: unknown) {
 
 /** Ao chegar num mês, seleciona o dia 1; no mês atual, seleciona hoje. */
 function landingDate(year: number, monthIndex: number) {
-  const today = new Date();
+  const logicalToday = todayLogicalDate();
+  const today = new Date(logicalToday.year, logicalToday.month - 1, logicalToday.day);
   const first = new Date(year, monthIndex, 1);
   return first.getFullYear() === today.getFullYear() && first.getMonth() === today.getMonth() ? today : first;
 }
@@ -47,7 +49,10 @@ function nextMonth(date: Date) {
 }
 
 export const useCalendar = () => {
-  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [currentDate, setCurrentDate] = useState(() => {
+    const today = todayLogicalDate();
+    return new Date(today.year, today.month - 1, today.day);
+  });
   const [selectedAccount, setSelectedAccount] = useState<string | "all">("all");
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
@@ -89,8 +94,11 @@ export const useCalendar = () => {
     };
   }, [retryVersion]);
 
-  useEffect(() => {
+  // Só ano e mês pedem dados: ir para "hoje" ou outro dia do mesmo mês não deve recarregar nem esvaziar o calendário.
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth() + 1;
 
+  useEffect(() => {
     const sequence = ++requestSequence.current;
     const controller = new AbortController();
 
@@ -107,8 +115,8 @@ export const useCalendar = () => {
       try {
         const response = await calendarService.get(
           {
-            year: currentDate.getFullYear(),
-            month: currentDate.getMonth() + 1,
+            year,
+            month,
             accountId:
               selectedAccount === "all" ? undefined : selectedAccount,
           },
@@ -142,7 +150,7 @@ export const useCalendar = () => {
     return () => {
       controller.abort();
     };
-  }, [currentDate, retryVersion, selectedAccount]);
+  }, [year, month, retryVersion, selectedAccount]);
 
   const goToPreviousMonth = useCallback(() => {
     setCurrentDate((value) => previousMonth(value));
@@ -153,7 +161,8 @@ export const useCalendar = () => {
   }, []);
 
   const goToToday = useCallback(() => {
-    setCurrentDate(new Date());
+    const today = todayLogicalDate();
+    setCurrentDate(new Date(today.year, today.month - 1, today.day));
   }, []);
 
   const goToDate = useCallback((date: Date) => {

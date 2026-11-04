@@ -6,7 +6,7 @@ import { apiFailureFromError } from "@/app/lib/api/api-error-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
-import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import {
   aggregateTagCurrencies,
   aggregateTagHistory,
@@ -62,7 +62,7 @@ export async function getTagReport(
       GROUP BY a."currency", a."type", t."type", t."year", t."month"
     `;
 
-    const today = logicalDateFromUtcInstant(new Date());
+    const today = logicalDateFromInstant(new Date());
     const reportRows: TagReportRow[] = rows.map((row) => ({
       ...row,
       count: Number(row.count),

@@ -1,9 +1,10 @@
-import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
+import { displayMoney } from '@/app/lib/currency/display-money';
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { transactionService } from '@/app/services/transaction-service';
 import { CurrencyFinancialSummary, SupportedCurrency } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 export type AccountOption = { id: string; name: string };
 
@@ -43,8 +44,8 @@ export function transactionDateKey(transaction: TransactionDTO) {
 }
 
 export function todayDateKey() {
-  const today = new Date();
-  return today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  const today = todayLogicalDate();
+  return today.year * 10000 + today.month * 100 + today.day;
 }
 
 export function logicalDateFromTransaction(transaction: TransactionDTO) {
@@ -56,8 +57,8 @@ export function formatTimelinePrimary(transaction: TransactionDTO) {
   const todayKey = todayDateKey();
   if (key === todayKey) return 'Hoje';
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
+  const todayLogical = todayLogicalDate();
+  const yesterday = new Date(todayLogical.year, todayLogical.month - 1, todayLogical.day - 1);
   const yesterdayKey = yesterday.getFullYear() * 10000 + (yesterday.getMonth() + 1) * 100 + yesterday.getDate();
   if (key === yesterdayKey) return 'Ontem';
 
@@ -93,9 +94,7 @@ export function shiftPeriod(month: number, year: number, offset: number) {
   return { month: date.getMonth() + 1, year: date.getFullYear() };
 }
 
-export function displayMoney(amount: number, showValues: boolean, currency: string) {
-  return showValues ? wrappableMoney(formatCurrency(amount, currency)) : '••••';
-}
+export { displayMoney };
 
 export function percentageChange(current: number, previous: number) {
   if (previous === 0) return null;
@@ -217,8 +216,8 @@ export function buildMonthBars(
 
 export function scheduledDistanceLabel(transaction: TransactionDTO) {
   const target = new Date(transaction.year, transaction.month - 1, transaction.day);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const now = todayLogicalDate();
+  const today = new Date(now.year, now.month - 1, now.day);
   const distance = Math.round((target.getTime() - today.getTime()) / 86_400_000);
   if (distance <= 0) return distance === 0 ? 'Hoje' : 'Em atraso';
   if (distance === 1) return 'Amanhã';

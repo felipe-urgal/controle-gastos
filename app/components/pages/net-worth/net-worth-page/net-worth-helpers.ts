@@ -1,5 +1,5 @@
 import { formatCurrency } from '@/app/lib/currency/format-currency';
-import { formatIsoLogicalDate, logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
+import { formatIsoLogicalDate, logicalDateFromInstant } from '@/app/lib/date/logical-date';
 import { ExchangeRateModel } from '@/app/types/exchange-rate';
 import { SupportedCurrency } from '@/app/types/financial-summary';
 import { NetWorthValuationBasis } from '@/app/types/net-worth';
@@ -7,7 +7,7 @@ import { NetWorthValuationBasis } from '@/app/types/net-worth';
 export const currencies: SupportedCurrency[] = ['BRL', 'USD', 'EUR'];
 
 export function currentPeriod() {
-  const today = logicalDateFromUtcInstant(new Date());
+  const today = logicalDateFromInstant(new Date());
   return { year: today.year, month: today.month };
 }
 
@@ -27,7 +27,7 @@ export function displayPercent(value: number | null, showValues: boolean) {
 }
 
 export function currentIsoDate() {
-  return formatIsoLogicalDate(logicalDateFromUtcInstant(new Date()));
+  return formatIsoLogicalDate(logicalDateFromInstant(new Date()));
 }
 
 export function refreshFailureMessage(mutation: string | null, what: string) {

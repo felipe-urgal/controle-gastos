@@ -25,7 +25,7 @@ import { debtService, type DebtInput } from '@/app/services/debt-service';
 import { DebtsDues } from '@/app/components/pages/debt/debts-dues';
 import { DebtsSummaryPanel, InstallmentLoadPanel } from '@/app/components/pages/debt/debts-summary';
 import { owedCurrencies, summarizeDebts } from '@/app/components/pages/debt/debts-model';
-import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
+import { logicalDateFromInstant } from '@/app/lib/date/logical-date';
 import type { Debt, DebtAdjustmentKind, DebtStatus } from '@/app/types/debt';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
@@ -188,7 +188,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
   );
 
   // Dia lógico de hoje, fixo durante a sessão da página (evita chamada impura a cada render).
-  const [today] = useState(() => logicalDateFromUtcInstant(new Date()));
+  const [today] = useState(() => logicalDateFromInstant(new Date()));
   const [selectedCurrency, setSelectedCurrency] = useState<SupportedCurrency>('BRL');
   const currencies = useMemo(() => owedCurrencies(items), [items]);
   const activeCurrency = currencies.includes(selectedCurrency) ? selectedCurrency : (currencies[0] ?? selectedCurrency);

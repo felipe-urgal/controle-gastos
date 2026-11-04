@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   compareLogicalDates,
   formatIsoLogicalDate,
+  logicalDateFromInstant,
   logicalDateFromUtcInstant,
   formatPtBrLogicalDate,
   getLastDayOfMonth,
@@ -31,12 +32,27 @@ describe("logical date primitives", () => {
     expect(formatPtBrLogicalDate(date)).toBe("09/02/2028");
   });
 
-  it("uses UTC as the canonical date across the local midnight boundary", () => {
-    expect(
-      logicalDateFromUtcInstant(
-        new Date("2026-12-31T23:30:00-03:00"),
-      ),
-    ).toEqual({
+  it("uses the Brazil civil date for real instants (no flip at 21h)", () => {
+    // 23:30 em Brasília ainda é 31/12, embora em UTC já seja 01/01.
+    expect(logicalDateFromInstant(new Date("2026-12-31T23:30:00-03:00"))).toEqual({
+      year: 2026,
+      month: 12,
+      day: 31,
+    });
+    expect(logicalDateFromInstant(new Date("2027-01-01T02:59:00.000Z"))).toEqual({
+      year: 2026,
+      month: 12,
+      day: 31,
+    });
+    expect(logicalDateFromInstant(new Date("2027-01-01T03:00:00.000Z"))).toEqual({
+      year: 2027,
+      month: 1,
+      day: 1,
+    });
+  });
+
+  it("reads a UTC-midnight date as is for calendar arithmetic", () => {
+    expect(logicalDateFromUtcInstant(new Date("2027-01-01T00:00:00.000Z"))).toEqual({
       year: 2027,
       month: 1,
       day: 1,

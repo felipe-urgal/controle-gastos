@@ -22,6 +22,11 @@ import { GoalDetailModal, GoalEntryModal, GoalFormModal, GoalSkeleton, SimpleCon
 import GoalCard from '@/app/components/pages/goal/goals-center/goal-card';
 import GoalsHero from '@/app/components/pages/goal/goals-center/goals-hero';
 import { activeCurrencies, countByStatus, goalPace, sortGoals } from '@/app/components/pages/goal/goals-center/goals-model';
+import { errorMessage } from '@/app/lib/error-message';
+
+function fetchGoalsAndAccounts() {
+  return Promise.allSettled([financialGoalService.getAll(), accountService.getAll()]);
+}
 
 export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
   const reduce = useReducedMotion();
@@ -67,56 +72,13 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
     return () => { cancelled = true; };
   }, [focusGoalId]);
 
-  const load = useCallback(async () => {
-    const [goalsResult, accountsResult] = await Promise.allSettled([
-      financialGoalService.getAll(),
-      accountService.getAll(),
-    ]);
-
-    if (goalsResult.status === 'fulfilled') {
-      setGoals(goalsResult.value.data.items);
-      setError(null);
-    } else {
-      setError(
-        goalsResult.reason instanceof Error
-          ? goalsResult.reason.message
-          : 'Não foi possível carregar as metas',
-      );
-    }
-
-    if (accountsResult.status === 'fulfilled') {
-      setAccounts(accountsResult.value.data.items ?? []);
-      setAccountError(null);
-    } else {
-      setAccounts([]);
-      setAccountError(
-        accountsResult.reason instanceof Error
-          ? accountsResult.reason.message
-          : 'Contas indisponíveis no momento',
-      );
-    }
-
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    Promise.allSettled([
-      financialGoalService.getAll(),
-      accountService.getAll(),
-    ]).then(([goalsResult, accountsResult]) => {
-      if (cancelled) return;
-
+  const applyLoaded = useCallback(
+    ([goalsResult, accountsResult]: Awaited<ReturnType<typeof fetchGoalsAndAccounts>>) => {
       if (goalsResult.status === 'fulfilled') {
         setGoals(goalsResult.value.data.items);
         setError(null);
       } else {
-        setError(
-          goalsResult.reason instanceof Error
-            ? goalsResult.reason.message
-            : 'Não foi possível carregar as metas',
-        );
+        setError(errorMessage(goalsResult.reason, 'Não foi possível carregar as metas'));
       }
 
       if (accountsResult.status === 'fulfilled') {
@@ -124,20 +86,29 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
         setAccountError(null);
       } else {
         setAccounts([]);
-        setAccountError(
-          accountsResult.reason instanceof Error
-            ? accountsResult.reason.message
-            : 'Contas indisponíveis no momento',
-        );
+        setAccountError(errorMessage(accountsResult.reason, 'Contas indisponíveis no momento'));
       }
 
       setLoading(false);
+    },
+    [],
+  );
+
+  const load = useCallback(async () => {
+    applyLoaded(await fetchGoalsAndAccounts());
+  }, [applyLoaded]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetchGoalsAndAccounts().then((loaded) => {
+      if (!cancelled) applyLoaded(loaded);
     });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [applyLoaded]);
 
   const now = useMemo(() => new Date(), []);
   const [heroCurrency, setHeroCurrency] = useState<string | null>(null);

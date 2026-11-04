@@ -34,6 +34,7 @@ import { accountService } from '@/app/services/account-service';
 import { transferService } from '@/app/services/transfer-service';
 import type { AccountModel } from '@/app/types/account';
 import type { CreateTransferInput, TransferStatus, UpdateTransferInput } from '@/app/types/transfer';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 interface TransferFormProps {
   onCancelOverride?: () => void;
@@ -75,14 +76,14 @@ export default function TransferForm({
   const reduce = useReducedMotion();
   const intro = useFormIntro();
   const router = useRouter();
-  const now = new Date();
+  const [now] = useState(() => todayLogicalDate());
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [destinationAccountId, setDestinationAccountId] = useState('');
   const [amountCents, setAmountCents] = useState(0);
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [day, setDay] = useState(now.getDate());
+  const [year, setYear] = useState(now.year);
+  const [month, setMonth] = useState(now.month);
+  const [day, setDay] = useState(now.day);
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TransferStatus>('COMPLETED');
   const [reviewOpen, setReviewOpen] = useState(false);

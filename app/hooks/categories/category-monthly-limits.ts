@@ -8,10 +8,11 @@ import {
   type CategoryMonthlyLimitListResponse,
 } from '@/app/types/category-monthly-limit';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 export function useCategoryMonthlyLimits() {
-  const [year, setYear] = useState(() => new Date().getFullYear());
-  const [month, setMonth] = useState(() => new Date().getMonth() + 1);
+  const [year, setYear] = useState(() => todayLogicalDate().year);
+  const [month, setMonth] = useState(() => todayLogicalDate().month);
   const [currency, setCurrency] = useState<SupportedCurrency>('BRL');
   const [items, setItems] = useState<CategoryMonthlyLimitItem[]>([]);
   const [summary, setSummary] = useState<CategoryMonthlyLimitListResponse['summary']>({

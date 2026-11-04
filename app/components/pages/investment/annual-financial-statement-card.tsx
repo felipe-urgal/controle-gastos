@@ -16,6 +16,7 @@ import type {
   AnnualStatementReconciliationStatus,
 } from '@/app/types/investment';
 import { Button, Input, Select } from '@/app/components/ui';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 type PreviewEnvelope = {
   fileName: string;
@@ -62,7 +63,7 @@ export function AnnualFinancialStatementCard({
   onInspectAsset: (assetId: string) => void;
   onBaselineApplied?: () => void | Promise<void>;
 }) {
-  const lastClosedYear = new Date().getUTCFullYear() - 1;
+  const lastClosedYear = todayLogicalDate().year - 1;
   const [year, setYear] = useState(lastClosedYear);
   const [statements, setStatements] = useState<AnnualFinancialTaxStatement[]>([]);
   const [reconciliation, setReconciliation] =

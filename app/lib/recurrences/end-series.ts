@@ -2,7 +2,7 @@ import { failure, rateLimitFailure, success } from '@/app/lib/api-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { assertCardPurchaseStatementMutable } from '@/app/lib/cards/credit-card-purchase-guards';
-import { logicalDateFromUtcInstant, type LogicalDate } from '@/app/lib/date/logical-date';
+import { logicalDateFromInstant, type LogicalDate } from '@/app/lib/date/logical-date';
 import { HttpError, isHttpError } from '@/app/lib/http-error';
 import { prisma } from '@/app/lib/prisma';
 import { consumeTransactionMutationRateLimit } from '@/app/lib/security/application-rate-limit';
@@ -22,7 +22,7 @@ export async function endRecurrenceSeriesForUser(
   id: string,
   now: Date = new Date(),
 ) {
-  const asOf = logicalDateFromUtcInstant(now);
+  const asOf = logicalDateFromInstant(now);
 
   return prisma.$transaction(async (tx) => {
     const series = await tx.transactionSeries.findFirst({

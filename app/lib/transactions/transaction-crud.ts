@@ -256,7 +256,8 @@ async function transactionWhere(userId: string, request?: Request) {
     const value = searchParams.get(field);
     if (!value) continue;
     const parsed = Number(value);
-    if (!Number.isFinite(parsed)) {
+    const [min, max] = field === "month" ? [1, 12] : [1900, 2200];
+    if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
       throw new HttpError(`Filtro ${field} inválido`, 400, "INVALID_QUERY");
     }
     filters[field] = parsed;

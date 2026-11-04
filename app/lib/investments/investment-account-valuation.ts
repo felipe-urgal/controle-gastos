@@ -3,7 +3,7 @@ import {
   type InvestmentOperationForPosition,
 } from "@/app/lib/investments/investment-domain";
 import {
-  logicalDateFromUtcInstant,
+  logicalDateFromInstant,
   type LogicalDate,
 } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
@@ -73,7 +73,7 @@ export async function getInvestmentAccountValuesForUser(
   }
 
   const now = options.now ?? new Date();
-  const asOf = options.asOf ?? logicalDateFromUtcInstant(now);
+  const asOf = options.asOf ?? logicalDateFromInstant(now);
   const staleAfterDays =
     options.staleAfterDays ?? INVESTMENT_QUOTE_STALE_AFTER_DAYS;
 

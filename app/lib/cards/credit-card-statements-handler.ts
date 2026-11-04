@@ -3,7 +3,7 @@ import { ZodError, z } from "zod";
 import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
-import { parseIsoLogicalDate, type LogicalDate } from "@/app/lib/date/logical-date";
+import { parseIsoLogicalDate, todayLogicalDate, type LogicalDate } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
 import { buildCreditCardStatements } from "@/app/lib/cards/credit-card-statements";
 
@@ -12,14 +12,6 @@ const querySchema = z.object({
   history: z.coerce.number().int().min(0).max(24).default(12),
 });
 
-function todayUtc(): LogicalDate {
-  const now = new Date();
-  return {
-    year: now.getUTCFullYear(),
-    month: now.getUTCMonth() + 1,
-    day: now.getUTCDate(),
-  };
-}
 
 function monthOffset(date: LogicalDate, offset: number) {
   const value = new Date(Date.UTC(date.year, date.month - 1 + offset, 1));
@@ -43,7 +35,7 @@ export async function getCreditCardStatements(
       asOf: url.searchParams.get("asOf") ?? undefined,
       history: url.searchParams.get("history") ?? undefined,
     });
-    const asOf = query.asOf ? parseIsoLogicalDate(query.asOf) : todayUtc();
+    const asOf = query.asOf ? parseIsoLogicalDate(query.asOf) : todayLogicalDate();
     if (!asOf) return failure("Data de referência inválida", 400);
 
     const account = await prisma.account.findFirst({

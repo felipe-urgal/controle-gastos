@@ -15,7 +15,7 @@ import {
 import { createCategorySchema, updateCategorySchema } from "@/app/lib/categories/category-schema";
 import { HttpError } from "@/app/lib/http-error";
 import { getCategoryActivity } from "@/app/lib/categories/category-activity";
-import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
 
 function rethrowCategoryWriteError(error: unknown): never {
@@ -110,7 +110,7 @@ export const categoryCrud = baseCrudHandler({
     const activity = await getCategoryActivity({
       userId,
       category: { id: category.id, type: category.type },
-      asOf: logicalDateFromUtcInstant(new Date()),
+      asOf: logicalDateFromInstant(new Date()),
     });
     return { ...usage, activity };
   },

@@ -1,6 +1,7 @@
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import type { CategoryType } from '@/app/types/category';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+import { logicalDateFromInstant } from '@/app/lib/date/logical-date';
 
 const nameSuggestions: Record<CategoryType, string[]> = {
   EXPENSE: ['Mercado', 'Moradia', 'Transporte', 'Lazer', 'Saúde'],
@@ -38,8 +39,8 @@ export function readMonthlyLimit(args: {
   const amount = parseMoneyInputToCents(args.value);
   if (amount === null) return null;
 
-  const now = args.now ?? new Date();
-  return { amount, year: now.getFullYear(), month: now.getMonth() + 1, currency: args.currency };
+  const today = logicalDateFromInstant(args.now ?? new Date());
+  return { amount, year: today.year, month: today.month, currency: args.currency };
 }
 
 /** Texto do campo de limite: avisa quando o valor digitado não é um valor válido. */

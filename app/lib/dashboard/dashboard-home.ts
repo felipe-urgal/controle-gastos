@@ -1,8 +1,14 @@
 import { getFinancialCommitmentsFromForecastForUser } from '@/app/lib/commitments/financial-commitments';
-import { lastDayOfMonth, logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
 import {
-  getMonthlyDashboardForUser,
-} from '@/app/lib/dashboard/monthly-dashboard';
+  daysBetweenLogicalDates,
+  lastDayOfMonth,
+  logicalDateFromInstant,
+} from '@/app/lib/date/logical-date';
+import {
+  dashboardPeriodRelation,
+  dashboardReferenceDate,
+} from '@/app/lib/dashboard/dashboard-period';
+import { getMonthlyDashboardForUser } from '@/app/lib/dashboard/monthly-dashboard';
 import {
   getForecastForUser,
   type ForecastForUserResult,
@@ -13,7 +19,6 @@ import { prisma } from '@/app/lib/prisma';
 import type {
   DashboardHome,
   DashboardPeriod,
-  DashboardPeriodRelation,
   DashboardRecentTransaction,
   DashboardSection,
 } from '@/app/types/dashboard';
@@ -22,16 +27,7 @@ import type { FinancialInsightsData } from '@/app/types/financial-insight';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { ForecastData } from '@/app/types/forecast';
 
-export function dashboardPeriodRelation(
-  selected: DashboardPeriod,
-  current: DashboardPeriod,
-): DashboardPeriodRelation {
-  const selectedKey = selected.year * 12 + selected.month;
-  const currentKey = current.year * 12 + current.month;
-  if (selectedKey < currentKey) return 'PAST';
-  if (selectedKey > currentKey) return 'FUTURE';
-  return 'CURRENT';
-}
+export { dashboardPeriodRelation };
 
 async function captureSection<T>(
   load: () => Promise<T>,
@@ -182,7 +178,22 @@ export async function getDashboardHomeForUser(
   currency: SupportedCurrency,
   now: Date = new Date(),
 ): Promise<DashboardHome> {
-  const asOf = logicalDateFromUtcInstant(now);
+  const asOf = logicalDateFromInstant(now);
+  const relation = dashboardPeriodRelation(period, { year: asOf.year, month: asOf.month });
+  const referenceDate = dashboardReferenceDate(period, asOf);
+  const periodEnd = lastDayOfMonth({ year: period.year, month: period.month, day: 1 });
+
+  // Projeção até o fim do mês escolhido (30/60/90 dias a partir de hoje). Mês passado não tem
+  // projeção; mês futuro além de 90 dias também não.
+  const forecastDays: 30 | 60 | 90 | null = (() => {
+    if (relation === 'PAST') return null;
+    const needed = daysBetweenLogicalDates(asOf, periodEnd) + 1;
+    if (needed <= 30) return 30;
+    if (needed <= 60) return 60;
+    if (needed <= 90) return 90;
+    return null;
+  })();
+  const notApplicable: DashboardSection<never> = { status: 'NOT_APPLICABLE' };
 
   const [
     monthly,
@@ -191,13 +202,17 @@ export async function getDashboardHomeForUser(
     netWorth,
   ] = await Promise.all([
     getMonthlyDashboardForUser(userId, period, currency, now),
-    captureSection(
-      () =>
-        getForecastForUser(userId, { currency, days: 30 }, now, {
-          safeToSpendThrough: lastDayOfMonth(logicalDateFromUtcInstant(now)),
-        }),
-      'Não foi possível carregar a projeção atual.',
-    ),
+    forecastDays === null
+      ? Promise.resolve<DashboardSection<ForecastForUserResult>>(notApplicable)
+      : captureSection(
+          () =>
+            getForecastForUser(userId, { currency, days: forecastDays }, now, {
+              safeToSpendThrough: periodEnd.year === asOf.year && periodEnd.month === asOf.month
+                ? lastDayOfMonth(asOf)
+                : periodEnd,
+            }),
+          'Não foi possível carregar a projeção deste período.',
+        ),
     captureSection(
       () => getRecentDashboardTransactionsForUser(userId, period, currency),
       'Não foi possível carregar as transações recentes.',
@@ -226,17 +241,17 @@ export async function getDashboardHomeForUser(
   let commitments: DashboardSection<FinancialCommitmentsData>;
   let insights: DashboardSection<FinancialInsightsData>;
 
-  if (forecastSection.status === 'SUCCESS') {
+  if (forecastSection.status === 'SUCCESS' && forecastDays !== null) {
     [commitments, insights] = await Promise.all([
       captureSection(
         () =>
           getFinancialCommitmentsFromForecastForUser(
             userId,
-            { currency, days: 30 },
+            { currency, days: forecastDays },
             forecastSection.data,
             now,
           ),
-        'Não foi possível carregar os compromissos atuais.',
+        'Não foi possível carregar os compromissos deste período.',
       ),
       captureSection(
         () =>
@@ -250,16 +265,22 @@ export async function getDashboardHomeForUser(
         'Não foi possível carregar os insights deste período.',
       ),
     ]);
+  } else if (forecastSection.status === 'NOT_APPLICABLE') {
+    commitments = notApplicable;
+    insights = await captureSection(
+      () => getFinancialInsightsFromContext(userId, period, currency, monthly, null),
+      'Não foi possível carregar os insights deste período.',
+    );
   } else {
     commitments = {
       status: 'ERROR',
       message:
-        'Compromissos indisponíveis enquanto a projeção atual não carregar.',
+        'Compromissos indisponíveis enquanto a projeção não carregar.',
     };
     insights = {
       status: 'ERROR',
       message:
-        'Insights indisponíveis enquanto a projeção atual não carregar.',
+        'Insights indisponíveis enquanto a projeção não carregar.',
     };
   }
 
@@ -283,11 +304,9 @@ export async function getDashboardHomeForUser(
     monthly,
     scope: {
       selectedPeriod: period,
-      selectedPeriodRelation: dashboardPeriodRelation(period, {
-        year: asOf.year,
-        month: asOf.month,
-      }),
+      selectedPeriodRelation: relation,
       currentAsOf: asOf,
+      referenceDate,
     },
     current: {
       cash: {

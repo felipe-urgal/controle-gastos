@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
+import { logicalDateFromInstant } from '@/app/lib/date/logical-date';
 import { isSupportedCurrency, type SupportedCurrency } from '@/app/types/financial-summary';
 import {
   normalizeRecurrenceDescription,
@@ -245,7 +245,7 @@ function cadenceLabel(rule: SubscriptionRule) {
 
 export function detectSubscriptions(
   transactions: CandidateTransaction[],
-  today = logicalDateFromUtcInstant(new Date()),
+  today = logicalDateFromInstant(new Date()),
 ): DetectedSubscription[] {
   const groups = new Map<string, CandidateTransaction[]>();
 

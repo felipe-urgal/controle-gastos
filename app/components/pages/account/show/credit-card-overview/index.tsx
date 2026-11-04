@@ -36,18 +36,14 @@ import type {
   CreditCardStatementItem,
   CreditCardStatementsData,
 } from '@/app/types/credit-card';
+import { formatIsoLogicalDate, todayLogicalDate } from '@/app/lib/date/logical-date';
 
 function localIsoDate() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return formatIsoLogicalDate(todayLogicalDate());
 }
 
 function localLogicalDate() {
-  const now = new Date();
-  return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+  return todayLogicalDate();
 }
 
 const MotionLink = motion.create(Link);

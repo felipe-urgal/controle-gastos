@@ -8,7 +8,7 @@ vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
 
-import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import { merchantCrud } from "@/app/lib/merchants/merchant-crud";
 import { previousMonth } from "@/app/lib/merchants/merchant-spend-model";
 import { prisma } from "@/app/lib/prisma";
@@ -39,7 +39,7 @@ describe("merchant list spend", () => {
       prisma.merchant.create({ data: { userId: owner.id, name: "Sem compras" } }),
       prisma.merchant.create({ data: { userId: other.id, name: "Alheio" } }),
     ]);
-    const today = logicalDateFromUtcInstant(new Date());
+    const today = logicalDateFromInstant(new Date());
     const previous = previousMonth(today);
 
     const spend = (merchantId: string | null, amount: number, period: { year: number; month: number }, status: "COMPLETED" | "PENDING" = "COMPLETED") =>

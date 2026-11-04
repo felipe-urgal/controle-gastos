@@ -7,7 +7,7 @@ import {
 import { buildCreditCardCommitments } from "@/app/lib/cards/credit-card-commitments";
 import {
   compareLogicalDates,
-  logicalDateFromUtcInstant,
+  logicalDateFromInstant,
 } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
 import { buildSafeToSpend } from "@/app/lib/forecast/safe-to-spend";
@@ -26,7 +26,7 @@ export type ForecastForUserResult = ForecastResult & {
   };
 };
 
-export { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+export { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 
 function shiftLogicalMonth(date: LogicalDate, offset: number) {
   const value = new Date(Date.UTC(date.year, date.month - 1 + offset, 1));
@@ -63,7 +63,7 @@ export async function getForecastForUser(
     safeToSpendThrough?: LogicalDate;
   } = {},
 ): Promise<ForecastForUserResult> {
-  const asOf = logicalDateFromUtcInstant(now);
+  const asOf = logicalDateFromInstant(now);
   const horizonEnd = addLogicalDays(asOf, input.days - 1);
   const safeToSpendThrough = options.safeToSpendThrough ?? horizonEnd;
 

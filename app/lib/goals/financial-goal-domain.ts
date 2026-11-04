@@ -1,6 +1,6 @@
 import type { FinancialGoalEntryType, FinancialGoalStatus } from "@prisma/client";
 
-import { getLastDayOfMonth, parseIsoLogicalDate } from "@/app/lib/date/logical-date";
+import { getLastDayOfMonth, logicalDateFromInstant, parseIsoLogicalDate } from "@/app/lib/date/logical-date";
 
 export type GoalProgressTotals = {
   contributions: number;
@@ -107,11 +107,7 @@ export function monthlyContributionSuggestion(args: {
   }
 
   const now = args.now ?? new Date();
-  const today = {
-    year: now.getUTCFullYear(),
-    month: now.getUTCMonth() + 1,
-    day: now.getUTCDate(),
-  };
+  const today = logicalDateFromInstant(now);
   const targetDay = Math.min(
     args.targetDay,
     getLastDayOfMonth(args.targetYear, args.targetMonth),

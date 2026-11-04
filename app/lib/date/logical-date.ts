@@ -12,6 +12,40 @@ export function compareLogicalDates(a: LogicalDate, b: LogicalDate) {
   return Math.sign(logicalDateNumber(a) - logicalDateNumber(b));
 }
 
+/** Fuso que define o "dia" do produto: o usuário é brasileiro, então "hoje" não vira às 21h (UTC). */
+export const LOGICAL_TIME_ZONE = "America/Sao_Paulo";
+
+const logicalDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: LOGICAL_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** Data civil (fuso do Brasil) de um instante real, como "agora" ou `createdAt`. */
+export function logicalDateFromInstant(instant: Date): LogicalDate {
+  if (Number.isNaN(instant.getTime())) {
+    throw new Error("Instante de referência inválido");
+  }
+
+  const parts = Object.fromEntries(
+    logicalDateFormatter
+      .formatToParts(instant)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)]),
+  );
+  return { year: parts.year, month: parts.month, day: parts.day };
+}
+
+/** Data civil de hoje no fuso do Brasil. */
+export function todayLogicalDate(): LogicalDate {
+  return logicalDateFromInstant(new Date());
+}
+
+/**
+ * Componentes UTC de um `Date` que já representa uma data lógica (meia-noite UTC).
+ * Use só para aritmética de calendário; para "agora" use `logicalDateFromInstant`.
+ */
 export function logicalDateFromUtcInstant(now: Date): LogicalDate {
   if (Number.isNaN(now.getTime())) {
     throw new Error("Instante de referência inválido");

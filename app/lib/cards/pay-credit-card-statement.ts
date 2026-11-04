@@ -7,6 +7,7 @@ import {
   compareLogicalDates,
   getLastDayOfMonth,
   parseIsoLogicalDate,
+  todayLogicalDate,
   type LogicalDate,
 } from "@/app/lib/date/logical-date";
 import { lockCreditCardAccount } from "@/app/lib/cards/credit-card-purchase-guards";
@@ -50,14 +51,6 @@ function statementWhereDate(date: LogicalDate) {
     closingYear: date.year,
     closingMonth: date.month,
     closingDay: date.day,
-  };
-}
-function todayUtc(): LogicalDate {
-  const now = new Date();
-  return {
-    year: now.getUTCFullYear(),
-    month: now.getUTCMonth() + 1,
-    day: now.getUTCDate(),
   };
 }
 
@@ -129,7 +122,7 @@ export async function payCreditCardStatementForUser(
       400,
     );
   }
-  if (compareLogicalDates(paymentDate, todayUtc()) > 0) {
+  if (compareLogicalDates(paymentDate, todayLogicalDate()) > 0) {
     throw new HttpError(
       "A data de pagamento não pode estar no futuro",
       400,

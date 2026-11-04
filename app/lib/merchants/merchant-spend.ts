@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 
 import type { MerchantSpendRow } from "@/app/lib/merchants/merchant-spend-model";
 
-import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import {
   buildMerchantSummary,
   merchantSpend,
@@ -12,7 +12,7 @@ import { prisma } from "@/app/lib/prisma";
 
 /** Despesas concluídas do mês atual e do anterior, por estabelecimento (ou sem), moeda e tipo de conta. */
 async function loadSpendRows(userId: string) {
-  const today = logicalDateFromUtcInstant(new Date());
+  const today = logicalDateFromInstant(new Date());
   const previous = previousMonth(today);
   const rows = await prisma.$queryRaw<Array<{
     merchantId: string | null;

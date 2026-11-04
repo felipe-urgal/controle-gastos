@@ -12,7 +12,7 @@ vi.mock("@/app/lib/auth", () => ({
 import { prisma } from "@/app/lib/prisma";
 import { accountCrud } from "@/app/lib/accounts/account-crud";
 import { getAccountActivity } from "@/app/lib/accounts/account-activity";
-import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import { transactionCrud } from "@/app/lib/transactions/transaction-crud";
 
 const createdUserIds: string[] = [];
@@ -83,7 +83,7 @@ describe("account opening balance", () => {
       userId: owner.id,
       accountId: body.data.id,
       currentBalance: body.data.balance,
-      asOf: logicalDateFromUtcInstant(new Date()),
+      asOf: logicalDateFromInstant(new Date()),
     });
     expect(activity.monthIncome).toBe(0);
     expect(activity.monthExpense).toBe(0);

@@ -1,6 +1,6 @@
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
-import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import { getMerchantActivity } from "@/app/lib/merchants/merchant-activity";
 import { merchantMonthWindow } from "@/app/lib/merchants/merchant-spend-model";
 import { prisma } from "@/app/lib/prisma";
@@ -26,7 +26,7 @@ describe("getMerchantActivity", () => {
       factory.category(owner.id, { type: "EXPENSE" }),
     ]);
     const merchant = await prisma.merchant.create({ data: { userId: owner.id, name: "iFood" } });
-    const asOf = logicalDateFromUtcInstant(new Date());
+    const asOf = logicalDateFromInstant(new Date());
     const window = merchantMonthWindow(asOf);
     const previous = window[4];
 
@@ -62,7 +62,7 @@ describe("getMerchantActivity", () => {
     const account = await factory.account(other.id);
     const category = await factory.category(other.id, { type: "EXPENSE" });
     const merchant = await prisma.merchant.create({ data: { userId: other.id, name: "Alheio" } });
-    const asOf = logicalDateFromUtcInstant(new Date());
+    const asOf = logicalDateFromInstant(new Date());
     await factory.transaction({
       userId: other.id,
       accountId: account.id,

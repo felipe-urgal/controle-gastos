@@ -1,6 +1,6 @@
 import {
   compareLogicalDates,
-  logicalDateFromUtcInstant,
+  logicalDateFromInstant,
 } from '@/app/lib/date/logical-date';
 import { addLogicalDays } from '@/app/lib/forecast/forecast-engine';
 import {
@@ -29,7 +29,7 @@ export async function getFinancialCommitmentsFromForecastForUser(
   forecast: ForecastForUserResult,
   now: Date = new Date(),
 ): Promise<FinancialCommitmentsData> {
-  const asOf = logicalDateFromUtcInstant(now);
+  const asOf = logicalDateFromInstant(now);
   const through = addLogicalDays(asOf, input.days - 1);
 
   const [goals, debts] = await Promise.all([

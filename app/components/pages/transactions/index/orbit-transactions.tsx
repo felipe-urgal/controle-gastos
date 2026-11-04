@@ -29,6 +29,7 @@ import { ClearPeriodDialog } from '@/app/components/pages/transactions/index/cle
 import { FilterDialog, TagFilterField } from '@/app/components/pages/transactions/index/transaction-dialogs';
 import { MobileTransactionsPrototype2 } from '@/app/components/pages/transactions/index/mobile-transactions';
 import { MonthOverview, MonthSummaryCard, MovementTimeline, UpcomingTransactions } from '@/app/components/pages/transactions/index/desktop-transactions';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 const QUICK_FILTERS: Array<[MobileQuickFilter, string]> = [
   ['all', 'Todas'],
@@ -70,6 +71,7 @@ export default function OrbitTransactions() {
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [merchants, setMerchants] = useState<MerchantDTO[]>([]);
+  const [relationsFailed, setRelationsFailed] = useState(false);
   const isTabletUp = useMediaQuery('(min-width: 640px)');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [clearPeriodOpen, setClearPeriodOpen] = useState(false);
@@ -85,8 +87,8 @@ export default function OrbitTransactions() {
 
   // Primeira carga: esqueleto; troca de mês/filtro: valores anteriores esmaecidos até chegarem os novos.
   const summaryStatus = loading ? (summary ? 'refreshing' : 'loading') : 'ready';
-  const month = Number(filters.month) || new Date().getMonth() + 1;
-  const year = Number(filters.year) || new Date().getFullYear();
+  const month = Number(filters.month) || todayLogicalDate().month;
+  const year = Number(filters.year) || todayLogicalDate().year;
   const previousPeriod = shiftPeriod(month, year, -1);
   const previousSummaryState = usePreviousSummary(month, year, filters);
 
@@ -101,6 +103,9 @@ export default function OrbitTransactions() {
           merchantService.getAllOptions(),
         ]);
         if (!active) return;
+        setRelationsFailed(
+          [accountsResult, categoriesResult, merchantsResult].some((result) => result.status === 'rejected'),
+        );
         setAccounts(accountsResult.status === 'fulfilled' ? accountsResult.value.data?.items ?? [] : []);
         setCategories(categoriesResult.status === 'fulfilled' ? categoriesResult.value.data?.items ?? [] : []);
         setMerchants(merchantsResult.status === 'fulfilled' ? merchantsResult.value : []);
@@ -343,6 +348,11 @@ export default function OrbitTransactions() {
       {error && (
         <div role="alert" className="mb-4 rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm font-semibold text-[var(--expense)]">
           {error}. Tente novamente ou altere o período/filtros.
+        </div>
+      )}
+      {relationsFailed && (
+        <div role="status" className="mb-4 rounded-[var(--radius-md)] border border-[var(--warning)]/35 bg-[var(--warning-subtle)] px-4 py-3 text-sm text-[var(--foreground)]">
+          Não foi possível carregar todas as opções de filtro (conta, categoria ou estabelecimento). Recarregue a página para tentar de novo.
         </div>
       )}
       {!isTabletUp && summaryCurrencySelect && (

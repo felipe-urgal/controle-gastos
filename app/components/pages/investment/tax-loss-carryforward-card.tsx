@@ -15,6 +15,7 @@ import type {
   InvestmentTaxLossReport,
 } from '@/app/types/investment';
 import { Button, Input, MoneyInput, Select } from '@/app/components/ui';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 const assetTypeLabels: Record<InvestmentAssetType, string> = {
   STOCK: 'Ações',
@@ -33,7 +34,7 @@ export function TaxLossCarryforwardCard({
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getUTCFullYear();
+  const currentYear = todayLogicalDate().year;
   const { year, setYear } = useInvestmentFiscalYear();
   const [report, setReport] = useState<InvestmentTaxLossReport | null>(null);
   const [loading, setLoading] = useState(true);

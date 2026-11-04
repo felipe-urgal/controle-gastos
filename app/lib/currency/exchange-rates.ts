@@ -10,7 +10,7 @@ import {
 } from '@/app/lib/currency/exchange-rate-domain';
 import {
   compareLogicalDates,
-  logicalDateFromUtcInstant,
+  logicalDateFromInstant,
   parseIsoLogicalDate,
   type LogicalDate,
 } from '@/app/lib/date/logical-date';
@@ -73,7 +73,7 @@ function toModel(rate: {
 /** Taxa factual não pode ter referência posterior à data lógica (UTC) de hoje. */
 function assertNotFuture(referenceDate: LogicalDate, now = new Date()) {
   if (
-    compareLogicalDates(referenceDate, logicalDateFromUtcInstant(now)) > 0
+    compareLogicalDates(referenceDate, logicalDateFromInstant(now)) > 0
   ) {
     throw new Error('A data de referência da taxa não pode ser futura');
   }

@@ -14,7 +14,7 @@ import {
 import {
   formatIsoLogicalDate,
   getLastDayOfMonth,
-  logicalDateFromUtcInstant,
+  logicalDateFromInstant,
   parseIsoLogicalDate,
   type LogicalDate,
 } from "@/app/lib/date/logical-date";
@@ -106,7 +106,7 @@ function dueDateFromParts(debt: {
 function effectiveDateParts(value?: string) {
   const parsed = value
     ? parseIsoLogicalDate(value)
-    : logicalDateFromUtcInstant(new Date());
+    : logicalDateFromInstant(new Date());
   if (!parsed) throw new HttpError("Data efetiva inválida", 400);
   return {
     effectiveYear: parsed.year,

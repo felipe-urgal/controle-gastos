@@ -6,6 +6,7 @@ import type {
 } from '@/app/types/recurrence';
 import type { SubscriptionItem } from '@/app/types/subscription';
 import type { RecurrenceFrequency } from '@/app/types/transaction';
+import { logicalDateFromInstant } from '@/app/lib/date/logical-date';
 
 export type SubscriptionReviewReason = 'STALE' | 'POSSIBLE' | 'PRICE';
 
@@ -32,7 +33,7 @@ export function shortDate(value: RecurrenceLogicalDate) {
 }
 
 export function logicalToday(now: Date = new Date()): RecurrenceLogicalDate {
-  return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+  return logicalDateFromInstant(now);
 }
 
 export function daysUntil(date: RecurrenceLogicalDate, today: RecurrenceLogicalDate) {

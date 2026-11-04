@@ -5,7 +5,7 @@ import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { summarizeDashboardPeriod } from '@/app/lib/dashboard/monthly-dashboard';
 import {
   getLastDayOfMonth,
-  logicalDateFromUtcInstant,
+  logicalDateFromInstant,
   type LogicalDate,
 } from '@/app/lib/date/logical-date';
 import {
@@ -317,7 +317,7 @@ export async function getFinancialComparisonForUser(
   },
   now: Date = new Date(),
 ): Promise<FinancialComparisonData> {
-  const asOf = logicalDateFromUtcInstant(now);
+  const asOf = logicalDateFromInstant(now);
   const currentMonth = { year: asOf.year, month: asOf.month };
 
   validateRange(input.a, currentMonth);

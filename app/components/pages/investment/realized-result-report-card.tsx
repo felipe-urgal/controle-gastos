@@ -10,6 +10,7 @@ import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { investmentService } from '@/app/services/investment-service';
 import type { InvestmentRealizedResultReport } from '@/app/types/investment';
 import { Select } from '@/app/components/ui';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 const monthLabel = new Intl.DateTimeFormat('pt-BR', { month: 'long' });
 
@@ -18,7 +19,7 @@ export function RealizedResultReportCard({
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getUTCFullYear();
+  const currentYear = todayLogicalDate().year;
   const { year, setYear } = useInvestmentFiscalYear();
   const [report, setReport] = useState<InvestmentRealizedResultReport | null>(null);
   const [loading, setLoading] = useState(true);

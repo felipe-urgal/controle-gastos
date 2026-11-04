@@ -3,17 +3,14 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { FaTag } from 'react-icons/fa';
-import { Button, Input, MoneyInput, Select } from '@/app/components/ui';
-import { centsToMoneyValue, moneyValueToCents } from '@/app/lib/currency/money-mask';
+import { Button, Input } from '@/app/components/ui';
 import { statusOptions } from '@/app/lib/constants/transaction.constants';
 import { useCurrencyFormatter } from '@/app/lib/currency/format-currency';
 import { FormData } from '@/app/lib/interface/transaction.interface';
 import { OfflineTransactionQueueStorageError, enqueueOfflineTransaction, readOfflineTransactionQueue, syncOfflineTransactionQueueItem } from '@/app/lib/pwa/offline-transaction-queue';
 import { ReceiptOcrApplication } from '@/app/lib/receipts/receipt-ocr-parser';
-import { buildInstallmentOccurrences } from '@/app/lib/transactions/installments';
 import { buildCorrectionAutomationSuggestions } from '@/app/lib/transactions/transaction-learning';
-import { generateLogicalRecurrenceDates } from '@/app/lib/transactions/logical-recurrence';
-import { formatPtBrLogicalDate, parseIsoLogicalDate } from '@/app/lib/transactions/monthly-recurrence';
+import { formatPtBrLogicalDate } from '@/app/lib/transactions/monthly-recurrence';
 import { getRecurrencePresetLabel, getRecurrencePresetRule, RecurrencePreset } from '@/app/lib/transactions/recurrence-presets';
 import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
@@ -30,6 +27,8 @@ import { MerchantAliasOperator } from '@/app/types/merchant-alias';
 import { MerchantDTO } from '@/app/types/merchant';
 import { TransactionDTO } from '@/app/types/transaction';
 import { TagDTO } from '@/app/types/tag';
+import { buildInstallmentPreview, buildRecurrencePreview } from '@/app/components/pages/transactions/form/transaction-form-previews';
+import { AllocationEditor } from '@/app/components/pages/transactions/form/allocation-editor';
 import { CategoryType, CreationMode, RecurrenceMode, TransactionFormProps, initialTransactionFormData } from '@/app/components/pages/transactions/form/transaction-form-shared';
 
 export function useTransactionForm({
@@ -270,108 +269,51 @@ export function useTransactionForm({
     };
   }, [formData.description, formData.merchantId]);
 
-  const recurrencePreview = useMemo(() => {
-    if (creationMode !== 'recurring' || isEditing) {
-      return { dates: [], error: null as string | null };
-    }
+  const recurrencePreview = useMemo(
+    () =>
+      buildRecurrencePreview({
+        enabled: creationMode === 'recurring' && !isEditing,
+        start: { year: formData.year, month: formData.month, day: formData.day },
+        preset: recurrencePreset,
+        mode: recurrenceMode,
+        occurrenceCount,
+        endDate: recurrenceEndDate,
+      }),
+    [
+      creationMode,
+      isEditing,
+      formData.year,
+      formData.month,
+      formData.day,
+      recurrencePreset,
+      recurrenceMode,
+      occurrenceCount,
+      recurrenceEndDate,
+    ],
+  );
 
-    const start = {
-      year: formData.year,
-      month: formData.month,
-      day: formData.day,
-    };
-    const recurrenceRule = getRecurrencePresetRule(recurrencePreset);
-
-    try {
-      if (recurrenceMode === 'count') {
-        return {
-          dates: generateLogicalRecurrenceDates(start, {
-            ...recurrenceRule,
-            mode: 'count',
-            occurrences: occurrenceCount,
-          }),
-          error: null,
-        };
-      }
-
-      const endDate = parseIsoLogicalDate(recurrenceEndDate);
-      if (!endDate) {
-        return { dates: [], error: 'Informe uma data final válida' };
-      }
-
-      return {
-        dates: generateLogicalRecurrenceDates(start, {
-          ...recurrenceRule,
-          mode: 'endDate',
-          endDate,
-        }),
-        error: null,
-      };
-    } catch (error) {
-      return {
-        dates: [],
-        error: error instanceof Error ? error.message : 'Recorrência inválida',
-      };
-    }
-  }, [
-    creationMode,
-    isEditing,
-    formData.year,
-    formData.month,
-    formData.day,
-    recurrencePreset,
-    recurrenceMode,
-    occurrenceCount,
-    recurrenceEndDate,
-  ]);
-
-  const installmentPreview = useMemo(() => {
-    if (creationMode !== 'installment' || isEditing) {
-      return { occurrences: [], error: null as string | null };
-    }
-
-    if (!selectedCategory) {
-      return { occurrences: [], error: 'Selecione uma categoria de despesa' };
-    }
-
-    if (selectedCategory.type !== 'EXPENSE') {
-      return {
-        occurrences: [],
-        error: 'Parcelamento está disponível apenas para categorias de despesa',
-      };
-    }
-
-    try {
-      return {
-        occurrences: buildInstallmentOccurrences({
-          totalCents: formData.amount,
-          count: installmentCount,
-          start: {
-            year: formData.year,
-            month: formData.month,
-            day: formData.day,
-          },
-          firstStatus: formData.status,
-        }),
-        error: null,
-      };
-    } catch (error) {
-      return {
-        occurrences: [],
-        error: error instanceof Error ? error.message : 'Parcelamento inválido',
-      };
-    }
-  }, [
-    creationMode,
-    isEditing,
-    selectedCategory,
-    formData.amount,
-    formData.year,
-    formData.month,
-    formData.day,
-    formData.status,
-    installmentCount,
-  ]);
+  const installmentPreview = useMemo(
+    () =>
+      buildInstallmentPreview({
+        enabled: creationMode === 'installment' && !isEditing,
+        categoryType: selectedCategory?.type ?? null,
+        totalCents: formData.amount,
+        count: installmentCount,
+        start: { year: formData.year, month: formData.month, day: formData.day },
+        firstStatus: formData.status,
+      }),
+    [
+      creationMode,
+      isEditing,
+      selectedCategory,
+      formData.amount,
+      formData.year,
+      formData.month,
+      formData.day,
+      formData.status,
+      installmentCount,
+    ],
+  );
 
   function handleRedirect(savedTransaction?: TransactionDTO | null) {
     if (onSuccess) {
@@ -946,73 +888,15 @@ export function useTransactionForm({
 
   function renderAllocationEditor() {
     if (creationMode !== 'single' || !formData.categoryId) return null;
-    const allocations = formData.allocations ?? [];
-    const splitEnabled = allocations.length > 0;
-    const availableCategories = categories.filter(
-      (category) =>
-        category.type === effectiveCategoryFilter &&
-        (category.isActive || category.id === formData.categoryId),
-    );
-
     return (
-      <div className="px-2 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <span className="text-sm text-[var(--text-muted)]">Dividir em categorias</span>
-            <p className="mt-0.5 text-xs text-[var(--text-subtle)]">O saldo continua sendo uma única transação.</p>
-          </div>
-          <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() =>
-            setFormData((previous) => ({
-              ...previous,
-              allocations: splitEnabled ? [] : [
-                { categoryId: previous.categoryId, amount: previous.amount },
-                { categoryId: '', amount: 0 },
-              ],
-            }))
-          }>
-            {splitEnabled ? 'Remover divisão' : 'Dividir'}
-          </Button>
-        </div>
-        {splitEnabled && (
-          <div className="mt-3 grid gap-2">
-            {allocations.map((allocation, index) => (
-              <div key={index} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
-                <Select
-                  ariaLabel={`Categoria da divisão ${index + 1}`}
-                  value={allocation.categoryId}
-                  disabled={loading || index === 0}
-                  onChange={(value) => setFormData((previous) => ({
-                    ...previous,
-                    allocations: (previous.allocations ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, categoryId: String(value) } : item),
-                  }))}
-                  placeholder="Selecione a categoria"
-                  options={availableCategories.map((category) => ({ value: category.id, label: category.name }))}
-                />
-                <MoneyInput aria-label={`Valor da divisão ${index + 1}`} enterKeyHint="next"
-                  value={allocation.amount > 0 ? centsToMoneyValue(allocation.amount) : ''} disabled={loading}
-                  onValueChange={(next) => {
-                    const amount = moneyValueToCents(next) ?? 0;
-                    setFormData((previous) => ({
-                      ...previous,
-                      allocations: (previous.allocations ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, amount } : item),
-                    }));
-                  }}
-                  className="text-right" placeholder="0,00" />
-                <Button variant="outline" disabled={loading || allocations.length <= 2 || index === 0} onClick={() =>
-                  setFormData((previous) => ({ ...previous, allocations: (previous.allocations ?? []).filter((_, itemIndex) => itemIndex !== index) }))
-                }>
-                  Remover
-                </Button>
-              </div>
-            ))}
-            <Button variant="outline" disabled={loading || allocations.length >= 20}
-              onClick={() => setFormData((previous) => ({ ...previous, allocations: [...(previous.allocations ?? []), { categoryId: '', amount: 0 }] }))}>
-              + Adicionar categoria
-            </Button>
-            <p className="text-xs text-[var(--text-muted)]">Total dividido: {formatCentsToCurrency(allocations.reduce((sum, item) => sum + item.amount, 0))} de {formatCentsToCurrency(formData.amount)}</p>
-          </div>
-        )}
-      </div>
+      <AllocationEditor
+        formData={formData}
+        setFormData={setFormData}
+        categories={categories}
+        categoryType={effectiveCategoryFilter}
+        loading={loading}
+        formatCents={formatCentsToCurrency}
+      />
     );
   }
   const accountOptions = accounts

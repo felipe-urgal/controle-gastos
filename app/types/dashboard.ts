@@ -142,6 +142,10 @@ export type DashboardSection<T> =
   | {
       status: 'ERROR';
       message: string;
+    }
+  // A seção não faz sentido para o mês escolhido (ex.: projeção de um mês que já passou).
+  | {
+      status: 'NOT_APPLICABLE';
     };
 
 export type DashboardPeriodRelation = 'PAST' | 'CURRENT' | 'FUTURE';
@@ -195,7 +199,10 @@ export type DashboardHome = {
   scope: {
     selectedPeriod: DashboardPeriod;
     selectedPeriodRelation: DashboardPeriodRelation;
+    /** Hoje (fuso do Brasil). */
     currentAsOf: ForecastLogicalDate;
+    /** Data a que saldos, faturas e metas se referem: hoje, ou o último dia de um mês passado. */
+    referenceDate: ForecastLogicalDate;
   };
   current: {
     cash: {

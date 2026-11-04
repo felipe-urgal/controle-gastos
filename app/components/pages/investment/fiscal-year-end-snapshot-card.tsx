@@ -9,6 +9,7 @@ import { investmentService } from '@/app/services/investment-service';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { InvestmentFiscalYearEndSnapshot } from '@/app/types/investment';
 import { Select } from '@/app/components/ui';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 function quantityLabel(value: string) {
   return value.replace('.', ',');
@@ -19,7 +20,7 @@ export function FiscalYearEndSnapshotCard({
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getFullYear();
+  const currentYear = todayLogicalDate().year;
   const lastClosedYear = currentYear - 1;
   const [year, setYear] = useState(lastClosedYear);
   const [snapshot, setSnapshot] =

@@ -1,4 +1,4 @@
-import { compareLogicalDates, type LogicalDate } from '@/app/lib/date/logical-date';
+import { compareLogicalDates, logicalDateFromInstant, type LogicalDate } from '@/app/lib/date/logical-date';
 import { realizedCashFlow } from '@/app/lib/dashboard/realized-cash-flow';
 import {
   PERIODIC_SUMMARY_CONTENT_VERSION,
@@ -31,12 +31,9 @@ function shiftLogicalDays(date: LogicalDate, days: number): LogicalDate {
 
 export function getCompletedWeeklySummaryPeriod(now: Date) {
   if (Number.isNaN(now.getTime())) throw new Error('Instante de referência inválido');
-  const asOf: LogicalDate = {
-    year: now.getUTCFullYear(),
-    month: now.getUTCMonth() + 1,
-    day: now.getUTCDate(),
-  };
-  const daysSinceMonday = (now.getUTCDay() + 6) % 7;
+  const asOf: LogicalDate = logicalDateFromInstant(now);
+  const weekday = new Date(Date.UTC(asOf.year, asOf.month - 1, asOf.day)).getUTCDay();
+  const daysSinceMonday = (weekday + 6) % 7;
   const currentWeekStart = shiftLogicalDays(asOf, -daysSinceMonday);
   const start = shiftLogicalDays(currentWeekStart, -7);
   const end = shiftLogicalDays(start, 6);

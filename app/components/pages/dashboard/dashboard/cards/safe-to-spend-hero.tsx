@@ -119,6 +119,9 @@ export function SafeToSpendHero({
   onOpenForecast,
   forecastEnabled,
   onRetry,
+  notApplicable = false,
+  cashTotal = 0,
+  relation = 'CURRENT',
 }: {
   cashAccounts: DashboardHome['current']['cash']['accounts'];
   asOf: DashboardHome['scope']['currentAsOf'];
@@ -133,6 +136,10 @@ export function SafeToSpendHero({
   onOpenForecast: () => void;
   forecastEnabled: boolean;
   onRetry?: () => void;
+  /** Sem projeção para o mês escolhido: o card mostra o saldo em caixa na data de referência. */
+  notApplicable?: boolean;
+  cashTotal?: number;
+  relation?: DashboardHome['scope']['selectedPeriodRelation'];
 }) {
   const reduce = useReducedMotion();
   const through = safeToSpend?.through ?? horizonEnd;
@@ -177,12 +184,27 @@ export function SafeToSpendHero({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="dashboard-hero-title" className="text-sm font-medium text-[var(--text-muted)]">
-          Disponível para gastar
+          {notApplicable ? (relation === 'PAST' ? 'Saldo em caixa no fim do mês' : 'Saldo em caixa') : 'Disponível para gastar'}
         </h2>
-        <span className="text-xs text-[var(--text-muted)]">até {horizonLabel} · só o que já está lançado</span>
+        <span className="text-xs text-[var(--text-muted)]">
+          {notApplicable
+            ? relation === 'PAST'
+              ? `em ${String(asOf.day).padStart(2, '0')}/${String(asOf.month).padStart(2, '0')}/${asOf.year} · só o realizado`
+              : 'a projeção cobre até 90 dias a partir de hoje'
+            : `até ${horizonLabel} · só o que já está lançado`}
+        </span>
       </div>
 
-      {error ? (
+      {notApplicable ? (
+        <div className="mt-2">
+          <strong className={`block money text-4xl font-semibold leading-none tracking-[-0.035em] tabular-nums sm:text-5xl ${cashTotal < 0 ? 'text-[var(--expense)]' : 'text-[var(--foreground)]'}`}>
+            <span className="money">{money(cashTotal)}</span>
+          </strong>
+          <p className="mt-3 text-sm text-[var(--text-muted)]">
+            Soma de {cashAccounts.length} {cashAccounts.length === 1 ? 'conta corrente' : 'contas correntes'}.
+          </p>
+        </div>
+      ) : error ? (
         <SectionMessage tone="error" className="mt-3" onRetry={onRetry} retryLabel="Tentar novamente: disponível para gastar">{error}</SectionMessage>
       ) : loading ? (
         <div className="mt-3 h-24 animate-pulse rounded-xl bg-[var(--skeleton)]" role="status" aria-label="Carregando disponível para gastar" />

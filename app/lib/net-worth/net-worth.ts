@@ -9,7 +9,7 @@ import { findRatesForConsolidation } from "@/app/lib/currency/exchange-rates";
 import { resolvePatrimonyRate } from "@/app/lib/currency/patrimony-rate-resolver";
 import {
   getLastDayOfMonth,
-  logicalDateFromUtcInstant,
+  logicalDateFromInstant,
   type LogicalDate,
 } from "@/app/lib/date/logical-date";
 import { getInvestmentAccountValuesForUser } from "@/app/lib/investments/investment-account-valuation";
@@ -173,7 +173,7 @@ export async function getNetWorthForUser(
   const periods = buildMonthlyPeriods(end, input.months);
   const start = periods[0] ?? end;
   const referenceNow = input.referenceNow ?? new Date();
-  const today = logicalDateFromUtcInstant(referenceNow);
+  const today = logicalDateFromInstant(referenceNow);
   const isCurrentPeriod = samePeriod(end, today);
   const asOf = isCurrentPeriod ? today : monthEnd(end);
 
@@ -262,7 +262,7 @@ export async function getNetWorthForUser(
       };
     }
 
-    return logicalDateFromUtcInstant(adjustment.createdAt);
+    return logicalDateFromInstant(adjustment.createdAt);
   };
 
   const balanceAtDate = (

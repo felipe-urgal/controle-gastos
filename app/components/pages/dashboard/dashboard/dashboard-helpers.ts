@@ -1,11 +1,10 @@
+import { displayMoney } from '@/app/lib/currency/display-money';
 import { wrappableMoney } from '@/app/lib/currency/wrappable-money';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { DashboardRecentTransaction, DashboardSection } from '@/app/types/dashboard';
 import { FinancialCommitment } from '@/app/types/financial-commitment';
 
-export function displayMoney(amount: number, showValues: boolean, currency: string) {
-  return showValues ? wrappableMoney(formatCurrency(amount, currency)) : '••••';
-}
+export { displayMoney };
 
 export function signedMoney(amount: number, showValues: boolean, currency: string) {
   if (!showValues) return '••••';
@@ -91,9 +90,9 @@ export function commitmentBadge(
 }
 
 export function sectionState<T>(section: DashboardSection<T>) {
-  return section.status === 'SUCCESS'
-    ? { data: section.data, loading: false, error: '' }
-    : { data: null, loading: false, error: section.message };
+  if (section.status === 'SUCCESS') return { data: section.data, loading: false, error: '', notApplicable: false };
+  if (section.status === 'NOT_APPLICABLE') return { data: null, loading: false, error: '', notApplicable: true };
+  return { data: null, loading: false, error: section.message, notApplicable: false };
 }
 
 export const COMMITMENT_DIRECTION_LABELS = {
