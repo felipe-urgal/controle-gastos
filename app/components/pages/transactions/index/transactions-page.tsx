@@ -20,7 +20,7 @@ import { accountService } from '@/app/services/account-service';
 import { categoryService } from '@/app/services/category-service';
 import { merchantService } from '@/app/services/merchant-service';
 
-import type { CurrencyFinancialSummary, SupportedCurrency } from '@/app/types/financial-summary';
+import type { CurrencyFinancialSummary, SupportedCurrency, TransactionListSummary } from '@/app/types/financial-summary';
 import type { MerchantDTO } from '@/app/types/merchant';
 
 import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilter, REFINEMENT_FILTER_KEYS, TIMELINE_INCREMENT, TimelineOrder, buildMonthBars, buildTimelineGroups, displayMoney, formatTrend, percentageChange, selectSummary, shiftPeriod, todayDateKey, transactionDateKey, usePreviousSummary } from '@/app/components/pages/transactions/index/transactions-view-helpers';
@@ -184,7 +184,7 @@ export default function TransactionsPage() {
   );
 
   const availableSummaries = useMemo(
-    () => (summary as CurrencyFinancialSummary[] | undefined) ?? [],
+    () => (summary as TransactionListSummary[] | undefined) ?? [],
     [summary],
   );
   const currentSummary = useMemo(() => {
@@ -232,21 +232,16 @@ export default function TransactionsPage() {
     0,
   );
 
-  // Todos os pendentes carregados do mês (inclusive vencidos), sem somar moedas diferentes.
-  const pendingTotals = useMemo(() => {
-    const pending = transactions.filter(
-      (transaction) =>
-        transaction.status === 'PENDING' &&
-        transaction.kind === 'NORMAL' &&
-        transaction.account.currency === currentSummary.currency,
-    );
-    return {
-      count: pending.length,
-      income: pending.filter((item) => item.type === 'INCOME').reduce((sum, item) => sum + item.amount, 0),
-      expense: pending.filter((item) => item.type === 'EXPENSE').reduce((sum, item) => sum + item.amount, 0),
-      partial: hasMore,
-    };
-  }, [currentSummary.currency, hasMore, transactions]);
+  // Pendentes do mês inteiro (inclusive vencidos), somados no servidor: não dependem de quantas páginas já carregaram.
+  const pendingTotals = useMemo(
+    () =>
+      availableSummaries.find((item) => item.currency === currentSummary.currency)?.pending ?? {
+        count: 0,
+        income: 0,
+        expense: 0,
+      },
+    [availableSummaries, currentSummary.currency],
+  );
 
   const quickScoped = useMemo(() => {
     const source = filters.status

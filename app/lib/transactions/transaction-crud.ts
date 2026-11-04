@@ -27,7 +27,8 @@ import { syncTransactionSeriesMetadata } from "@/app/lib/transactions/transactio
 import {
   isSupportedCurrency,
   SUPPORTED_CURRENCIES,
-  type CurrencyFinancialSummary,
+  type SupportedCurrency,
+  type TransactionListSummary,
 } from "@/app/types/financial-summary";
 
 const transactionAccountSelect = {
@@ -797,41 +798,54 @@ export const transactionCrud = baseCrudHandler({
   },
 
   summary: async ({ where, userId }) => {
-    const rows = await prisma.transaction.groupBy({
-      by: ["accountId", "type"],
-      where: {
-        ...where,
-        kind: "NORMAL",
-        status: "COMPLETED",
-      },
-      _sum: { amount: true },
-    });
+    const [rows, pendingRows] = await Promise.all([
+      prisma.transaction.groupBy({
+        by: ["accountId", "type"],
+        where: { ...where, kind: "NORMAL", status: "COMPLETED" },
+        _sum: { amount: true },
+      }),
+      // AND (e não spread) para respeitar um filtro de status do usuário: com "concluídas" não há pendentes.
+      prisma.transaction.groupBy({
+        by: ["accountId", "type"],
+        where: { AND: [where, { kind: "NORMAL", status: "PENDING" }] },
+        _sum: { amount: true },
+        _count: { _all: true },
+      }),
+    ]);
 
-    if (rows.length === 0) return [];
+    if (rows.length === 0 && pendingRows.length === 0) return [];
 
     const accounts = await prisma.account.findMany({
       where: {
         userId,
-        id: { in: [...new Set(rows.map((row) => row.accountId))] },
+        id: { in: [...new Set([...rows, ...pendingRows].map((row) => row.accountId))] },
       },
       select: { id: true, currency: true, type: true },
     });
     const accountById = new Map(
       accounts.map((account) => [account.id, account]),
     );
-    const summaries = new Map<string, CurrencyFinancialSummary>();
+    const summaries = new Map<string, TransactionListSummary>();
+    const summaryFor = (currency: SupportedCurrency) => {
+      const existing = summaries.get(currency);
+      if (existing) return existing;
+      const created: TransactionListSummary = {
+        currency,
+        income: 0,
+        expense: 0,
+        balance: 0,
+        pending: { count: 0, income: 0, expense: 0 },
+      };
+      summaries.set(currency, created);
+      return created;
+    };
 
     for (const row of rows) {
       const account = accountById.get(row.accountId);
       const currency = account?.currency;
       if (!account || !isSupportedCurrency(currency)) continue;
 
-      const summary = summaries.get(currency) ?? {
-        currency,
-        income: 0,
-        expense: 0,
-        balance: 0,
-      };
+      const summary = summaryFor(currency);
       const impact = transactionFinancialImpact(
         account.type,
         row.type,
@@ -840,7 +854,17 @@ export const transactionCrud = baseCrudHandler({
       summary.income += impact.income;
       summary.expense += impact.expense;
       summary.balance = summary.income - summary.expense;
-      summaries.set(currency, summary);
+    }
+
+    // Pendentes: valor bruto por tipo, nunca somado entre moedas e sem entrar no saldo.
+    for (const row of pendingRows) {
+      const currency = accountById.get(row.accountId)?.currency;
+      if (!isSupportedCurrency(currency)) continue;
+
+      const { pending } = summaryFor(currency);
+      pending.count += row._count._all;
+      if (row.type === "INCOME") pending.income += row._sum.amount ?? 0;
+      else if (row.type === "EXPENSE") pending.expense += row._sum.amount ?? 0;
     }
 
     return SUPPORTED_CURRENCIES.flatMap((currency) => {

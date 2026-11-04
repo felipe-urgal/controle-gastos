@@ -7,7 +7,7 @@ import { FaArrowDown, FaArrowUp, FaCalendarAlt, FaChartLine, FaChevronDown, FaCh
 import { CARD_EASE, CARD_VIEWPORT, CountUp, reducedTransition } from '@/app/components/ui/motion';
 import { Button, Chip, ChipRow, IconRenderer, PeriodSwitcher } from '@/app/components/ui';
 import { isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
-import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
+import type { CurrencyFinancialSummary, PendingTotals } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
 import { MobileQuickFilter, TimelineGroup, displayMoney, formatTransactionAmount, formatTransactionTime, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
 import { TransactionTags } from '@/app/components/pages/transactions/index/desktop-transactions';
@@ -49,8 +49,8 @@ export function MobileTransactions({
   onMovePeriod: (offset: number) => void;
   onSelectPeriod: (month: number, year: number) => void;
   onTransactionCompleted: () => void;
-  /** Lançamentos pendentes do mês (qualquer data), na moeda do resumo. `partial`: ainda há páginas por carregar. */
-  pending: { income: number; expense: number; count: number; partial: boolean };
+  /** Lançamentos pendentes do mês (qualquer data), na moeda do resumo, somados no servidor. */
+  pending: PendingTotals;
   onOpenFilters: () => void;
   onQuickFilterChange: (filter: MobileQuickFilter) => void;
   onShowPending: () => void;
@@ -198,7 +198,7 @@ export function MobileTransactions({
         {pending.count > 0 && !summaryLoading && (
           <div className={`mt-4 border-t border-[var(--border)] pt-3 transition-opacity duration-150 ${dim}`}>
             <p className="text-xs text-[var(--text-muted)]">
-              Pendentes · {pending.count}{pending.partial ? '+' : ''} {pending.count === 1 && !pending.partial ? 'lançamento' : 'lançamentos'} · fora do saldo
+              Pendentes · {pending.count} {pending.count === 1 ? 'lançamento' : 'lançamentos'} · fora do saldo
             </p>
             <div className="mt-1 grid grid-cols-2 gap-3 text-sm">
               <span className="min-w-0">

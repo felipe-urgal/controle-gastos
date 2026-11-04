@@ -156,6 +156,8 @@ describe("transaction quick action integration", () => {
         income: 0,
         expense: 4200,
         balance: -4200,
+        // A cópia segue pendente: aparece à parte e não entra no saldo.
+        pending: { count: 1, income: 0, expense: 4200 },
       },
     ]);
   });
@@ -252,8 +254,8 @@ describe("transaction quick action integration", () => {
     const body = await response.json();
 
     expect(body.data.summary).toEqual([
-      { currency: "BRL", income: 10_000, expense: 2_500, balance: 7_500 },
-      { currency: "USD", income: 0, expense: 5_000, balance: -5_000 },
+      { currency: "BRL", income: 10_000, expense: 2_500, balance: 7_500, pending: { count: 0, income: 0, expense: 0 } },
+      { currency: "USD", income: 0, expense: 5_000, balance: -5_000, pending: { count: 0, income: 0, expense: 0 } },
     ]);
   });
 });

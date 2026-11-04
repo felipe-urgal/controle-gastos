@@ -24,6 +24,7 @@ import { CARD_EASE, CountUp, RiseDetails, reducedTransition } from '@/app/compon
 import Link from 'next/link';
 import { useAuth } from '@/app/context';
 import { useDebounce } from '@/app/hooks/use-debounce';
+import { usePaginatedList } from '@/app/hooks/use-paginated-list';
 import { merchantAliasService } from '@/app/services/merchant-alias-service';
 import { merchantService } from '@/app/services/merchant-service';
 import type {
@@ -50,27 +51,17 @@ function operatorLabel(operator: MerchantAliasOperator) {
 
 export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: string }) {
   const reduce = useReducedMotion();
-  const [items, setItems] = useState<MerchantDTO[]>([]);
   const [summary, setSummary] = useState<MerchantMonthSummary | null>(null);
-  const [merchantPage, setMerchantPage] = useState(1);
-  const [merchantTotal, setMerchantTotal] = useState(0);
-  const [merchantTotalPages, setMerchantTotalPages] = useState(1);
   const [merchantSearch, setMerchantSearch] = useState('');
   const [merchantStatus, setMerchantStatus] =
     useState<MerchantStatusFilter>('all');
-  const [merchantLoading, setMerchantLoading] = useState(true);
   const [merchantError, setMerchantError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [editing, setEditing] = useState<MerchantDTO | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const [aliases, setAliases] = useState<MerchantAliasDTO[]>([]);
-  const [aliasPage, setAliasPage] = useState(1);
-  const [aliasTotal, setAliasTotal] = useState(0);
-  const [aliasTotalPages, setAliasTotalPages] = useState(1);
   const [aliasSearch, setAliasSearch] = useState('');
   const [aliasMerchantFilter, setAliasMerchantFilter] = useState('');
-  const [aliasesLoading, setAliasesLoading] = useState(true);
   const [aliasError, setAliasError] = useState<string | null>(null);
   const [aliasEditing, setAliasEditing] = useState<MerchantAliasDTO | null>(
     null,
@@ -105,7 +96,6 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
   const heroCurrency = summary?.currencies[0] ?? null;
   const summaryLoaded = summary !== null;
   const heroShare = heroCurrency ? topShare(heroCurrency) : null;
-  const maxSpend = Math.max(0, ...items.map((item) => pickSpend(item.monthSpend, heroCurrency?.currency)?.expense ?? 0));
 
   const debouncedMerchantSearch = useDebounce(merchantSearch.trim(), 300);
   const debouncedAliasSearch = useDebounce(aliasSearch.trim(), 300);
@@ -118,59 +108,64 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
     300,
   );
 
-  const loadMerchants = useCallback(async () => {
-    try {
+  const fetchMerchants = useCallback(
+    async (pageNumber: number) => {
       const response = await merchantService.getAll({
-        page: merchantPage,
+        page: pageNumber,
         pageSize: MERCHANT_PAGE_SIZE,
-        ...(debouncedMerchantSearch
-          ? { search: debouncedMerchantSearch }
-          : {}),
+        ...(debouncedMerchantSearch ? { search: debouncedMerchantSearch } : {}),
         ...(merchantStatus === 'active'
           ? { isActive: true }
           : merchantStatus === 'inactive'
             ? { isActive: false }
             : {}),
       });
-      const data = response.data;
-      setItems(data?.items ?? []);
-      setSummary(data?.summary ?? null);
-      setMerchantTotal(data?.total ?? 0);
-      setMerchantTotalPages(Math.max(1, data?.totalPages ?? 1));
-    } catch (error) {
-      setItems([]);
-      setMerchantTotal(0);
-      setMerchantTotalPages(1);
-      setMerchantError(
-        errorMessage(error, 'Erro ao carregar estabelecimentos'),
-      );
-    } finally {
-      setMerchantLoading(false);
-    }
-  }, [debouncedMerchantSearch, merchantPage, merchantStatus]);
+      setSummary(response.data?.summary ?? null);
+      return response.data ?? {};
+    },
+    [debouncedMerchantSearch, merchantStatus],
+  );
+  const {
+    items,
+    total: merchantTotal,
+    totalPages: merchantTotalPages,
+    page: merchantPage,
+    setPage: setMerchantPage,
+    loading: merchantLoading,
+    error: merchantListError,
+    reload: loadMerchants,
+  } = usePaginatedList<MerchantDTO>({
+    fetchPage: fetchMerchants,
+    fallbackError: 'Erro ao carregar estabelecimentos',
+  });
 
-  const loadAliases = useCallback(async () => {
-    try {
-      const response = await merchantAliasService.getAll({
-        page: aliasPage,
-        pageSize: ALIAS_PAGE_SIZE,
-        ...(debouncedAliasSearch ? { search: debouncedAliasSearch } : {}),
-        ...(debouncedAliasMerchantFilter
-          ? { merchantSearch: debouncedAliasMerchantFilter }
-          : {}),
-      });
-      setAliases(response.data.items);
-      setAliasTotal(response.data.total);
-      setAliasTotalPages(Math.max(1, response.data.totalPages));
-    } catch (error) {
-      setAliases([]);
-      setAliasTotal(0);
-      setAliasTotalPages(1);
-      setAliasError(errorMessage(error, 'Erro ao carregar aliases'));
-    } finally {
-      setAliasesLoading(false);
-    }
-  }, [aliasPage, debouncedAliasMerchantFilter, debouncedAliasSearch]);
+  const maxSpend = Math.max(0, ...items.map((item) => pickSpend(item.monthSpend, heroCurrency?.currency)?.expense ?? 0));
+
+  const fetchAliases = useCallback(
+    async (pageNumber: number) =>
+      (
+        await merchantAliasService.getAll({
+          page: pageNumber,
+          pageSize: ALIAS_PAGE_SIZE,
+          ...(debouncedAliasSearch ? { search: debouncedAliasSearch } : {}),
+          ...(debouncedAliasMerchantFilter ? { merchantSearch: debouncedAliasMerchantFilter } : {}),
+        })
+      ).data,
+    [debouncedAliasMerchantFilter, debouncedAliasSearch],
+  );
+  const {
+    items: aliases,
+    total: aliasTotal,
+    totalPages: aliasTotalPages,
+    page: aliasPage,
+    setPage: setAliasPage,
+    loading: aliasesLoading,
+    error: aliasListError,
+    reload: loadAliases,
+  } = usePaginatedList<MerchantAliasDTO>({
+    fetchPage: fetchAliases,
+    fallbackError: 'Erro ao carregar aliases',
+  });
 
   const loadAliasMerchantOptions = useCallback(async () => {
     try {
@@ -195,22 +190,6 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
       setAliasOptionsLoading(false);
     }
   }, [debouncedAliasMerchantQuery]);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadMerchants();
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [loadMerchants]);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadAliases();
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [loadAliases]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -280,7 +259,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
         await merchantService.create({ name: normalized });
       }
       resetForm();
-      await loadMerchants();
+      loadMerchants();
       void loadAliasMerchantOptions();
     } catch (error) {
       setMerchantError(
@@ -295,7 +274,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
     setMerchantError(null);
     try {
       await merchantService.update(item.id, { isActive: !item.isActive });
-      await loadMerchants();
+      loadMerchants();
       void loadAliasMerchantOptions();
     } catch (error) {
       setMerchantError(
@@ -331,7 +310,8 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
       }
 
       setDeleteCandidate(null);
-      await Promise.all([loadMerchants(), loadAliases()]);
+      loadMerchants();
+      loadAliases();
       void loadAliasMerchantOptions();
     } catch (error) {
       setMerchantError(
@@ -428,7 +408,8 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
       }
 
       resetAliasForm();
-      await Promise.all([loadAliases(), loadMerchants()]);
+      loadAliases();
+      loadMerchants();
     } catch (error) {
       setAliasError(errorMessage(error, 'Erro ao salvar alias'));
     } finally {
@@ -467,7 +448,8 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
     try {
       await merchantAliasService.reassign(currentAliasPayload());
       resetAliasForm();
-      await Promise.all([loadAliases(), loadMerchants()]);
+      loadAliases();
+      loadMerchants();
     } catch (error) {
       setAliasError(errorMessage(error, 'Erro ao mover alias'));
     } finally {
@@ -483,12 +465,11 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
       if (aliasEditing?.id === id) resetAliasForm();
 
       if (aliases.length === 1 && aliasPage > 1) {
-        setAliasesLoading(true);
         setAliasPage((current) => current - 1);
       } else {
-        await loadAliases();
+        loadAliases();
       }
-      await loadMerchants();
+      loadMerchants();
     } catch (error) {
       setAliasError(errorMessage(error, 'Erro ao remover alias'));
     } finally {
@@ -585,7 +566,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
               </motion.span>
             </div>
 
-            {merchantError ? <Alert variant="error" message={merchantError} /> : null}
+            {merchantError || merchantListError ? <Alert variant="error" message={merchantError || merchantListError} /> : null}
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <Input
@@ -622,7 +603,6 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                 onChange={(event) => {
                   setMerchantSearch(event.target.value);
                   setMerchantPage(1);
-                  setMerchantLoading(true);
                   setMerchantError(null);
                 }}
               />
@@ -633,7 +613,6 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
                 onChange={(value) => {
                   setMerchantStatus(value as MerchantStatusFilter);
                   setMerchantPage(1);
-                  setMerchantLoading(true);
                   setMerchantError(null);
                 }}
                 options={[
@@ -645,7 +624,7 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
             </div>
           </div>
 
-          {merchantLoading ? (
+          {merchantLoading && items.length === 0 ? (
             <p className="p-5 text-sm text-[var(--text-muted)]">Carregando...</p>
           ) : items.length === 0 ? (
             <p className="p-5 text-sm text-[var(--text-muted)]">Nenhum estabelecimento encontrado.</p>
@@ -729,12 +708,10 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
               total={merchantTotal}
               totalPages={merchantTotalPages}
               onPageChange={(page) => {
-                setMerchantLoading(true);
                 setMerchantError(null);
                 setMerchantPage(page);
               }}
               onPageSizeChange={() => {
-                setMerchantLoading(true);
                 setMerchantError(null);
                 setMerchantPage(1);
               }}
@@ -770,21 +747,20 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
             </span>
           </div>
 
-          {aliasError ? (
+          {aliasError || aliasListError ? (
             <div
               role="alert"
               className="mt-4 rounded-[var(--radius-md)] border border-[var(--danger)]/30 bg-[var(--danger-subtle)] p-3 text-sm text-[var(--expense)]"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span>{aliasError}</span>
+                <span>{aliasError || aliasListError}</span>
                 <Button
                   type="button"
                   size="sm"
                   variant="secondary"
                   onClick={() => {
-                    setAliasesLoading(true);
                     setAliasError(null);
-                    void loadAliases();
+                    loadAliases();
                   }}
                 >
                   Tentar novamente
@@ -1038,7 +1014,6 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
               onChange={(event) => {
                 setAliasSearch(event.target.value);
                 setAliasPage(1);
-                setAliasesLoading(true);
                 setAliasError(null);
               }}
             />
@@ -1049,13 +1024,12 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
               onChange={(event) => {
                 setAliasMerchantFilter(event.target.value);
                 setAliasPage(1);
-                setAliasesLoading(true);
                 setAliasError(null);
               }}
             />
           </div>
 
-          {aliasesLoading ? (
+          {aliasesLoading && aliases.length === 0 ? (
             <p className="mt-4 text-sm text-[var(--text-muted)]">
               Carregando aliases...
             </p>
@@ -1121,12 +1095,10 @@ export default function MerchantsPage({ focusMerchantId }: { focusMerchantId?: s
               total={aliasTotal}
               totalPages={aliasTotalPages}
               onPageChange={(page) => {
-                setAliasesLoading(true);
                 setAliasError(null);
                 setAliasPage(page);
               }}
               onPageSizeChange={() => {
-                setAliasesLoading(true);
                 setAliasError(null);
                 setAliasPage(1);
               }}
