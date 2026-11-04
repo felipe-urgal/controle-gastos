@@ -36,7 +36,7 @@ Critério: jobs, providers externos, read models caros, importações e auth/sec
 |---|---|---|
 | Padrão de rota | `logServerOperation` | `event`, `requestId`, `route`, `status`, `durationMs` |
 | Cron do resumo | `periodic_summary.cron`, `.partial_failure`, `.alert` | contagens, backlog, idade, duração |
-| Cron de avisos | `notifications.cron`, `.user_failed`, `.alert` | contagens de usuários e avisos criados, restantes, duração (sem identificadores nem conteúdo) |
+| Cron de avisos | `notifications.cron`, `.user_failed`, `.alert`, `.email_failed`, `.retention_failed` | contagens de usuários, avisos criados, e-mails e pushes entregues, falhas de entrega, apagados pela retenção, restantes, duração (sem identificadores nem conteúdo; falha de e-mail só com o código do provedor) |
 | MCP | `mcp_request` | `requestId`, `method`, `tool`, `status`, `durationMs`, `tokenId`, `result` |
 | Providers | `external_provider_call` | `provider`, `operation`, `outcome`, `retries`, `durationMs` |
 | Client error | `frontend_unhandled_error` | `requestId`, `digest`, `surface`, `path` normalizado |

@@ -62,10 +62,12 @@ export function escapeHtml(value: string) {
     .replaceAll("'", "&#39;");
 }
 
-async function sendEmail(args: {
+export async function sendEmail(args: {
   to: string;
   subject: string;
   html: string;
+  /** Versão em texto puro, para clientes que não exibem HTML. */
+  text?: string;
 }) {
   // Telemetria sem destinatário, assunto ou corpo.
   await observeProviderCall({ provider: "resend", operation: "send_email" }, async () => {
@@ -74,6 +76,7 @@ async function sendEmail(args: {
       to: args.to,
       subject: args.subject,
       html: args.html,
+      ...(args.text ? { text: args.text } : {}),
     });
 
     if (error) {
@@ -88,7 +91,7 @@ async function sendEmail(args: {
       : "upstream_error");
 }
 
-function absoluteUrl(path: string) {
+export function absoluteUrl(path: string) {
   return `${requiredEnv("NEXT_PUBLIC_SITE_URL").replace(/\/$/, "")}${path}`;
 }
 

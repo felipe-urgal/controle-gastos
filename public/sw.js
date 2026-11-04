@@ -116,3 +116,49 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirstShell(request));
   }
 });
+
+// Push dos avisos. O navegador exige mostrar uma notificação para todo push recebido, então um
+// payload ausente ou inválido vira um aviso genérico em vez de ser ignorado.
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {};
+  }
+
+  const title = typeof payload.title === "string" && payload.title ? payload.title : "Controle de Gastos";
+  const body = typeof payload.body === "string" && payload.body ? payload.body : "Você tem um aviso novo.";
+  const url = typeof payload.url === "string" ? payload.url : "/avisos";
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icon-192x192.png",
+      badge: "/icon-192x192.png",
+      data: { url },
+    }),
+  );
+});
+
+// Só caminhos do próprio app abrem: um push nunca leva a outro site.
+function safeAppUrl(value) {
+  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return "/avisos";
+  return value;
+}
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(safeAppUrl(event.notification.data && event.notification.data.url), self.location.origin).href;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (windows) => {
+      const existing = windows.find((client) => new URL(client.url).origin === self.location.origin);
+      if (existing) {
+        if (typeof existing.navigate === "function") await existing.navigate(target);
+        return existing.focus();
+      }
+      return self.clients.openWindow(target);
+    }),
+  );
+});
