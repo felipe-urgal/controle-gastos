@@ -250,7 +250,7 @@ const ACCOUNT_MARKER = /(?<![a-z])(?:na|no|pela|pelo|via)\s+(?:conta|cartao|cart
 const DANGLING = new Set(["de", "do", "da", "em", "no", "na", "para", "pra", "por", "as", "a", "o", "e"]);
 
 function cleanDescription(text: string) {
-  let words = text
+  const words = text
     .replace(/\s+/g, " ")
     .replace(/^[\s,;:.\-–—]+|[\s,;:.\-–—]+$/g, "")
     .split(" ")
