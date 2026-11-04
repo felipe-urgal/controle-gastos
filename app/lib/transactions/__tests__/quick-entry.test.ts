@@ -230,6 +230,34 @@ describe("parseQuickEntry: confiança de que é um lançamento", () => {
   );
 });
 
+describe("parseQuickEntry: texto de notificação de banco", () => {
+  it("horário não vira valor nem descrição", () => {
+    expect(ok("Compra aprovada R$ 45,90 em PADARIA XPTO 14:32")).toMatchObject({
+      amountCents: 4_590,
+      description: "Compra aprovada em PADARIA XPTO",
+    });
+    expect(ok("14:32 mercado 45,90")).toMatchObject({ amountCents: 4_590, description: "mercado" });
+    expect(ok("salário 5000 às 08:00:15")).toMatchObject({ amountCents: 500_000, description: "salário" });
+  });
+
+  it("data e horário juntos", () => {
+    expect(ok("Pix enviado R$ 150,00 para João em 03/11 às 09:15")).toMatchObject({
+      amountCents: 15_000,
+      date: { year: 2026, month: 11, day: 3 },
+      description: "Pix enviado para João",
+    });
+  });
+
+  it("valor com ponto decimal não é confundido com horário", () => {
+    expect(ok("mercado 14.32")).toMatchObject({ amountCents: 1_432 });
+    expect(ok("mercado 7:5 45,90")).toMatchObject({ amountCents: 4_590 });
+  });
+
+  it("horário inválido não é horário (24:61 segue como números soltos)", () => {
+    fails("24:61 mercado", "AMBIGUOUS_AMOUNT");
+  });
+});
+
 describe("parseQuickEntry: robustez", () => {
   it("nunca lança e sempre devolve centavos inteiros, para entradas estranhas", () => {
     const inputs = [

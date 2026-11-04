@@ -14,6 +14,7 @@ import {
   FaPlus,
   FaFileImport,
   FaBolt,
+  FaStar,
 } from 'react-icons/fa';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
@@ -22,7 +23,10 @@ import {
   normalizeGlobalSearchMatch,
 } from '@/app/lib/search/global-search-ranking';
 import QuickEntryPreview, { type QuickEntryDraft } from '@/app/components/layout/global-search-dialog/quick-entry-preview';
+import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-money';
+import { favoriteShortcuts, type FavoriteShortcut } from '@/app/lib/templates/quick-favorites';
+import { transactionTemplateService } from '@/app/services/transaction-template-service';
 import { formatPtBrLogicalDate, todayLogicalDate } from '@/app/lib/date/logical-date';
 import { parseQuickEntry } from '@/app/lib/transactions/quick-entry';
 import { globalSearchService } from '@/app/services/global-search-service';
@@ -111,6 +115,8 @@ export default function GlobalSearchDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const showValues = user?.showValues !== false;
   const keyboardInset = useVisualViewportInset();
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
@@ -124,6 +130,36 @@ export default function GlobalSearchDialog({
   const [activeIndex, setActiveIndex] = useState(-1);
   // Lançamento rápido aberto na prévia (substitui a lista até confirmar, voltar ou digitar de novo).
   const [quickDraft, setQuickDraft] = useState<QuickEntryDraft | null>(null);
+  // Até três modelos favoritos como atalho de um toque para a tela de nova transação.
+  const [favorites, setFavorites] = useState<FavoriteShortcut[]>([]);
+  useEffect(() => {
+    let active = true;
+    void transactionTemplateService
+      .getAll({ isFavorite: true, limit: 3 })
+      .then((response) => {
+        if (active) setFavorites(favoriteShortcuts(response.data.items, { showValues }));
+      })
+      .catch(() => {
+        // Os favoritos são um atalho opcional; sem eles a busca segue normal.
+      });
+    return () => {
+      active = false;
+    };
+  }, [showValues]);
+  const allQuickActions = useMemo(
+    () => [
+      ...quickActions,
+      ...favorites.map((favorite) => ({
+        id: `favorite-${favorite.id}`,
+        title: favorite.title,
+        subtitle: favorite.subtitle,
+        href: favorite.href,
+        icon: FaStar,
+        keywords: favorite.keywords,
+      })),
+    ],
+    [favorites],
+  );
   // No mobile a busca ocupa a tela e sobe de baixo; no desktop é uma caixa que cresce do topo.
   const [compact] = useState(() => window.matchMedia('(max-width: 639px)').matches);
   // Só com o botão da busca visível (sidebar, a partir de lg) a caixa nasce e volta para ele.
@@ -170,7 +206,7 @@ export default function GlobalSearchDialog({
   }
   const filteredQuickActions = useMemo(
     () =>
-      quickActions.filter((item) => {
+      allQuickActions.filter((item) => {
         if (!normalizedQuery) return true;
         return (
           normalizeGlobalSearchMatch(item.title).includes(normalizedQuery) ||
@@ -178,7 +214,7 @@ export default function GlobalSearchDialog({
           normalizeGlobalSearchMatch(item.keywords).includes(normalizedQuery)
         );
       }),
-    [normalizedQuery],
+    [allQuickActions, normalizedQuery],
   );
   const filteredNavigation = useMemo(
     () =>
@@ -468,7 +504,7 @@ export default function GlobalSearchDialog({
                   !nextNormalizedQuery ||
                   normalizeGlobalSearchMatch(value).includes(nextNormalizedQuery);
                 const localCandidates = [
-                  ...quickActions.filter((item) =>
+                  ...allQuickActions.filter((item) =>
                     matches(item.title) || matches(item.subtitle) || matches(item.keywords),
                   ).map((item) => ({
                     kind: 'action' as const, title: item.title,

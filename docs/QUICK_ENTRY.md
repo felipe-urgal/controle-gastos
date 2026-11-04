@@ -1,6 +1,6 @@
 # Lançamento rápido
 
-Contrato do lançamento rápido: o interpretador de frases (`app/lib/transactions/quick-entry.ts`), as sugestões do servidor e a prévia na busca global. Atalhos do ícone e compartilhamento chegam nos lotes seguintes; aqui só vale o que precisa continuar verdadeiro.
+Contrato do lançamento rápido: o interpretador de frases (`app/lib/transactions/quick-entry.ts`), as sugestões do servidor e a prévia na busca global. Aqui só vale o que precisa continuar verdadeiro.
 
 ## Princípios
 
@@ -41,3 +41,17 @@ Contrato do lançamento rápido: o interpretador de frases (`app/lib/transaction
 3. Senão, só a **última conta usada** (`LAST_ACCOUNT`).
 
 Conta ou categoria **inativa** nunca é sugerida; lançamentos cancelados não contam; categoria de outro tipo não é emprestada. A conta citada na frase ("na conta Itaú") vence a sugestão e só é usada se houver **uma única** conta ativa que case (`matchAccountByHint`); na dúvida a prévia pede a escolha. Com uma só conta ativa, ela vem marcada.
+
+## Atalhos do ícone e favoritos
+
+- **Atalhos do ícone do app** (`public/manifest.json`, pressionar o ícone no Android): Nova despesa (`/transacoes/nova?type=expense`), Nova receita (`?type=income`), Transferência (`?mode=transfer`) e Compromissos; depois Avisos, Transações e Dashboard. O Android mostra só os primeiros quatro, então a ordem importa. Os parâmetros são os que a tela de nova transação já entende; um teste amarra o manifesto a isso.
+- **Modelos favoritos** na busca global: até três, como ações rápidas que abrem `/transacoes/nova?template=<id>` já preenchida (o usuário confirma no formulário). O valor só aparece no texto se o usuário não oculta valores.
+
+## Compartilhar para o app (Android, PWA instalado)
+
+O iPhone não oferece "compartilhar para PWA"; nada acontece lá.
+
+1. O sistema envia um `POST multipart` para `/api/share` (`share_target` no manifesto: `title`, `text`, `url` e a imagem no campo `imagem`, só JPG ou PNG, os formatos que o OCR lê).
+2. O **service worker** intercepta esse POST (só esse caminho, só da própria origem): o texto vai na URL e a imagem (até **6 MB**, o limite do OCR) fica no cache temporário `share-target-v1`; responde 303 para `/compartilhar`. O cache não tem o prefixo `controle-gastos-` de propósito, para a limpeza de versões do SW não o apagar.
+3. **Fallback:** se o SW ainda não estiver ativo, `POST /api/share` no servidor repassa só o texto (corpo até 1 MB) com um redirecionamento relativo fixo; imagem nunca sobe para o servidor.
+4. `/compartilhar` (exige login) mostra o texto compartilhado e a **mesma prévia do lançamento rápido**. O texto passa pelo interpretador (horário como `14:32` é ignorado); a imagem passa pelo **OCR de recibo no navegador** e só vira rascunho com valor lido com segurança (o mesmo critério do formulário). A imagem é lida **uma vez** e apagada do cache (também apagada se tiver mais de 10 minutos); nunca é enviada ao servidor. Sem valor seguro, a página manda usar o formulário. Nada é gravado sem a confirmação.

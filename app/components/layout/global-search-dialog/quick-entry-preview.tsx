@@ -9,7 +9,7 @@ import { Button, Chip, Input, Select } from '@/app/components/ui';
 import { errorMessage } from '@/app/lib/error-message';
 import { formatCurrency } from '@/app/lib/currency/format-money';
 import { formatPtBrLogicalDate, type LogicalDate } from '@/app/lib/date/logical-date';
-import type { QuickEntryResult, QuickEntryType } from '@/app/lib/transactions/quick-entry';
+import type { QuickEntryParsed, QuickEntryType } from '@/app/lib/transactions/quick-entry';
 import {
   buildQuickEntryPayload,
   categoriesForType,
@@ -25,7 +25,7 @@ import { transactionService } from '@/app/services/transaction-service';
 import type { AccountModel } from '@/app/types/account';
 import type { CategoryModel } from '@/app/types/category';
 
-export type QuickEntryDraft = Extract<QuickEntryResult, { ok: true }>;
+export type QuickEntryDraft = QuickEntryParsed;
 
 const TYPE_LABEL: Record<QuickEntryType, string> = { EXPENSE: 'Despesa', INCOME: 'Receita' };
 
@@ -46,11 +46,14 @@ export default function QuickEntryPreview({
   today,
   onBack,
   onClose,
+  backLabel = 'Voltar',
 }: {
   draft: QuickEntryDraft;
   today: LogicalDate;
   onBack: () => void;
   onClose: () => void;
+  /** Rótulo do botão de voltar; fora da busca ele leva ao formulário completo. */
+  backLabel?: string;
 }) {
   const [type, setType] = useState<QuickEntryType>(draft.type);
   const [description, setDescription] = useState(draft.description);
@@ -217,7 +220,7 @@ export default function QuickEntryPreview({
           </p>
         </div>
         <Button variant="ghost" size="sm" icon={<FaArrowLeft aria-hidden="true" />} onClick={onBack}>
-          Voltar
+          {backLabel}
         </Button>
       </div>
 

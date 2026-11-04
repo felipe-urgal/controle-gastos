@@ -78,8 +78,57 @@ async function networkFirstShell(request) {
   }
 }
 
+// "Compartilhar para o app" (Web Share Target): o sistema envia um POST com texto e, se houver,
+// uma imagem. O texto vai na URL; a imagem fica num cache temporário que a página /compartilhar
+// lê (e apaga) para fazer o OCR no navegador. Nada disso passa pelo servidor.
+const SHARE_PATH = "/api/share";
+const SHARE_PAGE = "/compartilhar";
+const SHARE_CACHE = "share-target-v1";
+const SHARE_IMAGE_KEY = "/__share-target/imagem";
+const SHARE_MAX_TEXT = 2000;
+const SHARE_MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+
+async function handleShareTarget(request) {
+  const params = new URLSearchParams();
+  try {
+    const form = await request.formData();
+    const field = (name) => {
+      const value = form.get(name);
+      return typeof value === "string" ? value.trim() : "";
+    };
+    const text = (field("text") || field("title") || field("url")).slice(0, SHARE_MAX_TEXT);
+    if (text) params.set("text", text);
+
+    const image = form
+      .getAll("imagem")
+      .find((file) => typeof file !== "string" && file.type.startsWith("image/") && file.size > 0 && file.size <= SHARE_MAX_IMAGE_BYTES);
+    if (image) {
+      const cache = await caches.open(SHARE_CACHE);
+      await cache.put(
+        SHARE_IMAGE_KEY,
+        new Response(image, { headers: { "content-type": image.type, "x-shared-at": String(Date.now()) } }),
+      );
+      params.set("imagem", "1");
+    }
+  } catch {
+    // Corpo ilegível ou cache indisponível: a página mostra o estado vazio com orientação.
+  }
+
+  const query = params.toString();
+  return Response.redirect(new URL(query ? `${SHARE_PAGE}?${query}` : SHARE_PAGE, self.location.origin).href, 303);
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
+
+  if (request.method === "POST") {
+    const postUrl = new URL(request.url);
+    if (postUrl.origin === self.location.origin && postUrl.pathname === SHARE_PATH) {
+      event.respondWith(handleShareTarget(request));
+    }
+    return;
+  }
+
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);

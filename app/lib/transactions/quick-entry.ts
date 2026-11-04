@@ -43,6 +43,9 @@ export type QuickEntryResult =
     }
   | { ok: false; reason: QuickEntryError; message: string };
 
+/** A frase entendida (o ramo `ok: true` do resultado). */
+export type QuickEntryParsed = Extract<QuickEntryResult, { ok: true }>;
+
 export type QuickEntryError =
   | "EMPTY"
   | "NO_AMOUNT"
@@ -231,6 +234,8 @@ function findDate(folded: string, today: LogicalDate): ParsedDate | "INVALID" | 
   return null;
 }
 
+const TIME_PATTERN = /(?<![\d:])(?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d)?(?![\d:])/g;
+
 // --- tipo e conta ------------------------------------------------------------------------
 
 const INCOME_WORDS = new Set([
@@ -286,6 +291,13 @@ export function parseQuickEntry(input: string, today: LogicalDate): QuickEntryRe
   if (date) {
     folded = blank(folded, date.span);
     remaining = blank(remaining, date.span);
+  }
+
+  // Horário ("14:32") aparece em notificações de banco; não é valor nem descrição.
+  for (const time of folded.matchAll(TIME_PATTERN)) {
+    const span = { start: time.index ?? 0, end: (time.index ?? 0) + time[0].length };
+    folded = blank(folded, span);
+    remaining = blank(remaining, span);
   }
 
   const chosen = chooseAmount(findAmountCandidates(folded));
