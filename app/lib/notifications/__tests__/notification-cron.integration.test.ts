@@ -61,12 +61,16 @@ describe("runNotificationsCron", () => {
     const first = await userWithDueBill("Um");
     const second = await userWithDueBill("Dois");
 
-    await runNotificationsCron(NOW);
-    const again = await runNotificationsCron(NOW);
+    // O job roda só para estes dois: o banco é compartilhado com outros testes em paralelo, e
+    // usuários criados por eles no meio da execução não podem entrar na conta.
+    const scope = { userIds: [first.id, second.id] };
+    const run = await runNotificationsCron(NOW, scope);
+    const again = await runNotificationsCron(NOW, scope);
 
+    expect(run).toMatchObject({ totalUsers: 2, processedUsers: 2, failedUsers: 0, createdNotifications: 2, status: "ok" });
+    expect(again).toMatchObject({ processedUsers: 2, createdNotifications: 0 });
     expect(await prisma.notification.count({ where: { userId: first.id } })).toBe(1);
     expect(await prisma.notification.count({ where: { userId: second.id } })).toBe(1);
-    expect(again.createdNotifications).toBe(0);
   });
 
   it("a falha de um usuário não interrompe os outros e o resultado fica parcial", async () => {
@@ -74,10 +78,9 @@ describe("runNotificationsCron", () => {
     const healthy = await userWithDueBill("Saudável");
     generationMocks.failFor.add(broken.id);
 
-    const metrics = await runNotificationsCron(NOW);
+    const metrics = await runNotificationsCron(NOW, { userIds: [broken.id, healthy.id] });
 
-    expect(metrics.failedUsers).toBeGreaterThanOrEqual(1);
-    expect(metrics.status).toBe("partial");
+    expect(metrics).toMatchObject({ totalUsers: 2, processedUsers: 1, failedUsers: 1, remainingUsers: 0, status: "partial" });
     expect(await prisma.notification.count({ where: { userId: healthy.id } })).toBe(1);
     expect(await prisma.notification.count({ where: { userId: broken.id } })).toBe(0);
   });
@@ -89,8 +92,9 @@ describe("runNotificationsCron", () => {
     await prisma.notification.create({ data: { ...base, dedupeKey: "OLD_READ", title: "lido", readAt: old } });
     await prisma.notification.create({ data: { ...base, dedupeKey: "OLD_UNREAD", title: "não lido" } });
 
-    const metrics = await runNotificationsCron(NOW);
+    const metrics = await runNotificationsCron(NOW, { userIds: [user.id] });
 
+    // A retenção é global (apaga o que é antigo em qualquer conta), então só se pode afirmar o mínimo.
     expect(metrics.purgedNotifications).toBeGreaterThanOrEqual(1);
     const keys = (await prisma.notification.findMany({ where: { userId: user.id } })).map((row) => row.dedupeKey);
     expect(keys).not.toContain("OLD_READ");
@@ -98,10 +102,11 @@ describe("runNotificationsCron", () => {
   });
 
   it("os números de entrega aparecem nas métricas (zerados quando e-mail e push não estão configurados)", async () => {
-    await userWithDueBill("Métricas");
+    const user = await userWithDueBill("Métricas");
 
-    const metrics = await runNotificationsCron(NOW);
+    // Sem preferência de e-mail ou push (opt-in), nada sai, mesmo com Resend e VAPID configurados.
+    const metrics = await runNotificationsCron(NOW, { userIds: [user.id] });
 
-    expect(metrics).toMatchObject({ emailedNotifications: 0, pushedNotifications: 0, deliveryFailures: 0 });
+    expect(metrics).toMatchObject({ emailedNotifications: 0, pushedNotifications: 0, deliveryFailures: 0, createdNotifications: 1 });
   });
 });

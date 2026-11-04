@@ -13,11 +13,19 @@ export const NOTIFICATIONS_CRON_TIME_BUDGET_MS = 48_000;
  * interrompe os outros. Usuários não alcançados no tempo ou no limite aparecem em `remaining`
  * (e no log), para o alerta enxergar a cobertura em risco.
  */
-export async function runNotificationsCron(now: Date = new Date()) {
+export async function runNotificationsCron(
+  now: Date = new Date(),
+  /** Limita o job a estes usuários (reexecução pontual e testes em banco compartilhado). Padrão: todos os ativos. */
+  options: { userIds?: readonly string[] } = {},
+) {
   const startedAt = performance.now();
-  const total = await prisma.user.count({ where: { isActive: true } });
+  const where = {
+    isActive: true,
+    ...(options.userIds ? { id: { in: [...options.userIds] } } : {}),
+  };
+  const total = await prisma.user.count({ where });
   const users = await prisma.user.findMany({
-    where: { isActive: true },
+    where,
     select: { id: true },
     orderBy: { id: "asc" },
     take: NOTIFICATIONS_CRON_MAX_USERS,
