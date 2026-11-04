@@ -208,6 +208,28 @@ describe("parseQuickEntry: erros em vez de palpite", () => {
   });
 });
 
+describe("parseQuickEntry: confiança de que é um lançamento", () => {
+  it.each([
+    "mercado 45,90",
+    "mercado R$ 45",
+    "uber 18 ontem",
+    "uber 18 hoje",
+    "luz 100 dia 10",
+    "salário 5000",
+    "+500 pix",
+    "mercado 45 na conta Itaú",
+  ])("%s é confiante", (input) => {
+    expect(ok(input).confident).toBe(true);
+  });
+
+  it.each(["dashboard 2", "iphone 15", "mercado 45", "contas 2026", "tag 7"])(
+    "%s parece busca comum, não lançamento",
+    (input) => {
+      expect(ok(input).confident).toBe(false);
+    },
+  );
+});
+
 describe("parseQuickEntry: robustez", () => {
   it("nunca lança e sempre devolve centavos inteiros, para entradas estranhas", () => {
     const inputs = [

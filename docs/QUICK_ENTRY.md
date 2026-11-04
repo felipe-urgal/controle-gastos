@@ -1,6 +1,6 @@
 # Lançamento rápido
 
-Contrato do interpretador de frases (`app/lib/transactions/quick-entry.ts`). A interface (busca global, prévia e sugestões) chega nos lotes seguintes; aqui só vale o que precisa continuar verdadeiro.
+Contrato do lançamento rápido: o interpretador de frases (`app/lib/transactions/quick-entry.ts`), as sugestões do servidor e a prévia na busca global. Atalhos do ícone e compartilhamento chegam nos lotes seguintes; aqui só vale o que precisa continuar verdadeiro.
 
 ## Princípios
 
@@ -22,3 +22,22 @@ Contrato do interpretador de frases (`app/lib/transactions/quick-entry.ts`). A i
 ## Motivos de erro
 
 `EMPTY`, `NO_AMOUNT`, `INVALID_AMOUNT` (zero, formato impossível como `1,234`, acima do teto), `AMBIGUOUS_AMOUNT`, `INVALID_DATE`.
+
+## Na busca global (Ctrl+K)
+
+- Quando a frase é entendida aparece a linha **"Lançar R$ … · descrição"** no topo, com tipo e data. Ela **só vem marcada por padrão** se a frase tem sinais claros de lançamento (`confident`: valor com centavos ou `R$`, data, palavra de receita ou conta) ou se não há nenhum outro resultado; uma busca comum com número ("mercado 45", "iphone 15") continua abrindo o que achou. Mesmo sem estar marcada, a linha fica a uma seta de distância.
+- Escolher a linha abre a **prévia**: valor e data como entendidos, tipo (Despesa/Receita), descrição, conta e categoria editáveis. O que não se edita ali (valor, data) se corrige digitando a frase de novo ("Voltar").
+- **Nada é gravado sem o clique em "Lançar".** A gravação usa `transactionService.createIdempotent` com chave de idempotência por conteúdo, como o formulário: duplo clique ou retry não criam dois lançamentos. Dados recusados (400/422) viram uma tentativa nova. Sem conexão, a prévia manda usar "Nova transação" (que guarda offline); o lançamento rápido não usa a fila offline.
+- **Status:** data de hoje ou passada vira concluída; data futura vira **pendente**, e a prévia avisa.
+- **Tipo:** vem do que foi inferido, mas quem manda é a categoria escolhida (como no formulário). Trocar o tipo limpa a categoria e busca outra sugestão.
+- Depois de criar, a lista de Transações aberta recarrega (evento `transactions:changed`); outras telas mostram o lançamento na próxima visita.
+
+## Sugestão de conta, categoria e estabelecimento
+
+`GET /api/transactions/quick-entry?description=&type=` (sessão obrigatória, só leitura, dono validado):
+
+1. Último lançamento do usuário com a **mesma descrição** (sem diferenciar caixa) cuja categoria seja do tipo pedido: conta, categoria e estabelecimento dele (`SAME_DESCRIPTION`).
+2. Senão, o **estabelecimento reconhecido pelos aliases** (sem conflito) e o último lançamento dele (`MERCHANT`).
+3. Senão, só a **última conta usada** (`LAST_ACCOUNT`).
+
+Conta ou categoria **inativa** nunca é sugerida; lançamentos cancelados não contam; categoria de outro tipo não é emprestada. A conta citada na frase ("na conta Itaú") vence a sugestão e só é usada se houver **uma única** conta ativa que case (`matchAccountByHint`); na dúvida a prévia pede a escolha. Com uma só conta ativa, ela vem marcada.

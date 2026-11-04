@@ -30,6 +30,7 @@ import { FilterDialog, TagFilterField } from '@/app/components/pages/transaction
 import { MobileTransactions } from '@/app/components/pages/transactions/index/mobile-transactions';
 import { MonthOverview, MonthSummaryCard, MovementTimeline, UpcomingTransactions } from '@/app/components/pages/transactions/index/desktop-transactions';
 import { todayLogicalDate } from '@/app/lib/date/logical-date';
+import { TRANSACTIONS_CHANGED_EVENT } from '@/app/lib/transactions/transaction-events';
 
 const QUICK_FILTERS: Array<[MobileQuickFilter, string]> = [
   ['all', 'Todas'],
@@ -119,6 +120,13 @@ export default function TransactionsPage() {
       active = false;
     };
   }, []);
+
+  // Um lançamento criado pela busca global (lançamento rápido) atualiza a lista que está na tela.
+  useEffect(() => {
+    const reload = () => void refetch();
+    window.addEventListener(TRANSACTIONS_CHANGED_EVENT, reload);
+    return () => window.removeEventListener(TRANSACTIONS_CHANGED_EVENT, reload);
+  }, [refetch]);
 
   useEffect(() => {
     const openFilters = () => setFiltersOpen(true);

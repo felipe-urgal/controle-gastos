@@ -34,6 +34,12 @@ export type QuickEntryResult =
       dateSource: QuickEntryDateSource;
       /** Texto depois de "na conta" / "no cartão" / "na carteira"; o chamador procura a conta. */
       accountHint: string | null;
+      /**
+       * A frase tem sinais claros de lançamento (valor com centavos ou "R$", data, palavra de receita
+       * ou conta) e não de uma busca comum com um número ("dashboard 2"). A busca global só marca o
+       * lançamento por padrão quando isto é `true`.
+       */
+      confident: boolean;
     }
   | { ok: false; reason: QuickEntryError; message: string };
 
@@ -317,5 +323,7 @@ export function parseQuickEntry(input: string, today: LogicalDate): QuickEntryRe
     date: date ? date.date : today,
     dateSource: date ? date.source : "default",
     accountHint,
+    confident:
+      chosen.hasCurrency || chosen.hasDecimals || date !== null || typeInferred || accountHint !== null,
   };
 }

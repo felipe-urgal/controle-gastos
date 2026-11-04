@@ -13,6 +13,7 @@ import {
   FaMagic,
   FaPlus,
   FaFileImport,
+  FaBolt,
 } from 'react-icons/fa';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
@@ -20,6 +21,10 @@ import {
   chooseGlobalSearchInitialIndex,
   normalizeGlobalSearchMatch,
 } from '@/app/lib/search/global-search-ranking';
+import QuickEntryPreview, { type QuickEntryDraft } from '@/app/components/layout/global-search-dialog/quick-entry-preview';
+import { formatCurrency } from '@/app/lib/currency/format-money';
+import { formatPtBrLogicalDate, todayLogicalDate } from '@/app/lib/date/logical-date';
+import { parseQuickEntry } from '@/app/lib/transactions/quick-entry';
 import { globalSearchService } from '@/app/services/global-search-service';
 import { ApiClientError } from '@/app/services/api-client';
 import type {
@@ -70,6 +75,12 @@ const quickActions = [
   },
 ] as const;
 
+/** A frase digitada, se for um lançamento entendido ("mercado 45,90"); senão `null` e a busca segue normal. */
+function quickEntryFor(query: string): QuickEntryDraft | null {
+  const result = parseQuickEntry(query, todayLogicalDate());
+  return result.ok ? result : null;
+}
+
 // Render textual highlights as React nodes; never interpret server text as HTML.
 function highlightSearchText(value: string, query: string) {
   const needle = query.trim().toLocaleLowerCase('pt-BR');
@@ -111,6 +122,8 @@ export default function GlobalSearchDialog({
   const [error, setError] = useState('');
   const [retryVersion, setRetryVersion] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
+  // Lançamento rápido aberto na prévia (substitui a lista até confirmar, voltar ou digitar de novo).
+  const [quickDraft, setQuickDraft] = useState<QuickEntryDraft | null>(null);
   // No mobile a busca ocupa a tela e sobe de baixo; no desktop é uma caixa que cresce do topo.
   const [compact] = useState(() => window.matchMedia('(max-width: 639px)').matches);
   // Só com o botão da busca visível (sidebar, a partir de lg) a caixa nasce e volta para ele.
@@ -142,6 +155,19 @@ export default function GlobalSearchDialog({
   } as const);
 
   const normalizedQuery = normalizeGlobalSearchMatch(query);
+  const quickEntry = useMemo(() => quickEntryFor(query), [query]);
+  /**
+   * A linha do lançamento rápido é a primeira da lista. Vem marcada por padrão quando a frase tem
+   * sinais claros de lançamento ("mercado 45,90", "uber 18 ontem") ou quando não há nenhum outro
+   * resultado; uma busca comum com número ("dashboard 2") continua abrindo o que achou.
+   */
+  function indexWithQuickEntry(index: number, candidateCount: number, forQuery: string) {
+    const draft = quickEntryFor(forQuery);
+    if (draft === null) return index;
+    if (draft.confident) return 0;
+    if (index < 0) return candidateCount === 0 ? 0 : -1;
+    return index + 1;
+  }
   const filteredQuickActions = useMemo(
     () =>
       quickActions.filter((item) => {
@@ -172,6 +198,20 @@ export default function GlobalSearchDialog({
   );
   const flatResults = useMemo(
     () => [
+      ...(quickEntry
+        ? [
+            {
+              resultKey: 'quick-entry',
+              href: '',
+              label: `Lançar ${quickEntry.description || 'novo lançamento'}`,
+              group: 'Lançamento rápido',
+              kind: 'quick' as const,
+              title: quickEntry.description,
+              subtitle: '',
+              keywords: '',
+            },
+          ]
+        : []),
       ...filteredQuickActions.map((item) => ({
         resultKey: 'action-' + item.id,
         href: item.href,
@@ -202,7 +242,7 @@ export default function GlobalSearchDialog({
         matchKind: item.matchKind,
       })),
     ],
-    [filteredNavigation, filteredQuickActions, serverResults],
+    [filteredNavigation, filteredQuickActions, quickEntry, serverResults],
   );
 
   useEffect(() => {
@@ -247,7 +287,9 @@ export default function GlobalSearchDialog({
               matchedText: item.matchedText, matchKind: item.matchKind,
             }))),
           ];
-          setActiveIndex(chooseGlobalSearchInitialIndex(candidates, trimmed));
+          setActiveIndex(
+            indexWithQuickEntry(chooseGlobalSearchInitialIndex(candidates, trimmed), candidates.length, trimmed),
+          );
         })
         .catch((requestError) => {
           if (controller.signal.aborted) return;
@@ -323,9 +365,12 @@ export default function GlobalSearchDialog({
     if (event.key === 'Enter' && activeIndex >= 0) {
       event.preventDefault();
       const result = flatResults[activeIndex];
-      if (result) activate(result);
+      if (result?.kind === 'quick') setQuickDraft(quickEntry);
+      else if (result) activate(result);
     }
   }
+
+  const quickIndex = flatResults.findIndex((item) => item.resultKey === 'quick-entry');
 
   return (
     <motion.div
@@ -438,14 +483,21 @@ export default function GlobalSearchDialog({
                 ];
 
                 setQuery(nextQuery);
+                setQuickDraft(null);
                 setData(null);
                 setError('');
-                setActiveIndex(chooseGlobalSearchInitialIndex(localCandidates, nextQuery));
+                setActiveIndex(
+                  indexWithQuickEntry(
+                    chooseGlobalSearchInitialIndex(localCandidates, nextQuery),
+                    localCandidates.length,
+                    nextQuery,
+                  ),
+                );
                 setLoading(nextQuery.trim().length >= 2);
               }}
               onKeyDown={onKeyDown}
               aria-label="Buscar em páginas, transações, contas, categorias e regras"
-              placeholder="Buscar páginas, ações, transações e mais"
+              placeholder="Buscar ou lançar: mercado 45,90"
               className="min-h-11 w-full bg-transparent text-base text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)] sm:text-lg"
               autoComplete="off"
               type="search"
@@ -480,6 +532,46 @@ export default function GlobalSearchDialog({
           aria-label="Resultados da busca global"
         >
           <div className="space-y-4 p-3 sm:p-4" style={{ paddingBottom: keyboardInset > 0 ? keyboardInset + 12 : undefined }}>
+            {quickDraft ? (
+              <QuickEntryPreview draft={quickDraft} today={todayLogicalDate()} onBack={() => setQuickDraft(null)} onClose={close} />
+            ) : (
+              <>
+            {quickEntry && (
+              <section aria-labelledby="global-search-quick-entry">
+                <h3
+                  id="global-search-quick-entry"
+                  className="mb-1.5 px-2 text-xs font-bold uppercase tracking-[0.09em] text-[var(--text-subtle)]"
+                >
+                  Lançamento rápido
+                </h3>
+                <motion.button
+                  {...rowIntro(quickIndex)}
+                  id={'global-search-result-' + quickIndex}
+                  type="button"
+                  onMouseEnter={() => setActiveIndex(quickIndex)}
+                  onClick={() => setQuickDraft(quickEntry)}
+                  className={
+                    'relative isolate flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ' +
+                    (quickIndex === activeIndex ? '' : 'hover:bg-[var(--surface-hover)]')
+                  }
+                >
+                  {quickIndex === activeIndex && <ActiveRowBackground />}
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-raised)] text-[var(--primary)]">
+                    <FaBolt aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <strong className="block truncate text-sm text-[var(--foreground)]">
+                      Lançar {formatCurrency(quickEntry.amountCents, 'BRL')}
+                      {quickEntry.description ? ` · ${quickEntry.description}` : ''}
+                    </strong>
+                    <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
+                      {quickEntry.type === 'INCOME' ? 'Receita' : 'Despesa'} · {formatPtBrLogicalDate(quickEntry.date)} · você confirma antes de gravar
+                    </span>
+                  </span>
+                </motion.button>
+              </section>
+            )}
+
             {filteredQuickActions.length > 0 && (
               <section aria-labelledby="global-search-quick-actions">
                 <h3
@@ -665,12 +757,15 @@ export default function GlobalSearchDialog({
               !loading &&
               !error &&
               (data?.total ?? 0) === 0 &&
+              !quickEntry &&
               filteredQuickActions.length === 0 &&
               filteredNavigation.length === 0 && (
                 <p className="py-8 text-center text-sm text-[var(--text-muted)]">
                   Nenhum resultado encontrado.
                 </p>
               )}
+              </>
+            )}
           </div>
         </motion.div>
 

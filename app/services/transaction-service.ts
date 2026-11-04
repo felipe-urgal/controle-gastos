@@ -10,6 +10,7 @@ import {
   TransactionDTO,
 } from "@/app/types/transaction";
 import type { CurrencyFinancialSummary } from "@/app/types/financial-summary";
+import type { QuickEntrySuggestion } from "@/app/lib/transactions/quick-entry-suggestion";
 
 export type TransactionListResponse = {
   items: TransactionDTO[];
@@ -62,6 +63,17 @@ export const transactionService = {
         "Content-Type": "application/json",
         "Idempotency-Key": idempotencyKey,
       },
+    });
+  },
+
+  /** Conta, categoria e estabelecimento sugeridos para uma frase de lançamento rápido (só leitura). */
+  async quickEntrySuggestion(
+    description: string,
+    type: "EXPENSE" | "INCOME",
+  ): Promise<ApiResponse<QuickEntrySuggestion>> {
+    return apiClient<ApiResponse<QuickEntrySuggestion>>("/api/transactions/quick-entry", {
+      method: "GET",
+      queryParams: { description, type },
     });
   },
 
