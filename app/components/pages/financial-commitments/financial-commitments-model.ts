@@ -163,3 +163,12 @@ export function buildLede(data: FinancialCommitmentsData, money: Money) {
   if (overdueCount > 0) parts.push(`Há ${plural(overdueCount, 'item vencido', 'itens vencidos')}.`);
   return parts.join(' ');
 }
+
+/** Só um lançamento pendente de verdade pode ser concluído aqui; fatura, dívida e meta têm telas próprias. */
+export function canCompleteCommitment(item: FinancialCommitment) {
+  return item.source.kind === 'TRANSACTION' && item.direction !== 'MILESTONE';
+}
+
+export function completeActionLabel(item: FinancialCommitment) {
+  return item.direction === 'RECEIVABLE' ? 'Recebido' : 'Pago';
+}
