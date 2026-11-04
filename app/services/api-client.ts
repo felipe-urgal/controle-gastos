@@ -24,6 +24,26 @@ interface ApiClientOptions<TRequestBody = unknown> {
   signal?: AbortSignal;
 };
 
+const inFlightReads = new Map<string, Promise<unknown>>();
+
+/**
+ * Leituras idênticas feitas ao mesmo tempo (ex.: o layout e a tela pedindo as contas) dividem uma única
+ * requisição. Não é cache: assim que a resposta chega, a próxima leitura busca de novo, então nunca há dado velho.
+ * Toda escrita descarta as leituras em andamento, para ninguém receber uma resposta anterior a ela.
+ * Cada chamador recebe sua própria cópia, para que ordenar ou alterar a lista não afete os outros.
+ */
+export function dedupeInFlightRead<T>(key: string, read: () => Promise<T>): Promise<T> {
+  let shared = inFlightReads.get(key) as Promise<T> | undefined;
+  if (!shared) {
+    const created: Promise<T> = read().finally(() => {
+      if (inFlightReads.get(key) === created) inFlightReads.delete(key);
+    });
+    inFlightReads.set(key, created);
+    shared = created;
+  }
+  return shared.then((value) => structuredClone(value));
+}
+
 export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
   endpoint: string,
   {
@@ -35,6 +55,8 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
     signal,
   }: ApiClientOptions<TRequestBody> = {}
 ): Promise<TResponse> {
+  if (method !== "GET") inFlightReads.clear();
+
   try {
     const baseUrl = typeof window !== "undefined"
       ? window.location.origin
@@ -118,5 +140,7 @@ export async function apiClient<TResponse = unknown, TRequestBody = unknown>(
     return null as unknown as TResponse;
   } catch (error) {
     throw error instanceof Error ? error : new Error("Erro inesperado na requisição");
+  } finally {
+    if (method !== "GET") inFlightReads.clear();
   }
 };
