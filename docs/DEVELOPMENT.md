@@ -49,7 +49,7 @@ O dia do produto é a data civil de `America/Sao_Paulo`, no servidor e no client
 
 O resumo financeiro semanal usa o Vercel Cron em `/api/cron/periodic-summary`. Configure `CRON_SECRET` no ambiente da aplicação; o endpoint aceita somente `Authorization: Bearer <CRON_SECRET>`.
 
-O cron roda diariamente às 06:00 UTC, mas a materialização é idempotente por usuário, semana lógica concluída e moeda. A frequência do produto continua semanal; a execução diária permite retry sem fila ou worker dedicado. `periodicSummaryFrequency` só aceita `WEEKLY` (campo mantido para evolução futura; a UI não oferece seletor).
+O cron do resumo roda diariamente às 06:00 UTC, mas a materialização é idempotente por usuário, semana lógica concluída e moeda. A frequência do produto continua semanal; a execução diária permite retry sem fila ou worker dedicado. `periodicSummaryFrequency` só aceita `WEEKLY` (campo mantido para evolução futura; a UI não oferece seletor).
 
 Contrato do snapshot (`PeriodicFinancialSummary.content`):
 

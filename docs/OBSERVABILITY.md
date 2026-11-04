@@ -36,6 +36,7 @@ Critério: jobs, providers externos, read models caros, importações e auth/sec
 |---|---|---|
 | Padrão de rota | `logServerOperation` | `event`, `requestId`, `route`, `status`, `durationMs` |
 | Cron do resumo | `periodic_summary.cron`, `.partial_failure`, `.alert` | contagens, backlog, idade, duração |
+| Cron de avisos | `notifications.cron`, `.user_failed`, `.alert` | contagens de usuários e avisos criados, restantes, duração (sem identificadores nem conteúdo) |
 | MCP | `mcp_request` | `requestId`, `method`, `tool`, `status`, `durationMs`, `tokenId`, `result` |
 | Providers | `external_provider_call` | `provider`, `operation`, `outcome`, `retries`, `durationMs` |
 | Client error | `frontend_unhandled_error` | `requestId`, `digest`, `surface`, `path` normalizado |
@@ -54,6 +55,7 @@ O browser envia apenas `digest`, `surface` (`route` | `global`, allowlist) e `pa
 | Taxa de 5xx | logs de plataforma | investigar acima de 1% em janela de 15 min |
 | p95 de read models críticos | `durationMs` (forecast, dashboard) | acompanhar; investigar degradação sustentada |
 | Cron do resumo | `periodic_summary.cron` | `backlogRemaining` caindo; sem `.alert` |
+| Cron de avisos | `notifications.cron` | `remainingUsers` = 0 e `failedUsers` = 0; sem `notifications.alert` |
 | Providers | `external_provider_call` | `upstream_unavailable` recorrente na janela |
 
 Sem dashboard complexo antes de haver volume: use filtros nos logs da plataforma.
