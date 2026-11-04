@@ -21,7 +21,7 @@ import {
 } from '@/app/components/pages/financial-comparison/financial-comparison-model';
 import { Button, IconButton, Input, Select, ShowBelow, ShowFrom, CurrencySelect } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
-import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
+import { logicalDateFromInstant } from '@/app/lib/date/logical-date';
 import {
   enumerateComparisonMonths,
   isComparisonRangeInFuture,
@@ -136,7 +136,7 @@ export default function FinancialComparisonPage() {
   const searchKey = searchParams.toString();
 
   const currentMonth = useMemo(() => {
-    const now = logicalDateFromUtcInstant(new Date());
+    const now = logicalDateFromInstant(new Date());
     return { year: now.year, month: now.month };
   }, []);
   const defaults = useMemo(() => defaultFilters(currentMonth), [currentMonth]);

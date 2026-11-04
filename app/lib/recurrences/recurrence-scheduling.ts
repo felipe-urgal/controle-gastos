@@ -1,6 +1,6 @@
 import {
   compareLogicalDates,
-  logicalDateFromUtcInstant,
+  logicalDateFromInstant,
   type LogicalDate,
 } from '@/app/lib/date/logical-date';
 import {
@@ -25,7 +25,7 @@ export function recurringWindowStart(
     throw new Error('Janela de recorrência inválida');
   }
 
-  const reference = logicalDateFromUtcInstant(now);
+  const reference = logicalDateFromInstant(now);
   const value = new Date(
     Date.UTC(reference.year, reference.month - months, 1),
   );
@@ -73,7 +73,7 @@ export function firstFutureRecurrence(
     start,
     frequency,
     interval,
-    logicalDateFromUtcInstant(now),
+    logicalDateFromInstant(now),
   );
 }
 

@@ -23,7 +23,7 @@ import {
   lockOwnedAccountForMutation,
 } from "@/app/lib/accounts/account-structure";
 import { getCreditCardStatuses, type CreditCardStatus } from "@/app/lib/cards/credit-card-status";
-import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import { HttpError } from "@/app/lib/http-error";
 import { getInvestmentAccountValuesForUser } from "@/app/lib/investments/investment-account-valuation";
 import { prisma } from "@/app/lib/prisma";
@@ -125,7 +125,7 @@ export const accountCrud = baseCrudHandler({
           data: { ...accountData, userId },
         });
         if (openingBalance) {
-          const today = logicalDateFromUtcInstant(new Date());
+          const today = logicalDateFromInstant(new Date());
           await tx.transaction.create({
             data: {
               amount: Math.abs(openingBalance),
@@ -180,7 +180,12 @@ export const accountCrud = baseCrudHandler({
         investmentOperations: true,
       },
     },
-    transactions: { ...recentTransactionsQuery, take: RECENT_TRANSACTIONS_IN_LIST },
+    // A lista mostra só a última movimentação concluída; pendentes e canceladas não entram.
+    transactions: {
+      ...recentTransactionsQuery,
+      where: { status: "COMPLETED" },
+      take: RECENT_TRANSACTIONS_IN_LIST,
+    },
   },
   customDelete: async (account, userId) => {
     try {
@@ -231,7 +236,7 @@ export const accountCrud = baseCrudHandler({
             userId,
             accountId: account.id,
             currentBalance: enriched.balance,
-            asOf: logicalDateFromUtcInstant(new Date()),
+            asOf: logicalDateFromInstant(new Date()),
           })
         : null;
     if (account.type !== "INVESTMENT") {
@@ -271,7 +276,7 @@ export const accountCrud = baseCrudHandler({
     const cardStatuses = await getCreditCardStatuses({
       userId,
       cards: items.filter((account) => account.type === "CREDIT_CARD"),
-      asOf: logicalDateFromUtcInstant(new Date()),
+      asOf: logicalDateFromInstant(new Date()),
     });
     return enriched.map((account) => {
       const value = values.get(account.id);
@@ -325,7 +330,7 @@ export const accountCrud = baseCrudHandler({
     );
 
     // Faturas e avisos olham a carteira inteira: filtro ou busca não escondem um vencimento.
-    const asOf = logicalDateFromUtcInstant(new Date());
+    const asOf = logicalDateFromInstant(new Date());
     const active = await prisma.account.findMany({
       where: { userId, isActive: true },
       select: {

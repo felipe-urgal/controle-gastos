@@ -30,7 +30,7 @@ import {
   type OfflineTransactionQueueItem,
 } from '@/app/lib/pwa/offline-transaction-queue';
 import { emitPwaEvent } from '@/app/lib/pwa/pwa-events';
-import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
+import { logicalDateFromInstant } from '@/app/lib/date/logical-date';
 import { templateToTransactionInitialValues } from '@/app/lib/templates/transaction-template-mapping';
 import { getDuplicateTransactionValues } from '@/app/lib/transactions/transaction-quick-actions';
 import { transactionService } from '@/app/services/transaction-service';
@@ -82,7 +82,6 @@ export default function New({
   const [queueMessage, setQueueMessage] = useState<string | null>(null);
   const [reviewingQueueItem, setReviewingQueueItem] = useState<OfflineTransactionQueueItem | null>(null);
   const [isOnline, setIsOnline] = useState(true);
-  const [now, setNow] = useState(0);
   const [loadedOfflineDraftId, setLoadedOfflineDraftId] = useState<string | null>(null);
   const [formRevision, setFormRevision] = useState(0);
   const isDuplicating = Boolean(duplicateId);
@@ -112,7 +111,7 @@ export default function New({
         } else if (templateId) {
           const response = await transactionTemplateService.getById(templateId);
           const template = response.data;
-          const today = logicalDateFromUtcInstant(new Date());
+          const today = logicalDateFromInstant(new Date());
           const prepared = templateToTransactionInitialValues(template, today);
           if (!cancelled) {
             setInitialValues(prepared.values);
@@ -211,11 +210,6 @@ export default function New({
       window.removeEventListener('online', updateOnlineState);
       window.removeEventListener('offline', updateOnlineState);
     };
-  }, []);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(interval);
   }, []);
 
   async function syncQueuedTransaction(item: OfflineTransactionQueueItem) {
@@ -398,7 +392,6 @@ export default function New({
           items={offlineQueue}
           pendingCount={pendingQueueCount}
           isOnline={isOnline}
-          now={now}
           showValues={showValues}
           syncingId={queueSyncingId}
           message={queueMessage}

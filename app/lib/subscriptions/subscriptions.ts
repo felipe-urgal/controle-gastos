@@ -1,7 +1,7 @@
 import { success } from '@/app/lib/api-response';
 import { apiFailureFromError } from '@/app/lib/api/api-error-response';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
-import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
+import { logicalDateFromInstant } from '@/app/lib/date/logical-date';
 import {
   getFormalRecurrenceSummaryForUser,
   recurrenceSummarySignature,
@@ -62,7 +62,7 @@ export async function getDetectedSubscriptionsForUser(
 
   return detectSubscriptions(
     historical,
-    logicalDateFromUtcInstant(now),
+    logicalDateFromInstant(now),
   );
 }
 

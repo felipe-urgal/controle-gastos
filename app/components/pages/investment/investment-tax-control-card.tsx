@@ -16,6 +16,7 @@ import type {
   InvestmentTaxControlReport,
 } from '@/app/types/investment';
 import { Button, Input, MoneyInput, Select } from '@/app/components/ui';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 const assetTypes: Array<{ value: InvestmentAssetType; label: string }> = [
   { value: 'STOCK', label: 'Ações' },
@@ -46,7 +47,7 @@ export function InvestmentTaxControlCard({
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getUTCFullYear();
+  const currentYear = todayLogicalDate().year;
   const { year, setYear } = useInvestmentFiscalYear();
   const [report, setReport] = useState<InvestmentTaxControlReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,7 @@ export function InvestmentTaxControlCard({
   const [mode, setMode] = useState<'IRRF' | 'DARF' | null>(null);
   const [assetType, setAssetType] = useState<InvestmentAssetType>('FII');
   const [currency, setCurrency] = useState<SupportedCurrency>('BRL');
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [month, setMonth] = useState(todayLogicalDate().month);
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(today());
   const [code, setCode] = useState('');

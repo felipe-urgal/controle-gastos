@@ -13,6 +13,7 @@ import { investmentService } from '@/app/services/investment-service';
 import type { ForeignInvestmentAnnualTaxReport } from '@/app/types/investment';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import { Button, Input, MoneyInput, Select } from '@/app/components/ui';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 function money(value: number | null, showValues: boolean) {
   if (!showValues) return '••••';
@@ -25,7 +26,7 @@ export function ForeignInvestmentAnnualTaxCard({
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getUTCFullYear();
+  const currentYear = todayLogicalDate().year;
   const { year, setYear } = useInvestmentFiscalYear();
   const initialYear = Math.max(2024, year);
   const [report, setReport] =

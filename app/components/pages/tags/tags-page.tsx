@@ -12,6 +12,7 @@ import {
   FaUndo,
 } from 'react-icons/fa';
 
+import { usePaginatedList } from '@/app/hooks/use-paginated-list';
 import { ProtectedRoute } from '@/app/components/layout';
 import { Alert } from '@/app/components/feedback';
 import TagReportPanel from '@/app/components/pages/tags/tag-report-panel';
@@ -24,15 +25,9 @@ import ConfirmationModal from '@/app/components/overlays/confirmation-modal';
 import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { normalizeTagDisplayName } from '@/app/lib/tags/tag-name';
-import { ApiClientError } from '@/app/services/api-client';
 import { tagService } from '@/app/services/tag-service';
 import type { TagDTO, TagReport, TagReportPeriod } from '@/app/types/tag';
-
-function messageFromError(error: unknown, fallback: string) {
-  return error instanceof ApiClientError || error instanceof Error
-    ? error.message
-    : fallback;
-}
+import { errorMessage } from '@/app/lib/error-message';
 
 const TAG_PAGE_SIZE = 50;
 
@@ -50,25 +45,19 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
 
-  const [tags, setTags] = useState<TagDTO[]>([]);
   const [name, setName] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchDraft, setSearchDraft] = useState('');
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<TagDTO | null>(null);
 
-  const [loadingTags, setLoadingTags] = useState(true);
   const [creating, setCreating] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [lifecycleId, setLifecycleId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const [listError, setListError] = useState('');
   const [actionError, setActionError] = useState('');
   const [notice, setNotice] = useState('');
   const [actionFeedbackTagId, setActionFeedbackTagId] = useState<string | null>(null);
@@ -80,71 +69,36 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
   const [reportLoadingTagId, setReportLoadingTagId] = useState<string | null>(null);
   const [reportError, setReportError] = useState('');
 
+  const fetchTags = useCallback(
+    async (pageNumber: number) =>
+      (await tagService.getAll({
+        page: pageNumber,
+        pageSize: TAG_PAGE_SIZE,
+        search: search || undefined,
+        isActive: statusFilterParam(statusFilter),
+      })).data,
+    [search, statusFilter],
+  );
+  const {
+    items: tags,
+    setItems: setTags,
+    total,
+    totalPages,
+    page,
+    setPage,
+    loading: loadingTags,
+    error: listError,
+    reload: loadTags,
+  } = usePaginatedList<TagDTO>({
+    fetchPage: fetchTags,
+    fallbackError: 'Não foi possível carregar as tags.',
+    transform: sortTags,
+  });
+
   const selectedReportTag = useMemo(
     () => tags.find((tag) => tag.id === selectedReportTagId) ?? null,
     [selectedReportTagId, tags],
   );
-
-  const loadTags = useCallback(async () => {
-    setLoadingTags(true);
-    setListError('');
-    try {
-      const response = await tagService.getAll({
-        page,
-        pageSize: TAG_PAGE_SIZE,
-        search: search || undefined,
-        isActive: statusFilterParam(statusFilter),
-      });
-      const nextTotalPages = Math.max(1, response.data.totalPages ?? 1);
-      if (page > nextTotalPages) {
-        setPage(nextTotalPages);
-        return;
-      }
-      setTags(sortTags(response.data.items ?? []));
-      setTotal(response.data.total ?? 0);
-      setTotalPages(nextTotalPages);
-    } catch (error) {
-      setListError(messageFromError(error, 'Não foi possível carregar as tags.'));
-    } finally {
-      setLoadingTags(false);
-    }
-  }, [page, search, statusFilter]);
-
-  useEffect(() => {
-    let active = true;
-
-    tagService
-      .getAll({
-        page,
-        pageSize: TAG_PAGE_SIZE,
-        search: search || undefined,
-        isActive: statusFilterParam(statusFilter),
-      })
-      .then((response) => {
-        if (!active) return;
-
-        const nextTotalPages = Math.max(1, response.data.totalPages ?? 1);
-        if (page > nextTotalPages) {
-          setPage(nextTotalPages);
-          return;
-        }
-
-        setTags(sortTags(response.data.items ?? []));
-        setTotal(response.data.total ?? 0);
-        setTotalPages(nextTotalPages);
-      })
-      .catch((error) => {
-        if (!active) return;
-        setListError(messageFromError(error, 'Não foi possível carregar as tags.'));
-      })
-      .finally(() => {
-        if (active) setLoadingTags(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [page, search, statusFilter]);
 
   useEffect(() => {
     if (!focusTagId) return;
@@ -159,7 +113,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
       // Do not reveal whether inaccessible IDs exist.
     });
     return () => { cancelled = true; };
-  }, [focusTagId]);
+  }, [focusTagId, setPage]);
 
   function replaceTag(updated: TagDTO) {
     setTags((current) =>
@@ -172,8 +126,6 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
     setSearchDraft(value);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
-      setLoadingTags(true);
-      setListError('');
       setPage(1);
       setSearch(normalizeTagDisplayName(value));
     }, 300);
@@ -184,8 +136,6 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
   }, []);
 
   function changePage(nextPage: number) {
-    setLoadingTags(true);
-    setListError('');
     setPage(nextPage);
   }
 
@@ -204,9 +154,9 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
       setCreateOpen(false);
       setNotice(`#${response.data.name} criada com sucesso.`);
       if (page !== 1) setPage(1);
-      else void loadTags();
+      else loadTags();
     } catch (error) {
-      setActionError(messageFromError(error, 'Erro ao criar tag'));
+      setActionError(errorMessage(error, 'Erro ao criar tag'));
     } finally {
       setCreating(false);
     }
@@ -234,9 +184,9 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
         });
       }
       setNotice(`Tag renomeada para #${response.data.name}.`);
-      void loadTags();
+      loadTags();
     } catch (error) {
-      setActionError(messageFromError(error, 'Erro ao renomear tag'));
+      setActionError(errorMessage(error, 'Erro ao renomear tag'));
     } finally {
       setRenamingId(null);
     }
@@ -259,10 +209,10 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
           ? `#${response.data.name} reativada.`
           : `#${response.data.name} arquivada. O histórico foi preservado.`,
       );
-      void loadTags();
+      loadTags();
     } catch (error) {
       setActionError(
-        messageFromError(
+        errorMessage(
           error,
           tag.isActive ? 'Erro ao arquivar tag' : 'Erro ao reativar tag',
         ),
@@ -292,9 +242,9 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
       setDeleteCandidate(null);
       setActionFeedbackTagId(null);
       setNotice(`#${tag.name} excluída.`);
-      void loadTags();
+      loadTags();
     } catch (error) {
-      setActionError(messageFromError(error, 'Erro ao excluir tag'));
+      setActionError(errorMessage(error, 'Erro ao excluir tag'));
       setDeleteCandidate(null);
     } finally {
       setDeletingId(null);
@@ -310,7 +260,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
       const response = await tagService.report(tag.id, period);
       setReport(response.data);
     } catch (error) {
-      setReportError(messageFromError(error, 'Erro ao carregar relatório'));
+      setReportError(errorMessage(error, 'Erro ao carregar relatório'));
     } finally {
       setReportLoadingTagId(null);
     }
@@ -332,8 +282,6 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
   }
 
   function changeStatusFilter(filter: TagStatusFilter) {
-    setLoadingTags(true);
-    setListError('');
     setPage(1);
     setStatusFilter(filter);
   }
@@ -398,7 +346,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
             {listError ? (
               <div className="mt-4 grid gap-2">
                 <Alert variant="error" message={listError} />
-                <Button variant="outline" size="sm" icon={<FaRedo aria-hidden="true" />} onClick={() => void loadTags()} disabled={loadingTags}>
+                <Button variant="outline" size="sm" icon={<FaRedo aria-hidden="true" />} onClick={loadTags} disabled={loadingTags}>
                   Tentar novamente
                 </Button>
               </div>

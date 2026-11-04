@@ -18,3 +18,12 @@ export const getNextMonth = (date: Date): Date => {
   newDate.setMonth(date.getMonth() + 1);
   return newDate;
 };
+
+/** Data civil (YYYY-MM-DD) no fuso do Brasil; `toISOString()` usaria UTC e viraria o dia após as 21h. */
+export const brazilDateKey = (date: Date = new Date()): string =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);

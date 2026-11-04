@@ -2,7 +2,7 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import {
   getForecastForUser,
-  logicalDateFromUtcInstant,
+  logicalDateFromInstant,
 } from "@/app/lib/forecast/forecast";
 import { lastDayOfMonth } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
@@ -420,7 +420,7 @@ describe("forecast integration", () => {
   });
 
   it("uses UTC explicitly when converting the injected clock to a logical date", () => {
-    expect(logicalDateFromUtcInstant(new Date("2028-01-01T00:30:00+14:00"))).toEqual({
+    expect(logicalDateFromInstant(new Date("2028-01-01T00:30:00+14:00"))).toEqual({
       year: 2027,
       month: 12,
       day: 31,

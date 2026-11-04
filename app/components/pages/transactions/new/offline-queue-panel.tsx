@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import { Button } from '@/app/components/ui';
 import type { OfflineTransactionQueueItem } from '@/app/lib/pwa/offline-transaction-queue';
 
@@ -16,7 +18,6 @@ interface OfflineQueuePanelProps {
   items: OfflineTransactionQueueItem[];
   pendingCount: number;
   isOnline: boolean;
-  now: number;
   showValues: boolean;
   syncingId: string | null;
   message: string | null;
@@ -31,7 +32,6 @@ export default function OfflineQueuePanel({
   items: offlineQueue,
   pendingCount: pendingQueueCount,
   isOnline,
-  now,
   showValues,
   syncingId: queueSyncingId,
   message: queueMessage,
@@ -41,6 +41,15 @@ export default function OfflineQueuePanel({
   onResolveAsNew: resolveConflictAsNew,
   onReauthenticate: reauthenticateForQueue,
 }: OfflineQueuePanelProps) {
+  // O relógio vive aqui (e só roda com a fila visível) para não re-renderizar a tela inteira a cada segundo.
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   return (
     <section
       className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface)] p-4"

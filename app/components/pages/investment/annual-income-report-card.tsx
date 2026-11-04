@@ -14,6 +14,7 @@ import type {
   InvestmentIncomeType,
 } from '@/app/types/investment';
 import { Select } from '@/app/components/ui';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 const incomeLabels: Record<InvestmentIncomeType, string> = {
   INCOME: 'Rendimento',
@@ -31,7 +32,7 @@ export function AnnualIncomeReportCard({
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getUTCFullYear();
+  const currentYear = todayLogicalDate().year;
   const { year, setYear } = useInvestmentFiscalYear();
   const [report, setReport] = useState<InvestmentAnnualIncomeReport | null>(null);
   const [loading, setLoading] = useState(true);

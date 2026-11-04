@@ -10,10 +10,11 @@ import {
 import { dashboardService } from '@/app/services/dashboard-service';
 import type { DashboardHome } from '@/app/types/dashboard';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 function getInitialPeriodValue() {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  const today = todayLogicalDate();
+  return `${today.year}-${String(today.month).padStart(2, '0')}`;
 }
 
 function parsePeriodValue(value: string) {

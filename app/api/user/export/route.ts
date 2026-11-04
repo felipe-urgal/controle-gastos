@@ -1,3 +1,4 @@
+import { brazilDateKey } from "@/app/lib/date/date-helpers";
 import { NextResponse } from "next/server";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
@@ -99,7 +100,7 @@ export async function GET(request: Request) {
       format,
       exportedAt,
     });
-    const snapshotDate = exportedAt.toISOString().slice(0, 10);
+    const snapshotDate = brazilDateKey(exportedAt);
     const headers = exportHeaders(format, snapshotDate);
 
     return finish(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { creditCardRowSummary } from "@/app/lib/accounts/account-presentation";
+import { creditCardRowSummary, latestAccountTransaction } from "@/app/lib/accounts/account-presentation";
 import type { AccountModel } from "@/app/types/account";
 
 function card(overrides: Partial<AccountModel> = {}): AccountModel {
@@ -73,5 +73,46 @@ describe("creditCardRowSummary", () => {
   it("devolve null para contas que não são cartão ou sem status", () => {
     expect(creditCardRowSummary(card({ type: "CREDIT_DEBIT" }))).toBeNull();
     expect(creditCardRowSummary(card({ cardStatus: null }))).toBeNull();
+  });
+});
+
+describe("latestAccountTransaction", () => {
+  const movement = (id: string, status: "COMPLETED" | "PENDING" | "CANCELLED", day: number, createdAt = "2026-10-01T00:00:00.000Z") =>
+    ({
+      id,
+      amount: 100,
+      type: "EXPENSE",
+      kind: "NORMAL",
+      description: id,
+      status,
+      reconciliationStatus: "UNRECONCILED",
+      reconciledAt: null,
+      year: 2026,
+      month: 10,
+      day,
+      category: null,
+      counterpartAccount: null,
+      createdAt,
+    }) as unknown as AccountModel["transactions"][number];
+
+  it("ignora pendentes e canceladas, mesmo mais recentes", () => {
+    const account = card({
+      transactions: [movement("pendente", "PENDING", 30), movement("cancelada", "CANCELLED", 25), movement("concluida", "COMPLETED", 5)],
+    });
+    expect(latestAccountTransaction(account)?.id).toBe("concluida");
+  });
+
+  it("desempata o mesmo dia pela criação mais recente", () => {
+    const account = card({
+      transactions: [
+        movement("a", "COMPLETED", 5, "2026-10-05T10:00:00.000Z"),
+        movement("b", "COMPLETED", 5, "2026-10-05T12:00:00.000Z"),
+      ],
+    });
+    expect(latestAccountTransaction(account)?.id).toBe("b");
+  });
+
+  it("devolve null quando não há concluída", () => {
+    expect(latestAccountTransaction(card({ transactions: [movement("p", "PENDING", 1)] }))).toBeNull();
   });
 });

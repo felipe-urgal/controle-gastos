@@ -19,7 +19,7 @@ import { getFinancialCommitmentsForUser } from '@/app/lib/commitments/financial-
 import {
   compareLogicalDates,
   getLastDayOfMonth,
-  logicalDateFromUtcInstant,
+  logicalDateFromInstant,
   type LogicalDate,
 } from '@/app/lib/date/logical-date';
 import { INVESTMENT_QUANTITY_SCALE } from '@/app/lib/investments/investment-domain';
@@ -479,7 +479,7 @@ export async function getCalendarForUser(
   input: CalendarQueryInput,
   now: Date = new Date(),
 ): Promise<CalendarReadModel> {
-  const asOf = logicalDateFromUtcInstant(now);
+  const asOf = logicalDateFromInstant(now);
   const ownedAccounts = await prisma.account.findMany({
     where: { userId },
     select: accountSelect,

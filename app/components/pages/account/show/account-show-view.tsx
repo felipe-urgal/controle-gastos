@@ -21,14 +21,14 @@ import { getAccountPrimaryValue } from '@/app/lib/accounts/account-presentation'
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import type { AccountModel, AccountRecentTransaction } from '@/app/types/account';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 const MotionLink = motion.create(Link);
 
 const monthNames = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
 function todayLogical() {
-  const now = new Date();
-  return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+  return todayLogicalDate();
 }
 
 function MovementRow({ transaction, account, showValues, order }: { transaction: AccountRecentTransaction; account: AccountModel; showValues: boolean; order: number }) {
@@ -178,7 +178,7 @@ export default function AccountShowView({
   const isInvestment = account.type === 'INVESTMENT';
   const value = getAccountPrimaryValue(account);
   const activity = account.activity ?? null;
-  const monthName = monthNames[new Date().getMonth()];
+  const monthName = monthNames[todayLogicalDate().month - 1];
 
   const stats = isInvestment
     ? [

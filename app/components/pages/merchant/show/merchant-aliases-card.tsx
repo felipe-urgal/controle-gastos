@@ -9,12 +9,9 @@ import { Button, Input, Select } from '@/app/components/ui';
 import { RiseSection } from '@/app/components/ui/motion';
 import { merchantAliasService } from '@/app/services/merchant-alias-service';
 import type { MerchantAliasDTO, MerchantAliasOperator, MerchantAliasPreviewDTO } from '@/app/types/merchant-alias';
+import { errorMessage } from '@/app/lib/error-message';
 
 const ALIAS_LIMIT = 50;
-
-function errorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 export default function MerchantAliasesCard({ merchantId, merchantName }: { merchantId: string; merchantName: string }) {
   const reduce = useReducedMotion();

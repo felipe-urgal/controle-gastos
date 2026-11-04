@@ -6,12 +6,9 @@ import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { Button, Input } from '@/app/components/ui';
 import { PeriodPicker, formatBrDate, usePeriodRange } from '@/app/components/pages/transactions/index/period-picker';
 import { transactionService, type ClearPeriodPreview } from '@/app/services/transaction-service';
+import { errorMessage } from '@/app/lib/error-message';
 
 const CONFIRMATION_WORD = 'LIMPAR';
-
-function errorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 export function ClearPeriodDialog({
   month,

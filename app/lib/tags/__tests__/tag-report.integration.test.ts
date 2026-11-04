@@ -9,7 +9,7 @@ vi.mock("@/app/lib/auth", () => ({
 }));
 
 import { prisma } from "@/app/lib/prisma";
-import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import { getTagReport } from "@/app/lib/tags/tag-report";
 import { tagHistoryWindow } from "@/app/lib/tags/tag-report-model";
 import { createTransferForUser } from "@/app/lib/transfers/create-transfer";
@@ -230,7 +230,7 @@ describe("tag report integration", () => {
     const tag = await prisma.tag.create({
       data: { userId: owner.id, name: "viagem", normalizedName: "viagem" },
     });
-    const today = logicalDateFromUtcInstant(new Date());
+    const today = logicalDateFromInstant(new Date());
     const previous = tagHistoryWindow(today)[4];
     const old = { year: today.year - 2, month: 1 };
 

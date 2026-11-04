@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 type FiscalYearContextValue = {
   year: number;
@@ -21,7 +22,7 @@ export function InvestmentFiscalYearProvider({
 }: {
   children: ReactNode;
 }) {
-  const currentYear = new Date().getUTCFullYear();
+  const currentYear = todayLogicalDate().year;
   const [year, setYear] = useState(currentYear);
   const value = useMemo(() => ({ year, setYear }), [year]);
 

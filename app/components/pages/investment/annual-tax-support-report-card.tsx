@@ -8,13 +8,14 @@ import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { investmentService } from '@/app/services/investment-service';
 import type { InvestmentAnnualTaxSupportReport } from '@/app/types/investment';
 import { Select } from '@/app/components/ui';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 export function AnnualTaxSupportReportCard({
   showValues,
 }: {
   showValues: boolean;
 }) {
-  const currentYear = new Date().getFullYear();
+  const currentYear = todayLogicalDate().year;
   const lastClosedYear = currentYear - 1;
   const [year, setYear] = useState(lastClosedYear);
   const [report, setReport] =

@@ -27,12 +27,16 @@ export function sortAccountTransactions(
     const byDate =
       accountTransactionDateKey(right) - accountTransactionDateKey(left);
     if (byDate !== 0) return byDate;
+    const byCreated = (right.createdAt ?? "").localeCompare(left.createdAt ?? "");
+    if (byCreated !== 0) return byCreated;
     return right.id.localeCompare(left.id);
   });
 }
 
+/** Última movimentação concluída da conta; pendentes e canceladas nunca contam. */
 export function latestAccountTransaction(account: AccountModel) {
-  return sortAccountTransactions(account.transactions)[0] ?? null;
+  const completed = account.transactions.filter((transaction) => transaction.status === "COMPLETED");
+  return sortAccountTransactions(completed)[0] ?? null;
 }
 
 export type CreditCardRowSummary = {

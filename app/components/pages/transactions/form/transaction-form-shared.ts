@@ -1,5 +1,6 @@
 import { FormData } from '@/app/lib/interface/transaction.interface';
 import { OfflineTransactionQueueItem, OfflineTransactionQueuePayload } from '@/app/lib/pwa/offline-transaction-queue';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 export interface TransactionFormProps {
   transaction?: any;
@@ -53,12 +54,14 @@ export function initialTransactionFormData({
     };
   }
 
-  const baseDate = initialDate ?? new Date();
+  const base = initialDate
+    ? { year: initialDate.getFullYear(), month: initialDate.getMonth() + 1, day: initialDate.getDate() }
+    : todayLogicalDate();
   return {
     amount: 0,
-    month: baseDate.getMonth() + 1,
-    year: baseDate.getFullYear(),
-    day: baseDate.getDate(),
+    month: base.month,
+    year: base.year,
+    day: base.day,
     description: '',
     status: 'COMPLETED',
     accountId: '',

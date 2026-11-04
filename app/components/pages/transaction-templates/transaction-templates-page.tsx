@@ -25,12 +25,13 @@ import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { analyzeTransactionTemplateSource } from '@/app/lib/templates/transaction-template-mapping';
 import { accountService } from '@/app/services/account-service';
-import { ApiClientError } from '@/app/services/api-client';
 import { categoryService } from '@/app/services/category-service';
 import { transactionService } from '@/app/services/transaction-service';
 import { transactionTemplateService } from '@/app/services/transaction-template-service';
 import type { AccountModel } from '@/app/types/account';
 import type { CategoryModel } from '@/app/types/category';
+import { usePaginatedList } from '@/app/hooks/use-paginated-list';
+import { errorMessage } from '@/app/lib/error-message';
 import type {
   TransactionTemplateDTO,
   TransactionTemplateInput,
@@ -62,12 +63,6 @@ function inputFromTemplate(
   };
 }
 
-function errorMessage(error: unknown, fallback: string) {
-  if (error instanceof ApiClientError) return error.message;
-  if (error instanceof Error && error.message) return error.message;
-  return fallback;
-}
-
 function sortTemplates(items: TransactionTemplateDTO[]) {
   return [...items].sort((left, right) => {
     if (left.isFavorite !== right.isFavorite) {
@@ -88,7 +83,6 @@ export default function TransactionTemplatesPage({
   const showValues = user?.showValues !== false;
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const [formOpen, setFormOpen] = useState(Boolean(sourceTransactionId));
-  const [items, setItems] = useState<TransactionTemplateDTO[]>([]);
   const [accounts, setAccounts] = useState<AccountModel[]>([]);
   const [categories, setCategories] = useState<CategoryModel[]>([]);
   const [form, setForm] = useState<TransactionTemplateInput>(emptyForm);
@@ -96,23 +90,18 @@ export default function TransactionTemplatesPage({
 
   const [actionError, setActionError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [templateError, setTemplateError] = useState('');
   const [accountError, setAccountError] = useState('');
   const [categoryError, setCategoryError] = useState('');
   const [sourceError, setSourceError] = useState('');
   const [sourceNotices, setSourceNotices] = useState<string[]>([]);
   const [sourceBlocked, setSourceBlocked] = useState(false);
 
-  const [templatesLoading, setTemplatesLoading] = useState(true);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [favoriteBusyIds, setFavoriteBusyIds] = useState<string[]>([]);
   const [deletingIds, setDeletingIds] = useState<string[]>([]);
-  const [templatePage, setTemplatePage] = useState(1);
   const [templatePageSize, setTemplatePageSize] = useState(TEMPLATE_PAGE_SIZE);
-  const [templateTotal, setTemplateTotal] = useState(0);
-  const [templateTotalPages, setTemplateTotalPages] = useState(1);
   const [templateSearch, setTemplateSearch] = useState('');
   const [deleteCandidate, setDeleteCandidate] =
     useState<TransactionTemplateDTO | null>(null);
@@ -125,26 +114,31 @@ export default function TransactionTemplatesPage({
     setDeleteCandidate(null);
   }, []);
 
-  const loadTemplates = useCallback(async () => {
-    setTemplatesLoading(true);
-    setTemplateError('');
-    try {
-      const response = await transactionTemplateService.getAll({
-        page: templatePage,
+  const fetchTemplates = useCallback(
+    async (page: number) =>
+      (await transactionTemplateService.getAll({
+        page,
         pageSize: templatePageSize,
-        ...(debouncedTemplateSearch
-          ? { search: debouncedTemplateSearch }
-          : {}),
-      });
-      setItems(sortTemplates(response.data.items));
-      setTemplateTotal(response.data.total);
-      setTemplateTotalPages(Math.max(1, response.data.totalPages ?? 1));
-    } catch (error) {
-      setTemplateError(errorMessage(error, 'Erro ao carregar modelos'));
-    } finally {
-      setTemplatesLoading(false);
-    }
-  }, [debouncedTemplateSearch, templatePage, templatePageSize]);
+        ...(debouncedTemplateSearch ? { search: debouncedTemplateSearch } : {}),
+      })).data,
+    [debouncedTemplateSearch, templatePageSize],
+  );
+  const {
+    items,
+    setItems,
+    total: templateTotal,
+    setTotal: setTemplateTotal,
+    totalPages: templateTotalPages,
+    page: templatePage,
+    setPage: setTemplatePage,
+    loading: templatesLoading,
+    error: templateError,
+    reload: loadTemplates,
+  } = usePaginatedList<TransactionTemplateDTO>({
+    fetchPage: fetchTemplates,
+    fallbackError: 'Erro ao carregar modelos',
+    transform: sortTemplates,
+  });
 
   const loadAccounts = useCallback(async () => {
     setAccountsLoading(true);
@@ -174,13 +168,12 @@ export default function TransactionTemplatesPage({
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      void loadTemplates();
       void loadAccounts();
       void loadCategories();
     }, 0);
 
     return () => window.clearTimeout(timeout);
-  }, [loadAccounts, loadCategories, loadTemplates]);
+  }, [loadAccounts, loadCategories]);
 
   useEffect(() => {
     if (!sourceTransactionId) return;
@@ -256,7 +249,6 @@ export default function TransactionTemplatesPage({
   }
 
   function insertCreatedTemplate(item: TransactionTemplateDTO) {
-    setTemplateError('');
     setTemplateTotal((current) => current + 1);
     setTemplateSearch('');
     setTemplatePage(1);
@@ -505,7 +497,7 @@ export default function TransactionTemplatesPage({
             {templateTotal} {templateTotal === 1 ? 'modelo' : 'modelos'}
           </motion.span>
           {templateError && (
-            <Button variant="outline" size="sm" onClick={() => void loadTemplates()}>
+            <Button variant="outline" size="sm" onClick={loadTemplates}>
               Tentar novamente
             </Button>
           )}

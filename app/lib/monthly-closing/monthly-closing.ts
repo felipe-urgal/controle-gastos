@@ -6,7 +6,7 @@ import { buildCreditCardStatements } from '@/app/lib/cards/credit-card-statement
 import {
   compareLogicalDates,
   getLastDayOfMonth,
-  logicalDateFromUtcInstant,
+  logicalDateFromInstant,
   type LogicalDate,
 } from '@/app/lib/date/logical-date';
 import { dashboardPeriodSchema } from '@/app/lib/dashboard/dashboard-schema';
@@ -457,7 +457,7 @@ export async function getMonthlyClosingForUser(
   currency: SupportedCurrency,
   now: Date = new Date(),
 ): Promise<MonthlyClosingData> {
-  const asOf = logicalDateFromUtcInstant(now);
+  const asOf = logicalDateFromInstant(now);
   const status = deriveMonthlyClosingPeriodStatus(period, asOf);
 
   if (status === 'FUTURE') {

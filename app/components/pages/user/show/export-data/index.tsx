@@ -1,5 +1,6 @@
 'use client';
 
+import { brazilDateKey } from '@/app/lib/date/date-helpers';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { useState } from 'react';
@@ -21,7 +22,7 @@ function getDownloadFilename(response: Response, format: ExportFormat) {
     return candidate;
   }
 
-  return `controle-gastos-${new Date().toISOString().slice(0, 10)}.${format}`;
+  return `controle-gastos-${brazilDateKey()}.${format}`;
 }
 
 export default function ExportData() {

@@ -6,10 +6,7 @@ import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { Button, Input } from '@/app/components/ui';
 import { PeriodPicker, formatBrDate, usePeriodRange } from '@/app/components/pages/transactions/index/period-picker';
 import { transactionService, type BackupRestoreSummary } from '@/app/services/transaction-service';
-
-function errorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
+import { errorMessage } from '@/app/lib/error-message';
 
 function plural(count: number, one: string, many: string) {
   return `${count} ${count === 1 ? one : many}`;

@@ -28,6 +28,7 @@ import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import type { CategoryModel } from '@/app/types/category';
 import type { CategoryMonthlyLimitItem, CategoryMonthlyLimitListResponse } from '@/app/types/category-monthly-limit';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 const MotionLink = motion.create(Link);
 
@@ -173,8 +174,7 @@ export default function CategoriesBudgetView({
 }) {
   const reduce = useReducedMotion();
   const money = (value: number | null) => displayMoney(value, showValues, currency);
-  const today = new Date();
-  const elapsed = monthElapsedFraction(periodValue, { year: today.getFullYear(), month: today.getMonth() + 1, day: today.getDate() });
+  const elapsed = monthElapsedFraction(periodValue, todayLogicalDate());
   const consumed = summary.realized + summary.committed;
   const pace = budgetPace({ budget: summary.budget, consumed, elapsed });
   const usedPercent = summary.budget > 0 ? Math.round((consumed / summary.budget) * 100) : 0;

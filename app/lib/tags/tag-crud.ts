@@ -4,7 +4,7 @@ import { baseCrudHandler } from "@/app/lib/api/base-crud-handler";
 import { HttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 import { normalizeTagNameKey } from "@/app/lib/tags/tag-name";
-import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import { aggregateTagCurrencies, type TagReportRow } from "@/app/lib/tags/tag-report-model";
 import { createTagSchema, updateTagSchema } from "@/app/lib/tags/tag-schema";
 
@@ -61,7 +61,7 @@ async function monthExpensesByTag(userId: string, tagIds: string[]) {
   const result = new Map<string, Array<{ currency: string; expense: number }>>();
   if (tagIds.length === 0) return result;
 
-  const today = logicalDateFromUtcInstant(new Date());
+  const today = logicalDateFromInstant(new Date());
   const rows = await prisma.$queryRaw<Array<{
     tagId: string;
     currency: string;

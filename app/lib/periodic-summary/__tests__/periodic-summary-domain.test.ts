@@ -28,12 +28,17 @@ const transaction = (
 });
 
 describe('periodic summary domain', () => {
-  it('uses the previous completed Monday-Sunday week in UTC logical dates', () => {
+  it('uses the previous completed Monday-Sunday week in Brazil logical dates', () => {
     expect(getCompletedWeeklySummaryPeriod(new Date('2026-10-01T23:59:59Z'))).toEqual({
       start: { year: 2026, month: 9, day: 21 },
       end: { year: 2026, month: 9, day: 27 },
     });
-    expect(getCompletedWeeklySummaryPeriod(new Date('2026-10-05T00:30:00Z'))).toEqual(period);
+    // Domingo 21h30 em Brasília ainda é a semana anterior; a segunda começa às 00h de Brasília.
+    expect(getCompletedWeeklySummaryPeriod(new Date('2026-10-05T00:30:00Z'))).toEqual({
+      start: { year: 2026, month: 9, day: 21 },
+      end: { year: 2026, month: 9, day: 27 },
+    });
+    expect(getCompletedWeeklySummaryPeriod(new Date('2026-10-05T03:00:00Z'))).toEqual(period);
   });
 
   it('enumerates exactly seven logical dates across a month boundary', () => {

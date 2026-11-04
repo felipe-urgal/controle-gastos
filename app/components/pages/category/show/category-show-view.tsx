@@ -22,6 +22,7 @@ import { DEFAULT_CATEGORY_COLOR } from '@/app/lib/categories/default-color';
 import { typeConfig } from '@/app/lib/constants/category.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { CategoryModel } from '@/app/types/category';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 const MotionLink = motion.create(Link);
 
@@ -55,8 +56,7 @@ export default function CategoryShowView({
   const color = category.color || DEFAULT_CATEGORY_COLOR;
   const type = typeConfig[category.type];
   const isExpense = category.type === 'EXPENSE';
-  const today = new Date();
-  const todayLogical = { year: today.getFullYear(), month: today.getMonth() + 1, day: today.getDate() };
+  const todayLogical = todayLogicalDate();
 
   const state = activity ? limitState(activity.month) : 'NO_LIMIT';
   const percent = activity ? limitPercent(activity.month) : null;

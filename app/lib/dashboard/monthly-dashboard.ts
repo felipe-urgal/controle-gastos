@@ -7,7 +7,8 @@ import { calculateAccountBalanceMap } from '@/app/lib/accounts/account-balance';
 import { getCreditCardStatuses } from '@/app/lib/cards/credit-card-status';
 import { listCategoryMonthlyLimitsForUser } from '@/app/lib/category-limits/category-monthly-limits';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
-import { logicalDateFromUtcInstant } from '@/app/lib/date/logical-date';
+import { compareLogicalDates, logicalDateFromInstant } from '@/app/lib/date/logical-date';
+import { dashboardReferenceDate } from '@/app/lib/dashboard/dashboard-period';
 import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import {
   calculateGoalPercentage,
@@ -131,7 +132,9 @@ export async function getMonthlyDashboardForUser(
   currency: SupportedCurrency = 'BRL',
   now: Date = new Date(),
 ): Promise<MonthlyDashboard> {
-  const asOf = logicalDateFromUtcInstant(now);
+  const today = logicalDateFromInstant(now);
+  const asOf = dashboardReferenceDate(period, today);
+  const isPastPeriod = compareLogicalDates(asOf, today) < 0;
   const flowPeriods = getDashboardFlowPeriods(period);
   const previousPeriod = shiftDashboardPeriod(period, -1);
   const periodFilter = flowPeriods.map(({ year, month }) => ({ year, month }));
@@ -197,7 +200,16 @@ export async function getMonthlyDashboardForUser(
     }),
     prisma.transaction.groupBy({
       by: ['accountId', 'type'],
-      where: ownedCompletedAnyCurrency,
+      where: isPastPeriod
+        ? {
+            ...ownedCompletedAnyCurrency,
+            OR: [
+              { year: { lt: asOf.year } },
+              { year: asOf.year, month: { lt: asOf.month } },
+              { year: asOf.year, month: asOf.month, day: { lte: asOf.day } },
+            ],
+          }
+        : ownedCompletedAnyCurrency,
       _sum: { amount: true },
     }),
     prisma.transaction.groupBy({
@@ -344,7 +356,13 @@ export async function getMonthlyDashboardForUser(
       ? []
       : await prisma.financialGoalEntry.groupBy({
           by: ['goalId', 'type'],
-          where: { userId, goalId: { in: goalIds } },
+          where: {
+            userId,
+            goalId: { in: goalIds },
+            ...(isPastPeriod
+              ? { createdAt: { lt: new Date(Date.UTC(asOf.year, asOf.month - 1, asOf.day + 1, 3)) } }
+              : {}),
+          },
           _sum: { amount: true },
         });
 

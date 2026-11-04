@@ -3,6 +3,7 @@
 import { transactionService } from '@/app/services/transaction-service';
 import { TransactionDTO } from "@/app/types/transaction";
 import { useIndex } from "@/app/hooks/crud/index";
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 type UseTransactionsOptions = {
   pagination?: boolean;
@@ -15,16 +16,16 @@ export function useTransactions({
   appendPagination = false,
   initialPageSize,
 }: UseTransactionsOptions = {}) {
-  const now = new Date();
-  
+  const today = todayLogicalDate();
+
   const { items, summary, ...rest } = useIndex<TransactionDTO>({
     service: transactionService,
     pagination,
     appendPagination,
     initialPageSize,
     initialFilters: {
-      month: String(now.getMonth() + 1),
-      year: String(now.getFullYear()),
+      month: String(today.month),
+      year: String(today.year),
     },
   });
 

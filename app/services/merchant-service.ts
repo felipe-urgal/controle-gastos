@@ -29,19 +29,16 @@ export const merchantService = {
   },
 
   async getAllOptions() {
-    const items: MerchantDTO[] = [];
     const pageSize = 100;
-    let page = 1;
-    let totalPages = 1;
+    const first = await baseMerchantService.getAll({ page: 1, pageSize });
+    const totalPages = Math.max(1, first.data?.totalPages ?? 1);
+    // As páginas seguintes saem em paralelo em vez de uma depois da outra.
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) =>
+        baseMerchantService.getAll({ page: index + 2, pageSize }),
+      ),
+    );
 
-    do {
-      const response = await baseMerchantService.getAll({ page, pageSize });
-      const data = response.data;
-      items.push(...(data?.items ?? []));
-      totalPages = Math.max(1, data?.totalPages ?? 1);
-      page += 1;
-    } while (page <= totalPages);
-
-    return items;
+    return [first, ...rest].flatMap((response) => response.data?.items ?? []);
   },
 };

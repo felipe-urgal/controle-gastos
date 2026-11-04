@@ -25,7 +25,7 @@ type CrudConfig<TCreate, TUpdate> = {
   createSchema: ZodSchema<TCreate>;
   updateSchema: ZodSchema<TUpdate>;
   include?: any;
-  orderBy?: any;
+  orderBy?: unknown;
 
   checkBeforeDelete?: (entity: any) => string | null;
   mapper?: (entity: any) => any;
@@ -125,12 +125,13 @@ export function baseCrudHandler<TCreate, TUpdate>(
 
   async function resolveId(
     userId: string,
-    context?: { params: Promise<any> }
+    context?: { params: Promise<{ id?: string }> }
   ) {
     if (selfRoute) return userId;
     if (!context) throw new Error("ID não fornecido");
 
     const { id } = await context.params;
+    if (!id) throw new Error("ID não fornecido");
     return id;
   }
 
@@ -174,13 +175,13 @@ export function baseCrudHandler<TCreate, TUpdate>(
         return success(result, `${entityName}s carregadas com sucesso`);
       }
 
-      const filters: Record<string, any> = selfRoute ? {} : { userId };
+      const filters: Record<string, unknown> = selfRoute ? {} : { userId };
       let take: number | undefined;
       let skip: number | undefined;
       let page: number | undefined;
       let pageSize: number | undefined;
       let enforceUnpaginatedLimit = false;
-      const searchConditions: any[] = [];
+      const searchConditions: Array<Record<string, unknown>> = [];
 
       if (request) {
         const { searchParams } = new URL(request.url);
@@ -305,7 +306,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
 
   async function getById(
     request: Request,
-    context?: { params: Promise<any> }
+    context?: { params: Promise<{ id?: string }> }
   ) {
     try {
       const userId = await getAuthenticatedUserId();
@@ -327,7 +328,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
 
   async function update(
     request: Request,
-    context?: { params: Promise<any> }
+    context?: { params: Promise<{ id?: string }> }
   ) {
     try {
       const userId = await getAuthenticatedUserId();
@@ -365,7 +366,7 @@ export function baseCrudHandler<TCreate, TUpdate>(
 
   async function remove(
     request: Request,
-    context?: { params: Promise<any> }
+    context?: { params: Promise<{ id?: string }> }
   ) {
     try {
       const userId = await getAuthenticatedUserId();

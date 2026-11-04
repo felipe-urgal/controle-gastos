@@ -34,16 +34,13 @@ import type {
 import type { MerchantDTO, MerchantMonthSummary } from '@/app/types/merchant';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { joinNames, pickSpend, shareWidth, spendDelta, spendDeltaLabel, topShare } from '@/app/components/pages/merchant/merchants-model';
+import { errorMessage } from '@/app/lib/error-message';
 
 const MERCHANT_PAGE_SIZE = 10;
 const ALIAS_PAGE_SIZE = 10;
 const MERCHANT_OPTION_PAGE_SIZE = 20;
 
 type MerchantStatusFilter = 'all' | 'active' | 'inactive';
-
-function errorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 function operatorLabel(operator: MerchantAliasOperator) {
   if (operator === 'EQUALS') return 'Igual a';

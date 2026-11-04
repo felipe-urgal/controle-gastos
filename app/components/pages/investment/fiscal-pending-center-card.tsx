@@ -11,6 +11,7 @@ import type {
   InvestmentFiscalPendingItem,
 } from '@/app/types/investment';
 import { Button, Input, Select } from '@/app/components/ui';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 const categoryLabels: Record<InvestmentFiscalPendingItem['category'], string> = {
   FISCAL_COST: 'Custo fiscal',
@@ -25,7 +26,7 @@ const categoryLabels: Record<InvestmentFiscalPendingItem['category'], string> = 
 };
 
 export function FiscalPendingCenterCard() {
-  const currentYear = new Date().getUTCFullYear();
+  const currentYear = todayLogicalDate().year;
   const { year, setYear } = useInvestmentFiscalYear();
   const [report, setReport] =
     useState<InvestmentFiscalPendingCenter | null>(null);

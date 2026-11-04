@@ -1,3 +1,4 @@
+import { logicalDateFromInstant } from '@/app/lib/date/logical-date';
 import type { FinancialGoal, FinancialGoalStatus } from '@/app/types/financial-goal';
 
 export type GoalPace = 'ON_TRACK' | 'BEHIND' | 'OVERDUE';
@@ -6,8 +7,10 @@ type Money = (cents: number) => string;
 
 const DAY = 86_400_000;
 
+/** Início do dia (fuso do Brasil) de um instante, em ms UTC comparáveis com `parseDate`. */
 function dayStart(value: Date) {
-  return Date.UTC(value.getFullYear(), value.getMonth(), value.getDate());
+  const day = logicalDateFromInstant(value);
+  return Date.UTC(day.year, day.month - 1, day.day);
 }
 
 function parseDate(value: string) {

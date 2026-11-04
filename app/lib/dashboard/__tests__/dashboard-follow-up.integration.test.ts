@@ -229,7 +229,7 @@ describe('dashboard follow-up contracts', () => {
     });
   });
 
-  it('keeps historical selected month separate from the current financial state', async () => {
+  it('shows a past month as it stood on its last day', async () => {
     const user = await createUser('Dashboard historical period');
 
     const { income } = await createCategories(user.id);
@@ -285,15 +285,39 @@ describe('dashboard follow-up contracts', () => {
       selectedPeriod: { year: 2026, month: 9 },
       selectedPeriodRelation: 'PAST',
       currentAsOf: { year: 2026, month: 10, day: 6 },
+      referenceDate: { year: 2026, month: 9, day: 30 },
     });
     expect(home.monthly.summary.income).toBe(50_000);
-    expect(home.current.cash.total).toBe(75_000);
+    // Saldo em caixa no fim de setembro: a receita de outubro ainda não existia.
+    expect(home.current.cash.total).toBe(50_000);
+    expect(home.current.forecast).toEqual({ status: 'NOT_APPLICABLE' });
+    expect(home.current.commitments).toEqual({ status: 'NOT_APPLICABLE' });
     expect(home.recentTransactions.status).toBe('SUCCESS');
     if (home.recentTransactions.status === 'SUCCESS') {
       expect(home.recentTransactions.data.map((item) => item.description)).toEqual([
         'Receita de setembro',
       ]);
     }
+  });
+
+  it('projects a future month up to its last day, and only within 90 days', async () => {
+    const user = await createUser('Dashboard future month');
+    await prisma.account.create({
+      data: { name: 'Conta futura', type: 'CREDIT_DEBIT', currency: 'BRL', userId: user.id },
+    });
+    const now = new Date('2026-10-06T15:00:00.000Z');
+
+    const december = await getDashboardHomeForUser(user.id, { year: 2026, month: 12 }, 'BRL', now);
+    expect(december.scope.selectedPeriodRelation).toBe('FUTURE');
+    expect(december.scope.referenceDate).toEqual({ year: 2026, month: 10, day: 6 });
+    expect(december.current.forecast.status).toBe('SUCCESS');
+    if (december.current.forecast.status === 'SUCCESS') {
+      expect(december.current.forecast.data.safeToSpend.through).toEqual({ year: 2026, month: 12, day: 31 });
+    }
+
+    const march = await getDashboardHomeForUser(user.id, { year: 2027, month: 3 }, 'BRL', now);
+    expect(march.current.forecast).toEqual({ status: 'NOT_APPLICABLE' });
+    expect(march.current.commitments).toEqual({ status: 'NOT_APPLICABLE' });
   });
 
   it('uses the canonical commitment directions for payable, receivable and milestone items', async () => {
@@ -386,14 +410,26 @@ describe('dashboard follow-up contracts', () => {
     }
   });
 
-  it('treats the UTC year rollover consistently', async () => {
-    const user = await createUser('Dashboard UTC rollover');
+  it('treats the Brazil year rollover consistently', async () => {
+    const user = await createUser('Dashboard Brazil rollover');
+
+    // 31/12 às 23h59 em Brasília (já 01/01 em UTC) ainda é dezembro.
+    const beforeMidnight = await getDashboardHomeForUser(
+      user.id,
+      { year: 2028, month: 12 },
+      'BRL',
+      new Date('2029-01-01T02:59:59.000Z'),
+    );
+    expect(beforeMidnight.scope).toMatchObject({
+      selectedPeriodRelation: 'CURRENT',
+      currentAsOf: { year: 2028, month: 12, day: 31 },
+    });
 
     const home = await getDashboardHomeForUser(
       user.id,
       { year: 2028, month: 12 },
       'BRL',
-      new Date('2029-01-01T00:00:01.000Z'),
+      new Date('2029-01-01T03:00:01.000Z'),
     );
 
     expect(home.scope).toMatchObject({

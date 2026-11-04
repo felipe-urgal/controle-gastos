@@ -159,7 +159,7 @@ function DashboardHome({
     cards: data.cards,
     recentTransactions: recentTransactions.data ?? [],
     insights: insights.data?.items ?? [],
-    asOf: home.scope.currentAsOf,
+    asOf: home.scope.referenceDate,
     showValues,
     currency: data.currency,
     commitments: commitments.data ? commitments.data.items : null,
@@ -193,7 +193,9 @@ function DashboardHome({
       {home.scope.selectedPeriodRelation !== 'CURRENT' && (
         <div role="status" className="mb-[14px] rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-xs text-[var(--text-muted)]">
           <strong className="text-[var(--foreground)]">Mês selecionado: {monthLabel(`${data.period.year}-${String(data.period.month).padStart(2, '0')}`)}.</strong>{' '}
-          Resumo, planejamento, categorias, transações recentes e patrimônio usam esse período; saldo de caixa, cartões, metas, compromissos e projeção usam a referência atual ({dashboardLogicalDateLabel(home.scope.currentAsOf)}).
+          {home.scope.selectedPeriodRelation === 'PAST'
+            ? <>Tudo reflete o fim do mês ({dashboardLogicalDateLabel(home.scope.referenceDate)}): resumo, planejamento, categorias, transações, patrimônio, saldos, faturas e metas. Projeção e compromissos só existem para o mês atual e os próximos.</>
+            : <>Resumo, planejamento, categorias, transações e patrimônio usam esse período; saldos, faturas e metas usam o dia de hoje ({dashboardLogicalDateLabel(home.scope.currentAsOf)}) e a projeção vai até o fim do mês escolhido.</>}
         </div>
       )}
 
@@ -206,7 +208,10 @@ function DashboardHome({
       <section className="grid gap-[14px] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <SafeToSpendHero
           cashAccounts={cashAccounts}
-          asOf={home.scope.currentAsOf}
+          asOf={home.scope.referenceDate}
+          notApplicable={forecast.notApplicable}
+          cashTotal={home.current.cash.total}
+          relation={home.scope.selectedPeriodRelation}
           summary={data.summary}
           comparison={data.comparison}
           safeToSpend={forecast.data?.safeToSpend ?? null}
@@ -241,7 +246,7 @@ function DashboardHome({
         />
       </section>
 
-      <section className="mt-[14px]">
+      {!commitments.notApplicable && <section className="mt-[14px]">
         <PendingSummaryCard
           totals={commitments.data?.totals ?? null}
           days={commitments.data?.days ?? null}
@@ -251,18 +256,18 @@ function DashboardHome({
           error={commitments.error}
           onRetry={onRetry}
         />
-      </section>
+      </section>}
 
       <section className="mt-[14px] grid gap-[14px] md:grid-cols-2 xl:grid-cols-3">
-        <UpcomingCard
+        {!commitments.notApplicable && <UpcomingCard
           items={commitmentItems}
-          asOf={home.scope.currentAsOf}
+          asOf={home.scope.referenceDate}
           showValues={showValues}
           currency={data.currency}
           loading={commitments.loading}
           error={commitments.error}
           onRetry={onRetry}
-        />
+        />}
         <RecentTransactionsCard
           items={recentTransactions.data ?? []}
           loading={recentTransactions.loading}

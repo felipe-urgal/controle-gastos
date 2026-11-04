@@ -101,4 +101,50 @@ describe("account detail recent transactions", () => {
     ).toEqual(["Realizada"]);
     expect(transactions.filter((item) => item.status === "PENDING")).toHaveLength(12);
   });
+
+  it("lists only completed transactions, latest first, even when pending ones are more recent", async () => {
+    const suffix = randomUUID();
+    const owner = await prisma.user.create({
+      data: {
+        name: "List Recent Owner",
+        email: `list-recent-${suffix}@example.com`,
+        password: "test-hash",
+      },
+    });
+    createdUserIds.push(owner.id);
+
+    const account = await prisma.account.create({
+      data: { name: `Conta ${suffix}`, type: "CREDIT_DEBIT", currency: "BRL", userId: owner.id },
+    });
+    const category = await prisma.category.create({
+      data: { name: `Categoria ${suffix}`, type: "EXPENSE", userId: owner.id },
+    });
+    const base = {
+      type: "EXPENSE" as const,
+      kind: "NORMAL" as const,
+      accountId: account.id,
+      categoryId: category.id,
+      userId: owner.id,
+    };
+
+    await prisma.transaction.createMany({
+      data: [
+        { ...base, amount: 1_000, year: 2031, month: 1, day: 10, status: "COMPLETED", description: "Antiga" },
+        { ...base, amount: 2_000, year: 2031, month: 1, day: 20, status: "COMPLETED", description: "Ultima concluida" },
+        { ...base, amount: 3_000, year: 2031, month: 3, day: 1, status: "PENDING", description: "Pendente futura" },
+        { ...base, amount: 4_000, year: 2031, month: 2, day: 1, status: "CANCELLED", description: "Cancelada" },
+      ],
+    });
+
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const response = await accountCrud.list(new Request("http://localhost/api/accounts"));
+    const body = await response.json();
+    const listed = body.data.items.find((item: { id: string }) => item.id === account.id);
+
+    expect(response.status).toBe(200);
+    expect(
+      listed.transactions.map((item: { description: string }) => item.description),
+    ).toEqual(["Ultima concluida", "Antiga"]);
+  });
 });

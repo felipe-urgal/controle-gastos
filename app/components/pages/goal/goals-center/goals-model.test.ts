@@ -9,7 +9,8 @@ import {
 } from '@/app/components/pages/goal/goals-center/goals-model';
 import type { FinancialGoal } from '@/app/types/financial-goal';
 
-const now = new Date(2026, 9, 22);
+// Meio-dia em Brasília: evita depender do fuso da máquina que roda o teste.
+const now = new Date('2026-10-22T15:00:00Z');
 function goal(partial: Partial<FinancialGoal> & { id: string }): FinancialGoal {
   return {
     name: partial.id,

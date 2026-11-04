@@ -19,13 +19,14 @@ import { useAuth } from '@/app/context';
 import { monthlyClosingService } from '@/app/services/monthly-closing-service';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { MonthlyClosingData } from '@/app/types/monthly-closing';
+import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
 
 export default function MonthlyClosingPage() {
   const reduce = useReducedMotion();
-  const now = useMemo(() => new Date(), []);
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = now.getUTCMonth() + 1;
+  const today = useMemo(() => todayLogicalDate(), []);
+  const currentYear = today.year;
+  const currentMonth = today.month;
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const [year, setYear] = useState(currentYear);

@@ -4,6 +4,7 @@ import { parseQuery } from '@/app/lib/api/query';
 import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { dashboardPeriodSchema } from '@/app/lib/dashboard/dashboard-schema';
 import { getMonthlyDashboardForUser } from '@/app/lib/dashboard/monthly-dashboard';
+import { logicalDateFromInstant } from '@/app/lib/date/logical-date';
 import { getForecastForUser } from '@/app/lib/forecast/forecast';
 import { parseIsoLogicalDate } from '@/app/lib/date/logical-date';
 import {
@@ -96,7 +97,8 @@ export async function getFinancialInsightsFromContext(
   period: { year: number; month: number },
   currency: SupportedCurrency,
   dashboard: MonthlyDashboard,
-  forecast: Awaited<ReturnType<typeof getForecastForUser>>,
+  /** `null` para meses que já passaram: não há projeção, então os insights de futuro ficam de fora. */
+  forecast: Awaited<ReturnType<typeof getForecastForUser>> | null,
 ): Promise<FinancialInsightsData> {
   const [recurrenceSummary, subscriptions] = await Promise.all([
     getFormalRecurrenceSummaryForUser(userId),
@@ -115,7 +117,7 @@ export async function getFinancialInsightsFromContext(
   const items = buildFinancialInsights({
     period,
     currency,
-    asOf: forecast.asOf,
+    asOf: forecast?.asOf ?? logicalDateFromInstant(new Date()),
     categoryBudgets: dashboard.limits.map((item) => ({
       category: {
         id: item.category.id,
@@ -124,7 +126,7 @@ export async function getFinancialInsightsFromContext(
       budget: item.amount,
       consumption: item.consumption,
     })),
-    pendingExpenses: forecast.upcoming
+    pendingExpenses: (forecast?.upcoming ?? [])
       .filter(
         (item) => item.type === 'EXPENSE' && item.kind === 'NORMAL',
       )
@@ -139,12 +141,12 @@ export async function getFinancialInsightsFromContext(
     recurringMonthlyEquivalent: recurrenceTotal?.monthlyEquivalent ?? null,
     knownMonthlyExpense:
       dashboard.planning.realized + dashboard.planning.committed,
-    forecastAccounts: forecast.accounts.map((account) => ({
+    forecastAccounts: (forecast?.accounts ?? []).map((account) => ({
       realizedBalance: account.realizedBalance,
       projectedBalance: account.projectedBalance,
     })),
     categorySpendingSeries,
-    safeToSpend: forecast.safeToSpend,
+    safeToSpend: forecast?.safeToSpend ?? null,
     subscriptions: [...subscriptions.confirmed, ...subscriptions.possible],
     incomeChange: {
       currentIncome: dashboard.summary.income,

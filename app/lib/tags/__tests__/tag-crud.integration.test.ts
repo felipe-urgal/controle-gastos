@@ -8,7 +8,7 @@ vi.mock("@/app/lib/auth", () => ({
   getAuthenticatedUserId: authMocks.getAuthenticatedUserId,
 }));
 
-import { logicalDateFromUtcInstant } from "@/app/lib/date/logical-date";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import { prisma } from "@/app/lib/prisma";
 import { tagCrud } from "@/app/lib/tags/tag-crud";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
@@ -191,7 +191,7 @@ describe("tag CRUD canonical identity", () => {
     await prisma.tag.create({
       data: { userId: owner.id, name: "vazia", normalizedName: "vazia" },
     });
-    const today = logicalDateFromUtcInstant(new Date());
+    const today = logicalDateFromInstant(new Date());
 
     for (const [account, amount, month] of [
       [brl, 4_000, today.month],
