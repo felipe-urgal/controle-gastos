@@ -14,7 +14,7 @@ import { TransactionTags } from '@/app/components/pages/transactions/index/deskt
 
 const MotionLink = motion.create(Link);
 
-export function MobileTransactionsPrototype2({
+export function MobileTransactions({
   month,
   year,
   summary,

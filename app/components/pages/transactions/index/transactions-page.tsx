@@ -27,7 +27,7 @@ import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilte
 import { BackupDialog } from '@/app/components/pages/transactions/index/backup-dialog';
 import { ClearPeriodDialog } from '@/app/components/pages/transactions/index/clear-period-dialog';
 import { FilterDialog, TagFilterField } from '@/app/components/pages/transactions/index/transaction-dialogs';
-import { MobileTransactionsPrototype2 } from '@/app/components/pages/transactions/index/mobile-transactions';
+import { MobileTransactions } from '@/app/components/pages/transactions/index/mobile-transactions';
 import { MonthOverview, MonthSummaryCard, MovementTimeline, UpcomingTransactions } from '@/app/components/pages/transactions/index/desktop-transactions';
 import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
@@ -48,7 +48,7 @@ const controlRise = (order: number) => ({
 /** Itens mínimos que um filtro rápido deve mostrar antes de parar de buscar mais páginas. */
 const MIN_FILTERED_ITEMS = 20;
 
-export default function OrbitTransactions() {
+export default function TransactionsPage() {
   const {
     loading,
     error,
@@ -360,7 +360,7 @@ export default function OrbitTransactions() {
       )}
       {!isTabletUp && (
       <div>
-        <MobileTransactionsPrototype2
+        <MobileTransactions
           month={month}
           year={year}
           summary={currentSummary}

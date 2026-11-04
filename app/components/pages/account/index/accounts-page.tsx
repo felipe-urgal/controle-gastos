@@ -84,7 +84,7 @@ function groupTotal(items: Array<{ currency: string; value: number }> | undefine
 /** A busca e os filtros só compensam com uma lista longa; com filtro ativo continuam visíveis para poder limpá-lo. */
 const FILTERS_MIN_ACCOUNTS = 6;
 
-export default function OrbitAccounts() {
+export default function AccountsPage() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const {

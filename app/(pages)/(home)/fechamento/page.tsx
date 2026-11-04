@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
 import MonthlyClosingPage from '@/app/components/pages/monthly-closing/monthly-closing-page';
 
@@ -9,5 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function ClosingPage() {
-  return <MonthlyClosingPage />;
+  // `useSearchParams` (mês e moeda na URL) exige um limite de Suspense.
+  return (
+    <Suspense fallback={null}>
+      <MonthlyClosingPage />
+    </Suspense>
+  );
 }

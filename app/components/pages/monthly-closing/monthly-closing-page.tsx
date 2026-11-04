@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
@@ -10,14 +11,16 @@ import { ProtectedRoute } from '@/app/components/layout';
 import { unroll } from '@/app/components/pages/monthly-closing/closing-motion';
 import MonthlyClosingView from '@/app/components/pages/monthly-closing/monthly-closing-view';
 import {
+  closingUrlQuery,
   monthName,
+  parseClosingUrlState,
   periodValue,
   shiftPeriod,
+  type ClosingCurrency,
 } from '@/app/components/pages/monthly-closing/monthly-closing-model';
 import { CurrencySelect, PeriodSwitcher, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { monthlyClosingService } from '@/app/services/monthly-closing-service';
-import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { MonthlyClosingData } from '@/app/types/monthly-closing';
 import { todayLogicalDate } from '@/app/lib/date/logical-date';
 
@@ -29,9 +32,19 @@ export default function MonthlyClosingPage() {
   const currentMonth = today.month;
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
-  const [year, setYear] = useState(currentYear);
-  const [month, setMonth] = useState(currentMonth);
-  const [currency, setCurrency] = useState<SupportedCurrency>('BRL');
+  // Mês e moeda ficam na URL (`?m=2026-09&c=USD`): compartilháveis e preservados no F5 e no voltar.
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchKey = useSearchParams().toString();
+  const { year, month, currency } = useMemo(
+    () => parseClosingUrlState(new URLSearchParams(searchKey), { year: currentYear, month: currentMonth }),
+    [currentMonth, currentYear, searchKey],
+  );
+  function navigate(next: { year: number; month: number; currency: ClosingCurrency }) {
+    const query = closingUrlQuery(next, { year: currentYear, month: currentMonth });
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
+  const setCurrency = (value: ClosingCurrency) => navigate({ year, month, currency: value });
   const [result, setResult] = useState<{
     key: string;
     data: MonthlyClosingData;
@@ -75,9 +88,7 @@ export default function MonthlyClosingPage() {
   }, [currency, month, queryKey, reloadToken, year]);
 
   function goTo(offset: number) {
-    const next = shiftPeriod(year, month, offset);
-    setYear(next.year);
-    setMonth(next.month);
+    navigate({ ...shiftPeriod(year, month, offset), currency });
   }
 
   function retry() {
@@ -102,8 +113,7 @@ export default function MonthlyClosingPage() {
             nextDisabled={atCurrentMonth}
             maxPeriod={{ month: currentMonth, year: currentYear }}
             onSelect={(nextMonth, nextYear) => {
-              setYear(nextYear);
-              setMonth(nextMonth);
+              navigate({ year: nextYear, month: nextMonth, currency });
             }}
           />
         </div>

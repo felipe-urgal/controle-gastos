@@ -49,7 +49,7 @@ const HEX_ALLOWED: Record<string, number> = {
   "app/components/ui/color-selector/index.tsx": 13,
   // Dívida de tokens (#880):
   "app/components/pages/account/form/index.tsx": 9,
-  "app/components/pages/account/index/orbit-accounts.tsx": 4,
+  "app/components/pages/account/index/accounts-page.tsx": 4,
   "app/components/pages/account/show/account-info/index.tsx": 1,
   "app/components/pages/account/show/mobile-account-show/index.tsx": 1,
   "app/components/pages/category/form/index.tsx": 8,
@@ -76,7 +76,7 @@ describe("catraca de dívida de design", () => {
       "app/components/layout/bottom-nav/index.tsx": 1,
       "app/components/navigation/dynamic-filters/index.tsx": 3,
       "app/components/pages/transactions/import/index.tsx": 1,
-      "app/components/pages/dashboard/dashboard/orbit-dashboard-v2.tsx": 1, // skeleton de carregamento
+      "app/components/pages/dashboard/dashboard/dashboard-page.tsx": 1, // skeleton de carregamento
     };
     expect(
       overages(countByFile(/\b(?:lg|md):hidden\b|\bhidden (?:lg|md):(?:block|flex|grid)\b/g), allowed),

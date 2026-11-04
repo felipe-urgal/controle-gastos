@@ -1,12 +1,11 @@
 {
   "app/components/feedback/alert/index.tsx": 1,
-  "app/components/layout/app-sidebar/index.tsx": 4,
+  "app/components/layout/app-sidebar/index.tsx": 3,
   "app/components/layout/bottom-nav/index.tsx": 1,
-  "app/components/layout/global-search-dialog/index.tsx": 6,
+  "app/components/layout/global-search-dialog/index.tsx": 3,
   "app/components/layout/mobile-more-menu/index.tsx": 1,
   "app/components/overlays/modal-shell/index.tsx": 1,
-  "app/components/pages/calendar/calendar-grid/index.tsx": 2,
-  "app/components/pages/calendar/calendar/orbit-calendar.tsx": 2,
+  "app/components/pages/calendar/calendar/calendar-page.tsx": 1,
   "app/components/pages/category/index/index.tsx": 1,
   "app/components/pages/investment/annual-financial-statement-card.tsx": 1,
   "app/components/pages/investment/foreign-investment-annual-tax-card.tsx": 1,
@@ -19,7 +18,6 @@
   "app/components/pages/transactions/import/import-detail.tsx": 2,
   "app/components/pages/transactions/import/index.tsx": 2,
   "app/components/pages/transactions/import/rules/index.tsx": 1,
-  "app/components/pages/transactions/index/desktop-transactions.tsx": 1,
   "app/components/pages/transactions/index/transaction-dialogs.tsx": 1,
-  "app/components/pages/transactions/transfer-form/index.tsx": 3
+  "app/components/pages/transactions/transfer-form/index.tsx": 2
 }
