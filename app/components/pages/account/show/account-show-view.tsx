@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useState } from 'react';
-import { FaArrowDown, FaArrowUp, FaExchangeAlt } from 'react-icons/fa';
+import { FaArrowDown, FaArrowUp, FaBalanceScale, FaExchangeAlt } from 'react-icons/fa';
 
 import { MobileAppBar } from '@/app/components/layout';
 import { blurIn, flipIn, riseInView } from '@/app/components/pages/account/account-motion';
@@ -14,10 +14,12 @@ import {
   investmentValueSourceLabel,
   type MovementFilter,
 } from '@/app/components/pages/account/show/account-show-model';
-import { Chip, IconRenderer, ShowBelow } from '@/app/components/ui';
+import BalanceCheckDialog from '@/app/components/pages/account/show/balance-check-dialog';
+import { Button, Chip, IconRenderer, ShowBelow } from '@/app/components/ui';
 import { CARD_EASE, reducedTransition } from '@/app/components/ui/motion';
 import { useAuth } from '@/app/context';
 import { getAccountPrimaryValue } from '@/app/lib/accounts/account-presentation';
+import { canCheckBalance } from '@/app/lib/accounts/balance-check';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import type { AccountModel, AccountRecentTransaction } from '@/app/types/account';
@@ -159,6 +161,7 @@ export default function AccountShowView({
   onToggleActive,
   isUpdatingStatus,
   statusError,
+  onBalanceAdjusted,
 }: {
   account: AccountModel;
   typeLabels: Record<string, string>;
@@ -169,8 +172,11 @@ export default function AccountShowView({
   onToggleActive: () => void;
   isUpdatingStatus: boolean;
   statusError: string | null;
+  /** Recarrega a conta depois de um ajuste criado pela conferência de saldo. */
+  onBalanceAdjusted: () => void;
 }) {
   const { user } = useAuth();
+  const [balanceCheckOpen, setBalanceCheckOpen] = useState(false);
   const reduce = useReducedMotion();
   const showValues = user?.showValues !== false;
   const money = (cents: number) => (showValues ? formatCurrency(cents, account.currency) : '••••');
@@ -274,6 +280,18 @@ export default function AccountShowView({
             )}
             {account.description && <p className="mt-2 text-sm text-[var(--text-muted)]">{account.description}</p>}
             {!showValues && <p className="mt-1 text-sm text-[var(--text-subtle)]">Valores ocultos pelas suas preferências.</p>}
+            {canCheckBalance(account) && account.isActive && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                icon={<FaBalanceScale aria-hidden="true" />}
+                onClick={() => setBalanceCheckOpen(true)}
+              >
+                Conferir saldo
+              </Button>
+            )}
           </div>
         </div>
 
@@ -301,6 +319,10 @@ export default function AccountShowView({
       </motion.section>
 
       <Movements account={account} showValues={showValues} />
+
+      {balanceCheckOpen && (
+        <BalanceCheckDialog account={account} onClose={() => setBalanceCheckOpen(false)} onAdjusted={onBalanceAdjusted} />
+      )}
 
     </div>
   );

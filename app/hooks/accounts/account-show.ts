@@ -52,6 +52,16 @@ export function useAccounts({ id }: { id: string }) {
     }
   }
 
+  /** Recarrega a conta (ex.: depois de um ajuste de saldo), sem mostrar a tela de carregamento. */
+  async function refreshAccount() {
+    try {
+      const response = await accountService.getById(String(id));
+      setAccount(response.data);
+    } catch {
+      // Mantém o que já está na tela; um novo carregamento da página traz o saldo certo.
+    }
+  }
+
   const typeLabels = {
     CREDIT_DEBIT: "Conta Corrente",
     INVESTMENT: "Investimento",
@@ -69,6 +79,7 @@ export function useAccounts({ id }: { id: string }) {
     handleBack,
     typeLabels,
     setActive,
+    refreshAccount,
     isUpdatingStatus,
     statusError,
   };

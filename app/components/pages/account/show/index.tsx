@@ -22,6 +22,7 @@ export default function Show({ id }: { id: string }) {
     handleBack,
     typeLabels,
     setActive,
+    refreshAccount,
     isUpdatingStatus,
     statusError,
   } = useAccounts({ id });
@@ -42,7 +43,7 @@ export default function Show({ id }: { id: string }) {
     account.type === 'CREDIT_CARD' ? (
       <CreditCardOverview account={account} {...sharedProps} />
     ) : (
-      <AccountShowView account={account} typeLabels={typeLabels} {...sharedProps} />
+      <AccountShowView account={account} typeLabels={typeLabels} onBalanceAdjusted={() => void refreshAccount()} {...sharedProps} />
     )
   ) : null;
 
