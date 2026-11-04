@@ -6,6 +6,7 @@ import { useEffect, useState, type MouseEvent } from 'react';
 import { IconButton } from '@/app/components/ui';
 import { usePathname } from 'next/navigation';
 import {
+  FaBell,
   FaChevronDown,
   FaMoon,
   FaSearch,
@@ -23,7 +24,8 @@ import {
 import OfflinePendingBadge from '@/app/components/pwa/offline-pending-badge';
 import { GLOBAL_SEARCH_SURFACE_ID } from '@/app/components/layout/global-search-dialog';
 import { switchThemeWithReveal } from '@/app/components/layout/theme-transition';
-import { useAuth, useTheme } from '@/app/context';
+import NotificationBadge from '@/app/components/layout/notification-badge';
+import { useAuth, useNotifications, useTheme } from '@/app/context';
 
 const GROUPS_STORAGE_KEY = 'sidebar-closed-groups';
 const ACTIVE_SPRING = { type: 'spring', stiffness: 500, damping: 40 } as const;
@@ -144,6 +146,7 @@ export default function AppSidebar({
 }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const { unreadCount } = useNotifications();
   const { resolvedTheme, setTheme } = useTheme();
   const navigation = getAppNavigation().filter((item) => item.key !== 'profile');
   const profileHref = '/usuario';
@@ -254,6 +257,31 @@ export default function AppSidebar({
             Ctrl K
           </kbd>
         </motion.button>
+
+        <Link
+          href="/avisos"
+          aria-label={unreadCount > 0 ? `Avisos, ${unreadCount} não lidos` : 'Avisos'}
+          aria-current={pathname.startsWith('/avisos') ? 'page' : undefined}
+          title={collapsed ? 'Avisos' : undefined}
+          className={`relative -mt-1 mb-4 flex min-h-10 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-base font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${
+            pathname.startsWith('/avisos')
+              ? 'bg-[var(--primary-subtle)] text-[var(--primary)]'
+              : 'text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+          }`}
+        >
+          <span className="relative flex shrink-0">
+            <FaBell className="h-5 w-5" aria-hidden="true" />
+            {collapsed && <NotificationBadge count={unreadCount} dot />}
+          </span>
+          <span className={`min-w-0 flex-1 truncate whitespace-nowrap transition-opacity ${COLLAPSE} ${collapsed ? 'opacity-0' : 'opacity-100'}`}>
+            Avisos
+          </span>
+          {!collapsed && unreadCount > 0 && (
+            <span aria-hidden="true" className="grid h-5 min-w-5 place-items-center rounded-full bg-[var(--expense)] px-1 text-xs font-bold leading-none text-white">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Link>
 
         {groups.map((group, index) => {
           const hasActive = group.items.some((item) => item.isActive(pathname));

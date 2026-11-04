@@ -2,15 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FaMoon, FaSearch, FaSignOutAlt, FaSun, FaWallet } from 'react-icons/fa';
-import { IconButton } from '@/app/components/ui';
+import { FaBell, FaMoon, FaSearch, FaSignOutAlt, FaSun, FaWallet } from 'react-icons/fa';
+import { IconButton, IconLink } from '@/app/components/ui';
+import NotificationBadge from '@/app/components/layout/notification-badge';
 
 import { getAppNavigation } from '@/app/components/layout/app-navigation';
 import OfflinePendingBadge from '@/app/components/pwa/offline-pending-badge';
-import { useAuth, useTheme } from '@/app/context';
+import { useAuth, useNotifications, useTheme } from '@/app/context';
 
 /** Listas que usam a `PageBar` como barra superior no mobile. */
 const PAGE_BAR_LISTS = [
+  '/avisos',
   '/contas',
   '/categorias',
   '/transacoes',
@@ -37,6 +39,7 @@ export default function MobileTopbar({
 }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const { unreadCount } = useNotifications();
   const { resolvedTheme, setTheme } = useTheme();
   const profileHref = '/usuario';
   const profileActive = getAppNavigation()
@@ -110,6 +113,17 @@ export default function MobileTopbar({
           icon={<FaSearch />}
           onClick={onOpenGlobalSearch}
         />
+
+        <span className="relative">
+          <IconLink
+            label={unreadCount > 0 ? `Avisos, ${unreadCount} não lidos` : 'Avisos'}
+            title="Avisos"
+            href="/avisos"
+            icon={<FaBell />}
+            tone={pathname.startsWith('/avisos') ? 'primary' : 'neutral'}
+          />
+          <NotificationBadge count={unreadCount} />
+        </span>
 
         <IconButton
           label={resolvedTheme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}

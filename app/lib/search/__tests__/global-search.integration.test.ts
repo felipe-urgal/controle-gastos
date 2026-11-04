@@ -375,7 +375,9 @@ describe('global search integration', () => {
       expect(match?.matchedField).toBe(expectedField);
       expect(match?.matchedText).toBe(expectedText);
       expect(match?.subtitle).toContain(expectedField === 'alias' ? 'Alias: Uber Trip' : expectedField === 'merchant' ? 'Nubank Mobilidade' : '#transporte');
-      expect(JSON.stringify(search)).not.toContain('2590');
+      // Ids e links são UUIDs aleatórios e podem conter "2590" por acaso; só o conteúdo visível conta.
+      const visible = JSON.stringify(search, (key, value) => (key === 'id' || key === 'href' ? undefined : value));
+      expect(visible).not.toContain('2590');
     }
 
     for (const query of ['nubnak', 'ubr trip', 'trasnporte']) {

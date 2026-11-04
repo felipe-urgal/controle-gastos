@@ -4,7 +4,7 @@ import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
-import { FaDownload, FaMoon, FaSearch, FaSignOutAlt, FaSun, FaUser } from 'react-icons/fa';
+import { FaBell, FaDownload, FaMoon, FaSearch, FaSignOutAlt, FaSun, FaUser } from 'react-icons/fa';
 
 import {
   getAppNavigation,
@@ -16,7 +16,8 @@ import { lockBodyScroll } from '@/app/components/overlays/modal-shell';
 import { switchThemeWithReveal } from '@/app/components/layout/theme-transition';
 import { IconButton, IconLink } from '@/app/components/ui';
 import { CARD_EASE } from '@/app/components/ui/motion';
-import { useAuth, useTheme } from '@/app/context';
+import NotificationBadge from '@/app/components/layout/notification-badge';
+import { useAuth, useNotifications, useTheme } from '@/app/context';
 
 const menuStack: Variants = { hidden: {}, shown: { transition: { staggerChildren: 0.05, delayChildren: 0.12 } } };
 const menuGroup: Variants = {
@@ -53,8 +54,10 @@ export default function MobileMoreMenu({
   const reduce = useReducedMotion();
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const { unreadCount } = useNotifications();
   const { resolvedTheme, setTheme } = useTheme();
   const profileActive = pathname.startsWith('/usuario');
+  const noticesActive = pathname.startsWith('/avisos');
   const panelRef = useRef<HTMLDivElement>(null);
   const navigation = getAppNavigation();
 
@@ -181,6 +184,17 @@ export default function MobileMoreMenu({
               tone={profileActive ? 'primary' : 'neutral'}
               onClick={onClose}
             />
+            <span className="relative">
+              <IconLink
+                label={unreadCount > 0 ? `Avisos, ${unreadCount} não lidos` : 'Avisos'}
+                title="Avisos"
+                href="/avisos"
+                icon={<FaBell />}
+                tone={noticesActive ? 'primary' : 'neutral'}
+                onClick={onClose}
+              />
+              <NotificationBadge count={unreadCount} />
+            </span>
             <IconButton
               label="Abrir busca global"
               title="Busca global"

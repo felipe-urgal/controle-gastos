@@ -1,5 +1,6 @@
 export const PROTECTED_PREFIXES = [
   "/dashboard",
+  "/avisos",
   "/calendario",
   "/categorias",
   "/comparar",
