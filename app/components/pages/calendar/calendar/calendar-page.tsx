@@ -118,7 +118,7 @@ function dayForDate(calendarDays: CalendarDay[], date: Date) {
   return calendarDays.find((day) => dateKey(day.date) === target) ?? null;
 }
 
-export default function OrbitCalendar() {
+export default function CalendarPage() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const {

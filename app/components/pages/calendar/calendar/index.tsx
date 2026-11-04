@@ -1,3 +1,3 @@
 'use client';
 
-export { default } from '@/app/components/pages/calendar/calendar/orbit-calendar';
+export { default } from '@/app/components/pages/calendar/calendar/calendar-page';

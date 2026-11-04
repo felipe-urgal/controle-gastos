@@ -12,7 +12,7 @@ Não existe resolver genérico: cada consumidor declara sua finalidade.
 |---|---|---|
 | Fontes | `MANUAL` e `BCB_PTAX` | somente `BCB_PTAX` direta `moeda → BRL` |
 | Lado | SELL por padrão (BUY/SELL explícito) | BUY/SELL exato do evento |
-| Data | `<= asOf` (mês atual: hoje UTC; mês fechado: último dia) | `<= data do evento`, lookback máx. 10 dias |
+| Data | `<= asOf` (mês atual: hoje no fuso de Brasília; mês fechado: último dia) | `<= data do evento`, lookback máx. 10 dias |
 | Inversa | derivada (`B→A = d/n`), sem persistir | nunca |
 | Cross rate | aceita como referência indicativa | nunca |
 | Ausência | `missingRates`, `total = null` | `MISSING_PTAX` (apuração `PENDING`) |
@@ -26,7 +26,7 @@ Não existe resolver genérico: cada consumidor declara sua finalidade.
 - Cross rate (ex.: USD→EUR) é salva como `BCB_PTAX`, mas `provenance = PTAX_CROSS`
   (derivada de USD/BRL e EUR/BRL, mesmo `quoteSide` nas duas pernas); é conversão de
   referência, não cotação executável.
-- Taxa com data futura é rejeitada (manual e PTAX) contra a data lógica UTC.
+- Taxa com data futura é rejeitada (manual e PTAX) contra a data lógica de Brasília (`America/Sao_Paulo`).
 - `MANUAL` é editável in-place (upsert) e recalcula históricos; `updatedAt` é exposto.
 
 ## API

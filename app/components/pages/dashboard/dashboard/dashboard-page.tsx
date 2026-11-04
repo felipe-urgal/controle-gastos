@@ -37,7 +37,7 @@ const OverviewStrip = dynamic(() => import('@/app/components/pages/dashboard/das
 const ForecastDialog = dynamic(() => import('@/app/components/pages/dashboard/dashboard/cards/forecast-dialog').then((m) => m.ForecastDialog), { ssr: false });
 const PeriodicSummaryCard = dynamic(() => import('@/app/components/pages/dashboard/dashboard/periodic-summary-card').then((m) => m.PeriodicSummaryCard), { ssr: false, loading: cardFallback(140) });
 
-export default function OrbitDashboardV2() {
+export default function DashboardPage() {
   const { user } = useAuth();
   const showValues = user?.showValues !== false;
   const {

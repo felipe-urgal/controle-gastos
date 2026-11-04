@@ -40,6 +40,41 @@ export function shiftPeriod(year: number, month: number, offset: number) {
   return { year: Math.floor(absolute / 12), month: (((absolute % 12) + 12) % 12) + 1 };
 }
 
+const CLOSING_CURRENCIES = ['BRL', 'USD', 'EUR'] as const;
+export type ClosingCurrency = (typeof CLOSING_CURRENCIES)[number];
+
+/**
+ * Mês (`?m=AAAA-MM`) e moeda (`?c=USD`) vindos da URL. Valor ausente, inválido ou de mês futuro
+ * (o fechamento só existe até o mês atual) cai no mês atual / BRL.
+ */
+export function parseClosingUrlState(
+  params: { get(name: string): string | null },
+  current: { year: number; month: number },
+) {
+  const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(params.get('m') ?? '');
+  const requested = match ? { year: Number(match[1]), month: Number(match[2]) } : null;
+  const valid =
+    requested !== null &&
+    requested.year >= 2000 &&
+    requested.year * 12 + requested.month <= current.year * 12 + current.month;
+  const currency = CLOSING_CURRENCIES.find((item) => item === params.get('c')) ?? 'BRL';
+
+  return { ...(valid ? requested : current), currency } as { year: number; month: number; currency: ClosingCurrency };
+}
+
+/** Query da URL para o estado atual; o padrão (mês atual, BRL) não vai para a URL. */
+export function closingUrlQuery(
+  state: { year: number; month: number; currency: ClosingCurrency },
+  current: { year: number; month: number },
+) {
+  const next = new URLSearchParams();
+  if (state.year !== current.year || state.month !== current.month) {
+    next.set('m', periodValue(state.year, state.month));
+  }
+  if (state.currency !== 'BRL') next.set('c', state.currency);
+  return next.toString();
+}
+
 export function formatLogicalDate(date: MonthlyClosingLogicalDate) {
   return [date.day, date.month].map((part) => String(part).padStart(2, '0')).join('/') + '/' + date.year;
 }

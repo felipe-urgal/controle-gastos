@@ -15,5 +15,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Testes com hash de senha e banco passam de 4 s sozinhos; com a suíte em paralelo o padrão de 5 s oscilava.
+    testTimeout: 20_000,
   },
 });

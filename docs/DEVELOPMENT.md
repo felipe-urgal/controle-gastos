@@ -41,6 +41,10 @@ Comandos úteis:
     pnpm test
     pnpm build
 
+## Data lógica ("hoje")
+
+O dia do produto é a data civil de `America/Sao_Paulo`, no servidor e no cliente. Use `logicalDateFromInstant(instante)` ou `todayLogicalDate()` (`app/lib/date/logical-date.ts`) para "agora", "hoje" e a data de criação de um registro; nunca `getUTC*`, `toISOString().slice(0, 10)` nem `getFullYear/getMonth/getDate` do navegador. `logicalDateFromUtcInstant` serve apenas para aritmética de calendário sobre datas que já são meia-noite UTC (por exemplo somar dias). Crons da Vercel agendam em UTC; converta o horário desejado de Brasília (UTC−3).
+
 ## Cron de resumo financeiro
 
 O resumo financeiro semanal usa o Vercel Cron em `/api/cron/periodic-summary`. Configure `CRON_SECRET` no ambiente da aplicação; o endpoint aceita somente `Authorization: Bearer <CRON_SECRET>`.

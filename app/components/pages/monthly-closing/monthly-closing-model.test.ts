@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   budgetUsage,
   buildTodoItems,
+  closingUrlQuery,
   describeDelta,
+  parseClosingUrlState,
   shiftPeriod,
   spentShare,
 } from '@/app/components/pages/monthly-closing/monthly-closing-model';
@@ -68,5 +70,29 @@ describe('monthly-closing-model', () => {
     expect(pending[0]).toMatchObject({ ok: false, href: '/p' });
     expect(pending.map((item) => item.key)).toEqual(['pending', 'statements']);
     expect(pending[1].ok).toBe(true);
+  });
+});
+
+describe('estado do fechamento na URL', () => {
+  const current = { year: 2026, month: 11 };
+  const params = (query: string) => new URLSearchParams(query);
+
+  it('usa o mês atual e BRL quando a URL não diz nada', () => {
+    expect(parseClosingUrlState(params(''), current)).toEqual({ year: 2026, month: 11, currency: 'BRL' });
+  });
+
+  it('lê mês e moeda válidos', () => {
+    expect(parseClosingUrlState(params('m=2026-09&c=USD'), current)).toEqual({ year: 2026, month: 9, currency: 'USD' });
+  });
+
+  it('ignora mês inválido, futuro ou moeda desconhecida', () => {
+    expect(parseClosingUrlState(params('m=2026-13'), current).month).toBe(11);
+    expect(parseClosingUrlState(params('m=2027-01'), current)).toMatchObject({ year: 2026, month: 11 });
+    expect(parseClosingUrlState(params('m=abc&c=XYZ'), current)).toEqual({ year: 2026, month: 11, currency: 'BRL' });
+  });
+
+  it('só escreve na URL o que foge do padrão', () => {
+    expect(closingUrlQuery({ ...current, currency: 'BRL' }, current)).toBe('');
+    expect(closingUrlQuery({ year: 2026, month: 9, currency: 'EUR' }, current)).toBe('m=2026-09&c=EUR');
   });
 });
