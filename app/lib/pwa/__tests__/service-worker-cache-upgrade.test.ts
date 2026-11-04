@@ -187,7 +187,10 @@ describe("service worker cache upgrade", () => {
 
   it("never registers Background Sync handlers (financial sync stays manual)", () => {
     const { handlers } = loadServiceWorker([]);
-    expect([...handlers.keys()].sort()).toEqual(["activate", "fetch", "install"]);
+    // Push e clique na notificação são dos avisos (ver service-worker-push.test.ts); sync nunca.
+    expect([...handlers.keys()].sort()).toEqual(["activate", "fetch", "install", "notificationclick", "push"]);
+    expect(handlers.has("sync")).toBe(false);
+    expect(handlers.has("periodicsync")).toBe(false);
     expect(readFileSync(join(process.cwd(), "public/sw.js"), "utf8")).not.toMatch(
       /sync\.register|periodicsync|addEventListener\(\s*["']sync["']/i,
     );

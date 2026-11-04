@@ -81,4 +81,27 @@ describe("runNotificationsCron", () => {
     expect(await prisma.notification.count({ where: { userId: healthy.id } })).toBe(1);
     expect(await prisma.notification.count({ where: { userId: broken.id } })).toBe(0);
   });
+
+  it("a retenção roda no fim do job: apaga aviso lido antigo e preserva o não lido", async () => {
+    const user = await userWithDueBill("Retenção");
+    const old = new Date(NOW.getTime() - 100 * 24 * 60 * 60 * 1000);
+    const base = { userId: user.id, type: "COMMITMENT_DUE" as const, severity: "INFO" as const, body: "b", href: "/dashboard", createdAt: old };
+    await prisma.notification.create({ data: { ...base, dedupeKey: "OLD_READ", title: "lido", readAt: old } });
+    await prisma.notification.create({ data: { ...base, dedupeKey: "OLD_UNREAD", title: "não lido" } });
+
+    const metrics = await runNotificationsCron(NOW);
+
+    expect(metrics.purgedNotifications).toBeGreaterThanOrEqual(1);
+    const keys = (await prisma.notification.findMany({ where: { userId: user.id } })).map((row) => row.dedupeKey);
+    expect(keys).not.toContain("OLD_READ");
+    expect(keys).toContain("OLD_UNREAD");
+  });
+
+  it("os números de entrega aparecem nas métricas (zerados quando e-mail e push não estão configurados)", async () => {
+    await userWithDueBill("Métricas");
+
+    const metrics = await runNotificationsCron(NOW);
+
+    expect(metrics).toMatchObject({ emailedNotifications: 0, pushedNotifications: 0, deliveryFailures: 0 });
+  });
 });

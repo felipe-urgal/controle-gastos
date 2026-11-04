@@ -1,4 +1,6 @@
+import { deliverNotificationsForUser } from "@/app/lib/notifications/notification-delivery";
 import { generateNotificationsForUser } from "@/app/lib/notifications/notification-generation";
+import { purgeStaleNotificationData } from "@/app/lib/notifications/notification-retention";
 import { logEvent } from "@/app/lib/observability";
 import { prisma } from "@/app/lib/prisma";
 
@@ -24,6 +26,9 @@ export async function runNotificationsCron(now: Date = new Date()) {
   let processed = 0;
   let failed = 0;
   let created = 0;
+  let emailed = 0;
+  let pushed = 0;
+  let deliveryFailures = 0;
   let deadlineReached = false;
 
   for (const user of users) {
@@ -34,6 +39,10 @@ export async function runNotificationsCron(now: Date = new Date()) {
     try {
       const result = await generateNotificationsForUser(user.id, now);
       created += result.created;
+      const delivery = await deliverNotificationsForUser(user.id, now);
+      emailed += delivery.emailed;
+      pushed += delivery.pushed;
+      deliveryFailures += delivery.failures;
       processed += 1;
     } catch (error) {
       failed += 1;
@@ -41,21 +50,37 @@ export async function runNotificationsCron(now: Date = new Date()) {
     }
   }
 
+  // A retenção roda por último e nunca derruba o job: se falhar, tenta de novo amanhã.
+  let purged = { notifications: 0, subscriptions: 0 };
+  try {
+    purged = await purgeStaleNotificationData(now);
+  } catch (error) {
+    logEvent("error", "notifications.retention_failed", {}, error);
+  }
+
   const remaining = total - processed - failed;
   const metrics = {
-    status: failed > 0 || remaining > 0 ? ("partial" as const) : ("ok" as const),
+    status:
+      failed > 0 || remaining > 0 || deliveryFailures > 0 ? ("partial" as const) : ("ok" as const),
     totalUsers: total,
     processedUsers: processed,
     failedUsers: failed,
     remainingUsers: remaining,
     createdNotifications: created,
+    emailedNotifications: emailed,
+    pushedNotifications: pushed,
+    deliveryFailures,
+    purgedNotifications: purged.notifications,
+    purgedSubscriptions: purged.subscriptions,
     deadlineReached,
     durationMs: Math.round(performance.now() - startedAt),
   };
 
   // Só contagens agregadas: nenhum identificador nem conteúdo de aviso vai para o log.
   logEvent(metrics.status === "ok" ? "info" : "warn", "notifications.cron", metrics);
-  if (metrics.status !== "ok") logEvent("warn", "notifications.alert", metrics);
+  // O alerta é de cobertura (usuário que falhou ou não foi alcançado). Falha de entrega, como um
+  // aparelho desligado, já aparece em `deliveryFailures` e não pede ação.
+  if (failed > 0 || remaining > 0) logEvent("warn", "notifications.alert", metrics);
 
   return metrics;
 }
