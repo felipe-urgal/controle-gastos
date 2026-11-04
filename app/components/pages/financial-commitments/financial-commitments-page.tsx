@@ -3,10 +3,11 @@
 import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { ProtectedRoute } from '@/app/components/layout';
 import { useEffect, useState } from 'react';
+import { FaCalendarPlus } from 'react-icons/fa';
 
-import { PageError, PageLoading } from '@/app/components/feedback';
+import { Alert, PageError, PageLoading } from '@/app/components/feedback';
 import FinancialCommitmentsView from '@/app/components/pages/financial-commitments/financial-commitments-view';
-import { CurrencySelect, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Button, CurrencySelect, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
 import { TRANSACTIONS_CHANGED_EVENT } from '@/app/lib/transactions/transaction-events';
 import { financialCommitmentsService } from '@/app/services/financial-commitments-service';
@@ -25,6 +26,8 @@ export default function FinancialCommitmentsPage() {
   const [error, setError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -55,6 +58,19 @@ export default function FinancialCommitmentsPage() {
     setRequestKey((value) => value + 1);
   }
 
+  // Arquivo .ics (eventos de dia inteiro) do horizonte escolhido, para importar na agenda; sem valores se o usuário os oculta.
+  async function exportToCalendar() {
+    setExporting(true);
+    setExportError('');
+    try {
+      await financialCommitmentsService.exportIcs(currency, days, showValues);
+    } catch (cause) {
+      setExportError(cause instanceof Error ? cause.message : 'Não foi possível exportar os compromissos.');
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function beginReload() {
     setLoading(true);
     setError('');
@@ -83,6 +99,16 @@ export default function FinancialCommitmentsPage() {
           setCurrency(option);
         }}
       />
+      <Button
+        type="button"
+        variant="secondary"
+        icon={<FaCalendarPlus aria-hidden="true" />}
+        isLoading={exporting}
+        disabled={!data || data.items.length === 0}
+        onClick={() => void exportToCalendar()}
+      >
+        Exportar para agenda
+      </Button>
     </div>
   );
 
@@ -103,6 +129,12 @@ export default function FinancialCommitmentsPage() {
             setRequestKey((value) => value + 1);
           }}
         />
+      )}
+
+      {exportError && (
+        <div className="mt-4">
+          <Alert variant="error" message={exportError} />
+        </div>
       )}
 
       <div className="mt-5">
