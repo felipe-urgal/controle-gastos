@@ -24,6 +24,7 @@ import type { CurrencyFinancialSummary, SupportedCurrency, TransactionListSummar
 import type { MerchantDTO } from '@/app/types/merchant';
 
 import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilter, REFINEMENT_FILTER_KEYS, TIMELINE_INCREMENT, TimelineOrder, buildMonthBars, buildTimelineGroups, displayMoney, formatTrend, percentageChange, selectSummary, shiftPeriod, todayDateKey, transactionDateKey, usePreviousSummary } from '@/app/components/pages/transactions/index/transactions-view-helpers';
+import { DeletedTransactionUndo } from '@/app/components/pages/transactions/index/deleted-transaction-undo';
 import { BackupDialog } from '@/app/components/pages/transactions/index/backup-dialog';
 import { ClearPeriodDialog } from '@/app/components/pages/transactions/index/clear-period-dialog';
 import { FilterDialog, TagFilterField } from '@/app/components/pages/transactions/index/transaction-dialogs';
@@ -348,6 +349,7 @@ export default function TransactionsPage() {
           { label: 'Backup', icon: <FaDatabase aria-hidden="true" />, onClick: () => setBackupOpen(true) },
           { label: 'Limpar período', icon: <FaTrash aria-hidden="true" />, onClick: () => setClearPeriodOpen(true), destructive: true },
         ]} />
+      <DeletedTransactionUndo />
       {error && (
         <div role="alert" className="mb-4 rounded-[var(--radius-md)] border border-[var(--danger)]/35 bg-[var(--danger-subtle)] px-4 py-3 text-sm font-semibold text-[var(--expense)]">
           {error}. Tente novamente ou altere o período/filtros.

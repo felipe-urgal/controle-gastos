@@ -4,6 +4,7 @@ import { transactionService } from '@/app/services/transaction-service';
 import { TransactionDTO } from "@/app/types/transaction";
 import { useShow } from "@/app/hooks/crud/show";
 import { useDelete } from "@/app/hooks/crud/delete";
+import { rememberDeletedTransaction } from "@/app/lib/transactions/undo-delete";
 
 export function useTransactions({ id }: { id: string }) {
   const { entity: transaction, loading } =
@@ -19,7 +20,12 @@ export function useTransactions({ id }: { id: string }) {
     handleDelete,
   } = useDelete({
     redirectPath: "/transacoes",
-    deleteService: transactionService.delete,
+    deleteService: async (deletedId: string) => {
+      const result = await transactionService.delete(deletedId);
+      // A lista abre com "Desfazer" por alguns segundos (só vale para lançamento avulso).
+      if (transaction) rememberDeletedTransaction(transaction);
+      return result;
+    },
   });
 
   const handleBack = "/transacoes";
