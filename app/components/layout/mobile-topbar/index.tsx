@@ -13,6 +13,7 @@ import { useAuth, useNotifications, useTheme } from '@/app/context';
 /** Listas que usam a `PageBar` como barra superior no mobile. */
 const PAGE_BAR_LISTS = [
   '/avisos',
+  '/compartilhar',
   '/contas',
   '/categorias',
   '/transacoes',

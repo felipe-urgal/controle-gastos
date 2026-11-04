@@ -4,6 +4,7 @@ export const PROTECTED_PREFIXES = [
   "/calendario",
   "/categorias",
   "/comparar",
+  "/compartilhar",
   "/contas",
   "/compromissos",
   "/dividas",
