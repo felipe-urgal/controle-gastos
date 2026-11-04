@@ -13,6 +13,7 @@ import ExportData from '@/app/components/pages/user/show/export-data';
 import McpAccessPanel from '@/app/components/pages/user/show/mcp-access-panel';
 import MfaSecurityPanel from '@/app/components/pages/user/show/mfa-security-panel';
 import Preferences from '@/app/components/pages/user/show/preferences';
+import NotificationPreferences from '@/app/components/pages/user/show/preferences/notification-preferences';
 import { SettingsHeader } from '@/app/components/pages/user/show/settings-header';
 import { SettingsNav } from '@/app/components/pages/user/show/settings-nav';
 import { SettingsPanel, SettingsRow } from '@/app/components/pages/user/show/settings-row';
@@ -160,7 +161,12 @@ export default function Show() {
                 </SettingsPanel>
               )}
 
-              {activeSection === 'preferences' && <Preferences user={user} onUserChange={setUser} />}
+              {activeSection === 'preferences' && (
+                <div className="space-y-5">
+                  <Preferences user={user} onUserChange={setUser} />
+                  <NotificationPreferences />
+                </div>
+              )}
 
               {activeSection === 'security' && (
                 <MfaSecurityPanel

@@ -1,6 +1,6 @@
 # Avisos proativos
 
-Contrato dos avisos (`app/lib/notifications`). A central no app, o e-mail e o push chegam em lotes seguintes; este documento só registra o que precisa continuar verdadeiro.
+Contrato dos avisos (`app/lib/notifications`). O e-mail e o push chegam em lotes seguintes; este documento só registra o que precisa continuar verdadeiro.
 
 ## Regras
 
@@ -36,3 +36,9 @@ Contrato dos avisos (`app/lib/notifications`). A central no app, o e-mail e o pu
 - `POST /api/notifications/{id}/read` é idempotente; `POST /api/notifications/read-all`.
 - `DELETE /api/notifications/{id}` **dispensa** (`dismissedAt`): o aviso some, mas a linha fica para a chave de deduplicação continuar valendo e o cron não recriar. Aviso de outro usuário é sempre 404.
 - `GET /api/notification-preferences` devolve os 7 tipos, mesclando o padrão (`isDefault`); `PUT` aceita a lista de tipos (sem repetir) e faz upsert.
+
+## Interface
+
+- **Central (`/avisos`):** lista paginada (padrão 20) do mais novo para o mais antigo, filtro Todos/Não lidos, "Marcar tudo como lido" e remover. Abrir um aviso (o item é um link para `href`) marca como lido sem travar a navegação; remover dispensa (ver acima).
+- **Sino:** aparece na barra lateral (com contador; só um ponto quando recolhida), no menu "Mais" e na barra do topo do mobile (onde ela existe), e como ponto no botão "Mais" da barra inferior. O contador vem de `NotificationsProvider` (`app/context`), que consulta ao carregar, ao voltar para a aba e a cada 5 minutos com a aba visível; a central o atualiza com o valor que a própria lista devolve.
+- **Preferências:** Usuário, Preferências, seção "Avisos": um interruptor "no app" por tipo que já tem regra. Salvar é otimista e volta ao valor anterior se o servidor recusar. E-mail e push não têm controle até os lotes deles.

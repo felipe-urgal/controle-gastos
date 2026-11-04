@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { FaEllipsisH } from 'react-icons/fa';
 
 import { getAppNavigation, type AppNavigationItem } from '@/app/components/layout/app-navigation';
+import { useNotifications } from '@/app/context';
 
 const itemBase =
   'relative isolate flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1.5 text-xs transition-[color,background-color,transform] duration-150 active:scale-95 ' +
@@ -43,6 +44,7 @@ export default function BottomNav({
   moreOpen?: boolean;
 }) {
   const pathname = usePathname();
+  const { unreadCount } = useNotifications();
   const allNavigation = getAppNavigation();
   const navigation = keys
     .map((key) => allNavigation.find((item) => item.key === key))
@@ -91,13 +93,21 @@ export default function BottomNav({
         <button
           type="button"
           onClick={onOpenMore}
-          aria-label="Mais"
+          aria-label={unreadCount > 0 ? `Mais, ${unreadCount} avisos não lidos` : 'Mais'}
           aria-haspopup="dialog"
           aria-expanded={moreOpen}
           className={itemBase + itemTone(moreActive || moreOpen)}
         >
           {(moreActive || moreOpen) && <ActiveBackground />}
-          <FaEllipsisH className="h-5 w-5" aria-hidden="true" />
+          <span className="relative flex">
+            <FaEllipsisH className="h-5 w-5" aria-hidden="true" />
+            {unreadCount > 0 && (
+              <span
+                aria-hidden="true"
+                className="absolute -right-1.5 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface)] bg-[var(--expense)]"
+              />
+            )}
+          </span>
           <span className="max-w-full truncate max-[359px]:sr-only">Mais</span>
         </button>
       </div>
