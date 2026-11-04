@@ -1,4 +1,4 @@
-import { formatCurrency } from "@/app/lib/currency/format-currency";
+import { formatCurrency } from "@/app/lib/currency/format-money";
 import {
   daysBetweenLogicalDates,
   formatPtBrLogicalDate,

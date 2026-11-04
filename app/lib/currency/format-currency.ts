@@ -72,38 +72,6 @@ export function useCurrencyFormatter({
   };
 };
 
-export type FormatCurrencyOptions = {
-  locale?: string
-  currency?: string
-  fromCents?: boolean
-  minimumFractionDigits?: number
-};
-
-export const formatCurrency = (
-  amount: number,
-  options?: string | FormatCurrencyOptions
-): string => {
-  if (typeof amount !== 'number' || isNaN(amount)) {
-    return ''
-  }
-
-  let config: FormatCurrencyOptions = {
-    locale: 'pt-BR',
-    currency: 'BRL',
-    fromCents: true,
-  }
-
-  if (typeof options === 'string') {
-    config.currency = options
-  } else if (typeof options === 'object') {
-    config = { ...config, ...options }
-  }
-
-  const value = config.fromCents ? amount / 100 : amount
-
-  return new Intl.NumberFormat(config.locale, {
-    style: 'currency',
-    currency: config.currency,
-    minimumFractionDigits: config.minimumFractionDigits,
-  }).format(value)
-};
+// A função pura vive em módulo próprio (seguro para o servidor, sem React); este arquivo a reexporta
+// para os componentes que já a importam daqui.
+export { formatCurrency, type FormatCurrencyOptions } from '@/app/lib/currency/format-money';
