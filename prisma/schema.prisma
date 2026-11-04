@@ -53,6 +53,8 @@ model User {
   financialGoals              FinancialGoal[]
   financialGoalEntries        FinancialGoalEntry[]
   periodicFinancialSummaries  PeriodicFinancialSummary[]
+  notifications               Notification[]
+  notificationPreferences     NotificationPreference[]
   exchangeRates                ExchangeRate[]
   debts                   Debt[]
   debtAdjustments         DebtAdjustment[]
@@ -1569,4 +1571,61 @@ model AnnualEmploymentIncomeStatement {
   @@index([userId, calendarYear, payerTaxId])
   @@index([userId, lifecycleStatus, calendarYear])
   @@map("annual_employment_income_statements")
+}
+
+enum NotificationType {
+  CARD_STATEMENT_DUE
+  COMMITMENT_DUE
+  INCOME_OVERDUE
+  BUDGET_LIMIT
+  FORECAST_NEGATIVE
+  GOAL_DEADLINE
+  SUMMARY
+}
+
+enum NotificationSeverity {
+  INFO
+  WARNING
+  URGENT
+}
+
+model Notification {
+  id        String               @id @default(uuid())
+  type      NotificationType
+  /// Chave estável por fato notificado; a mesma chave nunca gera dois avisos para o mesmo usuário.
+  dedupeKey String               @map("dedupe_key") @db.VarChar(200)
+  severity  NotificationSeverity
+  title     String               @db.VarChar(120)
+  /// Sem valores monetários quando o usuário oculta valores (`showValues = false`).
+  body      String               @db.VarChar(300)
+  href      String               @db.VarChar(200)
+
+  readAt      DateTime? @map("read_at")
+  dismissedAt DateTime? @map("dismissed_at")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id    String           @id @default(uuid())
+  type  NotificationType
+  inApp Boolean          @default(true) @map("in_app")
+  email Boolean          @default(false)
+  push  Boolean          @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, type])
+  @@map("notification_preferences")
 }
