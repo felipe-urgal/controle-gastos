@@ -8,8 +8,10 @@ import { PageError, PageLoading } from '@/app/components/feedback';
 import FinancialCommitmentsView from '@/app/components/pages/financial-commitments/financial-commitments-view';
 import { CurrencySelect, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
 import { useAuth } from '@/app/context';
+import { TRANSACTIONS_CHANGED_EVENT } from '@/app/lib/transactions/transaction-events';
 import { financialCommitmentsService } from '@/app/services/financial-commitments-service';
-import type { FinancialCommitmentsData } from '@/app/types/financial-commitment';
+import { transactionService } from '@/app/services/transaction-service';
+import type { FinancialCommitment, FinancialCommitmentsData } from '@/app/types/financial-commitment';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 
 const HORIZONS = [7, 30, 60, 90] as const;
@@ -45,6 +47,13 @@ export default function FinancialCommitmentsPage() {
       active = false;
     };
   }, [currency, days, requestKey]);
+
+  // Conclui o lançamento e recarrega a lista em silêncio (sem esvaziar a tela); se a API recusar, o erro volta para a linha.
+  async function completeCommitment(item: FinancialCommitment) {
+    await transactionService.complete(item.source.id);
+    window.dispatchEvent(new Event(TRANSACTIONS_CHANGED_EVENT));
+    setRequestKey((value) => value + 1);
+  }
 
   function beginReload() {
     setLoading(true);
@@ -100,7 +109,7 @@ export default function FinancialCommitmentsPage() {
         {loading && !data ? (
           <PageLoading />
         ) : data && !error ? (
-          <FinancialCommitmentsView data={data} showValues={showValues} />
+          <FinancialCommitmentsView data={data} showValues={showValues} onComplete={completeCommitment} />
         ) : null}
       </div>
     </PageContainer>

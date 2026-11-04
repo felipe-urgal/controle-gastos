@@ -3,11 +3,13 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useState } from 'react';
-import { FaArrowDown, FaArrowUp, FaFlag } from 'react-icons/fa';
+import { FaArrowDown, FaArrowUp, FaCheck, FaFlag } from 'react-icons/fa';
 
 import { conveyorRow, riseInView } from '@/app/components/pages/financial-commitments/commitments-motion';
 import {
   buildLede,
+  canCompleteCommitment,
+  completeActionLabel,
   dayMonth,
   filterItems,
   forecastBalance,
@@ -19,7 +21,7 @@ import {
   weekBuckets,
   type CommitmentFilter,
 } from '@/app/components/pages/financial-commitments/financial-commitments-model';
-import { Chip, MoneyText } from '@/app/components/ui';
+import { Button, Chip, MoneyText } from '@/app/components/ui';
 import { CARD_EASE, CountUp, reducedTransition } from '@/app/components/ui/motion';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type {
@@ -58,12 +60,35 @@ const ICON_TONE: Record<FinancialCommitmentDirection, string> = {
 export default function FinancialCommitmentsView({
   data,
   showValues,
+  onComplete,
 }: {
   data: FinancialCommitmentsData;
   showValues: boolean;
+  /** Conclui o lançamento pendente (paga ou recebe). Se falhar, a mensagem do erro aparece na lista. */
+  onComplete?: (item: FinancialCommitment) => Promise<void>;
 }) {
   const reduce = useReducedMotion();
   const [filter, setFilter] = useState<CommitmentFilter>('all');
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ kind: 'done' | 'error'; text: string } | null>(null);
+
+  async function complete(item: FinancialCommitment) {
+    if (!onComplete || busyId) return;
+    setBusyId(item.id);
+    setFeedback(null);
+    try {
+      await onComplete(item);
+      setFeedback({
+        kind: 'done',
+        text: `“${item.title}” marcado como ${item.direction === 'RECEIVABLE' ? 'recebido' : 'pago'}.`,
+      });
+    } catch (error) {
+      setFeedback({ kind: 'error', text: error instanceof Error ? error.message : 'Não foi possível concluir o lançamento.' });
+    } finally {
+      setBusyId(null);
+    }
+  }
+  const rowActions = onComplete ? { onComplete: complete, busyId } : undefined;
   const money = (cents: number) => (showValues ? formatCurrency(cents, data.currency) : '••••');
   const { payable, receivable, milestoneCount, overdueCount } = data.totals;
   const { overdue, upcoming } = splitCommitments(data.items);
@@ -74,6 +99,18 @@ export default function FinancialCommitmentsView({
 
   return (
     <div className="space-y-4">
+      {feedback && (
+        <div
+          role={feedback.kind === 'error' ? 'alert' : 'status'}
+          className={`rounded-[var(--radius-md)] border px-4 py-3 text-sm ${
+            feedback.kind === 'error'
+              ? 'border-[var(--danger)]/35 bg-[var(--danger-subtle)] font-semibold text-[var(--expense)]'
+              : 'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]'
+          }`}
+        >
+          {feedback.text}
+        </div>
+      )}
       <motion.section
         aria-labelledby="commitments-hero-label"
         // O resumo desce do alto da tela e assenta com um quique, como um lembrete caindo na mesa.
@@ -126,7 +163,7 @@ export default function FinancialCommitmentsView({
           <ul>
             {overdue.map((item, index) => (
               <li key={item.id}>
-                <CommitmentRow index={index} item={item} money={money} lateLabel={overdueLabel(item.date, data.asOf)} />
+                <CommitmentRow index={index} item={item} money={money} lateLabel={overdueLabel(item.date, data.asOf)} actions={rowActions} />
               </li>
             ))}
           </ul>
@@ -179,7 +216,7 @@ export default function FinancialCommitmentsView({
                       <ul>
                         {day.items.map((item) => (
                           <li key={item.id} className="border-t border-[var(--border)] first:border-t-0">
-                            <CommitmentRow index={rowIndex++} item={item} money={money} />
+                            <CommitmentRow index={rowIndex++} item={item} money={money} actions={rowActions} />
                           </li>
                         ))}
                       </ul>
@@ -268,8 +305,38 @@ export default function FinancialCommitmentsView({
   );
 }
 
-function CommitmentRow({ index, item, money, lateLabel }: { index: number; item: FinancialCommitment; money: (cents: number) => string; lateLabel?: string }) {
+type RowActions = { onComplete: (item: FinancialCommitment) => void; busyId: string | null };
+
+function CommitmentRow({ index, item, money, lateLabel, actions }: { index: number; item: FinancialCommitment; money: (cents: number) => string; lateLabel?: string; actions?: RowActions }) {
   const reduce = useReducedMotion();
+  const completable = Boolean(actions) && canCompleteCommitment(item);
+  const busy = actions?.busyId === item.id;
+  return (
+    <div className="flex items-stretch">
+      <div className="min-w-0 flex-1">
+        <CommitmentLink index={index} item={item} money={money} lateLabel={lateLabel} reduce={reduce} />
+      </div>
+      {completable && actions && (
+        <div className="flex items-center pr-3 sm:pr-4">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={Boolean(actions.busyId)}
+            isLoading={busy}
+            icon={<FaCheck aria-hidden="true" />}
+            aria-label={`Marcar “${item.title}” como ${item.direction === 'RECEIVABLE' ? 'recebido' : 'pago'}`}
+            onClick={() => actions.onComplete(item)}
+          >
+            {completeActionLabel(item)}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CommitmentLink({ index, item, money, lateLabel, reduce }: { index: number; item: FinancialCommitment; money: (cents: number) => string; lateLabel?: string; reduce: boolean | null }) {
   const signed = signedAmount(item);
   const Icon = item.direction === 'PAYABLE' ? FaArrowUp : item.direction === 'RECEIVABLE' ? FaArrowDown : FaFlag;
   return (
