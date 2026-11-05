@@ -31,6 +31,14 @@ export type MonthBar = {
   toDay: number;
 };
 
+/** Só lançamento normal e ainda não reconciliado entra na edição em lote (as mesmas travas da edição individual). */
+export function isBulkSelectable(transaction: { kind: string; reconciliationStatus: string }) {
+  return transaction.kind === 'NORMAL' && transaction.reconciliationStatus !== 'RECONCILED';
+}
+
+/** Estado de seleção de uma linha da lista. `active` liga o modo de seleção (o toque marca em vez de abrir). */
+export type RowSelection = { active: boolean; selected: boolean; selectable: boolean; onToggle: () => void };
+
 export const REFINEMENT_FILTER_KEYS = new Set(['search', 'status', 'accountId', 'categoryId', 'merchantId', 'tagId', 'minAmount', 'maxAmount']);
 
 export const INITIAL_TIMELINE_ITEMS = 7;

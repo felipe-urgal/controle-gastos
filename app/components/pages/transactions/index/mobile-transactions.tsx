@@ -9,7 +9,8 @@ import { Button, Chip, ChipRow, IconRenderer, PeriodSwitcher } from '@/app/compo
 import { isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import type { CurrencyFinancialSummary, PendingTotals } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
-import { MobileQuickFilter, TimelineGroup, displayMoney, formatTransactionAmount, formatTransactionTime, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
+import { SelectionMark } from '@/app/components/pages/transactions/index/bulk-edit-bar';
+import { MobileQuickFilter, RowSelection, TimelineGroup, displayMoney, formatTransactionAmount, formatTransactionTime, isBulkSelectable, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
 import { TransactionTags } from '@/app/components/pages/transactions/index/desktop-transactions';
 
 const MotionLink = motion.create(Link);
@@ -34,6 +35,10 @@ export function MobileTransactions({
   onShowPending,
   hasMore,
   onLoadMore,
+  selecting,
+  selectedIds,
+  onToggleSelecting,
+  onToggleSelect,
 }: {
   month: number;
   year: number;
@@ -56,6 +61,10 @@ export function MobileTransactions({
   onShowPending: () => void;
   hasMore: boolean;
   onLoadMore: () => void;
+  selecting: boolean;
+  selectedIds: ReadonlySet<string>;
+  onToggleSelecting: () => void;
+  onToggleSelect: (id: string) => void;
 }) {
   const reduce = useReducedMotion();
   const skeleton = 'block animate-pulse rounded-[var(--radius-sm)] bg-[var(--skeleton)]';
@@ -269,6 +278,10 @@ export function MobileTransactions({
         hasMore={hasMore}
         onLoadMore={onLoadMore}
         onTransactionCompleted={onTransactionCompleted}
+        selecting={selecting}
+        selectedIds={selectedIds}
+        onToggleSelecting={onToggleSelecting}
+        onToggleSelect={onToggleSelect}
       />
     </div>
   );
@@ -335,6 +348,10 @@ export function MobileActivityFeed({
   hasMore,
   onLoadMore,
   onTransactionCompleted,
+  selecting,
+  selectedIds,
+  onToggleSelecting,
+  onToggleSelect,
 }: {
   groups: TimelineGroup[];
   loading: boolean;
@@ -343,6 +360,10 @@ export function MobileActivityFeed({
   hasMore: boolean;
   onLoadMore: () => void;
   onTransactionCompleted: () => void;
+  selecting: boolean;
+  selectedIds: ReadonlySet<string>;
+  onToggleSelecting: () => void;
+  onToggleSelect: (id: string) => void;
 }) {
   const reduce = useReducedMotion();
 
@@ -369,6 +390,11 @@ export function MobileActivityFeed({
 
   return (
     <section className="space-y-4" aria-label="Atividade financeira">
+      <div className="flex justify-end">
+        <Button variant={selecting ? 'primary' : 'outline'} size="sm" onClick={onToggleSelecting}>
+          {selecting ? 'Cancelar seleção' : 'Selecionar'}
+        </Button>
+      </div>
       {groups.map((group, groupIndex) => {
         const title =
           group.primaryLabel === 'Hoje' || group.primaryLabel === 'Ontem'
@@ -396,7 +422,17 @@ export function MobileActivityFeed({
                   key={transaction.id}
                   variants={{ hidden: { opacity: 0, y: 12 }, shown: { opacity: 1, y: 0, transition: { duration: 0.35, ease: CARD_EASE } } }}
                 >
-                  <MobileTransactionRow transaction={transaction} showValues={showValues} onCompleted={onTransactionCompleted} />
+                  <MobileTransactionRow
+                    transaction={transaction}
+                    showValues={showValues}
+                    onCompleted={onTransactionCompleted}
+                    selection={{
+                      active: selecting,
+                      selected: selectedIds.has(transaction.id),
+                      selectable: isBulkSelectable(transaction),
+                      onToggle: () => onToggleSelect(transaction.id),
+                    }}
+                  />
                 </motion.div>
               ))}
             </motion.div>
@@ -416,10 +452,12 @@ export function MobileTransactionRow({
   transaction,
   showValues,
   onCompleted,
+  selection,
 }: {
   transaction: TransactionDTO;
   showValues: boolean;
   onCompleted: () => void;
+  selection?: RowSelection;
 }) {
   const isTransfer = isTransferTransaction(transaction);
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
@@ -436,10 +474,16 @@ export function MobileTransactionRow({
   return (
     <MotionLink
       href={`/transacoes/show/${transaction.id}`}
-      aria-label={`Abrir transação ${transaction.description || 'Sem descrição'}`}
+      aria-label={selection?.active ? `${selection.selected ? 'Desmarcar' : 'Marcar'} transação ${transaction.description || 'Sem descrição'}` : `Abrir transação ${transaction.description || 'Sem descrição'}`}
+      onClick={(event: React.MouseEvent) => {
+        if (!selection?.active) return;
+        event.preventDefault();
+        if (selection.selectable) selection.onToggle();
+      }}
       whileTap={{ scale: 0.98 }}
-      className="grid min-h-[56px] w-full grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2.5 py-1.5 text-left"
+      className={`grid min-h-[56px] w-full items-center gap-2.5 py-1.5 text-left ${selection?.active ? 'grid-cols-[22px_38px_minmax(0,1fr)_auto]' : 'grid-cols-[38px_minmax(0,1fr)_auto]'} ${selection?.active && !selection.selectable ? 'opacity-60' : ''}`}
     >
+      {selection?.active && <SelectionMark selected={selection.selected} selectable={selection.selectable} />}
       <span className="grid h-9 w-9 place-items-center rounded-full text-white" style={{ backgroundColor: iconBackground }}>
         {isTransfer ? (
           <FaExchangeAlt aria-hidden="true" />

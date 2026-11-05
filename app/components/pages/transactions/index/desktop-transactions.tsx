@@ -9,7 +9,8 @@ import { CARD_EASE, CARD_VIEWPORT, CountUp, reducedTransition } from '@/app/comp
 import { getTransferCounterpartLabel, isTransferTransaction } from '@/app/lib/transactions/transaction-presentation';
 import { CurrencyFinancialSummary } from '@/app/types/financial-summary';
 import { TransactionDTO } from '@/app/types/transaction';
-import { MonthBar, TimelineGroup, TimelineOrder, compactMonth, displayMoney, formatTransactionAmount, formatTransactionTime, monthTitle, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
+import { SelectionMark } from '@/app/components/pages/transactions/index/bulk-edit-bar';
+import { MonthBar, RowSelection, TimelineGroup, TimelineOrder, compactMonth, displayMoney, formatTransactionAmount, formatTransactionTime, isBulkSelectable, monthTitle, scheduledDistanceLabel } from '@/app/components/pages/transactions/index/transactions-view-helpers';
 import { TransactionStatusMenu, canChangeStatusFromList } from '@/app/components/pages/transactions/index/transaction-status-menu';
 import { StatusPill } from '@/app/components/pages/transactions/index/transaction-dialogs';
 
@@ -198,6 +199,10 @@ export function MovementTimeline({
   hasMore,
   onLoadMore,
   onTransactionCompleted,
+  selecting,
+  selectedIds,
+  onToggleSelecting,
+  onToggleSelect,
 }: {
   month: number;
   year: number;
@@ -209,6 +214,10 @@ export function MovementTimeline({
   hasMore: boolean;
   onLoadMore: () => void;
   onTransactionCompleted: () => void;
+  selecting: boolean;
+  selectedIds: ReadonlySet<string>;
+  onToggleSelecting: () => void;
+  onToggleSelect: (id: string) => void;
 }) {
   const reduce = useReducedMotion();
 
@@ -216,6 +225,9 @@ export function MovementTimeline({
     <article className="min-h-[620px] rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold">Movimentação de {monthTitle(month, year).toLowerCase()}</h2>
+        <Button variant={selecting ? 'primary' : 'outline'} size="sm" onClick={onToggleSelecting}>
+          {selecting ? 'Cancelar seleção' : 'Selecionar'}
+        </Button>
         <div className="w-full sm:w-52">
           <Select
             label="Ordenar por"
@@ -289,6 +301,12 @@ export function MovementTimeline({
                       transaction={transaction}
                       showValues={showValues}
                       onCompleted={onTransactionCompleted}
+                      selection={{
+                        active: selecting,
+                        selected: selectedIds.has(transaction.id),
+                        selectable: isBulkSelectable(transaction),
+                        onToggle: () => onToggleSelect(transaction.id),
+                      }}
                     />
                   ))}
                 </motion.div>
@@ -324,10 +342,12 @@ export function TimelineTransactionRow({
   transaction,
   showValues,
   onCompleted,
+  selection,
 }: {
   transaction: TransactionDTO;
   showValues: boolean;
   onCompleted: () => void;
+  selection?: RowSelection;
 }) {
   const isTransfer = isTransferTransaction(transaction);
   const isCardPayment = transaction.kind === 'CARD_PAYMENT';
@@ -345,11 +365,16 @@ export function TimelineTransactionRow({
   return (
     <MotionLink
       href={`/transacoes/show/${transaction.id}`}
-      aria-label={`Abrir transação ${transaction.description || 'Sem descrição'}`}
+      aria-label={selection?.active ? `${selection.selected ? 'Desmarcar' : 'Marcar'} transação ${transaction.description || 'Sem descrição'}` : `Abrir transação ${transaction.description || 'Sem descrição'}`}
+      onClick={(event: React.MouseEvent) => {
+        if (!selection?.active) return;
+        event.preventDefault();
+        if (selection.selectable) selection.onToggle();
+      }}
       whileHover="hover"
       whileTap={{ scale: 0.985 }}
       variants={{ hover: { x: 4, transition: { type: 'spring', stiffness: 420, damping: 24 } } }}
-      className="grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_110px_88px_24px] sm:gap-3"
+      className={`grid min-h-[66px] w-full grid-cols-[40px_minmax(0,1fr)_24px] items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] sm:grid-cols-[44px_minmax(0,1fr)_110px_88px_24px] sm:gap-3 ${selection?.selected ? 'ring-2 ring-[var(--primary)]' : ''} ${selection?.active && !selection.selectable ? 'opacity-60' : ''}`}
     >
       {/* O ícone da categoria pula. */}
       <motion.span
@@ -376,7 +401,13 @@ export function TimelineTransactionRow({
           ? <TransactionStatusMenu transaction={transaction} onChanged={onCompleted} />
           : transaction.status !== 'COMPLETED' && <StatusPill status={transaction.status} />}
       </span>
-      <FaChevronRight className="col-start-3 row-start-1 justify-self-center text-xs text-[var(--text-muted)] sm:col-start-auto sm:row-start-auto" aria-hidden="true" />
+      {selection?.active ? (
+        <span className="col-start-3 row-start-1 justify-self-center sm:col-start-auto sm:row-start-auto">
+          <SelectionMark selected={selection.selected} selectable={selection.selectable} />
+        </span>
+      ) : (
+        <FaChevronRight className="col-start-3 row-start-1 justify-self-center text-xs text-[var(--text-muted)] sm:col-start-auto sm:row-start-auto" aria-hidden="true" />
+      )}
     </MotionLink>
   );
 }
