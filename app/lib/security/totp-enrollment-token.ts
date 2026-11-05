@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { getJwtSecret } from "@/app/lib/auth/jwt-secret";
 
 const ENROLLMENT_ISSUER = "controle-gastos-mfa";
 const ENROLLMENT_AUDIENCE = "controle-gastos-totp-enrollment";
@@ -6,16 +7,6 @@ const ENROLLMENT_PURPOSE = "totp-enrollment";
 const ENROLLMENT_TTL = "10m";
 const ENROLLMENT_TTL_SECONDS = 10 * 60;
 const ENROLLMENT_ALGORITHM = "HS256" as const;
-
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error("JWT_SECRET_NOT_CONFIGURED");
-  }
-
-  return secret;
-}
 
 export function signTotpEnrollmentToken(args: {
   userId: string;

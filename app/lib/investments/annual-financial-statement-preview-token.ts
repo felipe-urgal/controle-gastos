@@ -2,15 +2,10 @@ import { createHash } from "node:crypto";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
 import type { ParsedAnnualFinancialTaxStatement } from "@/app/lib/investments/annual-financial-statement-parser";
+import { getJwtSecret } from "@/app/lib/auth/jwt-secret";
 
 const ISSUER = "controle-gastos-annual-financial-statement-preview";
 const AUDIENCE = "controle-gastos-annual-financial-statement-confirm";
-
-function secret() {
-  const value = process.env.JWT_SECRET;
-  if (!value) throw new Error("JWT_SECRET is required");
-  return value;
-}
 
 export type AnnualFinancialStatementPreview = ParsedAnnualFinancialTaxStatement & {
   fingerprint: string;
@@ -25,7 +20,7 @@ export function signAnnualFinancialStatementPreview(
   userId: string,
   statement: AnnualFinancialStatementPreview,
 ) {
-  return jwt.sign({ digest: digest(statement) }, secret(), {
+  return jwt.sign({ digest: digest(statement) }, getJwtSecret(), {
     algorithm: "HS256",
     subject: userId,
     issuer: ISSUER,
@@ -40,7 +35,7 @@ export function verifyAnnualFinancialStatementPreview(
   statement: AnnualFinancialStatementPreview,
 ) {
   try {
-    const payload = jwt.verify(token, secret(), {
+    const payload = jwt.verify(token, getJwtSecret(), {
       algorithms: ["HS256"],
       subject: userId,
       issuer: ISSUER,

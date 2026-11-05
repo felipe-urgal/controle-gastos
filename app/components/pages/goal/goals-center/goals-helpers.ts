@@ -1,5 +1,6 @@
 import { FinancialGoalStatus } from '@/app/types/financial-goal';
 import { SupportedCurrency } from '@/app/types/financial-summary';
+import { formatIsoDatePtBr } from '@/app/lib/date/logical-date';
 
 export type GoalFilter = 'ALL' | FinancialGoalStatus;
 
@@ -42,7 +43,5 @@ export function statusClasses(status: FinancialGoalStatus) {
 }
 
 export function dateLabel(value: string | null) {
-  if (!value) return null;
-  const [year, month, day] = value.split('-');
-  return `${day}/${month}/${year}`;
+  return value ? formatIsoDatePtBr(value) : null;
 }

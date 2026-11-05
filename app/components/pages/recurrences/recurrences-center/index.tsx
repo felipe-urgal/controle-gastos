@@ -18,6 +18,11 @@ import RecurrencesReview from '@/app/components/pages/recurrences/recurrences-ce
 import { Button } from '@/app/components/ui';
 import { riseInView } from '@/app/components/ui/motion-presets';
 import { useAuth } from '@/app/context';
+import {
+  ignoredStorageKey,
+  readIgnored,
+  writeIgnored,
+} from '@/app/components/pages/recurrences/recurrences-center/ignored-store';
 import { recurrenceService } from '@/app/services/recurrence-service';
 import { subscriptionService } from '@/app/services/subscription-service';
 import type {
@@ -64,6 +69,17 @@ export default function RecurrencesCenter() {
     return () => window.clearTimeout(timeout);
   }, [load]);
 
+  // Lido depois da montagem (o servidor não tem localStorage); troca de usuário recarrega os ignorados dele.
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    const timeout = window.setTimeout(
+      () => setIgnored(readIgnored(window.localStorage, ignoredStorageKey(userId))),
+      0,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [userId]);
+
   const queue = useMemo(() => (data ? buildReviewQueue(data, ignored) : []), [data, ignored]);
   const currency = heroCurrency ?? data?.totals[0]?.currency ?? data?.subscriptions.totals[0]?.currency ?? 'BRL';
 
@@ -81,7 +97,9 @@ export default function RecurrencesCenter() {
   }
 
   function ignore(id: string) {
-    setIgnored((current) => new Set(current).add(id));
+    const next = new Set(ignored).add(id);
+    setIgnored(next);
+    if (userId) writeIgnored(window.localStorage, ignoredStorageKey(userId), next);
   }
 
   async function endSeries(item: RecurrenceSummaryItem) {

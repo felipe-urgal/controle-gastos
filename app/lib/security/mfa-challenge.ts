@@ -1,20 +1,11 @@
 import jwt from "jsonwebtoken";
+import { getJwtSecret } from "@/app/lib/auth/jwt-secret";
 
 const MFA_CHALLENGE_ISSUER = "controle-gastos-mfa";
 const MFA_CHALLENGE_AUDIENCE = "controle-gastos-mfa-login";
 const MFA_CHALLENGE_PURPOSE = "mfa-login";
 export const MFA_CHALLENGE_TTL_SECONDS = 5 * 60;
 const MFA_CHALLENGE_ALGORITHM = "HS256" as const;
-
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error("JWT_SECRET_NOT_CONFIGURED");
-  }
-
-  return secret;
-}
 
 export function signMfaChallenge(userId: string, challengeId: string) {
   if (!userId || !challengeId) {

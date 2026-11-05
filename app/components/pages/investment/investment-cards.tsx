@@ -12,7 +12,8 @@ import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { groupInvestmentIncomesByAsset } from '@/app/lib/investments/investment-income-summary';
 import { SupportedCurrency } from '@/app/types/financial-summary';
 import { InvestmentAsset, InvestmentIncome, InvestmentOperation, InvestmentPortfolio } from '@/app/types/investment';
-import { dateLabel, fiscalEventLabel, operationLabel, quantityLabel, typeLabel } from '@/app/components/pages/investment/investments-helpers';
+import { fiscalEventLabel, operationLabel, quantityLabel, typeLabel } from '@/app/components/pages/investment/investments-helpers';
+import { formatIsoDatePtBr } from '@/app/lib/date/logical-date';
 
 /**
  * Cartão com cabeçalho recolhível: aberto a partir de 640 px; no mobile começa recolhido para
@@ -384,7 +385,7 @@ export function OperationRow({
           {operationLabel(operation.type)} · {operation.asset.symbol}
         </strong>
         <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-          {dateLabel(operation.date)} · {operation.account.name} ·{' '}
+          {formatIsoDatePtBr(operation.date)} · {operation.account.name} ·{' '}
           {quantityLabel(operation.quantity)} un.
         </span>
         {operation.fiscalEvent && (
@@ -449,7 +450,7 @@ export function IncomeRow({
                 : 'Provento'}
         </strong>
         <span className="mt-1 block truncate text-xs text-[var(--text-muted)]">
-          {dateLabel(income.date)} · {quantityLabel(income.quantity)} un.
+          {formatIsoDatePtBr(income.date)} · {quantityLabel(income.quantity)} un.
         </span>
       </span>
       <span className="text-right">

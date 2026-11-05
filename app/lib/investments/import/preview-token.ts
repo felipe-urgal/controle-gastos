@@ -2,16 +2,11 @@ import { createHash } from "node:crypto";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
 import type { PreviewInvestmentImportItem } from "@/app/lib/investments/import/investment-import-parser";
+import { getJwtSecret } from "@/app/lib/auth/jwt-secret";
 
 const PREVIEW_ISSUER = "controle-gastos-investment-import-preview";
 const PREVIEW_AUDIENCE = "controle-gastos-investment-import-confirm";
 const PREVIEW_TTL = "20m";
-
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error("JWT_SECRET is required for investment import preview tokens");
-  return secret;
-}
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);

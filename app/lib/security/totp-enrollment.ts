@@ -19,13 +19,12 @@ import {
   generateTotpSecret,
   verifyTotpToken,
 } from "@/app/lib/security/totp";
+import { getJwtSecret } from "@/app/lib/auth/jwt-secret";
 
 const RECOVERY_CODE_COUNT = 10;
 
 function assertJwtSecretConfigured() {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET_NOT_CONFIGURED");
-  }
+  getJwtSecret();
 }
 
 export async function startTotpEnrollment(args: {

@@ -29,6 +29,7 @@ import { owedCurrencies, summarizeDebts } from '@/app/components/pages/debt/debt
 import { logicalDateFromInstant } from '@/app/lib/date/logical-date';
 import type { Debt, DebtAdjustmentKind, DebtStatus } from '@/app/types/debt';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+import { formatIsoDatePtBr } from '@/app/lib/date/logical-date';
 
 type DebtFilter = 'ALL' | DebtStatus;
 
@@ -72,9 +73,7 @@ function statusClass(status: DebtStatus) {
 }
 
 function dateLabel(value: string | null) {
-  if (!value) return 'Sem vencimento';
-  const [year, month, day] = value.split('-');
-  return `${day}/${month}/${year}`;
+  return value ? formatIsoDatePtBr(value) : 'Sem vencimento';
 }
 
 function adjustmentKindLabel(kind: DebtAdjustmentKind) {
