@@ -35,7 +35,7 @@ const isOverdue = (event: CalendarEvent) => event.commitmentState === 'OVERDUE';
 const isPending = (event: CalendarEvent) => event.status === 'PENDING';
 
 /** Vencido > pendente > realizado: o que exige ação aparece primeiro. */
-function eventPriority(event: CalendarEvent) {
+export function eventPriority(event: CalendarEvent) {
   if (isOverdue(event)) return 0;
   if (isPending(event)) return 1;
   if (event.status === 'CANCELLED') return 3;
@@ -56,7 +56,7 @@ const dotTone: Record<DayState, string> = {
   empty: '',
 };
 
-function chipTone(event: CalendarEvent) {
+export function chipTone(event: CalendarEvent) {
   if (event.status === 'CANCELLED') return 'text-[var(--text-subtle)] line-through';
   if (isOverdue(event)) return 'bg-[var(--danger-subtle)] font-semibold text-[var(--expense)]';
   if (isPending(event)) return 'bg-[var(--warning-subtle)] text-[var(--pending)]';

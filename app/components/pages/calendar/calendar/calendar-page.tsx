@@ -15,8 +15,12 @@ import {
 
 import { ProtectedRoute } from '@/app/components/layout';
 import { CalendarGrid } from '@/app/components/pages/calendar';
+import CalendarWeekView from '@/app/components/pages/calendar/calendar/calendar-week-view';
+import { addDays, canRescheduleEvent, rescheduleBody } from '@/app/components/pages/calendar/calendar/calendar-week';
 import { dropIn, riseInView, slideInRow } from '@/app/components/pages/calendar/calendar-motion';
-import { Button, PeriodSwitcher, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { Button, Chip, Input, PeriodSwitcher, Select, ShowBelow, ShowFrom } from '@/app/components/ui';
+import { errorMessage } from '@/app/lib/error-message';
+import { transactionService } from '@/app/services/transaction-service';
 import { CARD_EASE, CountUp, reducedTransition } from '@/app/components/ui/motion';
 import { useAuth } from '@/app/context';
 import { useCalendar } from '@/app/hooks/calendar/use-calendar';
@@ -149,6 +153,9 @@ export default function CalendarPage() {
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [view, setView] = useState<'month' | 'week'>('month');
+  const [rescheduling, setRescheduling] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState('');
 
   // Investimentos são informativos; o chip só aparece quando o mês tem algum.
   const [showInvestments, setShowInvestments] = useState(true);
@@ -178,6 +185,33 @@ export default function CalendarPage() {
     },
     [goToDate],
   );
+
+  // Reagendar um compromisso pendente (arrastando na semana ou escolhendo a data no detalhe). O servidor aplica as
+  // mesmas regras da edição (mês travado, fatura de cartão paga); a mensagem dele aparece aqui.
+  const reschedule = useCallback(
+    async (event: CalendarEvent, target: Date) => {
+      const body = canRescheduleEvent(event) ? rescheduleBody(event, target) : null;
+      if (!body) return;
+      setRescheduling(true);
+      setRescheduleError('');
+      try {
+        await transactionService.update(event.sourceId, body);
+        setSelectedEvent(null);
+        retry();
+      } catch (cause) {
+        setRescheduleError(errorMessage(cause, 'Não foi possível reagendar.'));
+      } finally {
+        setRescheduling(false);
+      }
+    },
+    [retry],
+  );
+
+  const shiftWeek = (direction: -1 | 1) => {
+    const target = addDays(displayDate, direction * 7);
+    setSelectedDate(target);
+    if (target.getMonth() !== currentDate.getMonth() || target.getFullYear() !== currentDate.getFullYear()) goToDate(target);
+  };
 
   const previousMonth = () => {
     setSwap({ axis: 'x', dir: -1 });
@@ -237,6 +271,10 @@ export default function CalendarPage() {
           />
         </div>
       )}
+      <div className="flex gap-2" role="group" aria-label="Visão do calendário">
+        <Chip selected={view === 'month'} onClick={() => setView('month')}>Mês</Chip>
+        <Chip selected={view === 'week'} onClick={() => setView('week')}>Semana</Chip>
+      </div>
       {hasInvestmentEvents && (
         <button
           type="button"
@@ -282,6 +320,31 @@ export default function CalendarPage() {
         showValues={showValues}
       />
 
+      {rescheduleError && (
+        <div role="alert" className="mt-4 rounded-[var(--radius-lg)] border border-[var(--expense)]/30 bg-[var(--danger-subtle)] p-3 text-sm font-semibold text-[var(--expense)]">
+          {rescheduleError}
+        </div>
+      )}
+
+      {view === 'week' ? (
+        <div className="mt-4 grid gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <Button variant="outline" size="sm" onClick={() => shiftWeek(-1)}>Semana anterior</Button>
+            <p className="text-sm font-semibold text-[var(--text-muted)]">
+              Semana de {addDays(displayDate, -displayDate.getDay()).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => shiftWeek(1)}>Próxima semana</Button>
+          </div>
+          <CalendarWeekView
+            referenceDate={displayDate}
+            calendarDays={visibleDays}
+            showValues={showValues}
+            busy={rescheduling || isLoading}
+            onOpenEvent={setSelectedEvent}
+            onReschedule={(event, target) => void reschedule(event, target)}
+          />
+        </div>
+      ) : (
       <motion.section
         // A chave é mês + conta: trocar qualquer um refaz a entrada, deslizando na direção do mês ou caindo para a conta.
         key={dataKey}
@@ -324,11 +387,14 @@ export default function CalendarPage() {
           </div>
         </div>
       </motion.section>
+      )}
 
       {selectedEvent && (
         <EventDetailDrawer
           event={selectedEvent}
           showValues={showValues}
+          busy={rescheduling}
+          onReschedule={canRescheduleEvent(selectedEvent) ? (target) => void reschedule(selectedEvent, target) : undefined}
           onClose={() => setSelectedEvent(null)}
         />
       )}
@@ -869,13 +935,19 @@ function CommitmentsAgenda({
 function EventDetailDrawer({
   event,
   showValues,
+  busy,
+  onReschedule,
   onClose,
 }: {
   event: CalendarEvent;
   showValues: boolean;
+  busy: boolean;
+  /** Só para compromisso pendente: muda a data sem precisar arrastar (teclado, celular). */
+  onReschedule?: (target: Date) => void;
   onClose: () => void;
 }) {
   const date = eventDate(event);
+  const [newDate, setNewDate] = useState('');
 
   return (
     <ModalShell
@@ -906,6 +978,24 @@ function EventDetailDrawer({
         <DetailBox label="Status" value={eventStatusLabel(event)} />
         <DetailBox label="Origem" value={eventKindLabel(event)} />
       </motion.dl>
+
+      {onReschedule && (
+        <div className="mt-4 flex flex-wrap items-end gap-2">
+          <Input label="Reagendar para" type="date" value={newDate} onChange={(event) => setNewDate(event.target.value)} disabled={busy} />
+          <Button
+            type="button"
+            size="sm"
+            disabled={busy || !newDate}
+            isLoading={busy}
+            onClick={() => {
+              const [year, month, day] = newDate.split('-').map(Number);
+              if (year && month && day) onReschedule(new Date(year, month - 1, day));
+            }}
+          >
+            Reagendar
+          </Button>
+        </div>
+      )}
 
       <motion.div
         className="mt-4 inline-flex"
