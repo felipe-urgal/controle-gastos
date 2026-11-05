@@ -107,3 +107,46 @@ export function recentFirst(items: PayrollSummary[]): PayrollSummary[] {
 export function reviewQueue(items: PayrollSummary[]): PayrollSummary[] {
   return recentFirst(items).filter((item) => item.reviewRequired);
 }
+
+export const NET_VARIATION_THRESHOLD_PERCENT = 15;
+const NET_VARIATION_WINDOW = 3;
+const NET_VARIATION_MIN_BASELINE = 2;
+
+export type NetVariation = {
+  /** Variação do líquido do mês contra a média dos meses anteriores, em % com uma casa. */
+  percent: number;
+  /** Média usada como base, em centavos. */
+  baselineCents: number;
+  /** Quantos meses entraram na média. */
+  baselineMonths: number;
+  /** `true` quando o desvio passa do limite: o mês foge do padrão e merece uma olhada. */
+  unusual: boolean;
+};
+
+/**
+ * Líquido do mês contra a média dos até 3 meses anteriores com líquido conhecido (`COMPLETE`).
+ * Sem líquido conhecido no mês ou com menos de 2 meses de base, devolve `null`: sem dados não vira "0%".
+ * Não olha para o ano anterior (a série é do ano) e não distingue 13º ou férias, que costumam aparecer como "fora do usual".
+ */
+export function netVariation(series: MonthPoint[], index: number): NetVariation | null {
+  const current = series[index];
+  if (!current || current.status !== 'COMPLETE' || current.netPaidCents === null) return null;
+
+  const baseline = series
+    .slice(0, index)
+    .filter((point) => point.status === 'COMPLETE' && point.netPaidCents !== null)
+    .slice(-NET_VARIATION_WINDOW)
+    .map((point) => point.netPaidCents as number);
+  if (baseline.length < NET_VARIATION_MIN_BASELINE) return null;
+
+  const baselineCents = Math.round(baseline.reduce((sum, value) => sum + value, 0) / baseline.length);
+  if (baselineCents <= 0) return null;
+
+  const percent = Math.round(((current.netPaidCents - baselineCents) / baselineCents) * 1000) / 10;
+  return {
+    percent,
+    baselineCents,
+    baselineMonths: baseline.length,
+    unusual: Math.abs(percent) >= NET_VARIATION_THRESHOLD_PERCENT,
+  };
+}
