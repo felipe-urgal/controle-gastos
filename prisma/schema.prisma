@@ -1178,6 +1178,8 @@ model FinancialGoal {
   targetDay   Int?                @map("target_day")
   status      FinancialGoalStatus @default(ACTIVE)
   description String?             @db.VarChar(500)
+  /// Percentual (1-100) da receita realizada do mês que a pessoa quer guardar nesta meta; só gera uma sugestão de aporte.
+  incomeSharePercent Int?         @map("income_share_percent")
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -49,6 +49,7 @@ export default function GoalCard({
   onOpen,
   onEdit,
   onContribution,
+  onSuggestedContribution,
   onWithdrawal,
   onArchive,
   onReactivate,
@@ -63,6 +64,8 @@ export default function GoalCard({
   onOpen: () => void;
   onEdit: () => void;
   onContribution: () => void;
+  /** Abre o aporte já com o valor sugerido pelo percentual da receita do mês. */
+  onSuggestedContribution: (amountCents: number) => void;
   onWithdrawal: () => void;
   onArchive: () => void;
   onReactivate: () => void;
@@ -154,6 +157,20 @@ export default function GoalCard({
       {goal.status === 'ACTIVE' && goal.monthlyContributionSuggestion !== null && (
         <p className="text-sm text-[var(--text-muted)]">
           <MoneyText>{`Guarde ${money(goal.monthlyContributionSuggestion)} por mês até o prazo.`}</MoneyText>
+        </p>
+      )}
+      {goal.status === 'ACTIVE' && goal.incomeShare && (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--text-muted)]">
+          <MoneyText>
+            {goal.incomeShare.remaining > 0
+              ? `${goal.incomeShare.percent}% da receita do mês (${money(goal.incomeShare.monthIncome)}): faltam ${money(goal.incomeShare.remaining)} para guardar.`
+              : `${goal.incomeShare.percent}% da receita do mês (${money(goal.incomeShare.monthIncome)}) já guardados neste mês.`}
+          </MoneyText>
+          {goal.incomeShare.remaining > 0 && (
+            <Button size="sm" variant="outline" onClick={() => onSuggestedContribution(goal.incomeShare!.remaining)}>
+              Aportar
+            </Button>
+          )}
         </p>
       )}
       {pace === 'OVERDUE' && (

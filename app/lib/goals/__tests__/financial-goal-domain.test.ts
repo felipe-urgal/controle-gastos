@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateGoalPercentage,
+  incomeShareSuggestion,
   monthlyContributionSuggestion,
 } from "@/app/lib/goals/financial-goal-domain";
 
@@ -33,5 +34,26 @@ describe("financial goal calculations", () => {
         now: new Date("2027-01-15T12:00:00.000Z"),
       }),
     ).toBeNull();
+  });
+});
+
+describe("incomeShareSuggestion", () => {
+  it("rende o percentual da receita do mês, abate o que já foi aportado e nunca fica negativo", () => {
+    expect(incomeShareSuggestion({ percent: 10, monthIncome: 500_000, contributedThisMonth: 0 })).toEqual({
+      percent: 10,
+      monthIncome: 500_000,
+      suggested: 50_000,
+      contributedThisMonth: 0,
+      remaining: 50_000,
+    });
+    expect(incomeShareSuggestion({ percent: 10, monthIncome: 500_000, contributedThisMonth: 20_000 })?.remaining).toBe(30_000);
+    expect(incomeShareSuggestion({ percent: 10, monthIncome: 500_000, contributedThisMonth: 80_000 })?.remaining).toBe(0);
+    // centavos inteiros: arredonda para baixo.
+    expect(incomeShareSuggestion({ percent: 33, monthIncome: 1_001, contributedThisMonth: 0 })?.suggested).toBe(330);
+  });
+
+  it("sem percentual ou sem receita no mês não há sugestão", () => {
+    expect(incomeShareSuggestion({ percent: null, monthIncome: 500_000, contributedThisMonth: 0 })).toBeNull();
+    expect(incomeShareSuggestion({ percent: 10, monthIncome: 0, contributedThisMonth: 0 })).toBeNull();
   });
 });

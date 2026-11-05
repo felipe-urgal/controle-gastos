@@ -125,3 +125,35 @@ export function monthlyContributionSuggestion(args: {
 
   return Math.ceil(remaining / months);
 }
+
+export type GoalIncomeShare = {
+  percent: number;
+  /** Receita realizada do mês na moeda da meta (centavos). */
+  monthIncome: number;
+  /** Quanto o percentual rende sobre a receita do mês. */
+  suggested: number;
+  /** Aportes já feitos nesta meta no mês. */
+  contributedThisMonth: number;
+  /** O que ainda falta aportar para chegar na sugestão (nunca negativo). */
+  remaining: number;
+};
+
+/**
+ * Sugestão de aporte: `percent`% da receita realizada do mês, menos o que já foi aportado no mês.
+ * Sem percentual ou sem receita no mês não há sugestão (`null`); só sugere, nada é gravado.
+ */
+export function incomeShareSuggestion(args: {
+  percent: number | null;
+  monthIncome: number;
+  contributedThisMonth: number;
+}): GoalIncomeShare | null {
+  if (args.percent === null || args.percent <= 0 || args.monthIncome <= 0) return null;
+  const suggested = Math.floor((args.monthIncome * args.percent) / 100);
+  return {
+    percent: args.percent,
+    monthIncome: args.monthIncome,
+    suggested,
+    contributedThisMonth: args.contributedThisMonth,
+    remaining: Math.max(0, suggested - args.contributedThisMonth),
+  };
+}

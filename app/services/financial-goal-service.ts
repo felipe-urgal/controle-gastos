@@ -14,6 +14,7 @@ export type FinancialGoalInput = {
   targetDate?: string | null;
   description?: string | null;
   accountId?: string | null;
+  incomeSharePercent?: number | null;
 };
 
 export const financialGoalService = {

@@ -28,6 +28,13 @@ export const createFinancialGoalSchema = z.object({
   targetDate: nullableTargetDate,
   description: z.string().trim().max(500).nullable().optional(),
   accountId: z.string().uuid("Conta inválida").nullable().optional(),
+  incomeSharePercent: z
+    .number()
+    .int("O percentual deve ser inteiro")
+    .min(1, "O percentual deve ser de 1 a 100")
+    .max(100, "O percentual deve ser de 1 a 100")
+    .nullable()
+    .optional(),
 });
 
 export const updateFinancialGoalSchema = createFinancialGoalSchema

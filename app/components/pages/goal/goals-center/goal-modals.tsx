@@ -131,6 +131,20 @@ export function GoalFormModal({
         </div>
 
         <Input
+          label="Guardar % da receita do mês (opcional)"
+          type="number"
+          min={1}
+          max={100}
+          value={form.incomeSharePercent}
+          onChange={(event) => onChange({ ...form, incomeSharePercent: event.target.value })}
+          disabled={saving}
+          placeholder="Ex.: 10"
+        />
+        <span className="-mt-2 block text-xs text-[var(--text-muted)]">
+          Só gera uma sugestão de aporte quando entrar receita; nada é guardado sozinho.
+        </span>
+
+        <Input
           label="Descrição"
           value={form.description}
           onChange={(event) =>

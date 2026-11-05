@@ -11,6 +11,8 @@ export type GoalFormState = {
   targetDate: string;
   description: string;
   accountId: string;
+  /** Percentual (1-100) da receita do mês a guardar; vazio = sem sugestão. */
+  incomeSharePercent: string;
 };
 
 export const emptyForm: GoalFormState = {
@@ -20,6 +22,7 @@ export const emptyForm: GoalFormState = {
   targetDate: '',
   description: '',
   accountId: '',
+  incomeSharePercent: '',
 };
 
 export function moneyInputFromCents(value: number) {
