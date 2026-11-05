@@ -45,6 +45,8 @@ interface NewProps {
   templateId?: string;
   initialMode?: ComposeMode;
   initialCategoryType?: CategoryType;
+  /** Vindo de "Agendar" em um modelo: abre o formulário no modo recorrente. */
+  startRecurring?: boolean;
 }
 
 function draftAmountLabel(amount: number) {
@@ -61,6 +63,7 @@ export default function New({
   templateId,
   initialMode = 'transaction',
   initialCategoryType = 'EXPENSE',
+  startRecurring = false,
 }: NewProps) {
   const router = useRouter();
   const { user, requireReauthentication } = useAuth();
@@ -510,6 +513,7 @@ export default function New({
           key={`transaction-form-${formRevision}`}
           isEditing={false}
           initialValues={initialValues}
+          initialCreationMode={startRecurring && isUsingTemplate ? 'recurring' : undefined}
           initialCategoryType={preferredCategoryType}
           onSuccess={loadedOfflineDraftId ? handleOfflineDraftSaved : undefined}
           offlineOwnerUserId={user?.id}

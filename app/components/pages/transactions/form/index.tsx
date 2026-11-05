@@ -19,8 +19,9 @@ export default function TransactionForm({
   onOfflineQueueChanged,
   reviewingQueueItem,
   onReviewedQueueItem,
+  initialCreationMode,
 }: TransactionFormProps) {
-  const form = useTransactionForm({ transaction, isEditing, initialDate, initialValues, onSuccess, onCancelOverride, initialCategoryType, onSelectTransfer, offlineOwnerUserId, offlineDraftId, onOfflineQueueChanged, reviewingQueueItem, onReviewedQueueItem });
+  const form = useTransactionForm({ transaction, isEditing, initialDate, initialValues, onSuccess, onCancelOverride, initialCategoryType, onSelectTransfer, offlineOwnerUserId, offlineDraftId, onOfflineQueueChanged, reviewingQueueItem, onReviewedQueueItem, initialCreationMode });
   const { formData, reviewOpen, setReviewOpen, learnMerchantCorrection, setLearnMerchantCorrection, learnCategoryCorrection, setLearnCategoryCorrection, merchantLearningOperator, setMerchantLearningOperator, categoryLearningOperator, setCategoryLearningOperator, storageUnavailable, isSubmitting, selectedAccount, selectedCategory, selectedMerchant, learningSuggestions, hasLearningSuggestions, formatCentsToCurrency, persistTransaction, operationLabel } = form;
 
   return (

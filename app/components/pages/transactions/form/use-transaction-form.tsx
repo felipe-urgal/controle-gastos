@@ -45,6 +45,7 @@ export function useTransactionForm({
   onOfflineQueueChanged,
   reviewingQueueItem,
   onReviewedQueueItem,
+  initialCreationMode = 'single',
 }: TransactionFormProps) {
 
   const router = useRouter();
@@ -56,7 +57,7 @@ export function useTransactionForm({
       initialValues,
     }),
   );
-  const [creationMode, setCreationMode] = useState<CreationMode>('single');
+  const [creationMode, setCreationMode] = useState<CreationMode>(initialCreationMode);
   const [recurrencePreset, setRecurrencePreset] = useState<RecurrencePreset>('monthly');
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>('count');
   const [occurrenceCount, setOccurrenceCount] = useState(12);

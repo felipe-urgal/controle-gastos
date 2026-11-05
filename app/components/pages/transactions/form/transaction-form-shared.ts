@@ -16,6 +16,8 @@ export interface TransactionFormProps {
   onOfflineQueueChanged?: () => void;
   reviewingQueueItem?: OfflineTransactionQueueItem | null;
   onReviewedQueueItem?: (payload: OfflineTransactionQueuePayload) => void;
+  /** Abre o formulário já no modo escolhido (ex.: "recurring" ao agendar a partir de um modelo). */
+  initialCreationMode?: CreationMode;
 }
 
 export type CreationMode = 'single' | 'recurring' | 'installment';
