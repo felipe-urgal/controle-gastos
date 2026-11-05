@@ -58,6 +58,7 @@ model User {
   lockedMonths                LockedMonth[]
   netWorthTargets             NetWorthTarget[]
   investmentAllocationTargets InvestmentAllocationTarget[]
+  transactionAttachments      TransactionAttachment[]
   pushSubscriptions           PushSubscription[]
   exchangeRates                ExchangeRate[]
   debts                   Debt[]
@@ -753,6 +754,7 @@ model Transaction {
   createOperation   TransactionCreateOperation?
   allocations       TransactionAllocation[]
   tagLinks          TransactionTag[]
+  attachments       TransactionAttachment[]
 
   seriesId    String?
   series      TransactionSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
@@ -1710,4 +1712,26 @@ model InvestmentAllocationTarget {
 
   @@unique([userId, currency, assetType])
   @@map("investment_allocation_targets")
+}
+
+/// Comprovante de um lançamento (foto ou PDF pequeno), guardado no próprio banco para não depender de armazenamento externo.
+/// Limites (tamanho, quantidade, cota por usuário) e tipo (pelos bytes) são validados na aplicação.
+model TransactionAttachment {
+  id        String @id @default(uuid())
+  filename  String @db.VarChar(120)
+  mimeType  String @map("mime_type") @db.VarChar(60)
+  sizeBytes Int    @map("size_bytes")
+  data      Bytes
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactionId String      @map("transaction_id")
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([transactionId])
+  @@index([userId])
+  @@map("transaction_attachments")
 }
