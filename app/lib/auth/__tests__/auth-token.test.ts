@@ -83,4 +83,28 @@ describe("auth token", () => {
 
     expect(() => verifyAuthToken(token)).toThrow();
   });
+
+  it("emite com o emissor e a audiência novos", () => {
+    expect(jwt.decode(signAuthToken("user-123", 0))).toMatchObject({
+      iss: "controle-gastos",
+      aud: "controle-gastos-users",
+    });
+  });
+
+  it("ainda aceita token emitido com o placeholder antigo (sem deslogar ninguém no deploy)", () => {
+    const legacy = jwt.sign({ sub: "user-123", authVersion: 2 }, JWT_SECRET, {
+      expiresIn: "1h",
+      issuer: "seu-app",
+      audience: "seu-app-users",
+    });
+    expect(verifyAuthToken(legacy)).toMatchObject({ userId: "user-123", authVersion: 2 });
+  });
+
+  it("recusa emissor ou audiência desconhecidos, mesmo com assinatura válida", () => {
+    const sign = (options: { issuer: string; audience: string }) =>
+      jwt.sign({ sub: "user-123", authVersion: 0 }, JWT_SECRET, { expiresIn: "1h", ...options });
+
+    expect(() => verifyAuthToken(sign({ issuer: "outro-app", audience: "controle-gastos-users" }))).toThrow();
+    expect(() => verifyAuthToken(sign({ issuer: "controle-gastos", audience: "outra-audiencia" }))).toThrow();
+  });
 });
