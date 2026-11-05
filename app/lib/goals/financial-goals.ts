@@ -9,15 +9,18 @@ import {
   calculateGoalPercentage,
   calculateGoalProgress,
   calculateGoalRemaining,
+  incomeShareSuggestion,
   monthlyContributionSuggestion,
   resolveGoalStatus,
   targetDateFromParts,
   targetDateParts,
+  type GoalIncomeShare,
 } from "@/app/lib/goals/financial-goal-domain";
 import {
   createFinancialGoalSchema,
   updateFinancialGoalSchema,
 } from "@/app/lib/goals/financial-goal-schema";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { prisma } from "@/app/lib/prisma";
 const MAX_SERIALIZABLE_ATTEMPTS = 3;
@@ -147,6 +150,8 @@ function toGoalResult(
     status: goal.status,
     description: goal.description,
     account: goal.account,
+    incomeSharePercent: goal.incomeSharePercent,
+    incomeShare: null as GoalIncomeShare | null,
     currentAmount: progress.currentAmount,
     contributions: progress.contributions,
     withdrawals: progress.withdrawals,
@@ -196,6 +201,72 @@ type GoalFilters = {
   currency?: "BRL" | "USD" | "EUR";
 };
 
+/**
+ * Sugestão de aporte (percentual da receita realizada do mês) das metas ativas que definiram um percentual.
+ * Receita = lançamentos de receita concluídos no mês atual (data do Brasil) em contas da moeda da meta;
+ * já aportado = aportes registrados na meta desde o início do mês (meia-noite de Brasília = 03:00 UTC).
+ */
+async function incomeSharesForGoals(
+  userId: string,
+  goals: GoalRecord[],
+): Promise<Map<string, GoalIncomeShare>> {
+  const eligible = goals.filter((goal) => goal.status === "ACTIVE" && goal.incomeSharePercent !== null);
+  if (eligible.length === 0) return new Map();
+
+  const today = logicalDateFromInstant(new Date());
+  const monthStart = new Date(Date.UTC(today.year, today.month - 1, 1, 3, 0, 0));
+  const currencies = [...new Set(eligible.map((goal) => goal.currency))];
+
+  const [incomeRows, contributionRows] = await Promise.all([
+    prisma.transaction.groupBy({
+      by: ["accountId"],
+      where: {
+        userId,
+        type: "INCOME",
+        kind: "NORMAL",
+        status: "COMPLETED",
+        year: today.year,
+        month: today.month,
+        account: { is: { userId, currency: { in: currencies } } },
+      },
+      _sum: { amount: true },
+    }),
+    prisma.financialGoalEntry.groupBy({
+      by: ["goalId"],
+      where: {
+        userId,
+        goalId: { in: eligible.map((goal) => goal.id) },
+        type: "CONTRIBUTION",
+        createdAt: { gte: monthStart },
+      },
+      _sum: { amount: true },
+    }),
+  ]);
+
+  const accounts = await prisma.account.findMany({
+    where: { userId, id: { in: incomeRows.map((row) => row.accountId) } },
+    select: { id: true, currency: true },
+  });
+  const currencyByAccount = new Map(accounts.map((account) => [account.id, account.currency]));
+  const incomeByCurrency = new Map<string, number>();
+  for (const row of incomeRows) {
+    const currency = currencyByAccount.get(row.accountId);
+    if (currency) incomeByCurrency.set(currency, (incomeByCurrency.get(currency) ?? 0) + (row._sum.amount ?? 0));
+  }
+  const contributedByGoal = new Map(contributionRows.map((row) => [row.goalId, row._sum.amount ?? 0]));
+
+  const result = new Map<string, GoalIncomeShare>();
+  for (const goal of eligible) {
+    const share = incomeShareSuggestion({
+      percent: goal.incomeSharePercent,
+      monthIncome: incomeByCurrency.get(goal.currency) ?? 0,
+      contributedThisMonth: contributedByGoal.get(goal.id) ?? 0,
+    });
+    if (share) result.set(goal.id, share);
+  }
+  return result;
+}
+
 export async function listFinancialGoalsForUser(
   userId: string,
   filters: GoalFilters = {},
@@ -223,8 +294,10 @@ export async function listFinancialGoalsForUser(
     goals.map((goal) => goal.id),
   );
 
-  return goals.map((goal) =>
-    toGoalResult(
+  const shares = await incomeSharesForGoals(userId, goals);
+
+  return goals.map((goal) => ({
+    ...toGoalResult(
       goal,
       progress.get(goal.id) ?? {
         contributions: 0,
@@ -232,7 +305,8 @@ export async function listFinancialGoalsForUser(
         currentAmount: 0,
       },
     ),
-  );
+    incomeShare: shares.get(goal.id) ?? null,
+  }));
 }
 
 export async function getFinancialGoals(request: Request) {
@@ -290,6 +364,7 @@ export async function createFinancialGoal(request: Request) {
         currency: input.currency,
         ...dateParts,
         description: input.description ?? null,
+        incomeSharePercent: input.incomeSharePercent ?? null,
         accountId: input.accountId ?? null,
       },
       include: goalListInclude,
@@ -440,6 +515,9 @@ async function updateFinancialGoalTransaction(
             : {}),
           ...(input.accountId !== undefined
             ? { accountId: input.accountId ?? null }
+            : {}),
+          ...(input.incomeSharePercent !== undefined
+            ? { incomeSharePercent: input.incomeSharePercent }
             : {}),
           status: nextStatus,
         },

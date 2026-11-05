@@ -142,6 +142,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
       targetDate: goal.targetDate ?? '',
       description: goal.description ?? '',
       accountId: goal.account?.id ?? '',
+      incomeSharePercent: goal.incomeSharePercent === null ? '' : String(goal.incomeSharePercent),
     });
     setFormError(null);
     setFormOpen(true);
@@ -163,6 +164,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
       targetDate: form.targetDate || null,
       description: form.description.trim() || null,
       accountId: form.accountId || null,
+      incomeSharePercent: form.incomeSharePercent.trim() ? Number(form.incomeSharePercent) : null,
     };
 
     setSaving(true);
@@ -191,10 +193,10 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
     }
   }
 
-  function openEntry(goal: FinancialGoal, type: FinancialGoalEntryType) {
+  function openEntry(goal: FinancialGoal, type: FinancialGoalEntryType, prefillCents?: number) {
     setEntryGoal(goal);
     setEntryType(type);
-    setEntryAmount('');
+    setEntryAmount(prefillCents ? moneyInputFromCents(prefillCents) : '');
     setEntryDescription('');
     setEntryError(null);
     setEntryIdempotencyKey(crypto.randomUUID());
@@ -449,6 +451,7 @@ export default function GoalsCenter({ focusGoalId }: { focusGoalId?: string }) {
                   onOpen={() => void openDetail(goal)}
                   onEdit={() => openEdit(goal)}
                   onContribution={() => openEntry(goal, 'CONTRIBUTION')}
+                  onSuggestedContribution={(amount) => openEntry(goal, 'CONTRIBUTION', amount)}
                   onWithdrawal={() => openEntry(goal, 'WITHDRAWAL')}
                   onArchive={() => setArchiveGoal(goal)}
                   onReactivate={() => void reactivate(goal)}

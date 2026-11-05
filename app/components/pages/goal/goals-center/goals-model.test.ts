@@ -20,6 +20,8 @@ function goal(partial: Partial<FinancialGoal> & { id: string }): FinancialGoal {
     status: 'ACTIVE',
     description: null,
     account: null,
+    incomeSharePercent: null,
+    incomeShare: null,
     currentAmount: 0,
     contributions: 0,
     withdrawals: 0,

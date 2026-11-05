@@ -19,6 +19,8 @@ import {
   removeFinancialGoal,
   updateFinancialGoal,
 } from "@/app/lib/goals/financial-goals";
+import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
+import { listFinancialGoalsForUser } from "@/app/lib/goals/financial-goals";
 import { prisma } from "@/app/lib/prisma";
 import { FinancialTestFactory } from "@/tests/support/financial-test-factory";
 
@@ -493,5 +495,42 @@ describe("financial goals integration", () => {
     );
 
     expect(response.status).toBe(404);
+  });
+
+  it("sugere o aporte pelo percentual da receita do mês, por moeda, abatendo o que já foi aportado", async () => {
+    const { owner, brlAccount, usdAccount } = await createGoalFixture();
+    const category = await fixtures.category(owner.id, { name: "Renda meta", type: "INCOME" });
+    const today = logicalDateFromInstant(new Date());
+    const income = (accountId: string, amount: number, extra: { status?: "COMPLETED" | "PENDING"; month?: number } = {}) =>
+      prisma.transaction.create({
+        data: {
+          userId: owner.id, accountId, categoryId: category.id, amount, type: "INCOME",
+          status: extra.status ?? "COMPLETED", description: "Receita", year: today.year, month: extra.month ?? today.month, day: 1,
+        },
+      });
+    await income(brlAccount.id, 500_000);
+    await income(brlAccount.id, 999_999, { status: "PENDING" });
+    await income(usdAccount.id, 100_000);
+
+    const brl = await (await createGoalThroughApi(owner.id, { name: "Reserva BRL", targetAmount: 1_000_000, currency: "BRL", incomeSharePercent: 10 })).json();
+    const usd = await (await createGoalThroughApi(owner.id, { name: "Reserva USD", targetAmount: 1_000_000, currency: "USD", incomeSharePercent: 20 })).json();
+    const plain = await (await createGoalThroughApi(owner.id, { name: "Sem percentual", targetAmount: 1_000_000, currency: "BRL" })).json();
+    await prisma.financialGoalEntry.create({ data: { userId: owner.id, goalId: brl.data.id, type: "CONTRIBUTION", amount: 20_000 } });
+    await prisma.financialGoalEntry.create({ data: { userId: owner.id, goalId: brl.data.id, type: "WITHDRAWAL", amount: 5_000 } });
+
+    const goals = await listFinancialGoalsForUser(owner.id);
+    const byId = new Map(goals.map((goal) => [goal.id, goal]));
+    expect(byId.get(brl.data.id)?.incomeShare).toEqual({ percent: 10, monthIncome: 500_000, suggested: 50_000, contributedThisMonth: 20_000, remaining: 30_000 });
+    expect(byId.get(usd.data.id)?.incomeShare).toEqual({ percent: 20, monthIncome: 100_000, suggested: 20_000, contributedThisMonth: 0, remaining: 20_000 });
+    expect(byId.get(plain.data.id)?.incomeShare).toBeNull();
+    expect(byId.get(plain.data.id)?.incomeSharePercent).toBeNull();
+  });
+
+  it("rejeita percentual fora de 1 a 100", async () => {
+    const { owner } = await createGoalFixture();
+    const base = { name: "Percentual inválido", targetAmount: 100_000, currency: "BRL" };
+    expect((await createGoalThroughApi(owner.id, { ...base, incomeSharePercent: 0 })).status).toBe(400);
+    expect((await createGoalThroughApi(owner.id, { ...base, incomeSharePercent: 101 })).status).toBe(400);
+    expect((await createGoalThroughApi(owner.id, { ...base, incomeSharePercent: 12.5 })).status).toBe(400);
   });
 });

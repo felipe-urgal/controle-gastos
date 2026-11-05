@@ -27,6 +27,16 @@ export type FinancialGoal = {
     type: AccountType;
     isActive: boolean;
   } | null;
+  /** Percentual (1-100) da receita do mês que a pessoa quer guardar; gera só uma sugestão de aporte. */
+  incomeSharePercent: number | null;
+  /** Sugestão do mês (só na listagem, para metas ativas com percentual e receita no mês). */
+  incomeShare: {
+    percent: number;
+    monthIncome: number;
+    suggested: number;
+    contributedThisMonth: number;
+    remaining: number;
+  } | null;
   currentAmount: number;
   contributions: number;
   withdrawals: number;
