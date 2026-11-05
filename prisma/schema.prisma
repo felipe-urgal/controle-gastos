@@ -57,6 +57,7 @@ model User {
   notificationPreferences     NotificationPreference[]
   lockedMonths                LockedMonth[]
   netWorthTargets             NetWorthTarget[]
+  investmentAllocationTargets InvestmentAllocationTarget[]
   pushSubscriptions           PushSubscription[]
   exchangeRates                ExchangeRate[]
   debts                   Debt[]
@@ -1692,4 +1693,21 @@ model NetWorthTarget {
 
   @@unique([userId, currency])
   @@map("net_worth_targets")
+}
+
+/// Alocação alvo da carteira por classe de ativo, por moeda. Cada conjunto soma 100%; a conta de rebalanceamento é feita na leitura.
+model InvestmentAllocationTarget {
+  id        String              @id @default(uuid())
+  currency  String              @db.Char(3)
+  assetType InvestmentAssetType @map("asset_type")
+  percent   Int
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, currency, assetType])
+  @@map("investment_allocation_targets")
 }

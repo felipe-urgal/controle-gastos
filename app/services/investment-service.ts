@@ -28,6 +28,12 @@ import type {
 } from "@/app/types/investment";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 
+export type InvestmentAllocationTarget = {
+  currency: SupportedCurrency;
+  assetType: InvestmentAssetType;
+  percent: number;
+};
+
 export type InvestmentAssetInput = {
   symbol: string;
   name?: string | null;
@@ -176,6 +182,18 @@ export type InvestmentIncomeInput = {
 };
 
 export const investmentService = {
+  getAllocationTargets(): Promise<ApiResponse<InvestmentAllocationTarget[]>> {
+    return apiClient("/api/investments/allocation-targets", { method: "GET" });
+  },
+
+  /** Substitui a alocação alvo de uma moeda (lista vazia remove). */
+  saveAllocationTargets(
+    currency: SupportedCurrency,
+    targets: Array<{ assetType: InvestmentAssetType; percent: number }>,
+  ): Promise<ApiResponse<InvestmentAllocationTarget[]>> {
+    return apiClient("/api/investments/allocation-targets", { method: "PUT", body: { currency, targets } });
+  },
+
   async getPortfolio(): Promise<ApiResponse<InvestmentPortfolio>> {
     return apiClient("/api/investments", { method: "GET" });
   },
