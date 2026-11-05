@@ -1,5 +1,6 @@
 import { apiClient, dedupeInFlightRead } from "@/app/services/api-client";
 import { createBaseService, type ApiResponse } from "@/app/services/base-service";
+import { downloadServerFile } from "@/app/services/download-file";
 import { AccountModel } from "@/app/types/account";
 
 const baseAccountService = createBaseService<AccountModel>("accounts");
@@ -14,6 +15,15 @@ export type AccountBalancePreview = {
 
 export const accountService = {
   ...baseAccountService,
+  /** Baixa o extrato da conta (concluídos do período, com saldo corrente) em CSV. Datas no formato AAAA-MM-DD. */
+  downloadStatement(id: string, from: string, to: string) {
+    const query = new URLSearchParams({ from, to });
+    return downloadServerFile(
+      `/api/accounts/${id}/statement?${query}`,
+      `extrato-${from}-a-${to}.csv`,
+      "Não foi possível exportar o extrato.",
+    );
+  },
   // Várias partes da tela pedem as contas juntas; pedidos simultâneos idênticos viram um só.
   getAll: (query?: Parameters<typeof baseAccountService.getAll>[0]) =>
     dedupeInFlightRead(`accounts:${JSON.stringify(query ?? {})}`, () => baseAccountService.getAll(query)),

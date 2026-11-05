@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useState } from 'react';
-import { FaArrowDown, FaArrowUp, FaBalanceScale, FaExchangeAlt } from 'react-icons/fa';
+import { FaArrowDown, FaArrowUp, FaBalanceScale, FaExchangeAlt, FaFileCsv } from 'react-icons/fa';
 
 import { MobileAppBar } from '@/app/components/layout';
 import { blurIn, flipIn, riseInView } from '@/app/components/pages/account/account-motion';
@@ -15,6 +15,7 @@ import {
   type MovementFilter,
 } from '@/app/components/pages/account/show/account-show-model';
 import BalanceCheckDialog from '@/app/components/pages/account/show/balance-check-dialog';
+import StatementDialog from '@/app/components/pages/account/show/statement-dialog';
 import { Button, Chip, IconRenderer, ShowBelow } from '@/app/components/ui';
 import { CARD_EASE, reducedTransition } from '@/app/components/ui/motion';
 import { useAuth } from '@/app/context';
@@ -177,6 +178,7 @@ export default function AccountShowView({
 }) {
   const { user } = useAuth();
   const [balanceCheckOpen, setBalanceCheckOpen] = useState(false);
+  const [statementOpen, setStatementOpen] = useState(false);
   const reduce = useReducedMotion();
   const showValues = user?.showValues !== false;
   const money = (cents: number) => (showValues ? formatCurrency(cents, account.currency) : '••••');
@@ -280,17 +282,29 @@ export default function AccountShowView({
             )}
             {account.description && <p className="mt-2 text-sm text-[var(--text-muted)]">{account.description}</p>}
             {!showValues && <p className="mt-1 text-sm text-[var(--text-subtle)]">Valores ocultos pelas suas preferências.</p>}
-            {canCheckBalance(account) && account.isActive && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                icon={<FaBalanceScale aria-hidden="true" />}
-                onClick={() => setBalanceCheckOpen(true)}
-              >
-                Conferir saldo
-              </Button>
+            {canCheckBalance(account) && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {account.isActive && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    icon={<FaBalanceScale aria-hidden="true" />}
+                    onClick={() => setBalanceCheckOpen(true)}
+                  >
+                    Conferir saldo
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  icon={<FaFileCsv aria-hidden="true" />}
+                  onClick={() => setStatementOpen(true)}
+                >
+                  Exportar extrato
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -319,6 +333,8 @@ export default function AccountShowView({
       </motion.section>
 
       <Movements account={account} showValues={showValues} />
+
+      {statementOpen && <StatementDialog account={account} onClose={() => setStatementOpen(false)} />}
 
       {balanceCheckOpen && (
         <BalanceCheckDialog account={account} onClose={() => setBalanceCheckOpen(false)} onAdjusted={onBalanceAdjusted} />
