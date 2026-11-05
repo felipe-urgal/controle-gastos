@@ -39,6 +39,7 @@ export async function POST(request: Request) {
       userId,
       enrollmentToken,
       token,
+      userAgent: request.headers.get("user-agent"),
     });
     return success(activation, "2FA ativado com sucesso");
   } catch (error) {

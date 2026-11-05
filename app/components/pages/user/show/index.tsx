@@ -11,6 +11,7 @@ import { ConfirmationModal, DeleteOverlay } from '@/app/components/overlays';
 import { Button, Input } from '@/app/components/ui';
 import ExportData from '@/app/components/pages/user/show/export-data';
 import McpAccessPanel from '@/app/components/pages/user/show/mcp-access-panel';
+import SessionsPanel from '@/app/components/pages/user/show/sessions-panel';
 import MfaSecurityPanel from '@/app/components/pages/user/show/mfa-security-panel';
 import Preferences from '@/app/components/pages/user/show/preferences';
 import NotificationPreferences from '@/app/components/pages/user/show/preferences/notification-preferences';
@@ -169,12 +170,15 @@ export default function Show() {
               )}
 
               {activeSection === 'security' && (
-                <MfaSecurityPanel
-                  enabled={user.totpEnabled}
-                  onEnabledChange={(enabled) => {
-                    setUser((current) => current ? { ...current, totpEnabled: enabled } : current);
-                  }}
-                />
+                <div className="space-y-5">
+                  <MfaSecurityPanel
+                    enabled={user.totpEnabled}
+                    onEnabledChange={(enabled) => {
+                      setUser((current) => current ? { ...current, totpEnabled: enabled } : current);
+                    }}
+                  />
+                  <SessionsPanel />
+                </div>
               )}
 
               {activeSection === 'integrations' && <McpAccessPanel totpEnabled={user.totpEnabled} />}

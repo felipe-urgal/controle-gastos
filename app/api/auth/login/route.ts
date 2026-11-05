@@ -3,7 +3,7 @@ import { parseJsonBody } from "@/app/lib/api/request-json";
 import { isHttpError } from "@/app/lib/http-error";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/prisma";
-import { signAuthToken } from "@/app/lib/auth/auth-token";
+import { issueAuthSession } from "@/app/lib/auth/auth-session";
 import {
   clearAuthCookies,
   setAuthCookie,
@@ -138,7 +138,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       return withRequestId(response, requestId);
     }
 
-    const token = signAuthToken(user.id, user.authVersion);
+    const { token } = await issueAuthSession({ userId: user.id, authVersion: user.authVersion, request });
 
     await Promise.allSettled([
       clearLoginRateLimit(rateLimitSubject),

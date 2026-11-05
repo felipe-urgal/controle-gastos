@@ -59,6 +59,8 @@ model User {
   netWorthTargets             NetWorthTarget[]
   investmentAllocationTargets InvestmentAllocationTarget[]
   transactionAttachments      TransactionAttachment[]
+  authSessions                AuthSession[]
+  securityEvents              AccountSecurityEvent[]
   pushSubscriptions           PushSubscription[]
   exchangeRates                ExchangeRate[]
   debts                   Debt[]
@@ -1734,4 +1736,47 @@ model TransactionAttachment {
   @@index([transactionId])
   @@index([userId])
   @@map("transaction_attachments")
+}
+
+/// Sessão de login por aparelho. O token carrega o id (`sid`); revogar marca `revokedAt` e o aparelho cai na próxima requisição.
+/// Tokens emitidos antes desta tabela não têm `sid` e valem até expirar. `authVersion` guarda a versão da conta no login:
+/// troca de senha (que incrementa a versão) invalida a sessão sem depender de varrer a tabela.
+model AuthSession {
+  id          String    @id @default(uuid())
+  userAgent   String?   @map("user_agent") @db.VarChar(200)
+  authVersion Int       @map("auth_version")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  lastSeenAt  DateTime  @default(now()) @map("last_seen_at")
+  expiresAt   DateTime  @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt, expiresAt])
+  @@map("auth_sessions")
+}
+
+enum AccountSecurityEventType {
+  LOGIN
+  PASSWORD_CHANGED
+  PASSWORD_RESET
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
+  SESSIONS_REVOKED
+}
+
+/// Histórico de eventos de segurança da conta (login, senha, 2FA, sessões). Guarda só o tipo, o momento e o aparelho
+/// (user agent truncado); nunca senha, token nem IP.
+model AccountSecurityEvent {
+  id        String                   @id @default(uuid())
+  type      AccountSecurityEventType
+  userAgent String?                  @map("user_agent") @db.VarChar(200)
+  createdAt DateTime                 @default(now()) @map("created_at")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("account_security_events")
 }

@@ -137,5 +137,9 @@ describe("password reset lifecycle", () => {
       select: { authVersion: true },
     });
     expect(updated.authVersion).toBe(user.authVersion + 1);
+    // O reset bem-sucedido (um só) entra no histórico de segurança da conta.
+    expect(
+      await prisma.accountSecurityEvent.count({ where: { userId: user.id, type: "PASSWORD_RESET" } }),
+    ).toBe(1);
   });
 });

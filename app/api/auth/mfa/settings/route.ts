@@ -45,6 +45,7 @@ export async function DELETE(request: Request) {
       currentPassword,
       token,
       recoveryCode,
+      userAgent: request.headers.get("user-agent"),
     });
     return success(result, "2FA desativado com sucesso");
   } catch (error) {

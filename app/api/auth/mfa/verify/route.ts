@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
 import { setAuthCookie } from "@/app/lib/auth/auth-cookie";
-import { signAuthToken } from "@/app/lib/auth/auth-token";
+import { issueAuthSession } from "@/app/lib/auth/auth-session";
 import { isHttpError } from "@/app/lib/http-error";
 import { getRequestId, logEvent, withRequestId } from "@/app/lib/observability";
 import { prisma } from "@/app/lib/prisma";
@@ -124,7 +124,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const { user, authVersion } = result;
-    const authToken = signAuthToken(user.id, authVersion);
+    const { token: authToken } = await issueAuthSession({ userId: user.id, authVersion, request });
 
     await Promise.allSettled([
       clearMfaLoginPrincipalRateLimit(user.id),
