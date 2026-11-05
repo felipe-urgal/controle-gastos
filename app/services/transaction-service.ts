@@ -77,6 +77,17 @@ export const transactionService = {
     });
   },
 
+  /** Troca categoria e/ou estabelecimento (`null` remove) de várias transações; tudo ou nada. */
+  async bulkUpdate(
+    ids: string[],
+    changes: { categoryId?: string; merchantId?: string | null },
+  ): Promise<ApiResponse<{ updated: number }>> {
+    return apiClient<ApiResponse<{ updated: number }>, { ids: string[]; changes: typeof changes }>(
+      "/api/transactions/bulk",
+      { method: "PATCH", body: { ids, changes } },
+    );
+  },
+
   /** Troca só o status (concluída, pendente ou cancelada) de um lançamento normal. */
   async updateStatus(
     id: string,

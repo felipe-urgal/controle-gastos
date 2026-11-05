@@ -24,6 +24,7 @@ import type { CurrencyFinancialSummary, SupportedCurrency, TransactionListSummar
 import type { MerchantDTO } from '@/app/types/merchant';
 
 import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilter, REFINEMENT_FILTER_KEYS, TIMELINE_INCREMENT, TimelineOrder, buildMonthBars, buildTimelineGroups, displayMoney, formatTrend, percentageChange, selectSummary, shiftPeriod, todayDateKey, transactionDateKey, usePreviousSummary } from '@/app/components/pages/transactions/index/transactions-view-helpers';
+import BulkEditBar from '@/app/components/pages/transactions/index/bulk-edit-bar';
 import { DeletedTransactionUndo } from '@/app/components/pages/transactions/index/deleted-transaction-undo';
 import { BackupDialog } from '@/app/components/pages/transactions/index/backup-dialog';
 import { ClearPeriodDialog } from '@/app/components/pages/transactions/index/clear-period-dialog';
@@ -280,6 +281,22 @@ export default function TransactionsPage() {
     if (hasMore && !loading && !error && sortedTransactions.length < MIN_FILTERED_ITEMS) loadMore();
   }, [error, hasMore, loading, loadMore, sortedTransactions.length]);
 
+  // Edição em lote: modo de seleção + ids marcados (só o que está na lista; muda o contexto, zera a seleção).
+  const [selecting, setSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
+  function toggleSelecting() {
+    setSelecting((current) => !current);
+    setSelectedIds(new Set());
+  }
+  function toggleSelect(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   const timelineContextKey = [
     month,
     year,
@@ -389,6 +406,10 @@ export default function TransactionsPage() {
           onMovePeriod={movePeriod}
           onSelectPeriod={applyPeriod}
           onTransactionCompleted={() => void refetch()}
+          selecting={selecting}
+          selectedIds={selectedIds}
+          onToggleSelecting={toggleSelecting}
+          onToggleSelect={toggleSelect}
           pending={pendingTotals}
           onOpenFilters={() => {
             setFiltersOrigin(null);
@@ -516,6 +537,10 @@ export default function TransactionsPage() {
                   showValues={showValues}
                   loading={loading}
                   onTransactionCompleted={() => void refetch()}
+                  selecting={selecting}
+                  selectedIds={selectedIds}
+                  onToggleSelecting={toggleSelecting}
+                  onToggleSelect={toggleSelect}
                   hasMore={visibleCount < sortedTransactions.length || hasMore}
                   onLoadMore={() => {
                     if (visibleCount < sortedTransactions.length) {
@@ -567,6 +592,20 @@ export default function TransactionsPage() {
           />
         )}
       </AnimatePresence>
+
+      {selecting && selectedIds.size > 0 && (
+        <BulkEditBar
+          selectedIds={[...selectedIds]}
+          categoryOptions={categoryOptions as Array<{ label: string; options: Array<{ value: string; label: string }> }>}
+          merchantOptions={merchants.filter((merchant) => merchant.isActive).map((merchant) => ({ value: merchant.id, label: merchant.name }))}
+          onDone={() => {
+            setSelecting(false);
+            setSelectedIds(new Set());
+            void refetch();
+          }}
+          onCancel={toggleSelecting}
+        />
+      )}
 
       {backupOpen && (
         <BackupDialog
