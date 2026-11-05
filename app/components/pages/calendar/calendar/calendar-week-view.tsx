@@ -98,15 +98,23 @@ export default function CalendarWeekView({
                       onDragEnd={() => setDropTarget(null)}
                       className={draggable ? 'cursor-grab active:cursor-grabbing' : ''}
                     >
-                      <button
-                        type="button"
+                      {/* O item inteiro é arrastável, então o foco e o Enter/Espaço ficam num div com papel de botão. */}
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => onOpenEvent(event)}
+                        onKeyDown={(key) => {
+                          if (key.key === 'Enter' || key.key === ' ') {
+                            key.preventDefault();
+                            onOpenEvent(event);
+                          }
+                        }}
                         title={draggable ? 'Arraste para outro dia para reagendar' : undefined}
-                        className={`block w-full min-w-0 rounded-[var(--radius-sm)] px-1.5 py-1 text-left text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${chipTone(event)}`}
+                        className={`block w-full min-w-0 cursor-pointer rounded-[var(--radius-sm)] px-1.5 py-1 text-left text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] ${chipTone(event)}`}
                       >
                         <span className="block truncate font-semibold">{event.title}</span>
                         {amountLabel(event, showValues) && <span className="money block truncate">{amountLabel(event, showValues)}</span>}
-                      </button>
+                      </div>
                     </li>
                   );
                 })}
