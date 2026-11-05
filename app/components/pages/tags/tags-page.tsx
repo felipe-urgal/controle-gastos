@@ -26,6 +26,7 @@ import { useAuth } from '@/app/context';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { normalizeTagDisplayName } from '@/app/lib/tags/tag-name';
 import { tagService } from '@/app/services/tag-service';
+import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { TagDTO, TagReport, TagReportPeriod } from '@/app/types/tag';
 import { errorMessage } from '@/app/lib/error-message';
 
@@ -220,6 +221,18 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
     } finally {
       setLifecycleId(null);
     }
+  }
+
+  /** Define ou remove o orçamento do projeto da tag selecionada e recarrega o relatório com o novo consumo. */
+  async function saveBudget(next: { amount: number; currency: SupportedCurrency } | null) {
+    const tag = selectedReportTag;
+    if (!tag) return;
+    const response = await tagService.update(tag.id, {
+      budgetAmount: next?.amount ?? null,
+      budgetCurrency: next?.currency ?? null,
+    });
+    replaceTag(response.data);
+    await loadReport(response.data);
   }
 
   async function removeTag() {
@@ -472,6 +485,7 @@ export default function TagsPage({ focusTagId }: { focusTagId?: string }) {
             showValues={showValues}
             onPeriodChange={changeReportPeriod}
             onRetry={() => selectedReportTag && void loadReport(selectedReportTag)}
+            onSaveBudget={saveBudget}
           />
         </section>
 

@@ -72,3 +72,23 @@ describe("transaction tags schema", () => {
     ).toBe(false);
   });
 });
+
+describe("tag budget schema", () => {
+  it("aceita valor e moeda juntos, ou os dois nulos para limpar", () => {
+    expect(createTagSchema.parse({ name: "Viagem", budgetAmount: 500_000, budgetCurrency: "BRL" })).toMatchObject({
+      budgetAmount: 500_000,
+      budgetCurrency: "BRL",
+    });
+    expect(updateTagSchema.parse({ budgetAmount: null, budgetCurrency: null })).toEqual({ budgetAmount: null, budgetCurrency: null });
+    expect(createTagSchema.parse({ name: "Sem orçamento" })).toEqual({ name: "Sem orçamento" });
+  });
+
+  it("recusa só um dos dois, valor não positivo ou fracionado e moeda inválida", () => {
+    expect(createTagSchema.safeParse({ name: "X", budgetAmount: 1000 }).success).toBe(false);
+    expect(updateTagSchema.safeParse({ budgetCurrency: "BRL" }).success).toBe(false);
+    expect(updateTagSchema.safeParse({ budgetAmount: 1000, budgetCurrency: null }).success).toBe(false);
+    expect(updateTagSchema.safeParse({ budgetAmount: 0, budgetCurrency: "BRL" }).success).toBe(false);
+    expect(updateTagSchema.safeParse({ budgetAmount: 10.5, budgetCurrency: "BRL" }).success).toBe(false);
+    expect(updateTagSchema.safeParse({ budgetAmount: 1000, budgetCurrency: "XXX" }).success).toBe(false);
+  });
+});

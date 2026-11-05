@@ -10,10 +10,12 @@ import {
   hasHistory,
   reportPeriodOptions,
 } from '@/app/components/pages/tags/tags-model';
+import TagBudgetSection from '@/app/components/pages/tags/tag-budget-section';
 import { Button, Chip } from '@/app/components/ui';
 import { CountUp, PopBox } from '@/app/components/ui/motion';
 import { riseInView } from '@/app/components/ui/motion-presets';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
+import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { TagDTO, TagReport, TagReportPeriod } from '@/app/types/tag';
 
 export default function TagReportPanel({
@@ -25,6 +27,7 @@ export default function TagReportPanel({
   showValues,
   onPeriodChange,
   onRetry,
+  onSaveBudget,
 }: {
   tag: TagDTO | null;
   report: TagReport | null;
@@ -34,6 +37,7 @@ export default function TagReportPanel({
   showValues: boolean;
   onPeriodChange: (period: TagReportPeriod) => void;
   onRetry: () => void;
+  onSaveBudget: (next: { amount: number; currency: SupportedCurrency } | null) => Promise<void>;
 }) {
   const reduce = useReducedMotion();
   const money = (cents: number, currency: string) => (showValues ? formatCurrency(cents, currency) : '••••');
@@ -88,6 +92,9 @@ export default function TagReportPanel({
       ) : null}
 
       <div className="mt-4 grid gap-3 px-4">
+        {tag && report && !loading && !error ? (
+          <TagBudgetSection tag={tag} budget={report.budget} showValues={showValues} onSave={onSaveBudget} />
+        ) : null}
         {!tag ? (
           <p className="text-sm text-[var(--text-muted)]">Selecione uma tag para ver receitas e despesas concluídas, separadas por moeda.</p>
         ) : loading ? (

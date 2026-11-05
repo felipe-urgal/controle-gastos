@@ -4,6 +4,7 @@ import {
   aggregateTagCurrencies,
   aggregateTagHistory,
   parseTagReportPeriod,
+  tagBudgetStatus,
   tagHistoryWindow,
   type TagReportRow,
 } from "@/app/lib/tags/tag-report-model";
@@ -82,5 +83,36 @@ describe("aggregateTagHistory", () => {
 
   it("não devolve histórico sem movimentos", () => {
     expect(aggregateTagHistory([], asOf)).toEqual([]);
+  });
+});
+
+describe("tagBudgetStatus", () => {
+  it("compara a despesa líquida de toda a vida na moeda do orçamento, sem misturar moedas", () => {
+    const rows = [
+      row({ year: 2025, month: 3, total: 40_000 }),
+      row({ total: 30_000 }),
+      row({ type: "INCOME", total: 5_000 }),
+      row({ currency: "USD", total: 999_999 }),
+    ];
+    expect(tagBudgetStatus({ amount: 100_000, currency: "BRL" }, rows, asOf)).toEqual({
+      currency: "BRL",
+      amount: 100_000,
+      spent: 70_000,
+      remaining: 30_000,
+      percentage: 70,
+      over: false,
+    });
+  });
+
+  it("marca estouro, trata moeda sem lançamentos como zero e devolve null sem orçamento", () => {
+    const over = tagBudgetStatus({ amount: 50_000, currency: "BRL" }, [row({ total: 75_000 })], asOf);
+    expect(over).toMatchObject({ spent: 75_000, remaining: -25_000, percentage: 150, over: true });
+    expect(tagBudgetStatus({ amount: 50_000, currency: "EUR" }, [row({ total: 75_000 })], asOf)).toMatchObject({
+      spent: 0,
+      remaining: 50_000,
+      percentage: 0,
+      over: false,
+    });
+    expect(tagBudgetStatus({ amount: null, currency: null }, [row({})], asOf)).toBeNull();
   });
 });

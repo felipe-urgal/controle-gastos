@@ -898,6 +898,9 @@ model Tag {
   name           String  @db.VarChar(40)
   normalizedName String  @map("normalized_name") @db.VarChar(40)
   isActive       Boolean @default(true) @map("is_active")
+  /// Orçamento do projeto (ex.: uma viagem): vale para tudo que a tag acumula, numa única moeda. Os dois campos andam juntos.
+  budgetAmount   Int?    @map("budget_amount")
+  budgetCurrency String? @map("budget_currency") @db.Char(3)
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
