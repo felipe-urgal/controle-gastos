@@ -10,6 +10,9 @@ import { ConfirmationModal, DeleteOverlay } from '@/app/components/overlays';
 import MerchantShowView from '@/app/components/pages/merchant/show/merchant-show-view';
 import { Button, ShowFrom } from '@/app/components/ui';
 import { FaPowerOff } from 'react-icons/fa';
+import { FaCodeMerge } from 'react-icons/fa6';
+import { useRouter } from 'next/navigation';
+import MerchantMergeDialog from '@/app/components/pages/merchant/show/merchant-merge-dialog';
 import { useDelete } from '@/app/hooks/crud/delete';
 import { useShow } from '@/app/hooks/crud/show';
 import { merchantService } from '@/app/services/merchant-service';
@@ -19,6 +22,8 @@ const BACK_URL = '/estabelecimentos';
 
 export default function Show({ id }: { id: string }) {
   const { entity, setEntity, loading } = useShow<MerchantDTO>({ id, service: merchantService });
+  const router = useRouter();
+  const [mergeOpen, setMergeOpen] = useState(false);
   const [actionError, setActionError] = useState('');
   const { isDeleteModalOpen, setIsDeleteModalOpen, isDeleting, deleteError, handleDelete } = useDelete({
     redirectPath: BACK_URL,
@@ -56,9 +61,14 @@ export default function Show({ id }: { id: string }) {
 breadcrumb={[{ label: 'Estabelecimentos', href: BACK_URL }, { label: entity?.name ?? 'Estabelecimento' }]}
           actions={
             entity ? (
-              <Button variant="outline" {...pageBarButtonProps} icon={<FaPowerOff />} onClick={toggleActive} disabled={isDeleting}>
-                {entity.isActive ? 'Inativar' : 'Reativar'}
-              </Button>
+              <>
+                <Button variant="outline" {...pageBarButtonProps} icon={<FaCodeMerge />} onClick={() => setMergeOpen(true)} disabled={isDeleting}>
+                  Mesclar
+                </Button>
+                <Button variant="outline" {...pageBarButtonProps} icon={<FaPowerOff />} onClick={toggleActive} disabled={isDeleting}>
+                  {entity.isActive ? 'Inativar' : 'Reativar'}
+                </Button>
+              </>
             ) : undefined
           }
           onDelete={entity ? () => setIsDeleteModalOpen(true) : undefined}
@@ -80,8 +90,17 @@ breadcrumb={[{ label: 'Estabelecimentos', href: BACK_URL }, { label: entity?.nam
             error={actionError}
             onUpdate={update}
             onToggleActive={toggleActive}
+            onMergeRequest={() => setMergeOpen(true)}
             onDeleteRequest={() => setIsDeleteModalOpen(true)}
           />
+
+          {mergeOpen && (
+            <MerchantMergeDialog
+              merchant={entity}
+              onClose={() => setMergeOpen(false)}
+              onMerged={(targetId) => router.replace(`/estabelecimentos/show/${targetId}`)}
+            />
+          )}
 
           <ConfirmationModal
             isOpen={isDeleteModalOpen}

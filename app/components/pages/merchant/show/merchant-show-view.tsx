@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useState } from 'react';
 import { FaPowerOff, FaTrash } from 'react-icons/fa';
+import { FaCodeMerge } from 'react-icons/fa6';
 
 import { MobileAppBar } from '@/app/components/layout';
 import { Alert } from '@/app/components/feedback';
@@ -31,6 +32,7 @@ export default function MerchantShowView({
   error,
   onUpdate,
   onToggleActive,
+  onMergeRequest,
   onDeleteRequest,
 }: {
   merchant: MerchantDTO;
@@ -39,6 +41,7 @@ export default function MerchantShowView({
   error: string;
   onUpdate: (data: { name?: string; isActive?: boolean }) => Promise<void>;
   onToggleActive: () => void;
+  onMergeRequest: () => void;
   onDeleteRequest: () => void;
 }) {
   const { user } = useAuth();
@@ -95,7 +98,10 @@ export default function MerchantShowView({
                   disabled={disabled}
                 />
               </DropIn>
-              <DropIn order={1} pulse>
+              <DropIn order={1}>
+                <IconButton label="Mesclar estabelecimento" icon={<FaCodeMerge />} onClick={onMergeRequest} disabled={disabled} />
+              </DropIn>
+              <DropIn order={2} pulse>
                 <IconButton label="Excluir estabelecimento" icon={<FaTrash />} tone="danger" onClick={onDeleteRequest} disabled={disabled} />
               </DropIn>
             </div>
