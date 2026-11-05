@@ -20,6 +20,7 @@ import type { NetWorthData } from '@/app/types/net-worth';
 import { currencies, currentIsoDate, currentPeriod, decimalRateToRatio, logicalDateLabel, periodInputValue, refreshFailureMessage } from '@/app/components/pages/net-worth/net-worth-page/net-worth-helpers';
 import { ConsolidationCard, DistributionCard, HistoryCard, LiabilitiesCard, NetWorthHero, RealReturnCard } from '@/app/components/pages/net-worth/net-worth-page/net-worth-cards';
 import { summarizeVariation } from '@/app/components/pages/net-worth/net-worth-page/net-worth-model';
+import { NetWorthTargetCard } from '@/app/components/pages/net-worth/net-worth-page/cards/target-card';
 import { ExchangeRatesCard } from '@/app/components/pages/net-worth/net-worth-page/exchange-rates-card';
 
 export default function NetWorthPage() {
@@ -357,6 +358,17 @@ export default function NetWorthPage() {
     [data, selectedCurrency],
   );
 
+  // Meses sem valor na moeda ficam `null` (não viram zero), para a projeção não inventar ritmo.
+  const targetPoints = useMemo(
+    () =>
+      data?.history.map((point) => ({
+        year: point.year,
+        month: point.month,
+        total: point.totals[selectedCurrency] ?? null,
+      })) ?? [],
+    [data, selectedCurrency],
+  );
+
   const variation = useMemo(() => summarizeVariation(history.map((point) => point.value)), [history]);
 
   const realEvolution = data?.realEvolution?.data ?? null;
@@ -505,6 +517,15 @@ export default function NetWorthPage() {
                   showValues={showValues}
                   valuation={selected.valuation}
                   historyValuation={data.historyValuation}
+                />
+
+                <NetWorthTargetCard
+                  currency={selected.currency}
+                  current={selected.total}
+                  points={targetPoints}
+                  end={{ year, month }}
+                  windowMonths={months}
+                  showValues={showValues}
                 />
 
                 <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">

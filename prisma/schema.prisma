@@ -56,6 +56,7 @@ model User {
   notifications               Notification[]
   notificationPreferences     NotificationPreference[]
   lockedMonths                LockedMonth[]
+  netWorthTargets             NetWorthTarget[]
   pushSubscriptions           PushSubscription[]
   exchangeRates                ExchangeRate[]
   debts                   Debt[]
@@ -1670,4 +1671,20 @@ model LockedMonth {
 
   @@unique([userId, year, month])
   @@map("locked_months")
+}
+
+/// Meta de patrimônio do usuário, uma por moeda. A projeção "quando chego lá" é calculada na leitura.
+model NetWorthTarget {
+  id       String @id @default(uuid())
+  currency String @db.Char(3)
+  amount   Int
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, currency])
+  @@map("net_worth_targets")
 }
