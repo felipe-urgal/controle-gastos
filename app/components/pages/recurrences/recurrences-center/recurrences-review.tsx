@@ -31,6 +31,7 @@ const REVIEW_PREVIEW = 3;
 const REASON_BADGE = {
   PRICE: { label: 'Preço subiu', tone: 'bg-[var(--danger-subtle)] text-[var(--expense)]' },
   STALE: { label: 'Sem cobrança recente', tone: 'bg-[var(--warning-subtle)] text-[var(--warning)]' },
+  DUPLICATE: { label: 'Possível duplicidade', tone: 'bg-[var(--warning-subtle)] text-[var(--warning)]' },
   POSSIBLE: { label: 'Possível assinatura', tone: 'bg-[var(--primary-subtle)] text-[var(--primary)]' },
 } as const;
 
@@ -193,7 +194,7 @@ function SubscriptionRow({
   onCreateRecurrence,
   onIgnore,
 }: { entry: Extract<ReviewEntry, { kind: 'subscription' }>; money: (cents: number, currency: string) => string } & Actions) {
-  const { item, reason } = entry;
+  const { item, reason, duplicateOf } = entry;
   const busy = busyKey === `subscription:${item.id}`;
   const badge = REASON_BADGE[reason];
   const change = item.priceChange;
@@ -235,7 +236,7 @@ function SubscriptionRow({
               Criar recorrência
             </Button>
           )}
-          {reason === 'PRICE' && (
+          {(reason === 'PRICE' || reason === 'DUPLICATE') && (
             <Button variant="outline" size="sm" disabled={busy} onClick={() => onIgnore(item.id)}>
               Entendi
             </Button>
@@ -254,6 +255,15 @@ function SubscriptionRow({
       {change && (
         <p className={`mt-1 text-xs font-semibold ${change.difference > 0 ? 'text-[var(--expense)]' : 'text-[var(--income)]'}`}>
           <MoneyText>{`${money(change.previousAmount, item.currency)} → ${money(change.currentAmount, item.currency)} · ${change.difference > 0 ? '+' : '−'} ${money(Math.abs(change.difference), item.currency)} (${change.percent > 0 ? '+' : ''}${change.percent}%)`}</MoneyText>
+        </p>
+      )}
+      {reason === 'DUPLICATE' && duplicateOf && duplicateOf.length > 0 && (
+        <p className="mt-1 text-xs font-semibold text-[var(--warning)]">
+          <MoneyText>
+            {`Parece repetir ${duplicateOf
+              .map((other) => `${other.description} (${money(other.monthlyEquivalent, other.currency)}/mês, ${other.account.name})`)
+              .join(' e ')}. Se for a mesma cobrança, vale cancelar uma.`}
+          </MoneyText>
         </p>
       )}
       {reason === 'STALE' && (
