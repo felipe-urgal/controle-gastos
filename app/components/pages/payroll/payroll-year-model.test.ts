@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { monthlySeries, recentFirst, reviewQueue, summarizeYear, visibleMonths } from '@/app/components/pages/payroll/payroll-year-model';
+import { monthlySeries, netVariation, recentFirst, reviewQueue, summarizeYear, visibleMonths } from '@/app/components/pages/payroll/payroll-year-model';
 import type { PayrollSummary } from '@/app/types/payroll';
 
 function summary(month: number, overrides: Partial<PayrollSummary> = {}): PayrollSummary {
@@ -92,5 +92,32 @@ describe('recentFirst / reviewQueue', () => {
 
   it('lista só o que exige revisão, do mais recente ao mais antigo', () => {
     expect(reviewQueue([incomplete(2), summary(3), incomplete(5)]).map((item) => item.month)).toEqual([5, 2]);
+  });
+});
+
+describe('netVariation', () => {
+  const net = (month: number, cents: number) => summary(month, { netPaidCents: cents });
+
+  it('compara o mês com a média dos até 3 meses anteriores e marca o que foge de ±15%', () => {
+    const series = monthlySeries([net(1, 800_00), net(2, 800_00), net(3, 800_00), net(4, 800_00), net(5, 1_000_00), net(6, 600_00)], 2026);
+    expect(netVariation(series, 4)).toEqual({ percent: 25, baselineCents: 800_00, baselineMonths: 3, unusual: true });
+    expect(netVariation(series, 5)).toMatchObject({ percent: -30.8, unusual: true });
+    expect(netVariation(series, 3)).toMatchObject({ percent: 0, unusual: false });
+  });
+
+  it('sem base suficiente ou sem líquido conhecido não calcula (desconhecido não vira zero)', () => {
+    const series = monthlySeries([net(1, 800_00), net(2, 900_00), summary(3, { netPaidCents: null, netPaidComplete: false })], 2026);
+    expect(netVariation(series, 0)).toBeNull();
+    expect(netVariation(series, 1)).toBeNull();
+    expect(netVariation(series, 2)).toBeNull();
+    expect(netVariation(series, 5)).toBeNull();
+  });
+
+  it('meses vazios ou incompletos ficam fora da média', () => {
+    const series = monthlySeries(
+      [net(1, 800_00), summary(2, { netPaidCents: null, netPaidComplete: false }), net(4, 800_00), net(5, 880_00)],
+      2026,
+    );
+    expect(netVariation(series, 4)).toEqual({ percent: 10, baselineCents: 800_00, baselineMonths: 2, unusual: false });
   });
 });

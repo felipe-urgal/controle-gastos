@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 
 import { useChartWidth } from '@/app/components/charts/use-chart-width';
 import { useChartScrub } from '@/app/components/charts/use-chart-scrub';
-import { monthlySeries, summarizeYear, visibleMonths } from '@/app/components/pages/payroll/payroll-year-model';
+import { monthlySeries, netVariation, summarizeYear, visibleMonths } from '@/app/components/pages/payroll/payroll-year-model';
 import { PopBox } from '@/app/components/ui/motion';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { payrollMoney } from '@/app/lib/payroll/payroll-presentation';
@@ -108,6 +108,8 @@ function MonthlyChart({
   const lastWithData = series.reduce((latest, point, index) => (point.status !== 'EMPTY' ? index : latest), series.length - 1);
   const shownIndex = activeIndex ?? lastWithData;
   const shown = series[shownIndex];
+  const variation = shown ? netVariation(series, shownIndex) : null;
+  const unusualIndexes = new Set(series.flatMap((_, index) => (netVariation(series, index)?.unusual ? [index] : [])));
   const money = (cents: number | null) => payrollMoney(cents, showValues);
 
   return (
@@ -128,8 +130,15 @@ function MonthlyChart({
             {!shown || shown.status === 'EMPTY' ? 'Sem documento' : shown.netPaidCents === null ? 'Líquido incompleto' : money(shown.netPaidCents)}
           </strong>
           {shown && shown.status !== 'EMPTY' && (
-            <span className="text-xs text-[var(--text-muted)]">
+            <span className="block text-xs text-[var(--text-muted)]">
               {shown.netPaidCents === null ? `Adiantamento: ${money(shown.advanceCents)}` : `Bruto ${money(shown.grossCents)} · IRRF ${money(shown.irrfCents)}`}
+            </span>
+          )}
+          {variation && (
+            <span className={`block text-xs ${variation.unusual ? 'font-semibold text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>
+              {variation.percent > 0 ? '+' : ''}
+              {variation.percent.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% vs. média dos {variation.baselineMonths} meses anteriores
+              {variation.unusual ? ' · fora do usual' : ''}
             </span>
           )}
         </div>
@@ -174,6 +183,13 @@ function MonthlyChart({
             />
           );
         })}
+        {series.map((point, index) =>
+          unusualIndexes.has(index) ? (
+            <circle key={`flag-${point.month}`} cx={x(index)} cy={y(point.barCents) - 7} r={3.5} fill="var(--warning)">
+              <title>Líquido fora do usual neste mês</title>
+            </circle>
+          ) : null,
+        )}
         {series.map((point, index) => (
           <text
             key={`label-${point.month}`}
