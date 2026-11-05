@@ -1,3 +1,4 @@
+import { recordSecurityEvent } from "@/app/lib/auth/auth-session";
 import { normalizeEmail } from "@/app/lib/auth/credential-rules";
 import bcrypt from "bcryptjs";
 
@@ -51,6 +52,13 @@ const baseUserCrud = baseCrudHandler({
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
+  },
+
+  async customUpdate({ data, entity, include }) {
+    const updated = await prisma.user.update({ where: { id: entity.id }, data, include });
+    // Troca de senha incrementa a versão da conta e derruba as outras sessões; o histórico registra o fato.
+    if (data.password) await recordSecurityEvent({ userId: entity.id, type: "PASSWORD_CHANGED" });
+    return updated;
   },
 
   async beforeUpdate(data, existing, userId, request) {

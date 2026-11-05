@@ -1,3 +1,4 @@
+import { recordSecurityEvent } from "@/app/lib/auth/auth-session";
 import bcrypt from "bcryptjs";
 
 import { HttpError } from "@/app/lib/http-error";
@@ -25,6 +26,8 @@ export async function disableTotp(args: {
   currentPassword: string;
   token?: string;
   recoveryCode?: string;
+  /** User agent do aparelho, só para o histórico de eventos. */
+  userAgent?: string | null;
 }) {
   const hasTotp = Boolean(args.token?.trim());
   const hasRecovery = Boolean(args.recoveryCode?.trim());
@@ -141,6 +144,7 @@ export async function disableTotp(args: {
 
       await tx.totpRecoveryCode.deleteMany({ where: { userId: args.userId } });
       await tx.mfaLoginChallenge.deleteMany({ where: { userId: args.userId } });
+      await recordSecurityEvent({ userId: args.userId, type: "TWO_FACTOR_DISABLED", userAgent: args.userAgent }, tx);
     });
   } catch (error) {
     if (error instanceof TotpDisableInvalidFactor) {

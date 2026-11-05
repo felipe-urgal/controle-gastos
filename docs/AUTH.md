@@ -27,3 +27,11 @@
 
 ## Observabilidade (eventos `logEvent`, sem e-mail/segredos)
 `auth_signup_accepted`, `auth_signup_verification_delivery_failed`, `auth_verification_email_rate_limited`, `auth_resend_verification_requested`, `password_reset_requested`, `password_reset_delivery_failed`, `password_reset_succeeded`, `password_reset_rate_limited`, `auth_login_rate_limited`. Alertar quando a taxa de `*_delivery_failed` subir em relação aos pedidos aceitos.
+
+## Sessões por aparelho e histórico de segurança
+
+- **`AuthSession`**: cada login (senha ou 2FA) cria uma linha e o token JWT leva o id no claim `sid`. `getAuthenticatedUserId` exige que a sessão exista, seja do usuário, não esteja revogada nem vencida e tenha sido emitida na `authVersion` atual da conta; `lastSeenAt` só é atualizado a cada 10 minutos.
+- **Compatibilidade**: token sem `sid` (emitido antes das sessões) continua valendo até expirar (7 dias) e simplesmente não aparece na lista. Não existe caminho que emita token sem passar por `issueAuthSession`.
+- **Revogação**: `DELETE /api/auth/sessions/{id}` e `POST /api/auth/sessions/revoke-others` marcam `revokedAt` (só do próprio usuário); o aparelho cai na próxima requisição. Trocar a senha incrementa `authVersion` e derruba todas as sessões (e os tokens antigos).
+- **`AccountSecurityEvent`** (`GET /api/auth/events`): login, senha alterada, senha redefinida, 2FA ativado/desativado e sessões encerradas. Guarda só tipo, momento e user agent truncado (200 caracteres); nunca senha, token nem IP. A gravação é best-effort (não derruba o fluxo), acontece dentro das transações que mudam o estado e a limpeza (eventos com mais de 180 dias, sessões vencidas/revogadas há mais de 30) roda a cada login.
+- Novo caminho que emite token **deve** usar `issueAuthSession`; nova ação sensível de conta deve chamar `recordSecurityEvent`.

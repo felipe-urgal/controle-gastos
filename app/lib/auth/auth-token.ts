@@ -10,13 +10,14 @@ function isValidAuthVersion(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) >= 0;
 }
 
-export function signAuthToken(userId: string, authVersion = 0) {
+/** `sessionId` liga o token a uma linha de `AuthSession` (revogável por aparelho). Token sem ele é do tempo anterior às sessões. */
+export function signAuthToken(userId: string, authVersion = 0, sessionId?: string) {
   if (!isValidAuthVersion(authVersion)) {
     throw new Error("INVALID_AUTH_VERSION");
   }
 
   return jwt.sign(
-    { sub: userId, authVersion },
+    { sub: userId, authVersion, ...(sessionId ? { sid: sessionId } : {}) },
     getJwtSecret(),
     {
       algorithm: TOKEN_ALGORITHM,
@@ -42,5 +43,6 @@ export function verifyAuthToken(token: string) {
     throw new Error("INVALID_TOKEN_CLAIMS");
   }
 
-  return { userId: decoded.sub, authVersion: decoded.authVersion };
+  const sessionId = typeof decoded.sid === "string" && decoded.sid.length > 0 ? decoded.sid : undefined;
+  return { userId: decoded.sub, authVersion: decoded.authVersion, sessionId };
 }

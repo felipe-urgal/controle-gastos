@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 
 import { verifyAuthToken } from "@/app/lib/auth/auth-token";
 import { readAuthCookie } from "@/app/lib/auth/auth-cookie";
+import { isAuthSessionActive } from "@/app/lib/auth/auth-session";
 import { UnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { prisma } from "@/app/lib/prisma";
 
@@ -37,5 +38,24 @@ export async function getAuthenticatedUserId() {
     throw new UnauthorizedError();
   }
 
+  // Token com `sid` pertence a uma sessão revogável por aparelho; token antigo (sem `sid`) vale até expirar.
+  if (
+    session.sessionId &&
+    !(await isAuthSessionActive({ sessionId: session.sessionId, userId: user.id, authVersion: session.authVersion }))
+  ) {
+    throw new UnauthorizedError();
+  }
+
   return user.id;
+}
+
+/** Id da sessão do aparelho atual (`null` para token do tempo anterior às sessões ou sem login). */
+export async function getCurrentSessionId() {
+  const token = readAuthCookie(await cookies());
+  if (!token) return null;
+  try {
+    return verifyAuthToken(token).sessionId ?? null;
+  } catch {
+    return null;
+  }
 }

@@ -1,3 +1,4 @@
+import { recordSecurityEvent } from "@/app/lib/auth/auth-session";
 import bcrypt from "bcryptjs";
 
 import { HttpError } from "@/app/lib/http-error";
@@ -78,6 +79,8 @@ export async function confirmTotpEnrollment(args: {
   userId: string;
   enrollmentToken: string;
   token: string;
+  /** User agent do aparelho, só para o histórico de eventos. */
+  userAgent?: string | null;
 }) {
   assertJwtSecretConfigured();
 
@@ -160,6 +163,8 @@ export async function confirmTotpEnrollment(args: {
         codeHash: hashRecoveryCode(code),
       })),
     });
+
+    await recordSecurityEvent({ userId: args.userId, type: "TWO_FACTOR_ENABLED", userAgent: args.userAgent }, tx);
   });
 
   return {

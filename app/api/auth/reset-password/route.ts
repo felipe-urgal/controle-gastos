@@ -1,3 +1,4 @@
+import { recordSecurityEvent } from "@/app/lib/auth/auth-session";
 import { NextResponse } from "next/server";
 
 import { parseJsonBody } from "@/app/lib/api/request-json";
@@ -139,6 +140,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       // Recuperação de conta pode indicar comprometimento: tokens MCP
       // (credencial independente das sessões) também são revogados.
       await revokeAllMcpAccessTokensForUser(resetToken.userId, tx);
+      await recordSecurityEvent({ userId: resetToken.userId, type: "PASSWORD_RESET", userAgent: request.headers.get("user-agent") }, tx);
     });
 
     logEvent("info", "password_reset_succeeded", {
