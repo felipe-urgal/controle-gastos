@@ -371,6 +371,16 @@ export function TimelineTransactionRow({
         event.preventDefault();
         if (selection.selectable) selection.onToggle();
       }}
+      // No modo de seleção a linha vira uma caixa de marcação: o leitor de tela anuncia marcada/desmarcada e Espaço alterna.
+      role={selection?.active ? 'checkbox' : undefined}
+      aria-checked={selection?.active ? selection.selected : undefined}
+      aria-disabled={selection?.active && !selection.selectable ? true : undefined}
+      onKeyDown={(event: React.KeyboardEvent) => {
+        if (selection?.active && event.key === ' ') {
+          event.preventDefault();
+          if (selection.selectable) selection.onToggle();
+        }
+      }}
       whileHover="hover"
       whileTap={{ scale: 0.985 }}
       variants={{ hover: { x: 4, transition: { type: 'spring', stiffness: 420, damping: 24 } } }}
