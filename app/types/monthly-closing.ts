@@ -117,8 +117,14 @@ export type MonthlyClosingRetrospective = {
   readiness: MonthlyClosingReadiness;
 };
 
+export type MonthlyClosingLock = {
+  locked: boolean;
+  lockedAt: string | null;
+};
+
 type MonthlyClosingBase = {
   period: DashboardPeriod;
+  lock: MonthlyClosingLock;
   currency: SupportedCurrency;
   asOf: MonthlyClosingLogicalDate;
 };

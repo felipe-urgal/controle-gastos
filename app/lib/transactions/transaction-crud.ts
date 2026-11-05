@@ -16,6 +16,7 @@ import { assertOwnedTags } from "@/app/lib/tags/tag-ownership";
 import { validateTransactionAllocationSet } from "@/app/lib/transactions/transaction-allocations";
 import { transactionFinancialImpact } from "@/app/lib/transactions/financial-impact";
 import { prisma } from "@/app/lib/prisma";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import {
   createTransactionSchema,
@@ -332,6 +333,7 @@ export async function completePendingTransaction(
         throw new HttpError("Transação pendente não encontrada", 404);
       }
 
+      await assertMonthsOpen(tx, userId, [current]);
       await assertCardPurchaseStatementMutable(
         tx,
         userId,
@@ -456,6 +458,7 @@ export const transactionCrud = baseCrudHandler({
       const account = await getOwnedActiveAccountOrThrow(tx, userId, data.accountId);
       const category = await getOwnedActiveCategoryOrThrow(tx, userId, data.categoryId);
       assertAccountCategoryCompatibility(account, category);
+      await assertMonthsOpen(tx, userId, [data]);
       await assertCardPurchaseStatementMutable(
         tx,
         userId,
@@ -688,6 +691,14 @@ export const transactionCrud = baseCrudHandler({
         { year: current.year, month: current.month, day: current.day },
       );
 
+      await assertMonthsOpen(tx, userId, [
+        current,
+        {
+          year: transactionData.year ?? current.year,
+          month: transactionData.month ?? current.month,
+        },
+      ]);
+
       const nextAccount =
         transactionData.accountId && transactionData.accountId !== current.accountId
           ? await getOwnedActiveAccountOrThrow(tx, userId, transactionData.accountId)
@@ -777,6 +788,8 @@ export const transactionCrud = baseCrudHandler({
         current.account,
         { year: current.year, month: current.month, day: current.day },
       );
+
+      await assertMonthsOpen(tx, userId, [current]);
 
       const deleted = await tx.transaction.deleteMany({
         where: {

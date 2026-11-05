@@ -55,6 +55,7 @@ model User {
   periodicFinancialSummaries  PeriodicFinancialSummary[]
   notifications               Notification[]
   notificationPreferences     NotificationPreference[]
+  lockedMonths                LockedMonth[]
   pushSubscriptions           PushSubscription[]
   exchangeRates                ExchangeRate[]
   debts                   Debt[]
@@ -1653,4 +1654,20 @@ model PushSubscription {
 
   @@index([userId, disabledAt])
   @@map("push_subscriptions")
+}
+
+/// Mês encerrado pelo usuário: nenhum lançamento nasce, muda ou some nele até reabrir.
+/// Travar significa encerrado; não marca nada como reconciliado.
+model LockedMonth {
+  id    String @id @default(uuid())
+  year  Int
+  month Int
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  lockedAt DateTime @default(now()) @map("locked_at")
+
+  @@unique([userId, year, month])
+  @@map("locked_months")
 }

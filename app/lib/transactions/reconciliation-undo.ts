@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { HttpError } from "@/app/lib/http-error";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 import type { UndoAccountReconciliationInput } from "@/app/lib/transactions/reconciliation-schema";
 
@@ -82,6 +83,19 @@ async function runUndoTransaction(
       if (targetCount === 0) {
         throw new HttpError(CHANGED_STATE_ERROR, 409);
       }
+
+      const targetMonths = await tx.transaction.findMany({
+        where: {
+          userId,
+          accountId,
+          status: "COMPLETED",
+          reconciliationStatus: "RECONCILED",
+          reconciledAt: batchReconciledAt,
+        },
+        select: { year: true, month: true },
+        distinct: ["year", "month"],
+      });
+      await assertMonthsOpen(tx, userId, targetMonths);
 
       const restored = await tx.transaction.updateMany({
         where: {

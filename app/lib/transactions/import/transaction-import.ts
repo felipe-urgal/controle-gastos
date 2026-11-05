@@ -10,6 +10,7 @@ import { isHttpError } from "@/app/lib/http-error";
 import { parseIsoLogicalDate } from "@/app/lib/date/logical-date";
 import { assertCardPurchaseStatementsMutable } from "@/app/lib/cards/credit-card-purchase-guards";
 import { reassignMerchantAliasWithTx } from "@/app/lib/merchants/merchant-alias-crud";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 import {
   getRequestId,
@@ -445,6 +446,16 @@ export async function confirmTransactionImport(request: Request) {
         existing.flatMap((item) => item.importFingerprint ? [item.importFingerprint] : []),
       );
       const newItems = importable.filter((item) => !existingFingerprints.has(item.fingerprint));
+
+      await assertMonthsOpen(
+        tx,
+        userId,
+        newItems.flatMap((item) => {
+          const normalizedDate = parseImportDate(item.date);
+          const date = normalizedDate ? parseIsoLogicalDate(normalizedDate) : null;
+          return date ? [date] : [];
+        }),
+      );
 
       await assertCardPurchaseStatementsMutable(
         tx,

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { HttpError } from "@/app/lib/http-error";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 import type { UpdateTransferInput } from "@/app/schemas/transfer.schema";
 
@@ -143,6 +144,7 @@ export async function updateTransferForUser(
     };
 
     assertValidCalendarDate(next.year, next.month, next.day);
+    await assertMonthsOpen(tx, userId, [pair.source, next]);
 
     const invalidatesReconciliation =
       input.amountCents !== undefined ||
@@ -205,6 +207,8 @@ export async function deleteTransferForUser(
     const transfer = await findOwnedTransfer(tx, userId, transferId);
     const pair = assertConsistentPair(transfer);
     assertMutablePair(pair);
+
+    await assertMonthsOpen(tx, userId, [pair.source]);
 
     const result = toTransferResult(transfer, pair);
 

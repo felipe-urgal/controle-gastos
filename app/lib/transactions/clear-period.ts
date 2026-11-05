@@ -6,6 +6,7 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { lockCreditCardAccount } from "@/app/lib/cards/credit-card-purchase-guards";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import { periodRangeSchema, periodRangeWhere, type PeriodRange } from "@/app/lib/transactions/period-range";
@@ -181,6 +182,17 @@ export async function clearPeriod(request: Request) {
           "CLEAR_PERIOD_COUNT_MISMATCH",
         );
       }
+
+      const touchedMonths = await tx.transaction.findMany({
+        where: {
+          userId,
+          ...periodRangeWhere(period),
+          ...(period.accountId ? { accountId: period.accountId } : {}),
+        },
+        select: { year: true, month: true },
+        distinct: ["year", "month"],
+      });
+      await assertMonthsOpen(tx, userId, touchedMonths);
 
       let deleted = 0;
 

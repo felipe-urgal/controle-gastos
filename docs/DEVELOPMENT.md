@@ -41,6 +41,10 @@ Comandos úteis:
     pnpm test
     pnpm build
 
+## Mês travado
+
+O usuário pode travar um mês no Fechamento (`LockedMonth`; reabrir remove a linha). Travar significa encerrado, não conferido: não altera reconciliação. Todo caminho que cria, altera ou apaga transação deve chamar `assertMonthsOpen(tx, userId, datas)` (`app/lib/monthly-closing/month-lock.ts`) dentro da transação que grava, com as datas de antes e depois da mudança. Mês travado responde 409 com código `MONTH_LOCKED`. Um novo caminho de gravação sem essa chamada é uma regressão.
+
 ## Data lógica ("hoje")
 
 O dia do produto é a data civil de `America/Sao_Paulo`, no servidor e no cliente. Use `logicalDateFromInstant(instante)` ou `todayLogicalDate()` (`app/lib/date/logical-date.ts`) para "agora", "hoje" e a data de criação de um registro; nunca `getUTC*`, `toISOString().slice(0, 10)` nem `getFullYear/getMonth/getDate` do navegador. `logicalDateFromUtcInstant` serve apenas para aritmética de calendário sobre datas que já são meia-noite UTC (por exemplo somar dias). Crons da Vercel agendam em UTC; converta o horário desejado de Brasília (UTC−3).

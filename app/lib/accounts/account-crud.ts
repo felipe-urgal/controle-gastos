@@ -26,6 +26,7 @@ import { getCreditCardStatuses, type CreditCardStatus } from "@/app/lib/cards/cr
 import { logicalDateFromInstant } from "@/app/lib/date/logical-date";
 import { HttpError } from "@/app/lib/http-error";
 import { getInvestmentAccountValuesForUser } from "@/app/lib/investments/investment-account-valuation";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 
 function accountNameConflict(error: unknown): never {
@@ -126,6 +127,7 @@ export const accountCrud = baseCrudHandler({
         });
         if (openingBalance) {
           const today = logicalDateFromInstant(new Date());
+          await assertMonthsOpen(tx, userId, [today]);
           await tx.transaction.create({
             data: {
               amount: Math.abs(openingBalance),
@@ -194,6 +196,15 @@ export const accountCrud = baseCrudHandler({
         const usage = await getAccountFinancialUsage(tx, userId, account.id);
         assertAccountDeletable(usage);
         // O saldo inicial sai junto com a conta; qualquer outra movimentação já bloqueou acima.
+        await assertMonthsOpen(
+          tx,
+          userId,
+          await tx.transaction.findMany({
+            where: { userId, accountId: account.id, kind: "OPENING_BALANCE" },
+            select: { year: true, month: true },
+            distinct: ["year", "month"],
+          }),
+        );
         await tx.transaction.deleteMany({
           where: { userId, accountId: account.id, kind: "OPENING_BALANCE" },
         });

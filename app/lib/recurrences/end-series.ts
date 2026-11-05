@@ -4,6 +4,7 @@ import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { assertCardPurchaseStatementMutable } from '@/app/lib/cards/credit-card-purchase-guards';
 import { logicalDateFromInstant, type LogicalDate } from '@/app/lib/date/logical-date';
 import { HttpError, isHttpError } from '@/app/lib/http-error';
+import { assertMonthsOpen } from '@/app/lib/monthly-closing/month-lock';
 import { prisma } from '@/app/lib/prisma';
 import { consumeTransactionMutationRateLimit } from '@/app/lib/security/application-rate-limit';
 
@@ -81,6 +82,8 @@ export async function endRecurrenceSeriesForUser(
         { seriesIndex: 'asc' },
       ],
     });
+
+    await assertMonthsOpen(tx, userId, futurePending);
 
     for (const transaction of futurePending) {
       await assertCardPurchaseStatementMutable(
