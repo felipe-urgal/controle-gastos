@@ -28,6 +28,14 @@ import type {
 } from "@/app/types/investment";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 
+export type InvestmentIncomeProjection = {
+  currency: SupportedCurrency;
+  openAssetCount: number;
+  months: Array<{ year: number; month: number; amountCents: number; assetCount: number }>;
+  totalCents: number;
+  referenceMonthsWithIncome: number;
+};
+
 export type InvestmentAllocationTarget = {
   currency: SupportedCurrency;
   assetType: InvestmentAssetType;
@@ -182,6 +190,10 @@ export type InvestmentIncomeInput = {
 };
 
 export const investmentService = {
+  getIncomeProjection(currency: SupportedCurrency): Promise<ApiResponse<InvestmentIncomeProjection>> {
+    return apiClient("/api/investments/income-projection", { method: "GET", queryParams: { currency } });
+  },
+
   getAllocationTargets(): Promise<ApiResponse<InvestmentAllocationTarget[]>> {
     return apiClient("/api/investments/allocation-targets", { method: "GET" });
   },
