@@ -22,6 +22,7 @@ import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import { debtService, type DebtInput } from '@/app/services/debt-service';
+import DebtsSimulator from '@/app/components/pages/debt/debts-simulator';
 import { DebtsDues } from '@/app/components/pages/debt/debts-dues';
 import { DebtsSummaryPanel, InstallmentLoadPanel } from '@/app/components/pages/debt/debts-summary';
 import { owedCurrencies, summarizeDebts } from '@/app/components/pages/debt/debts-model';
@@ -483,6 +484,7 @@ export default function DebtsCenter({ focusDebtId }: { focusDebtId?: string }) {
               <DebtsDues debts={items.filter((debt) => debt.currency === summary.currency)} today={today} showValues={showValues} onPay={openPayment} />
               <InstallmentLoadPanel debts={items} currency={summary.currency} today={today} withoutInstallmentCount={summary.withoutInstallmentCount} showValues={showValues} />
             </div>
+            <DebtsSimulator debts={items} currency={summary.currency} showValues={showValues} />
           </div>
         )}
 
