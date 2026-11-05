@@ -13,7 +13,7 @@ export type ComparisonFilters = {
   currency: SupportedCurrency;
 };
 
-export type ComparisonPreset = 'previous' | 'year-over-year' | 'ytd' | 'closed-year';
+export type ComparisonPreset = 'previous' | 'year-over-year' | 'avg-3' | 'avg-6' | 'ytd' | 'closed-year';
 export type ComparisonBasis = 'total' | 'average';
 export type DeltaTone = 'good' | 'bad' | 'flat';
 
@@ -57,6 +57,17 @@ export function presetFilters(
     const sameMonthLastYear = month(current.year - 1, current.month);
     return { ...filters, aFrom: sameMonthLastYear, aTo: sameMonthLastYear, bFrom: monthValue(current), bTo: monthValue(current) };
   }
+  if (preset === 'avg-3' || preset === 'avg-6') {
+    // Referência: os N meses fechados antes do atual. Como os lados têm tamanhos diferentes, a tela compara pela média mensal.
+    const months = preset === 'avg-3' ? 3 : 6;
+    return {
+      ...filters,
+      aFrom: monthValue(shiftMonth(current, -months)),
+      aTo: monthValue(shiftMonth(current, -1)),
+      bFrom: monthValue(current),
+      bTo: monthValue(current),
+    };
+  }
   if (preset === 'ytd') {
     return {
       ...filters,
@@ -76,7 +87,7 @@ export function presetFilters(
 }
 
 export function activePreset(filters: ComparisonFilters, current: ComparisonMonth): ComparisonPreset | null {
-  const presets: ComparisonPreset[] = ['previous', 'year-over-year', 'ytd', 'closed-year'];
+  const presets: ComparisonPreset[] = ['previous', 'year-over-year', 'avg-3', 'avg-6', 'ytd', 'closed-year'];
   return (
     presets.find((preset) => {
       const expected = presetFilters(preset, filters, current);

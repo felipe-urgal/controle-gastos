@@ -67,6 +67,17 @@ describe('financial-comparison-model', () => {
     expect(activePreset({ ...ytd, aFrom: '2025-03' }, { year: 2026, month: 10 })).toBeNull();
   });
 
+  it('compara o mês atual com a média dos 3 ou 6 meses anteriores, inclusive na virada de ano', () => {
+    const january = { year: 2026, month: 1 };
+    const avg3 = presetFilters('avg-3', filters, january);
+    expect(avg3).toMatchObject({ aFrom: '2025-10', aTo: '2025-12', bFrom: '2026-01', bTo: '2026-01', currency: 'USD' });
+    expect(activePreset(avg3, january)).toBe('avg-3');
+
+    const avg6 = presetFilters('avg-6', filters, { year: 2026, month: 10 });
+    expect(avg6).toMatchObject({ aFrom: '2026-04', aTo: '2026-09', bFrom: '2026-10', bTo: '2026-10' });
+    expect(activePreset(avg6, { year: 2026, month: 10 })).toBe('avg-6');
+  });
+
   it('escala as duas barras pela maior e aceita ambos zero', () => {
     expect(pairWidths(50, 100)).toEqual([50, 100]);
     expect(pairWidths(-200, 100)).toEqual([100, 50]);
