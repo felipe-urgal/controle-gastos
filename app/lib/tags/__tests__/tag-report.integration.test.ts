@@ -270,4 +270,36 @@ describe("tag report integration", () => {
     expect(report.history[0].points[5].expense).toBe(3_000);
     expect(report.history[0].points[4].expense).toBe(1_000);
   });
+
+  it("traz o orçamento do projeto contra a despesa de toda a vida, só na moeda do orçamento", async () => {
+    const owner = await factory.user();
+    const [brl, usd] = await Promise.all([factory.account(owner.id), factory.account(owner.id, { currency: "USD" })]);
+    const category = await factory.category(owner.id, { type: "EXPENSE" });
+    const tag = await prisma.tag.create({
+      data: { userId: owner.id, name: "viagem", normalizedName: "viagem", budgetAmount: 100_000, budgetCurrency: "BRL" },
+    });
+    const plain = await prisma.tag.create({ data: { userId: owner.id, name: "sem-orcamento", normalizedName: "sem-orcamento" } });
+    const spend = async (accountId: string, amount: number, year: number) => {
+      const transaction = await factory.transaction({
+        userId: owner.id, accountId, categoryId: category.id,
+        overrides: { amount, type: "EXPENSE", year, month: 3, day: 10, description: "Viagem" },
+      });
+      await prisma.transactionTag.createMany({
+        data: [tag, plain].map((item) => ({ userId: owner.id, transactionId: transaction.id, tagId: item.id })),
+      });
+    };
+    await spend(brl.id, 60_000, 2024);
+    await spend(brl.id, 25_000, 2025);
+    await spend(usd.id, 999_000, 2025);
+    authMocks.getAuthenticatedUserId.mockResolvedValue(owner.id);
+
+    const get = async (id: string, period = "month") =>
+      (await getTagReport(new Request(`http://localhost/api/tags/${id}/report?period=${period}`), { params: Promise.resolve({ id }) })).json();
+
+    // O período escolhido não muda o orçamento: ele vale para a vida inteira da tag.
+    expect((await get(tag.id, "month")).data.budget).toEqual({
+      currency: "BRL", amount: 100_000, spent: 85_000, remaining: 15_000, percentage: 85, over: false,
+    });
+    expect((await get(plain.id)).data.budget).toBeNull();
+  });
 });

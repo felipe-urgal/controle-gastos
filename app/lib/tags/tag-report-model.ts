@@ -1,6 +1,6 @@
 import type { AccountType } from "@/app/types/account";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
-import type { TagReportCurrency, TagReportHistory, TagReportPeriod } from "@/app/types/tag";
+import type { TagBudgetStatus, TagReportCurrency, TagReportHistory, TagReportPeriod } from "@/app/types/tag";
 import type { TransactionType } from "@/app/types/transaction";
 
 import { transactionFinancialImpact } from "@/app/lib/transactions/financial-impact";
@@ -97,4 +97,28 @@ export function aggregateTagHistory(rows: readonly TagReportRow[], asOf: Month):
         return { year, month, income: totals?.income ?? 0, expense: totals?.expense ?? 0 };
       }),
     }));
+}
+
+/**
+ * Situação do orçamento do projeto: despesa líquida de toda a vida da tag na moeda do orçamento contra o valor.
+ * Outras moedas não entram (nunca são somadas). Sem orçamento, `null`.
+ */
+export function tagBudgetStatus(
+  budget: { amount: number | null; currency: string | null },
+  rows: readonly TagReportRow[],
+  asOf: Month,
+): TagBudgetStatus | null {
+  if (budget.amount === null || budget.currency === null) return null;
+
+  const spent =
+    aggregateTagCurrencies(rows, "all", asOf).find((entry) => entry.currency === budget.currency)?.expense ?? 0;
+  const consumed = Math.max(0, spent);
+  return {
+    currency: budget.currency as SupportedCurrency,
+    amount: budget.amount,
+    spent,
+    remaining: budget.amount - spent,
+    percentage: Math.round((consumed / budget.amount) * 1000) / 10,
+    over: spent > budget.amount,
+  };
 }

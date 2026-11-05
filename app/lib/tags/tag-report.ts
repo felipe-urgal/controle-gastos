@@ -11,6 +11,7 @@ import {
   aggregateTagCurrencies,
   aggregateTagHistory,
   parseTagReportPeriod,
+  tagBudgetStatus,
   type TagReportRow,
 } from "@/app/lib/tags/tag-report-model";
 
@@ -26,7 +27,7 @@ export async function getTagReport(
 
     const tag = await prisma.tag.findFirst({
       where: { id, userId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, budgetAmount: true, budgetCurrency: true },
     });
     if (!tag) throw new HttpError("Tag não encontrada", 404);
 
@@ -70,7 +71,8 @@ export async function getTagReport(
     }));
 
     return success({
-      tag,
+      tag: { id: tag.id, name: tag.name },
+      budget: tagBudgetStatus({ amount: tag.budgetAmount, currency: tag.budgetCurrency }, reportRows, today),
       period,
       currencies: aggregateTagCurrencies(reportRows, period, today),
       history: aggregateTagHistory(reportRows, today),
