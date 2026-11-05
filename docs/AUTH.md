@@ -35,3 +35,8 @@
 - **Revogação**: `DELETE /api/auth/sessions/{id}` e `POST /api/auth/sessions/revoke-others` marcam `revokedAt` (só do próprio usuário); o aparelho cai na próxima requisição. Trocar a senha incrementa `authVersion` e derruba todas as sessões (e os tokens antigos).
 - **`AccountSecurityEvent`** (`GET /api/auth/events`): login, senha alterada, senha redefinida, 2FA ativado/desativado e sessões encerradas. Guarda só tipo, momento e user agent truncado (200 caracteres); nunca senha, token nem IP. A gravação é best-effort (não derruba o fluxo), acontece dentro das transações que mudam o estado e a limpeza (eventos com mais de 180 dias, sessões vencidas/revogadas há mais de 30) roda a cada login.
 - Novo caminho que emite token **deve** usar `issueAuthSession`; nova ação sensível de conta deve chamar `recordSecurityEvent`.
+
+## Emissor e audiência do JWT
+
+- Tokens novos saem com `iss: "controle-gastos"` e `aud: "controle-gastos-users"`. A verificação aceita **também** o par antigo (`"seu-app"` / `"seu-app-users"`) para que ninguém seja deslogado no deploy da troca.
+- **Remoção do par antigo:** depois de 7 dias do deploy (o TTL do token), apague `LEGACY_TOKEN_ISSUER` e `LEGACY_TOKEN_AUDIENCE` em `app/lib/auth/auth-token.ts` e o teste "aceita token emitido com o placeholder antigo". Qualquer outro token com emissor/audiência fora desses valores é recusado.
