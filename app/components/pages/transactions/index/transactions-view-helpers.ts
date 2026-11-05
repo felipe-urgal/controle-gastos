@@ -31,7 +31,7 @@ export type MonthBar = {
   toDay: number;
 };
 
-export const REFINEMENT_FILTER_KEYS = new Set(['search', 'status', 'accountId', 'categoryId', 'merchantId', 'tagId']);
+export const REFINEMENT_FILTER_KEYS = new Set(['search', 'status', 'accountId', 'categoryId', 'merchantId', 'tagId', 'minAmount', 'maxAmount']);
 
 export const INITIAL_TIMELINE_ITEMS = 7;
 
