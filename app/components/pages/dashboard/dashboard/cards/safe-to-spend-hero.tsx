@@ -310,6 +310,11 @@ export function SafeToSpendHero({
           <dd className="mt-1 text-xs">
             <ComparisonDetail percentage={comparison.income.percentage} previousMonth={previous.month} previousYear={previous.year} tone="income" />
           </dd>
+          {comparison.yearAgo && comparison.yearAgo.income.percentage !== null && (
+            <dd className="mt-0.5 text-xs">
+              <ComparisonDetail percentage={comparison.yearAgo.income.percentage} previousMonth={comparison.yearAgo.period.month} previousYear={comparison.yearAgo.period.year} tone="income" showYear />
+            </dd>
+          )}
         </div>
         <div className="min-w-0 border-l border-[var(--border)] px-2 sm:px-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Saiu</dt>
@@ -317,6 +322,11 @@ export function SafeToSpendHero({
           <dd className="mt-1 text-xs">
             <ComparisonDetail percentage={comparison.expense.percentage} previousMonth={previous.month} previousYear={previous.year} tone="expense" />
           </dd>
+          {comparison.yearAgo && comparison.yearAgo.expense.percentage !== null && (
+            <dd className="mt-0.5 text-xs">
+              <ComparisonDetail percentage={comparison.yearAgo.expense.percentage} previousMonth={comparison.yearAgo.period.month} previousYear={comparison.yearAgo.period.year} tone="expense" showYear />
+            </dd>
+          )}
         </div>
         <div className="min-w-0 border-l border-[var(--border)] pl-2 sm:pl-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Sobrou</dt>

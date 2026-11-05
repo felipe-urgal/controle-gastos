@@ -9,11 +9,14 @@ export function ComparisonDetail({
   previousMonth,
   previousYear,
   tone = 'neutral',
+  showYear = false,
 }: {
   percentage: number | null;
   previousMonth: number;
   previousYear: number;
   tone?: 'income' | 'expense' | 'neutral';
+  /** Mostra o ano no rótulo (comparação com o ano anterior, em que só o mês seria ambíguo). */
+  showYear?: boolean;
 }) {
   if (percentage === null) {
     return <span className="text-[var(--text-muted)]">sem base anterior</span>;
@@ -47,7 +50,7 @@ export function ComparisonDetail({
     <>
       <span className={toneClass}>{direction}{percentageLabel}</span>
       <span className="text-[var(--text-muted)]">
-        {' '}vs. {compactMonthLabel(previousMonth, previousYear)}
+        {' '}vs. {compactMonthLabel(previousMonth, previousYear)}{showYear ? `/${previousYear}` : ''}
       </span>
     </>
   );

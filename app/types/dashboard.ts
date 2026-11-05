@@ -30,6 +30,16 @@ export type DashboardComparison = {
   income: DashboardComparisonMetric;
   expense: DashboardComparisonMetric;
   balance: DashboardComparisonMetric;
+  /**
+   * Mesmo mês do ano anterior. `null` quando aquele mês não tem lançamento concluído nesta moeda:
+   * sem dados não é zero, então não há o que comparar.
+   */
+  yearAgo: {
+    period: DashboardPeriod;
+    income: DashboardComparisonMetric;
+    expense: DashboardComparisonMetric;
+    balance: DashboardComparisonMetric;
+  } | null;
 };
 
 export type DashboardAccountBalance = {

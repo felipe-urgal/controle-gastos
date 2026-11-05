@@ -264,6 +264,37 @@ async function createFixture() {
 }
 
 describe('monthly dashboard integration', () => {
+  it('compares with the same month of the previous year only when that month has data', async () => {
+    const { owner, brlAccount, usdAccount, foodCategory } = await createFixture();
+    const period = { year: 2028, month: 4 };
+
+    // Sem nada em abril/2027, não há base: null, e não uma comparação contra zero.
+    expect((await getMonthlyDashboardForUser(owner.id, period, 'BRL')).comparison.yearAgo).toBeNull();
+
+    // Dado de outra moeda no mesmo mês não conta como base em BRL.
+    await prisma.transaction.create({
+      data: {
+        amount: 5_000, year: 2027, month: 4, day: 5, type: 'EXPENSE', description: 'USD ano anterior',
+        status: 'COMPLETED', accountId: usdAccount.id, categoryId: foodCategory.id, userId: owner.id,
+      },
+    });
+    expect((await getMonthlyDashboardForUser(owner.id, period, 'BRL')).comparison.yearAgo).toBeNull();
+
+    await prisma.transaction.create({
+      data: {
+        amount: 25_000, year: 2027, month: 4, day: 5, type: 'EXPENSE', description: 'BRL ano anterior',
+        status: 'COMPLETED', accountId: brlAccount.id, categoryId: foodCategory.id, userId: owner.id,
+      },
+    });
+    const { comparison } = await getMonthlyDashboardForUser(owner.id, period, 'BRL');
+    expect(comparison.yearAgo?.period).toEqual({ year: 2027, month: 4 });
+    expect(comparison.yearAgo?.expense).toEqual({ difference: 25_000, percentage: 100 });
+    // Receita no ano anterior era zero: diferença existe, percentual não.
+    expect(comparison.yearAgo?.income).toEqual({ difference: 100_000, percentage: null });
+    // A comparação com o mês anterior não muda.
+    expect(comparison.expense).toEqual({ difference: 40_000, percentage: 400 });
+  });
+
   it('keeps BRL aggregates isolated from other currencies', async () => {
     const { owner, brlAccount, usdAccount, foodCategory, housingCategory } = await createFixture();
 
