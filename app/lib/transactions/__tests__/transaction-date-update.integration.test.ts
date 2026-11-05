@@ -99,4 +99,37 @@ describe("transaction logical date updates", () => {
       await prisma.transaction.findUnique({ where: { id: transaction.id } }),
     ).toMatchObject({ year: 2028, month: 2, day: 29 });
   });
+
+  it("reagendar só a data mantém o status: pendente continua pendente (e cancelado continua cancelado)", async () => {
+    const suffix = randomUUID();
+    const user = await prisma.user.create({
+      data: { name: "Reschedule Owner", email: `transaction-reschedule-${suffix}@example.com`, password: "test-hash" },
+    });
+    createdUserIds.push(user.id);
+    const account = await prisma.account.create({ data: { name: `Conta ${suffix}`, type: "CREDIT_DEBIT", currency: "BRL", userId: user.id } });
+    const category = await prisma.category.create({ data: { name: `Categoria ${suffix}`, type: "EXPENSE", userId: user.id } });
+    const make = (status: "PENDING" | "CANCELLED") =>
+      prisma.transaction.create({
+        data: { amount: 1_000, type: "EXPENSE", description: "Compromisso", status, year: 2028, month: 5, day: 6, accountId: account.id, categoryId: category.id, userId: user.id },
+      });
+    const pending = await make("PENDING");
+    const cancelled = await make("CANCELLED");
+    authMocks.getAuthenticatedUserId.mockResolvedValue(user.id);
+
+    for (const item of [pending, cancelled]) {
+      const response = await transactionCrud.update(
+        new Request(`http://localhost/api/transactions/${item.id}`, {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ year: 2028, month: 5, day: 7 }),
+        }),
+        { params: Promise.resolve({ id: item.id }) },
+      );
+      expect(response.status).toBe(200);
+      expect(await prisma.transaction.findUniqueOrThrow({ where: { id: item.id } })).toMatchObject({
+        status: item.status,
+        day: 7,
+      });
+    }
+  });
 });

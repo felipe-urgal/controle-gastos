@@ -124,3 +124,16 @@ describe("transaction schemas", () => {
     expect(result).toEqual({ status: "CANCELLED" });
   });
 });
+
+describe("updateTransactionSchema: atualização parcial", () => {
+  it("não aplica default de status: mudar só a data não conclui um lançamento pendente", () => {
+    const parsed = updateTransactionSchema.parse({ year: 2026, month: 11, day: 7 });
+    expect(parsed).toEqual({ year: 2026, month: 11, day: 7 });
+    expect(parsed).not.toHaveProperty("status");
+  });
+
+  it("continua aceitando o status quando enviado e a criação mantém o default", () => {
+    expect(updateTransactionSchema.parse({ status: "PENDING" })).toEqual({ status: "PENDING" });
+    expect(updateTransactionSchema.safeParse({ status: "OUTRO" }).success).toBe(false);
+  });
+});

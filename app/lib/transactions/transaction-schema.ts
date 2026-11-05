@@ -84,8 +84,13 @@ export const createTransactionSchema = transactionBaseSchema.superRefine(
   },
 );
 
+/**
+ * Atualização parcial: cada campo é opcional e **nenhum default é aplicado**. O `status` da criação tem default
+ * "COMPLETED"; sem esta troca, um PUT só com a data concluiria em silêncio um lançamento pendente.
+ */
 export const updateTransactionSchema = transactionBaseSchema
   .partial()
+  .extend({ status: z.enum(["COMPLETED", "PENDING", "CANCELLED"]).optional() })
   .superRefine((data, ctx) => {
     if (
       data.year !== undefined &&
