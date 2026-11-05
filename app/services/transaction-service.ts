@@ -49,6 +49,19 @@ export type BackupRestoreSummary = {
   problems: string[];
 };
 
+export type TransactionAttachmentMeta = {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+};
+
+export type TransactionAttachmentList = {
+  items: TransactionAttachmentMeta[];
+  limits: { maxBytes: number; maxPerTransaction: number };
+};
+
 export const transactionService = {
   ...baseTransactionService,
 
@@ -75,6 +88,24 @@ export const transactionService = {
       method: "GET",
       queryParams: { description, type },
     });
+  },
+
+  /** Comprovantes de um lançamento (só metadados). */
+  async listAttachments(id: string): Promise<ApiResponse<TransactionAttachmentList>> {
+    return apiClient<ApiResponse<TransactionAttachmentList>>(`/api/transactions/${id}/attachments`, { method: "GET" });
+  },
+
+  async uploadAttachment(id: string, file: File): Promise<ApiResponse<TransactionAttachmentMeta>> {
+    const form = new FormData();
+    form.set("file", file);
+    return apiClient<ApiResponse<TransactionAttachmentMeta>, FormData>(`/api/transactions/${id}/attachments`, {
+      method: "POST",
+      body: form,
+    });
+  },
+
+  async deleteAttachment(id: string, attachmentId: string): Promise<ApiResponse<{ id: string }>> {
+    return apiClient<ApiResponse<{ id: string }>>(`/api/transactions/${id}/attachments/${attachmentId}`, { method: "DELETE" });
   },
 
   /** Troca categoria e/ou estabelecimento (`null` remove) de várias transações; tudo ou nada. */

@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { DropIn, HoverSheen } from '@/app/components/ui/motion';
 import TransactionShowSkeleton from '@/app/components/pages/transactions/show/transaction-show-skeleton';
 import TransactionInfo from '@/app/components/pages/transactions/show/transaction-info';
+import TransactionAttachments from '@/app/components/pages/transactions/show/transaction-attachments';
 import MobileTransactionShow from '@/app/components/pages/transactions/show/mobile-transaction-show';
 import { useTransactions } from '@/app/hooks/transactions/transaction-show';
 
@@ -83,19 +84,23 @@ export default function Show({ id }: { id: string }) {
       emptyRedirectTo="/transacoes"
       mobileContent={
         transaction ? (
-          <MobileTransactionShow
-            transaction={transaction}
-            backUrl={handleBack}
-            isDeleting={isDeleting}
-            allowMutations={allowMutations}
-            onRequestDelete={() => setIsDeleteModalOpen(true)}
-          />
+          <>
+            <MobileTransactionShow
+              transaction={transaction}
+              backUrl={handleBack}
+              isDeleting={isDeleting}
+              allowMutations={allowMutations}
+              onRequestDelete={() => setIsDeleteModalOpen(true)}
+            />
+            <TransactionAttachments transactionId={id} />
+          </>
         ) : (
           <div aria-hidden="true" />
         )
       }
     >
       <TransactionInfo transaction={transaction!} isDeleting={isDeleting} />
+      {transaction && <TransactionAttachments transactionId={id} />}
     </ShowPage>
   );
 }
