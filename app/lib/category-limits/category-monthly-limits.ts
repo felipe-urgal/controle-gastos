@@ -13,9 +13,11 @@ import {
   upsertCategoryMonthlyLimitSchema,
   batchCategoryMonthlyLimitsSchema,
   copyCategoryMonthlyLimitsSchema,
+  carryOverCategoryMonthlyLimitsSchema,
 } from "@/app/lib/category-limits/category-monthly-limit-schema";
 import {
   calculateMonthlyPlanningAmounts,
+  carriedOverLimit,
   summarizeMonthlyPlanning,
 } from "@/app/lib/category-limits/monthly-planning-domain";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
@@ -548,5 +550,62 @@ export async function copyCategoryMonthlyLimits(request: Request) {
     );
   } catch (error) {
     return handleCategoryLimitError(error, "Erro ao copiar planejamento mensal");
+  }
+}
+
+/**
+ * Leva a sobra (ou o estouro) de cada categoria com limite no mês informado para o mês seguinte:
+ * limite do mês seguinte = limite do mês + saldo (`available`), sem passar de zero. Substitui o limite que o mês
+ * seguinte já tinha nessas categorias; a tela avisa antes. Só categorias de despesa ativas com limite entram.
+ * Idempotente: o resultado depende só do mês de origem.
+ */
+export async function carryOverCategoryMonthlyLimits(request: Request) {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const input = carryOverCategoryMonthlyLimitsSchema.parse(await parseJsonBody(request));
+    const target = input.month === 12 ? { year: input.year + 1, month: 1 } : { year: input.year, month: input.month + 1 };
+    if (target.year > 2100) throw new HttpError("Mês de destino fora do intervalo suportado", 400);
+
+    const listed = await listCategoryMonthlyLimitsForUser(userId, input.year, input.month, input.currency);
+    const sources = listed.items.filter(
+      (item) => item.limit !== null && item.category.isActive,
+    );
+
+    const result = await prisma.$transaction(async (tx) => {
+      for (const item of sources) await lockOwnedCategoryForMutation(tx, userId, item.category.id);
+
+      let updated = 0;
+      for (const item of sources) {
+        const next = carriedOverLimit({
+          sourceBudget: item.limit?.amount ?? null,
+          available: item.available,
+        });
+        if (next === null) continue;
+        await tx.categoryMonthlyLimit.upsert({
+          where: {
+            userId_categoryId_year_month_currency: {
+              userId,
+              categoryId: item.category.id,
+              year: target.year,
+              month: target.month,
+              currency: input.currency,
+            },
+          },
+          create: { userId, categoryId: item.category.id, year: target.year, month: target.month, currency: input.currency, amount: next },
+          update: { amount: next },
+        });
+        updated += 1;
+      }
+      return { updated, targetYear: target.year, targetMonth: target.month };
+    });
+
+    return success(
+      result,
+      result.updated === 0
+        ? "Mês de origem não possui limites ativos para levar"
+        : "Sobra e estouro levados para o mês seguinte",
+    );
+  } catch (error) {
+    return handleCategoryLimitError(error, "Erro ao levar o saldo para o mês seguinte");
   }
 }

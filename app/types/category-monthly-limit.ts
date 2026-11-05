@@ -59,6 +59,12 @@ export type BatchCategoryMonthlyLimitsInput = {
   items: Array<{ categoryId: string; amount: number }>;
 };
 
+export type CarryOverCategoryMonthlyLimitsResult = {
+  updated: number;
+  targetYear: number;
+  targetMonth: number;
+};
+
 export type CopyCategoryMonthlyLimitsInput = {
   sourceYear: number;
   sourceMonth: number;

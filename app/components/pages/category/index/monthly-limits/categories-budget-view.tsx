@@ -150,6 +150,7 @@ export default function CategoriesBudgetView({
   onPeriodChange,
   onCurrencyChange,
   onCopyPreviousMonth,
+  onCarryOver,
   onEditLimit,
 }: {
   items: CategoryMonthlyLimitItem[];
@@ -170,6 +171,7 @@ export default function CategoriesBudgetView({
   onPeriodChange: (value: string) => void;
   onCurrencyChange: (currency: SupportedCurrency) => void;
   onCopyPreviousMonth: () => void;
+  onCarryOver: () => void;
   onEditLimit: (item: CategoryMonthlyLimitItem) => void;
 }) {
   const reduce = useReducedMotion();
@@ -218,6 +220,11 @@ export default function CategoriesBudgetView({
                 {
                   label: copying ? 'Copiando limites...' : 'Copiar limites do mês anterior',
                   onSelect: onCopyPreviousMonth,
+                  disabled: controlsDisabled,
+                },
+                {
+                  label: 'Levar sobra e estouro para o mês seguinte',
+                  onSelect: onCarryOver,
                   disabled: controlsDisabled,
                 },
               ]}

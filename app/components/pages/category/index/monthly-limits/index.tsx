@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 
+import { ConfirmationModal } from '@/app/components/overlays';
 import CategoriesBudgetView from '@/app/components/pages/category/index/monthly-limits/categories-budget-view';
 import type { BudgetFilter } from '@/app/components/pages/category/index/monthly-limits/categories-budget-model';
 import { LimitEditorModal } from '@/app/components/pages/category/index/monthly-limits/limit-editor-modal';
@@ -40,8 +41,10 @@ export default function CategoryMonthlyLimits({
     setCurrency,
     save,
     copyPreviousMonth,
+    carryOver,
     remove,
   } = useCategoryMonthlyLimits();
+  const [carryConfirmOpen, setCarryConfirmOpen] = useState(false);
 
   const [filter, setFilter] = useState<BudgetFilter>('all');
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -120,7 +123,28 @@ export default function CategoryMonthlyLimits({
           setCurrency(value);
         }}
         onCopyPreviousMonth={() => void copyPreviousMonth()}
+        onCarryOver={() => setCarryConfirmOpen(true)}
         onEditLimit={startEditing}
+      />
+
+      <ConfirmationModal
+        isOpen={carryConfirmOpen}
+        onClose={() => !copying && setCarryConfirmOpen(false)}
+        onConfirm={() => {
+          void carryOver()
+            .then(() => {
+              setCarryConfirmOpen(false);
+              const next = new Date(Date.UTC(Number(periodValue.slice(0, 4)), Number(periodValue.slice(5, 7)), 1));
+              closeEditing();
+              setPeriod(`${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}`);
+            })
+            .catch(() => setCarryConfirmOpen(false));
+        }}
+        title="Levar sobra e estouro"
+        message="Em cada categoria com limite neste mês, o limite do mês seguinte passa a ser o limite deste mês mais o saldo: a sobra soma, o estouro reduz (sem passar de zero). Isso substitui o limite que o mês seguinte já tinha nessas categorias. Pode repetir sem acumular."
+        confirmText="Levar para o mês seguinte"
+        variant="warning"
+        isLoading={copying}
       />
 
       {editingItem && (

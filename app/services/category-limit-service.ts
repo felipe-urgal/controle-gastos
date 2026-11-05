@@ -6,6 +6,7 @@ import {
   UpsertCategoryMonthlyLimitInput,
   BatchCategoryMonthlyLimitsInput,
   CopyCategoryMonthlyLimitsInput,
+  CarryOverCategoryMonthlyLimitsResult,
 } from "@/app/types/category-monthly-limit";
 import type { SupportedCurrency } from "@/app/types/financial-summary";
 
@@ -48,6 +49,18 @@ export const categoryLimitService = {
     return apiClient("/api/category-limits/copy", {
       method: "POST",
       body: input,
+    });
+  },
+
+  /** Leva a sobra ou o estouro do mês informado para o limite do mês seguinte. */
+  async carryOver(
+    year: number,
+    month: number,
+    currency: SupportedCurrency,
+  ): Promise<ApiResponse<CarryOverCategoryMonthlyLimitsResult>> {
+    return apiClient("/api/category-limits/carry-over", {
+      method: "POST",
+      body: { year, month, currency },
     });
   },
 
