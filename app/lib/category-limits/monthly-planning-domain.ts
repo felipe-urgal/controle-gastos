@@ -63,3 +63,13 @@ export function summarizeMonthlyPlanning(
     },
   );
 }
+
+/**
+ * Limite do mês seguinte depois de levar a sobra (ou o estouro) do mês atual: limite do mês + saldo (`available`),
+ * sem passar de zero. Depende só do mês de origem, então repetir a ação dá o mesmo resultado (não acumula).
+ * Retorna `null` quando não há limite no mês de origem: nada a levar.
+ */
+export function carriedOverLimit(args: { sourceBudget: number | null; available: number | null }): number | null {
+  if (args.sourceBudget === null || args.available === null) return null;
+  return Math.max(0, args.sourceBudget + args.available);
+}

@@ -168,6 +168,23 @@ export function useCategoryMonthlyLimits() {
     }
   }, [currency, load, month, year]);
 
+  /** Leva a sobra/estouro do mês exibido para o limite do mês seguinte (substitui o que ele já tinha). */
+  const carryOver = useCallback(async () => {
+    setCopying(true);
+    setError('');
+
+    try {
+      const response = await categoryLimitService.carryOver(year, month, currency);
+      await load();
+      return response.data;
+    } catch (carryError) {
+      setError(carryError instanceof Error ? carryError.message : 'Erro ao levar o saldo para o mês seguinte');
+      throw carryError;
+    } finally {
+      setCopying(false);
+    }
+  }, [currency, load, month, year]);
+
   const remove = useCallback(
     async (categoryId: string) => {
       setRemovingCategoryId(categoryId);
@@ -204,6 +221,7 @@ export function useCategoryMonthlyLimits() {
     save,
     saveBatch,
     copyPreviousMonth,
+    carryOver,
     remove,
     reload: load,
   };

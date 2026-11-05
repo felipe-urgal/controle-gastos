@@ -55,6 +55,8 @@ export const copyCategoryMonthlyLimitsSchema = z.object({
   currency: currencySchema,
 });
 
+export const carryOverCategoryMonthlyLimitsSchema = categoryMonthlyLimitPeriodSchema;
+
 export type BatchCategoryMonthlyLimitsInput = z.infer<
   typeof batchCategoryMonthlyLimitsSchema
 >;
