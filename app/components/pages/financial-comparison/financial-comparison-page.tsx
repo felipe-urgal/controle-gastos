@@ -44,6 +44,8 @@ const SUPPORTED_CURRENCIES = new Set<SupportedCurrency>(['BRL', 'USD', 'EUR']);
 const PRESETS: Array<{ key: ComparisonPreset; label: string }> = [
   { key: 'previous', label: 'Mês anterior × atual' },
   { key: 'year-over-year', label: 'Mesmo mês, ano anterior' },
+  { key: 'avg-3', label: 'Atual × média de 3 meses' },
+  { key: 'avg-6', label: 'Atual × média de 6 meses' },
   { key: 'ytd', label: 'Ano até agora × anterior' },
   { key: 'closed-year', label: 'Anos fechados' },
 ];
