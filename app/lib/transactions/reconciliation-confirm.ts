@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { HttpError } from "@/app/lib/http-error";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 import type { AccountReconciliationPreviewInput } from "@/app/lib/transactions/reconciliation-schema";
 import { calculateReconciliationPreview } from "@/app/lib/transactions/reconciliation-preview";
@@ -68,6 +69,12 @@ export async function confirmAccountReconciliationForUser(
             .filter((row) => row.reconciliationStatus === "CLEARED")
             .map((row) => row.id);
           const reconciledAt = new Date();
+
+          await assertMonthsOpen(
+            tx,
+            userId,
+            rows.filter((row) => row.reconciliationStatus === "CLEARED"),
+          );
 
           if (clearedIds.length > 0) {
             const promoted = await tx.transaction.updateMany({

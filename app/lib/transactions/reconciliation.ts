@@ -5,6 +5,7 @@ import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { isHttpError } from "@/app/lib/http-error";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import { updateTransactionReconciliationSchema } from "@/app/lib/transactions/reconciliation-schema";
@@ -43,12 +44,16 @@ export async function updateTransactionReconciliation(
         status: true,
         reconciliationStatus: true,
         reconciledAt: true,
+        year: true,
+        month: true,
       },
     });
 
     if (!current) {
       return failure("Transação não encontrada", 404);
     }
+
+    await assertMonthsOpen(prisma, userId, [current]);
 
     if (current.reconciliationStatus === "RECONCILED") {
       return failure(RECONCILED_MUTATION_ERROR, 409);

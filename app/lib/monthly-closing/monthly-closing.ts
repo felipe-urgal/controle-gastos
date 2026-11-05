@@ -21,6 +21,7 @@ import {
   deriveMonthlyClosingReconciliationStatus,
   deriveMonthlyNetWorthChange,
 } from '@/app/lib/monthly-closing/monthly-closing-domain';
+import { getMonthLockState } from '@/app/lib/monthly-closing/month-lock';
 import { prisma } from '@/app/lib/prisma';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type {
@@ -463,6 +464,7 @@ export async function getMonthlyClosingForUser(
   if (status === 'FUTURE') {
     return {
       period,
+      lock: { locked: false, lockedAt: null },
       currency,
       asOf,
       status,
@@ -470,7 +472,8 @@ export async function getMonthlyClosingForUser(
     };
   }
 
-  const [dashboard, netWorth, readiness] = await Promise.all([
+  const [lock, dashboard, netWorth, readiness] = await Promise.all([
+    getMonthLockState(prisma, userId, period),
     getMonthlyDashboardForUser(userId, period, currency, now),
     getNetWorthForUser(userId, {
       year: period.year,
@@ -484,6 +487,7 @@ export async function getMonthlyClosingForUser(
 
   return {
     period,
+    lock,
     currency,
     asOf,
     status,

@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { Prisma } from "@prisma/client";
 
 import { HttpError } from "@/app/lib/http-error";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 import type { CreateTransferInput } from "@/app/schemas/transfer.schema";
 
@@ -187,6 +188,8 @@ export async function createTransferForUser(
           400,
         );
       }
+
+      await assertMonthsOpen(tx, userId, [input]);
 
       const transfer = await tx.transfer.create({
         data: {

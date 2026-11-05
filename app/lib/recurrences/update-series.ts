@@ -6,6 +6,7 @@ import { getAuthenticatedUserId } from '@/app/lib/auth';
 import { isUnauthorizedError } from '@/app/lib/auth/auth-errors';
 import { assertCardPurchaseStatementMutable } from '@/app/lib/cards/credit-card-purchase-guards';
 import { HttpError, isHttpError } from '@/app/lib/http-error';
+import { assertMonthsOpen } from '@/app/lib/monthly-closing/month-lock';
 import { prisma } from '@/app/lib/prisma';
 import { consumeTransactionMutationRateLimit } from '@/app/lib/security/application-rate-limit';
 
@@ -61,6 +62,8 @@ export async function updateRecurrenceSeriesForUser(
     if (pending.length === 0) {
       throw new HttpError('Recorrência não possui ocorrências pendentes', 409);
     }
+
+    await assertMonthsOpen(tx, userId, pending);
 
     for (const transaction of pending) {
       await assertCardPurchaseStatementMutable(

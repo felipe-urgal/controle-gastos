@@ -51,6 +51,7 @@ describe('monthly closing integration', () => {
 
     expect(data).toEqual({
       period: { year: 2026, month: 11 },
+      lock: { locked: false, lockedAt: null },
       currency: 'BRL',
       asOf: { year: 2026, month: 10, day: 6 },
       status: 'FUTURE',

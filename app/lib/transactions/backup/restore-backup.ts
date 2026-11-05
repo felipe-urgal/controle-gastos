@@ -6,6 +6,7 @@ import { failure, rateLimitFailure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import { normalizeTagDisplayName, normalizeTagNameKey } from "@/app/lib/tags/tag-name";
@@ -327,6 +328,8 @@ async function runRestore(
     });
     summary.cardPayments.toRestore += 1;
   }
+
+  await assertMonthsOpen(tx, userId, transactionRows as Array<{ year: number; month: number }>);
 
   if (!dryRun) {
     if (transferRows.length) await tx.transfer.createMany({ data: transferRows });

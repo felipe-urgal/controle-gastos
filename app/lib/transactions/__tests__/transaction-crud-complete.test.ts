@@ -10,6 +10,9 @@ const mocks = vi.hoisted(() => ({
   creditCardPayment: {
     findFirst: vi.fn(),
   },
+  lockedMonth: {
+    findMany: vi.fn(),
+  },
   $transaction: vi.fn(),
   $queryRaw: vi.fn(),
 }));
@@ -56,11 +59,13 @@ describe("completePendingTransaction", () => {
     });
     mocks.transaction.updateMany.mockResolvedValue({ count: 1 });
     mocks.creditCardPayment.findFirst.mockResolvedValue(null);
+    mocks.lockedMonth.findMany.mockResolvedValue([]);
     mocks.$queryRaw.mockResolvedValue([{ id: "card-1" }]);
     mocks.$transaction.mockImplementation(async (callback) =>
       callback({
         transaction: mocks.transaction,
         creditCardPayment: mocks.creditCardPayment,
+        lockedMonth: mocks.lockedMonth,
         $queryRaw: mocks.$queryRaw,
       }),
     );

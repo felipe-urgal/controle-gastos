@@ -9,8 +9,10 @@ import { PageContainer, PageTitle } from '@/app/components/base-pages';
 import { PageError } from '@/app/components/feedback';
 import { ProtectedRoute } from '@/app/components/layout';
 import { unroll } from '@/app/components/pages/monthly-closing/closing-motion';
+import MonthLockCard from '@/app/components/pages/monthly-closing/month-lock-card';
 import MonthlyClosingView from '@/app/components/pages/monthly-closing/monthly-closing-view';
 import {
+  buildTodoItems,
   closingUrlQuery,
   monthName,
   parseClosingUrlState,
@@ -158,6 +160,19 @@ export default function MonthlyClosingPage() {
                 Ver compromissos
               </Link>
             </motion.section>
+          )}
+
+          {data && retrospective && (
+            <div className="mb-4">
+              <MonthLockCard
+                year={year}
+                month={month}
+                lock={data.lock}
+                // Mesma regra do checklist "Para fechar o mês": a conciliação não aparece na tela, então não conta aqui.
+                hasPendingItems={buildTodoItems({ readiness: retrospective.readiness, money: String, pendingHref: '' }).some((item) => !item.ok)}
+                onChange={(lock) => setResult({ key: queryKey, data: { ...data, lock } })}
+              />
+            </div>
           )}
 
           {data && retrospective && (

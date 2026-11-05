@@ -12,6 +12,7 @@ import {
 } from "@/app/lib/date/logical-date";
 import { lockCreditCardAccount } from "@/app/lib/cards/credit-card-purchase-guards";
 import { HttpError } from "@/app/lib/http-error";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 import type { PayCreditCardStatementInput } from "@/app/lib/cards/credit-card-payment-schema";
 
@@ -244,6 +245,8 @@ export async function payCreditCardStatementForUser(
       if (amount <= 0) {
         throw new HttpError("Fatura não possui valor a pagar", 400);
       }
+
+      await assertMonthsOpen(tx, userId, [paymentDate]);
 
       const sourceTransaction = await tx.transaction.create({
         data: {

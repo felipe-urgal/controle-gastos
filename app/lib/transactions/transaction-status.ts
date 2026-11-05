@@ -6,6 +6,7 @@ import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { assertCardPurchaseStatementMutable } from "@/app/lib/cards/credit-card-purchase-guards";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import { syncTransactionSeriesMetadata } from "@/app/lib/transactions/transaction-series-metadata";
@@ -55,6 +56,7 @@ export async function updateTransactionStatus(
       }
       if (current.status === input.status) return { id, status: current.status };
 
+      await assertMonthsOpen(tx, userId, [current]);
       await assertCardPurchaseStatementMutable(tx, userId, current.account, {
         year: current.year,
         month: current.month,

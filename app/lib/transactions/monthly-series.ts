@@ -11,6 +11,7 @@ import { getOwnedActiveCategoryOrThrow } from "@/app/lib/categories/category-own
 import { getOwnedActiveMerchantOrThrow } from "@/app/lib/merchants/merchant-ownership";
 import { HttpError, isHttpError } from "@/app/lib/http-error";
 import { attachTagsToTransactions } from "@/app/lib/tags/tag-ownership";
+import { assertMonthsOpen } from "@/app/lib/monthly-closing/month-lock";
 import { prisma } from "@/app/lib/prisma";
 import { consumeTransactionMutationRateLimit } from "@/app/lib/security/application-rate-limit";
 import { toTransactionDTO } from "@/app/lib/transactions/transaction-dto";
@@ -137,6 +138,8 @@ export async function createMonthlySeriesWithTx(
       400
     );
   }
+
+  await assertMonthsOpen(tx, userId, occurrences);
 
   await assertCardPurchaseStatementsMutable(
     tx,
