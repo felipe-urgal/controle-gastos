@@ -27,7 +27,7 @@ import { AccountOption, CategoryOption, INITIAL_TIMELINE_ITEMS, MobileQuickFilte
 import { DeletedTransactionUndo } from '@/app/components/pages/transactions/index/deleted-transaction-undo';
 import { BackupDialog } from '@/app/components/pages/transactions/index/backup-dialog';
 import { ClearPeriodDialog } from '@/app/components/pages/transactions/index/clear-period-dialog';
-import { FilterDialog, TagFilterField } from '@/app/components/pages/transactions/index/transaction-dialogs';
+import { AmountFilterField, FilterDialog, TagFilterField } from '@/app/components/pages/transactions/index/transaction-dialogs';
 import { MobileTransactions } from '@/app/components/pages/transactions/index/mobile-transactions';
 import { MonthOverview, MonthSummaryCard, MovementTimeline, UpcomingTransactions } from '@/app/components/pages/transactions/index/desktop-transactions';
 import { todayLogicalDate } from '@/app/lib/date/logical-date';
@@ -167,6 +167,16 @@ export default function TransactionsPage() {
           value: merchant.id,
           label: merchant.isActive ? merchant.name : `${merchant.name} (inativo)`,
         })),
+      },
+      {
+        type: 'custom',
+        key: 'minAmount',
+        render: (value, onChange) => <AmountFilterField label="Valor mínimo" value={value} onChange={onChange} />,
+      },
+      {
+        type: 'custom',
+        key: 'maxAmount',
+        render: (value, onChange) => <AmountFilterField label="Valor máximo" value={value} onChange={onChange} />,
       },
       {
         type: 'custom',

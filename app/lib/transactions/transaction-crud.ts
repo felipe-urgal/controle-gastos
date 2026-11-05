@@ -265,11 +265,31 @@ async function transactionWhere(userId: string, request?: Request) {
     filters[field] = parsed;
   }
 
+  // Faixa de valor em centavos inteiros (o valor do lançamento, sem sinal), com limites inclusivos.
+  const amountRange: { gte?: number; lte?: number } = {};
+  for (const [param, bound] of [["minAmount", "gte"], ["maxAmount", "lte"]] as const) {
+    const value = searchParams.get(param);
+    if (value === null || value === "") continue;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 2_147_483_647) {
+      throw new HttpError(`Filtro ${param} inválido`, 400, "INVALID_QUERY");
+    }
+    amountRange[bound] = parsed;
+  }
+  if (amountRange.gte !== undefined && amountRange.lte !== undefined && amountRange.gte > amountRange.lte) {
+    throw new HttpError("O valor mínimo deve ser menor ou igual ao máximo", 400, "INVALID_QUERY");
+  }
+  if (amountRange.gte !== undefined || amountRange.lte !== undefined) {
+    AND.push({ amount: amountRange });
+  }
+
   const search = searchParams.get("search")?.trim();
   if (search) {
     AND.push({
       OR: [
         { description: { contains: search, mode: "insensitive" } },
+        { merchant: { is: { userId, name: { contains: search, mode: "insensitive" } } } },
+        { category: { is: { userId, name: { contains: search, mode: "insensitive" } } } },
         { tagLinks: { some: { userId, tag: { name: { contains: search, mode: "insensitive" } } } } },
       ],
     });

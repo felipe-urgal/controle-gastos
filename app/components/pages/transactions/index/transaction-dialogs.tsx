@@ -6,7 +6,8 @@ import { ModalShell } from '@/app/components/overlays/modal-shell';
 import { useEffect, useRef, useState } from 'react';
 import { FaFileImport, FaSearch } from 'react-icons/fa';
 import { FilterField } from '@/app/components/navigation/dynamic-filters';
-import { Button, Input, Select } from '@/app/components/ui';
+import { Button, Input, MoneyInput, Select } from '@/app/components/ui';
+import { parseMoneyInputToCents } from '@/app/lib/currency/parse-money-input';
 import { statusConfig } from '@/app/lib/constants/transaction.constants';
 import { normalizeTagDisplayName } from '@/app/lib/tags/tag-name';
 import { tagService } from '@/app/services/tag-service';
@@ -45,6 +46,31 @@ export function FilterDialog({ fields, values, loading, total, origin = null, on
         <FaFileImport aria-hidden="true" /> Importar CSV/OFX/QFX/QIF/XLSX
       </Link>
     </ModalShell>
+  );
+}
+
+/** Valor mínimo ou máximo do filtro: o filtro guarda centavos inteiros (texto), o campo mostra reais. */
+export function AmountFilterField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value?: string;
+  onChange: (value: string) => void;
+}) {
+  const cents = value ? Number(value) : null;
+  return (
+    <MoneyInput
+      label={label}
+      currency="BRL"
+      value={cents && Number.isFinite(cents) ? (cents / 100).toFixed(2).replace('.', ',') : ''}
+      onValueChange={(next) => {
+        const parsed = parseMoneyInputToCents(next);
+        onChange(parsed === null ? '' : String(parsed));
+      }}
+      placeholder="0,00"
+    />
   );
 }
 
