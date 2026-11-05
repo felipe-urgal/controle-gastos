@@ -7,8 +7,11 @@ Contrato das preferências e decisões condicionais registradas na #807/#843.
 | `showValues` | conta (sincroniza entre dispositivos) | `User.showValues` |
 | `periodicSummaryEnabled` | conta | `User.periodicSummaryEnabled` |
 | Tema (claro/escuro) | **navegador/dispositivo** | armazenamento local; não é sincronizado |
+| Layout do Dashboard (seções visíveis e ordem) | **navegador/dispositivo** | `localStorage` por usuário (`controle-gastos:dashboard-layout:{userId}`); não é sincronizado |
 
 ## Decisões
+
+- **Layout do Dashboard:** local ao aparelho, como o tema, e sem migration. O topo (saldo disponível e atenção) é fixo; só as demais seções podem ser ocultadas e reordenadas. O conteúdo guardado é normalizado na leitura (chave desconhecida some, seção nova entra ao final), então versões novas do app não perdem seções. Se virar preferência da conta, siga o mesmo caminho do tema abaixo.
 
 - **Tema:** permanece local ao navegador. Se virar preferência da conta, a migração deve ser explícita: novo campo no usuário, migration forward-only, leitura inicial do valor local como semente e atualização da UI/descrição ("não é sincronizada com sua conta"). Não sobrescrever silenciosamente a escolha local.
 - **`periodicSummaryFrequency`:** só aceita `WEEKLY`. O campo permanece no modelo como ponto de evolução do resumo periódico (ver `docs/DEVELOPMENT.md`, "Cron de resumo financeiro"), mas a UI não oferece seletor enquanto houver um único valor. Remover o campo só se o roadmap descartar outras frequências.
