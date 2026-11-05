@@ -137,7 +137,8 @@ export async function getMonthlyDashboardForUser(
   const isPastPeriod = compareLogicalDates(asOf, today) < 0;
   const flowPeriods = getDashboardFlowPeriods(period);
   const previousPeriod = shiftDashboardPeriod(period, -1);
-  const periodFilter = flowPeriods.map(({ year, month }) => ({ year, month }));
+  const yearAgoPeriod = shiftDashboardPeriod(period, -12);
+  const periodFilter = [...flowPeriods, yearAgoPeriod].map(({ year, month }) => ({ year, month }));
   const ownedCompletedTransaction = {
     userId,
     kind: 'NORMAL' as const,
@@ -311,6 +312,10 @@ export async function getMonthlyDashboardForUser(
   );
   const summary = summarizeDashboardPeriod(summaryRows, period);
   const previousSummary = summarizeDashboardPeriod(summaryRows, previousPeriod);
+  const yearAgoHasData = [...periodRows, ...cardCreditPeriodRows].some(
+    (row) => row.year === yearAgoPeriod.year && row.month === yearAgoPeriod.month,
+  );
+  const yearAgoSummary = summarizeDashboardPeriod(summaryRows, yearAgoPeriod);
   const categories = planning.items
     .map((item) => ({
       id: item.category.id,
@@ -413,6 +418,14 @@ export async function getMonthlyDashboardForUser(
       income: dashboardComparisonMetric(summary.income, previousSummary.income),
       expense: dashboardComparisonMetric(summary.expense, previousSummary.expense),
       balance: dashboardComparisonMetric(summary.balance, previousSummary.balance),
+      yearAgo: yearAgoHasData
+        ? {
+            period: yearAgoPeriod,
+            income: dashboardComparisonMetric(summary.income, yearAgoSummary.income),
+            expense: dashboardComparisonMetric(summary.expense, yearAgoSummary.expense),
+            balance: dashboardComparisonMetric(summary.balance, yearAgoSummary.balance),
+          }
+        : null,
     },
     accounts: dashboardAccounts.map((account) => ({
       ...account,
