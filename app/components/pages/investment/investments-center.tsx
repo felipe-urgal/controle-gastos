@@ -20,6 +20,7 @@ import type { InvestmentAsset, InvestmentFiscalEventType, InvestmentIncome, Inve
 import { AssetForm, FiscalCostForm, IncomeForm, OperationForm, emptyAsset, emptyFiscalCost, emptyIncome, emptyOperation, today } from '@/app/components/pages/investment/investments-helpers';
 import { AssetModal, DeleteConfirmModal, FiscalClassificationModal, FiscalCostModal, HistoryModal, IncomeModal, OperationModal } from '@/app/components/pages/investment/investment-modals';
 import { AssetsCard, FiscalCostCard, IncomesCard, OperationsCard } from '@/app/components/pages/investment/investment-cards';
+import { IncomeProjectionCard } from '@/app/components/pages/investment/income-projection-card';
 import { AllocationTargetCard } from '@/app/components/pages/investment/allocation-target-card';
 import { PortfolioSummary } from '@/app/components/pages/investment/portfolio-summary';
 import { PositionsList } from '@/app/components/pages/investment/positions-list';
@@ -619,6 +620,7 @@ export default function InvestmentsCenter() {
                     onRefreshQuotes={refreshQuotes}
                   />
                 )}
+                {summary && <IncomeProjectionCard currency={summary.currency} showValues={showValues} />}
                 {summary && (
                   <AllocationTargetCard currency={summary.currency} allocation={summary.allocation} showValues={showValues} />
                 )}
