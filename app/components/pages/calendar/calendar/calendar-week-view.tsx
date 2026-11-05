@@ -54,6 +54,7 @@ export default function CalendarWeekView({
         return (
           <div
             key={key}
+            role="group"
             aria-label={`${weekDaysLong[date.getDay()]}, ${date.toLocaleDateString('pt-BR')}`}
             onDragOver={(event) => {
               if (!day || busy) return;

@@ -480,6 +480,16 @@ export function MobileTransactionRow({
         event.preventDefault();
         if (selection.selectable) selection.onToggle();
       }}
+      // No modo de seleção a linha vira uma caixa de marcação: o leitor de tela anuncia marcada/desmarcada e Espaço alterna.
+      role={selection?.active ? 'checkbox' : undefined}
+      aria-checked={selection?.active ? selection.selected : undefined}
+      aria-disabled={selection?.active && !selection.selectable ? true : undefined}
+      onKeyDown={(event: React.KeyboardEvent) => {
+        if (selection?.active && event.key === ' ') {
+          event.preventDefault();
+          if (selection.selectable) selection.onToggle();
+        }
+      }}
       whileTap={{ scale: 0.98 }}
       className={`grid min-h-[56px] w-full items-center gap-2.5 py-1.5 text-left ${selection?.active ? 'grid-cols-[22px_38px_minmax(0,1fr)_auto]' : 'grid-cols-[38px_minmax(0,1fr)_auto]'} ${selection?.active && !selection.selectable ? 'opacity-60' : ''}`}
     >

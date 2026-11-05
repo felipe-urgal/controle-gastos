@@ -97,6 +97,8 @@ export default function TransactionAttachments({ transactionId }: { transactionI
         />
       </div>
 
+      {/* Anuncia ao leitor de tela quando um comprovante entra ou sai. */}
+      <div aria-live="polite">
       {data.items.length > 0 ? (
         <ul className="mt-3 divide-y divide-[var(--border)] rounded-[var(--radius-md)] border border-[var(--border)]">
           {data.items.map((item) => (
@@ -118,6 +120,7 @@ export default function TransactionAttachments({ transactionId }: { transactionI
       ) : (
         <p className="mt-3 text-sm text-[var(--text-muted)]">Nenhum comprovante anexado.</p>
       )}
+      </div>
 
       {error && (
         <div className="mt-3">

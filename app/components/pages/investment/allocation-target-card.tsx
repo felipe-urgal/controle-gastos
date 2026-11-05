@@ -132,7 +132,7 @@ export function AllocationTargetCard({
               />
             ))}
           </div>
-          <p className={`text-xs ${draftMessage && draftTargets.length > 0 ? 'font-semibold text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>
+          <p aria-live="polite" className={`text-xs ${draftMessage && draftTargets.length > 0 ? 'font-semibold text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>
             Soma: {draftSum}%{draftTargets.length > 0 && draftSum !== 100 ? ' (precisa fechar em 100%)' : ''}. Deixe em branco as classes que não entram na meta.
           </p>
           <div className="flex flex-wrap gap-2">
