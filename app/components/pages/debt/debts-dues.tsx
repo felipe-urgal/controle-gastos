@@ -9,11 +9,7 @@ import { riseInView } from '@/app/components/ui/motion-presets';
 import { daysUntil, dueLabel, type LogicalDay } from '@/app/components/pages/debt/debts-model';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { Debt } from '@/app/types/debt';
-
-function dateLabel(value: string) {
-  const [year, month, day] = value.split('-');
-  return `${day}/${month}/${year}`;
-}
+import { formatIsoDatePtBr } from '@/app/lib/date/logical-date';
 
 export function DebtsDues({
   debts,
@@ -54,7 +50,7 @@ export function DebtsDues({
               >
                 <motion.div className="min-w-0" variants={{ hover: { x: 4, transition: { type: 'spring', stiffness: 400, damping: 22 } } }}>
                   <strong className="block truncate text-sm">{debt.name}</strong>
-                  <span className="block text-xs text-[var(--text-muted)]">{dateLabel(debt.dueDate as string)}{debt.institution ? ` · ${debt.institution}` : ''}</span>
+                  <span className="block text-xs text-[var(--text-muted)]">{formatIsoDatePtBr(debt.dueDate as string)}{debt.institution ? ` · ${debt.institution}` : ''}</span>
                 </motion.div>
                 <div className="flex flex-wrap items-center justify-end gap-3">
                   {/* Vencida pulsa; a pílula das demais só aparece com um pequeno "pop". */}

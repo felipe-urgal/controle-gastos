@@ -11,6 +11,7 @@ import {
   payrollSearchParams,
 } from "@/app/lib/payroll/payroll-query";
 import { prisma } from "@/app/lib/prisma";
+import { formatIsoLogicalDate } from "@/app/lib/date/logical-date";
 
 const linkSchema = z.object({
   payrollDocumentId: z.string().uuid(),
@@ -54,14 +55,6 @@ function candidateWindow(year: number, month: number) {
     { year, month },
     { year: next.year, month: next.month, day: { lte: 10 } },
   ];
-}
-
-function dateLabel(value: { year: number; month: number; day: number }) {
-  return [
-    String(value.year).padStart(4, "0"),
-    String(value.month).padStart(2, "0"),
-    String(value.day).padStart(2, "0"),
-  ].join("-");
 }
 
 type PayrollCreditCandidate = {
@@ -158,7 +151,7 @@ function transactionSummary(
     type: transaction.type,
     status: transaction.status,
     description: transaction.description,
-    date: dateLabel(transaction),
+    date: formatIsoLogicalDate(transaction),
     reconciliationStatus: transaction.reconciliationStatus,
     evidence,
     account: {

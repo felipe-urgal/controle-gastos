@@ -5,6 +5,7 @@ import {
   formatIsoLogicalDate,
   logicalDateFromInstant,
   logicalDateFromUtcInstant,
+  formatIsoDatePtBr,
   formatPtBrLogicalDate,
   getLastDayOfMonth,
   isValidLogicalDate,
@@ -30,6 +31,7 @@ describe("logical date primitives", () => {
     const date = { year: 2028, month: 2, day: 9 };
     expect(formatIsoLogicalDate(date)).toBe("2028-02-09");
     expect(formatPtBrLogicalDate(date)).toBe("09/02/2028");
+    expect(formatIsoDatePtBr("2028-02-09")).toBe("09/02/2028");
   });
 
   it("uses the Brazil civil date for real instants (no flip at 21h)", () => {

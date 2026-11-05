@@ -99,6 +99,12 @@ export function formatPtBrLogicalDate(date: LogicalDate) {
   return `${String(date.day).padStart(2, "0")}/${String(date.month).padStart(2, "0")}/${String(date.year).padStart(4, "0")}`;
 }
 
+/** "2026-11-05" → "05/11/2026". Só reordena as partes: use `parseIsoLogicalDate` antes se a entrada não for confiável. */
+export function formatIsoDatePtBr(value: string) {
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 export function addDaysToLogicalDate(date: LogicalDate, days: number): LogicalDate {
   const value = new Date(Date.UTC(date.year, date.month - 1, date.day));
   value.setUTCDate(value.getUTCDate() + days);

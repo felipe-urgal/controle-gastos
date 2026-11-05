@@ -10,6 +10,7 @@ import type {
   InvestmentTaxPaymentTransactionCandidate,
 } from '@/app/types/investment';
 import { Button } from '@/app/components/ui';
+import { formatIsoDatePtBr } from '@/app/lib/date/logical-date';
 
 function statusLabel(status: InvestmentTaxPaymentReconciliationItem['status']) {
   if (status === 'MATCHED') return 'Vinculado';
@@ -26,11 +27,6 @@ function statusClass(status: InvestmentTaxPaymentReconciliationItem['status']) {
     return 'bg-[var(--surface-subtle)] text-[var(--foreground)]';
   }
   return 'bg-[var(--warning-subtle)] text-[var(--warning)]';
-}
-
-function dateLabel(value: string) {
-  const [year, month, day] = value.split('-');
-  return [day, month, year].join('/');
 }
 
 export function InvestmentTaxPaymentReconciliationSection({
@@ -166,7 +162,7 @@ export function InvestmentTaxPaymentReconciliationSection({
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-[var(--text-muted)]">
-                    Pago em {dateLabel(item.paidDate)} · {item.assetType} · {item.currency}
+                    Pago em {formatIsoDatePtBr(item.paidDate)} · {item.assetType} · {item.currency}
                   </p>
                   {item.receiptReference ? (
                     <p className="mt-1 text-xs text-[var(--text-subtle)]">
@@ -238,7 +234,7 @@ function TransactionSummary({
   return (
     <div className="grid gap-1 text-xs sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-3">
       <strong className="text-[var(--foreground)]">
-        {dateLabel(transaction.date)}
+        {formatIsoDatePtBr(transaction.date)}
       </strong>
       <span className="min-w-0 truncate text-[var(--text-muted)]">
         {transaction.account.name} · {transaction.description}

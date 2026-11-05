@@ -4,12 +4,13 @@ import type { Dispatch, FormEvent, SetStateAction } from 'react';
 
 import { PageLoading } from '@/app/components/feedback';
 import { IncomeRow, InvestmentModal, ModalActions, OperationRow, SelectField } from '@/app/components/pages/investment/investment-cards';
-import { AssetForm, FiscalCostForm, IncomeForm, OperationForm, assetTypes, incomeTypes, dateLabel, fiscalEventTypes, quantityLabel } from '@/app/components/pages/investment/investments-helpers';
+import { AssetForm, FiscalCostForm, IncomeForm, OperationForm, assetTypes, incomeTypes, fiscalEventTypes, quantityLabel } from '@/app/components/pages/investment/investments-helpers';
 import { Button, Input, MoneyInput, MoneyText } from '@/app/components/ui';
 import { currencyOptions } from '@/app/lib/constants/account.constants';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
 import type { InvestmentAsset, InvestmentAssetType, InvestmentFiscalEventType, InvestmentIncome, InvestmentOperation, InvestmentIncomeType, InvestmentOperationType, InvestmentPortfolio, InvestmentTaxLocation } from '@/app/types/investment';
+import { formatIsoDatePtBr } from '@/app/lib/date/logical-date';
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
 type Submit = (event: FormEvent) => void | Promise<void>;
@@ -514,7 +515,7 @@ export function FiscalCostModal({ portfolio, fiscalCostForm, setFiscalCostForm, 
                           className="text-xs leading-relaxed text-[var(--text-muted)]"
                         >
                           <strong className="text-[var(--foreground)]">
-                            {dateLabel(item.date)} · {quantityLabel(item.quantity)} un.
+                            {formatIsoDatePtBr(item.date)} · {quantityLabel(item.quantity)} un.
                           </strong>
                           {' · '}
                           <MoneyText>

@@ -20,6 +20,7 @@ import type {
   PayrollReconciliationStatus,
   PayrollTransactionReconciliationItem,
 } from '@/app/types/payroll';
+import { formatIsoDatePtBr } from '@/app/lib/date/logical-date';
 
 function statusClass(status: PayrollReconciliationStatus) {
   if (status === 'MATCHED') {
@@ -35,11 +36,6 @@ function typeLabel(item: PayrollTransactionReconciliationItem) {
   return item.documentType === 'PAYROLL_ADVANCE'
     ? 'Adiantamento'
     : payrollPaymentTypeLabel(item.paymentType);
-}
-
-function dateLabel(value: string) {
-  const [year, month, day] = value.split('-');
-  return [day, month, year].join('/');
 }
 
 const statusOptions: Array<{
@@ -424,7 +420,7 @@ function TransactionSummary({
   return (
     <div className="grid gap-1 text-xs sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-3">
       <strong className="text-[var(--foreground)]">
-        {dateLabel(transaction.date)}
+        {formatIsoDatePtBr(transaction.date)}
       </strong>
       <span className="min-w-0 break-words text-[var(--text-muted)]">
         {transaction.account.name} · {transaction.description}

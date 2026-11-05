@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { getJwtSecret } from "@/app/lib/auth/jwt-secret";
 
 const EMAIL_ISSUER = "controle-gastos-auth";
 const EMAIL_AUDIENCE = "controle-gastos-email-verification";
@@ -58,12 +59,6 @@ export function signEmailVerificationToken(
       audience: EMAIL_AUDIENCE,
     },
   );
-}
-
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error("JWT_SECRET_NOT_CONFIGURED");
-  return secret;
 }
 
 export function verifyEmailVerificationToken(token: string) {

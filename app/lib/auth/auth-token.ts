@@ -1,19 +1,10 @@
 import jwt from "jsonwebtoken";
+import { getJwtSecret } from "@/app/lib/auth/jwt-secret";
 
 const TOKEN_ISSUER = "seu-app";
 const TOKEN_AUDIENCE = "seu-app-users";
 const TOKEN_TTL = "7d";
 const TOKEN_ALGORITHM = "HS256" as const;
-
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error("JWT_SECRET_NOT_CONFIGURED");
-  }
-
-  return secret;
-}
 
 function isValidAuthVersion(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) >= 0;

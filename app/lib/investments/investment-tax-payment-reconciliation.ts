@@ -6,6 +6,7 @@ import { failure, success } from "@/app/lib/api-response";
 import { getAuthenticatedUserId } from "@/app/lib/auth";
 import { isUnauthorizedError } from "@/app/lib/auth/auth-errors";
 import { prisma } from "@/app/lib/prisma";
+import { formatIsoLogicalDate } from "@/app/lib/date/logical-date";
 
 const querySchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100),
@@ -15,14 +16,6 @@ const linkSchema = z.object({
   paymentId: z.string().uuid(),
   transactionId: z.string().uuid(),
 });
-
-function dateLabel(value: { year: number; month: number; day: number }) {
-  return [
-    String(value.year).padStart(4, "0"),
-    String(value.month).padStart(2, "0"),
-    String(value.day).padStart(2, "0"),
-  ].join("-");
-}
 
 function transactionSummary(transaction: {
   id: string;
@@ -44,7 +37,7 @@ function transactionSummary(transaction: {
     kind: transaction.kind,
     status: transaction.status,
     description: transaction.description,
-    date: dateLabel(transaction),
+    date: formatIsoLogicalDate(transaction),
     reconciliationStatus: transaction.reconciliationStatus,
     account: transaction.account,
   };
@@ -119,7 +112,7 @@ export async function getInvestmentTaxPaymentReconciliationForUser(
         competenceYear: payment.competenceYear,
         competenceMonth: payment.competenceMonth,
         code: payment.code,
-        paidDate: dateLabel({
+        paidDate: formatIsoLogicalDate({
           year: payment.paidYear,
           month: payment.paidMonth,
           day: payment.paidDay,

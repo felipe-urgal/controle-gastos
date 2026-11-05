@@ -8,6 +8,7 @@ import { FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { Button, Input, MoneyText } from '@/app/components/ui';
 import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { investmentService, type CustodyStatementComparison } from '@/app/services/investment-service';
+import { formatIsoDatePtBr } from '@/app/lib/date/logical-date';
 
 const statusLabel: Record<CustodyStatementComparison['comparison'][number]['status'], { text: string; tone: string }> = {
   MATCH: { text: 'Confere', tone: 'bg-[var(--surface-raised)] text-[var(--income)]' },
@@ -17,9 +18,7 @@ const statusLabel: Record<CustodyStatementComparison['comparison'][number]['stat
 };
 
 function dateLabel(value: string | null) {
-  if (!value) return '—';
-  const [year, month, day] = value.split('-');
-  return `${day}/${month}/${year}`;
+  return value ? formatIsoDatePtBr(value) : '—';
 }
 
 export function CustodyStatementCard({ showValues }: { showValues: boolean }) {

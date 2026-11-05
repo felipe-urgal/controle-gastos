@@ -43,11 +43,6 @@ export function fiscalEventLabel(type: InvestmentFiscalEventType) {
   return fiscalEventTypes.find((item) => item.value === type)?.label ?? type;
 }
 
-export function dateLabel(value: string) {
-  const [year, month, day] = value.split('-');
-  return `${day}/${month}/${year}`;
-}
-
 export function quoteDateLabel(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';

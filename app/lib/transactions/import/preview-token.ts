@@ -2,16 +2,11 @@ import { createHash } from "node:crypto";
 import jwt, { JwtPayload, TokenExpiredError } from "jsonwebtoken";
 
 import type { PreviewImportItem } from "@/app/lib/transactions/import/parser";
+import { getJwtSecret } from "@/app/lib/auth/jwt-secret";
 
 const PREVIEW_ISSUER = "controle-gastos-import-preview";
 const PREVIEW_AUDIENCE = "controle-gastos-import-confirm";
 export const IMPORT_PREVIEW_TTL_SECONDS = 20 * 60;
-
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error("JWT_SECRET is required for import preview tokens");
-  return secret;
-}
 
 export function createPreviewDigest(params: {
   accountId: string;

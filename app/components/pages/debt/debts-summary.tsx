@@ -11,13 +11,9 @@ import { formatCurrency } from '@/app/lib/currency/format-currency';
 import { dueLabel, installmentLoad, type DebtsSummary, type LogicalDay } from '@/app/components/pages/debt/debts-model';
 import type { Debt } from '@/app/types/debt';
 import type { SupportedCurrency } from '@/app/types/financial-summary';
+import { formatIsoDatePtBr } from '@/app/lib/date/logical-date';
 
 const monthNames = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-
-function dateLabel(value: string) {
-  const [year, month, day] = value.split('-');
-  return `${day}/${month}/${year}`;
-}
 
 export function DebtsSummaryPanel({
   summary,
@@ -90,7 +86,7 @@ export function DebtsSummaryPanel({
         <Stat
           index={1}
           label="Próximo vencimento"
-          value={next?.debt.dueDate ? dateLabel(next.debt.dueDate) : '—'}
+          value={next?.debt.dueDate ? formatIsoDatePtBr(next.debt.dueDate) : '—'}
           detail={next ? `${dueLabel(next.days)} · ${next.debt.name}` : 'sem vencimento futuro'}
         />
         <Stat
