@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
 
 import { PageTitle } from '@/app/components/base-pages';
 import { ProtectedRoute } from '@/app/components/layout';
@@ -14,6 +14,16 @@ import { usePeriodicSummary } from '@/app/hooks/dashboard/use-periodic-summary';
 
 import type { DashboardHome } from '@/app/types/dashboard';
 
+import DashboardCustomizeDialog from '@/app/components/pages/dashboard/dashboard/dashboard-customize-dialog';
+import {
+  DEFAULT_DASHBOARD_LAYOUT,
+  dashboardLayoutStorageKey,
+  readDashboardLayout,
+  visibleDashboardSections,
+  writeDashboardLayout,
+  type DashboardLayout,
+  type DashboardSectionKey,
+} from '@/app/components/pages/dashboard/dashboard/dashboard-layout';
 import { dashboardLogicalDateLabel, monthLabel, periodOffset, sectionState } from '@/app/components/pages/dashboard/dashboard/dashboard-helpers';
 import { AttentionCard } from '@/app/components/pages/dashboard/dashboard/cards/attention-card';
 import { SafeToSpendHero } from '@/app/components/pages/dashboard/dashboard/cards/safe-to-spend-hero';
@@ -138,7 +148,17 @@ function DashboardHome({
   periodicSummaryEnabled: boolean;
   onRetry: () => void;
 }) {
+  const { user } = useAuth();
   const [forecastOpen, setForecastOpen] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [layout, setLayout] = useState<DashboardLayout>(DEFAULT_DASHBOARD_LAYOUT);
+  const userId = user?.id;
+  // Lido depois da montagem (o servidor não tem localStorage); o layout é por usuário e por aparelho.
+  useEffect(() => {
+    if (!userId) return;
+    const timeout = window.setTimeout(() => setLayout(readDashboardLayout(window.localStorage, dashboardLayoutStorageKey(userId))), 0);
+    return () => window.clearTimeout(timeout);
+  }, [userId]);
   const data = home.monthly;
   const forecast = sectionState(home.current.forecast);
   const commitments = sectionState(home.current.commitments);
@@ -177,6 +197,85 @@ function DashboardHome({
     home.netWorth,
     home.insights,
   ].some((section) => section.status === 'ERROR');
+
+  const sections: Record<DashboardSectionKey, ReactNode> = {
+    pace: (
+      <section className="mt-[14px] grid gap-[14px] lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        <MonthPaceCard
+          data={data}
+          relation={home.scope.selectedPeriodRelation}
+          today={home.scope.currentAsOf.day}
+          showValues={showValues}
+        />
+        <MonthlyFlowCard
+          flow={data.flow}
+          relation={home.scope.selectedPeriodRelation}
+          showValues={showValues}
+          currency={data.currency}
+        />
+      </section>
+    ),
+    pending: commitments.notApplicable ? null : (
+      <section className="mt-[14px]">
+        <PendingSummaryCard
+          totals={commitments.data?.totals ?? null}
+          days={commitments.data?.days ?? null}
+          showValues={showValues}
+          currency={data.currency}
+          loading={commitments.loading}
+          error={commitments.error}
+          onRetry={onRetry}
+        />
+      </section>
+    ),
+    lists: (
+      <section className="mt-[14px] grid gap-[14px] md:grid-cols-2 xl:grid-cols-3">
+        {!commitments.notApplicable && <UpcomingCard
+          items={commitmentItems}
+          asOf={home.scope.referenceDate}
+          showValues={showValues}
+          currency={data.currency}
+          loading={commitments.loading}
+          error={commitments.error}
+          onRetry={onRetry}
+        />}
+        <RecentTransactionsCard
+          items={recentTransactions.data ?? []}
+          loading={recentTransactions.loading}
+          error={recentTransactions.error}
+          showValues={showValues}
+          currency={data.currency}
+          onRetry={onRetry}
+        />
+        <div className="min-w-0 md:col-span-2 xl:col-span-1">
+          <CategoriesCard categories={topCategories} limits={data.limits} showValues={showValues} currency={data.currency} period={data.period} />
+        </div>
+      </section>
+    ),
+    overview: (
+      <div className="mt-[14px]">
+        <OverviewStrip
+          cards={data.cards}
+          goals={data.goals}
+          netWorth={netWorth}
+          period={data.period}
+          currency={data.currency}
+          showValues={showValues}
+        />
+      </div>
+    ),
+    summary: periodicSummaryEnabled ? (
+      <div className="mt-[14px]">
+        <PeriodicSummaryCard
+          state={periodicSummary.data}
+          loading={periodicSummary.loading}
+          error={periodicSummary.error}
+          onRetry={periodicSummary.retry}
+          showValues={showValues}
+        />
+      </div>
+    ) : null,
+  };
 
   return (
     <>
@@ -231,77 +330,26 @@ function DashboardHome({
         />
       </section>
 
-      <section className="mt-[14px] grid gap-[14px] lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        <MonthPaceCard
-          data={data}
-          relation={home.scope.selectedPeriodRelation}
-          today={home.scope.currentAsOf.day}
-          showValues={showValues}
-        />
-        <MonthlyFlowCard
-          flow={data.flow}
-          relation={home.scope.selectedPeriodRelation}
-          showValues={showValues}
-          currency={data.currency}
-        />
-      </section>
+      {visibleDashboardSections(layout).map((key) => {
+        const node = sections[key];
+        return node ? <Fragment key={key}>{node}</Fragment> : null;
+      })}
 
-      {!commitments.notApplicable && <section className="mt-[14px]">
-        <PendingSummaryCard
-          totals={commitments.data?.totals ?? null}
-          days={commitments.data?.days ?? null}
-          showValues={showValues}
-          currency={data.currency}
-          loading={commitments.loading}
-          error={commitments.error}
-          onRetry={onRetry}
-        />
-      </section>}
-
-      <section className="mt-[14px] grid gap-[14px] md:grid-cols-2 xl:grid-cols-3">
-        {!commitments.notApplicable && <UpcomingCard
-          items={commitmentItems}
-          asOf={home.scope.referenceDate}
-          showValues={showValues}
-          currency={data.currency}
-          loading={commitments.loading}
-          error={commitments.error}
-          onRetry={onRetry}
-        />}
-        <RecentTransactionsCard
-          items={recentTransactions.data ?? []}
-          loading={recentTransactions.loading}
-          error={recentTransactions.error}
-          showValues={showValues}
-          currency={data.currency}
-          onRetry={onRetry}
-        />
-        <div className="min-w-0 md:col-span-2 xl:col-span-1">
-          <CategoriesCard categories={topCategories} limits={data.limits} showValues={showValues} currency={data.currency} period={data.period} />
-        </div>
-      </section>
-
-      <div className="mt-[14px]">
-        <OverviewStrip
-          cards={data.cards}
-          goals={data.goals}
-          netWorth={netWorth}
-          period={data.period}
-          currency={data.currency}
-          showValues={showValues}
-        />
+      <div className="mt-[14px] flex justify-end">
+        <Button variant="ghost" size="sm" onClick={() => setCustomizeOpen(true)}>
+          Personalizar painel
+        </Button>
       </div>
 
-      {periodicSummaryEnabled && (
-        <div className="mt-[14px]">
-          <PeriodicSummaryCard
-            state={periodicSummary.data}
-            loading={periodicSummary.loading}
-            error={periodicSummary.error}
-            onRetry={periodicSummary.retry}
-            showValues={showValues}
-          />
-        </div>
+      {customizeOpen && (
+        <DashboardCustomizeDialog
+          layout={layout}
+          onChange={(next) => {
+            setLayout(next);
+            if (user?.id) writeDashboardLayout(window.localStorage, dashboardLayoutStorageKey(user.id), next);
+          }}
+          onClose={() => setCustomizeOpen(false)}
+        />
       )}
 
       {forecastOpen && forecast.data && (
