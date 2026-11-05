@@ -8,6 +8,7 @@ import {
   nextFormal,
   parseAmountInput,
   relativeDays,
+  findDuplicateSubscriptions,
 } from '@/app/components/pages/recurrences/recurrences-center/recurrences-model';
 import type { RecurrenceCandidate, RecurrencesData, RecurrenceSummaryItem } from '@/app/types/recurrence';
 import type { SubscriptionItem } from '@/app/types/subscription';
@@ -130,5 +131,46 @@ describe('recurrences-model', () => {
     });
     expect(currencyTotals(value, 'BRL')).toMatchObject({ recurrences: { monthlyEquivalent: 100 }, subscriptions: null });
     expect(currencyTotals(value, 'USD')).toMatchObject({ recurrences: null, subscriptions: { monthlyEquivalent: 5 } });
+  });
+});
+
+describe('findDuplicateSubscriptions', () => {
+  const subs = (items: ReturnType<typeof subscription>[], possible: ReturnType<typeof subscription>[] = []) => ({
+    confirmed: items,
+    possible,
+    priceChanges: [],
+    totals: [],
+    windowMonths: 12,
+  });
+
+  it('agrupa por estabelecimento e por descrição normalizada, na mesma moeda', () => {
+    const merchant = { id: 'm1', name: 'Spotify' };
+    const a = subscription('a', { merchant, description: 'Spotify Premium' });
+    const b = subscription('b', { merchant, description: 'SPOTIFY AB', account: { id: 'x', name: 'Inter' } });
+    const c = subscription('c', { description: 'Netflix' });
+    const d = subscription('d', { description: 'NETFLIX  ' });
+    const e = subscription('e', { description: 'Netflix', currency: 'USD' });
+
+    const result = findDuplicateSubscriptions(subs([a, b, c, d, e]));
+    expect(result.get('a')?.map((item) => item.id)).toEqual(['b']);
+    expect(result.get('b')?.map((item) => item.id)).toEqual(['a']);
+    expect(result.get('c')?.map((item) => item.id)).toEqual(['d']);
+    expect(result.has('e')).toBe(false);
+  });
+
+  it('ignora encerradas e não conta a mesma assinatura em duas listas', () => {
+    const live = subscription('live', { description: 'Disney+' });
+    const ended = subscription('ended', { description: 'Disney+', possiblyEnded: true });
+    expect(findDuplicateSubscriptions(subs([live, ended])).size).toBe(0);
+    expect(findDuplicateSubscriptions(subs([live], [live])).size).toBe(0);
+  });
+
+  it('a fila traz a duplicidade depois do preço e antes das demais, sem repetir a assinatura', () => {
+    const a = subscription('a', { description: 'Disney+', priceChange: { previousAmount: 3000, currentAmount: 3390, difference: 390, percent: 13 } });
+    const b = subscription('b', { description: 'Disney+' });
+    const queue = buildReviewQueue(data({ subscriptions: { confirmed: [a, b], possible: [], priceChanges: [a], totals: [], windowMonths: 12 } }), new Set());
+    expect(queue.map((entry) => (entry.kind === 'subscription' ? `${entry.item.id}:${entry.reason}` : entry.key))).toEqual(['a:PRICE', 'b:DUPLICATE']);
+    const first = queue[0];
+    expect(first.kind === 'subscription' && first.duplicateOf?.map((item) => item.id)).toEqual(['b']);
   });
 });

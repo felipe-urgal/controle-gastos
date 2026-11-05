@@ -4,14 +4,14 @@ import type {
   RecurrencesData,
   RecurrenceSummaryItem,
 } from '@/app/types/recurrence';
-import type { SubscriptionItem } from '@/app/types/subscription';
+import type { SubscriptionItem, SubscriptionsData } from '@/app/types/subscription';
 import type { RecurrenceFrequency } from '@/app/types/transaction';
 import { logicalDateFromInstant } from '@/app/lib/date/logical-date';
 
-export type SubscriptionReviewReason = 'STALE' | 'POSSIBLE' | 'PRICE';
+export type SubscriptionReviewReason = 'STALE' | 'POSSIBLE' | 'PRICE' | 'DUPLICATE';
 
 export type ReviewEntry =
-  | { kind: 'subscription'; key: string; reason: SubscriptionReviewReason; item: SubscriptionItem }
+  | { kind: 'subscription'; key: string; reason: SubscriptionReviewReason; item: SubscriptionItem; duplicateOf?: SubscriptionItem[] }
   | { kind: 'candidate'; key: string; candidate: RecurrenceCandidate };
 
 type Money = (cents: number, currency: string) => string;
@@ -72,31 +72,73 @@ export function nextFormal(items: RecurrenceSummaryItem[]) {
   )[0] ?? null;
 }
 
+function duplicateKey(item: SubscriptionItem) {
+  const base = item.merchant
+    ? `merchant:${item.merchant.id}`
+    : `name:${item.description
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()}`;
+  return `${item.currency}:${base}`;
+}
+
+/**
+ * Assinaturas ativas que parecem a mesma cobrança duas vezes: mesma moeda e mesmo estabelecimento (ou mesma
+ * descrição, quando não há estabelecimento). Devolve, por assinatura, as outras do grupo. Quem já encerrou
+ * (`possiblyEnded`) não conta, e a mesma assinatura em duas listas é uma só.
+ */
+export function findDuplicateSubscriptions(data: SubscriptionsData): Map<string, SubscriptionItem[]> {
+  const unique = new Map<string, SubscriptionItem>();
+  for (const item of [...data.confirmed, ...data.possible]) {
+    if (!item.possiblyEnded && !unique.has(item.id)) unique.set(item.id, item);
+  }
+
+  const groups = new Map<string, SubscriptionItem[]>();
+  for (const item of unique.values()) {
+    const key = duplicateKey(item);
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+
+  const result = new Map<string, SubscriptionItem[]>();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    for (const item of group) result.set(item.id, group.filter((other) => other.id !== item.id));
+  }
+  return result;
+}
+
 /**
  * Fila "Para revisar": uma entrada por assinatura (sem duplicar quem aparece em mais de uma lista) e uma por
- * padrão detectado. Ordem: preço alterado, sem cobrança recente, possível assinatura, padrões.
+ * padrão detectado. Ordem: preço alterado, possível duplicidade, sem cobrança recente, possível assinatura, padrões.
  */
 export function buildReviewQueue(data: RecurrencesData, ignored: ReadonlySet<string>): ReviewEntry[] {
   const seen = new Set<string>();
   const stale: ReviewEntry[] = [];
   const possible: ReviewEntry[] = [];
   const price: ReviewEntry[] = [];
+  const duplicate: ReviewEntry[] = [];
+  const duplicates = findDuplicateSubscriptions(data.subscriptions);
 
   const add = (item: SubscriptionItem, reason: SubscriptionReviewReason, bucket: ReviewEntry[]) => {
     if (seen.has(item.id) || ignored.has(item.id)) return;
     seen.add(item.id);
-    bucket.push({ kind: 'subscription', key: `subscription:${item.id}`, reason, item });
+    bucket.push({ kind: 'subscription', key: `subscription:${item.id}`, reason, item, duplicateOf: duplicates.get(item.id) });
   };
 
   for (const item of data.subscriptions.confirmed) if (item.requiresActivityReview) add(item, 'STALE', stale);
   for (const item of data.subscriptions.possible) add(item, 'POSSIBLE', possible);
   for (const item of data.subscriptions.priceChanges) add(item, 'PRICE', price);
+  for (const item of [...data.subscriptions.confirmed, ...data.subscriptions.possible]) {
+    if (duplicates.has(item.id)) add(item, 'DUPLICATE', duplicate);
+  }
 
   const candidates: ReviewEntry[] = data.candidates
     .filter((candidate) => !ignored.has(candidate.id))
     .map((candidate) => ({ kind: 'candidate', key: `candidate:${candidate.id}`, candidate }));
 
-  return [...price, ...stale, ...possible, ...candidates];
+  return [...price, ...duplicate, ...stale, ...possible, ...candidates];
 }
 
 export function currencyTotals(data: RecurrencesData, currency: string) {
