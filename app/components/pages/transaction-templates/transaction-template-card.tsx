@@ -92,6 +92,9 @@ export default function TransactionTemplateCard({
           ))}
         </p>
         <span className="flex shrink-0 items-center">
+          <Button as="a" href={`/transacoes/nova?template=${encodeURIComponent(item.id)}&schedule=recurring`} size="sm" variant="outline" className="mr-1">
+            Agendar
+          </Button>
           <Button as="a" href={`/transacoes/nova?template=${encodeURIComponent(item.id)}`} size="sm" className="mr-1 min-w-20">
             Usar
           </Button>
