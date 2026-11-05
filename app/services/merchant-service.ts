@@ -1,5 +1,13 @@
-import { createBaseService } from "@/app/services/base-service";
+import { apiClient } from "@/app/services/api-client";
+import { createBaseService, type ApiResponse } from "@/app/services/base-service";
 import type { MerchantDTO, MerchantMonthSummary } from "@/app/types/merchant";
+
+export type MerchantMergeResult = {
+  targetId: string;
+  movedTransactions: number;
+  movedAliases: number;
+  discardedAliases: number;
+};
 
 type MerchantListResponse = {
   items: MerchantDTO[];
@@ -15,6 +23,10 @@ const baseMerchantService =
 
 export const merchantService = {
   ...baseMerchantService,
+
+  merge(id: string, targetId: string): Promise<ApiResponse<MerchantMergeResult>> {
+    return apiClient(`/api/merchants/${id}/merge`, { method: "POST", body: { targetId } });
+  },
 
   async searchOptions(search = "") {
     const normalizedSearch = search.trim();
